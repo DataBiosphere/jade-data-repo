@@ -9,7 +9,6 @@ import com.google.api.gax.rpc.ApiException;
 import com.google.api.resourcenames.ResourceName;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.billing.v1.BillingAccountName;
 import com.google.cloud.billing.v1.CloudBillingClient;
 import com.google.cloud.billing.v1.CloudBillingSettings;
@@ -36,28 +35,36 @@ public class GoogleBillingService {
   private static Logger logger = LoggerFactory.getLogger(GoogleBillingService.class);
 
   private static CloudBillingClient accessClient(AuthenticatedUserRequest user) {
+    logger.info("accessClient");
     try {
       //  If no user, use system credentials, otherwise use user credentials instead
       final String credentialName;
       final GoogleCredentials credentials;
       if (user == null || user.getToken().isEmpty()) {
+        logger.info("user is null or token is empty");
         // Authentication is provided by the 'gcloud' tool when running locally
         // and by built-in service accounts when running on GAE, GCE, or GKE.
-        GoogleCredentials serviceAccountCredentials =
-            ServiceAccountCredentials.getApplicationDefault();
-
+        GoogleCredentials serviceAccountCredentials = GoogleCredentials.getApplicationDefault();
+        logger.info(
+            "app default credentials: {}, credentials.getUniverseDomain(): {}",
+            serviceAccountCredentials.getAuthenticationType(),
+            serviceAccountCredentials.getUniverseDomain());
         // The createScopedRequired method returns true when running on GAE or a local developer
         // machine. In that case, the desired scopes must be passed in manually. When the code is
         // running in GCE, GKE or a Managed VM, the scopes are pulled from the GCE metadata server.
         // See https://developers.google.com/identity/protocols/application-default-credentials
         // for more information.
         if (serviceAccountCredentials.createScopedRequired()) {
+          logger.info("create scoped");
           List<String> scopes = List.of("https://www.googleapis.com/auth/cloud-billing");
           serviceAccountCredentials = serviceAccountCredentials.createScoped(scopes);
         }
         credentialName = "service account";
         credentials = serviceAccountCredentials;
       } else {
+        logger.info(
+            "else. Is Token empty? {}, user email: {}", user.getToken().isEmpty(), user.getEmail());
+
         credentialName = user.getEmail();
         // If user.getToken() is a JWT and contains an idp_access_token claim, use that.
         // Otherwise use user.getToken() as is.

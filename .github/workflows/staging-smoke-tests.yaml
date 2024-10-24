@@ -1,7 +1,6 @@
 name: DataRepo Staging Smoke Tests
 env:
   K8_CLUSTER: jade-master-us-central1
-  GOOGLE_APPLICATION_CREDENTIALS: /tmp/staging-test-runner.json
   GOOGLE_CLOUD_PROJECT: terra-datarepo-staging
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-staging-data
   JADE_USER_EMAIL: staging-tdr-user@notarealemail.org
@@ -23,6 +22,10 @@ on:
 jobs:
   test-runner-staging:
     runs-on: ubuntu-latest
+    # Needed for integration with workload identity
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     steps:
       - name: "Checkout jade-data-repo"
         uses: actions/checkout@v3
@@ -34,30 +37,24 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
-      - name: "Fetch current staging version from /configuration endpoint"
-        id: configuration
-        run: |
-          staging_version=$(curl -s -X GET "https://data.staging.envs-terra.bio/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
-          echo "staging_version=${staging_version}" >> $GITHUB_OUTPUT
-          echo "Staging Version: $staging_version"
-      - name: "Checkout tag for DataBiosphere/jade-data-repo"
-        if: github.ref == 'refs/heads/develop'
-        run: |
-          git checkout ${{ steps.configuration.outputs.staging_version }}
-          echo "Current branch is ${{ github.ref }}"
-      - name: "Perform IAM policy cleanup for staging"
-        run: |
-          # write token
-          base64 --decode <<< ${{ secrets.TEST_RUNNER_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
-          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
-          ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
-      - name: "Add jade-k8-sa credentials to run as Harry Potter test users"
-        env:
-          # note: hack to overwrite the env var to grab the dev credentials too
-          GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
-        run: |
-          # write token
-          base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
+#      - name: "Fetch current staging version from /configuration endpoint"
+#        id: configuration
+#        run: |
+#          staging_version=$(curl -s -X GET "https://data.staging.envs-terra.bio/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
+#          echo "staging_version=${staging_version}" >> $GITHUB_OUTPUT
+#          echo "Staging Version: $staging_version"
+#      - name: "Checkout tag for DataBiosphere/jade-data-repo"
+#        if: github.ref == 'refs/heads/develop'
+#        run: |
+#          git checkout ${{ steps.configuration.outputs.staging_version }}
+#          echo "Current branch is ${{ github.ref }}"
+      # Test runner will read credential file from GOOGLE_GHA_CREDS_PATH env variable
+      - name: 'Auth as jade-k8-sa'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          # Centralized in dsp-tools-k8s; ask in #dsp-devops-champions for help troubleshooting
+          workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
+          service_account: 'jade-k8-sa@broad-jade-dev.iam.gserviceaccount.com'
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}
@@ -72,20 +69,14 @@ jobs:
           echo "Running test suite"
           ./gradlew runTest --args="suites/StagingSmokeTests.json tmp/TestRunnerResults"
 
-          echo "Collecting measurements"
-          ./gradlew collectMeasurements --args="StagingSmokeTests.json tmp/TestRunnerResults"
-
-          echo "Uploading results"
-          ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
-
           cd ${GITHUB_WORKSPACE}/${workingDir}
 
-  report-workflow:
-    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
-    with:
-      relates-to-chart-releases: ${{ inputs.relates-to-chart-releases }}
-      notify-slack-channels-upon-workflow-completion: ${{ inputs.notify-slack-channels-upon-workflow-completion }}
-      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
-      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
-    permissions:
-      id-token: write
+#  report-workflow:
+#    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
+#    with:
+#      relates-to-chart-releases: ${{ inputs.relates-to-chart-releases }}
+#      notify-slack-channels-upon-workflow-completion: ${{ inputs.notify-slack-channels-upon-workflow-completion }}
+#      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+#      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+#    permissions:
+#      id-token: write

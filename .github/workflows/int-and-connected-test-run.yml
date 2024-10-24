@@ -13,6 +13,10 @@ jobs:
     name: Unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # Needed for integration with workload identity
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,23 +28,30 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
+      - name: 'Auth as jade-k8-sa'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          # Centralized in dsp-tools-k8s; ask in #dsp-devops-champions for help troubleshooting
+          workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
+          service_account: 'jade-k8-sa@broad-jade-dev.iam.gserviceaccount.com'
+          access_token_scopes: 'profile, email, openid'
       - name: Run unit tests
         env:
-          # required for unit tests
-          GOOGLE_APPLICATION_CREDENTIALS: jade-dev-account.json
           # required for sonarqube reports
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           # output plain logs instead of json
           TDR_LOG_APPENDER: 'Console-Standard'
         run: |
-          # extract service account credentials
-          base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
           # assemble code, run unit tests, and generate scan
           ./gradlew --scan assemble check jacocoTestReport sonar
   test_connected:
     name: Connected tests
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    # Needed for integration with workload identity
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -50,6 +61,12 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
+      - name: 'Auth as jade-k8-sa'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          # Centralized in dsp-tools-k8s; ask in #dsp-devops-champions for help troubleshooting
+          workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
+          service_account: 'jade-k8-sa@broad-jade-dev.iam.gserviceaccount.com'
       - name: Run connected tests
         env:
           # required for azure tests
@@ -60,25 +77,26 @@ jobs:
           AZURE_SYNAPSE_SQLADMINPASSWORD: ${{ secrets.AZURE_SYNAPSE_SQLADMINPASSWORD }}
           AZURE_SYNAPSE_SQLADMINUSER: ${{ secrets.AZURE_SYNAPSE_SQLADMINUSER }}
           AZURE_SYNAPSE_WORKSPACENAME: tdr-snps-int-east-us-ondemand.sql.azuresynapse.net
-          # required for connected tests
-          GOOGLE_APPLICATION_CREDENTIALS: jade-dev-account.json
           # required for testAzureBillingProfile
           # uses an azure marketplace app with this hardcoded deployment email
           JADE_USER_EMAIL: connected-tdr-user@notarealemail.org
-          # required for rbs tests
-          RBS_CLIENT_CREDENTIAL_FILE_PATH: rbs-tools-sa.json
           # output plain logs instead of json
           TDR_LOG_APPENDER: 'Console-Standard'
+          # required for integration tests
+          RBS_INSTANCEURL: https://buffer.tools.integ.envs.broadinstitute.org
+          RBS_POOLID: datarepo_v1
+          GOOGLE_CLOUD_PROJECT: broad-jade-dev
         run: |
-          # extract service account credentials
-          base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
-          base64 --decode <<< ${{ secrets.B64_RBS_APPLICATION_CREDENTIALS }} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
           # run connected tests
           ./gradlew --scan --warn testConnected
   test_integration:
     name: Integration tests
     runs-on: ubuntu-latest
     timeout-minutes: 300
+    # Needed for integration with workload identity
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     services:
       postgres:
         image: postgres:11
@@ -98,6 +116,12 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
+      - name: 'Auth as jade-k8-sa'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          # Centralized in dsp-tools-k8s; ask in #dsp-devops-champions for help troubleshooting
+          workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
+          service_account: 'jade-k8-sa@broad-jade-dev.iam.gserviceaccount.com'
       - name: Run integration tests
         env:
           # required for azure tests
@@ -108,14 +132,11 @@ jobs:
           AZURE_SYNAPSE_SQLADMINPASSWORD: ${{ secrets.AZURE_SYNAPSE_SQLADMINPASSWORD }}
           AZURE_SYNAPSE_WORKSPACENAME: tdr-snps-int-east-us-ondemand.sql.azuresynapse.net
           # required for integration tests
-          GOOGLE_APPLICATION_CREDENTIALS: jade-dev-account.json
-          GOOGLE_SA_CERT: jade-dev-account.pem
           IT_JADE_API_URL: http://localhost:8080
           # postgres connection details
           PGHOST: 127.0.0.1
           PGPASSWORD: postgres
           # required for integration tests
-          RBS_CLIENT_CREDENTIAL_FILE_PATH: rbs-tools-sa.json
           RBS_INSTANCEURL: https://buffer.tools.integ.envs.broadinstitute.org
           RBS_POOLID: datarepo_v1
           # output plain logs instead of json
@@ -125,11 +146,6 @@ jobs:
           pg_isready -h ${PGHOST} -t 30
           # create the datarepo and stairway databases
           psql -U postgres -f ./scripts/init-db/postgres-init.sql
-          # extract service account credentials
-          base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
-          jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
-          chmod 644 ${GOOGLE_SA_CERT}
-          base64 --decode <<< ${{ secrets.B64_RBS_APPLICATION_CREDENTIALS }} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
           # build code and run local api
           ./gradlew bootJar
           export DATA_REPO_JAR=$(find . -type f -name jade-data-repo-*-SNAPSHOT.jar)
@@ -145,39 +161,39 @@ jobs:
           name: integration-test-api-logs
           path: local-api-output.log
           retention-days: 7
-  git_hash:
-    name: Extract git hash
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.config.outputs.GIT_HASH }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Get the latest git hash
-        id: config
-        run: |
-          GIT_HASH=$(git rev-parse --short HEAD)
-          echo "GIT_HASH=${GIT_HASH}" >> $GITHUB_OUTPUT
-          echo "Latest git hash in branch is ${GIT_HASH}"
-  report-to-sherlock:
-    # only runs on pull requests and reports the appVersion even if tests fail
-    if: github.event_name == 'pull_request'
-    uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
-    needs: git_hash
-    with:
-      new-version: ${{ needs.git_hash.outputs.version }}
-      chart-name: 'datarepo'
-    permissions:
-      contents: read
-      id-token: write
-  report-workflow:
-    if: github.ref == 'refs/heads/develop'
-    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
-    # dependency is not required but makes the action run page more readable
-    needs: git_hash
-    with:
-      relates-to-chart-releases: 'datarepo-dev'
-      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
-      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
-    permissions:
-      id-token: write
+#  git_hash:
+#    name: Extract git hash
+#    runs-on: ubuntu-latest
+#    outputs:
+#      version: ${{ steps.config.outputs.GIT_HASH }}
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#      - name: Get the latest git hash
+#        id: config
+#        run: |
+#          GIT_HASH=$(git rev-parse --short HEAD)
+#          echo "GIT_HASH=${GIT_HASH}" >> $GITHUB_OUTPUT
+#          echo "Latest git hash in branch is ${GIT_HASH}"
+#  report-to-sherlock:
+#    # only runs on pull requests and reports the appVersion even if tests fail
+#    if: github.event_name == 'pull_request'
+#    uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
+#    needs: git_hash
+#    with:
+#      new-version: ${{ needs.git_hash.outputs.version }}
+#      chart-name: 'datarepo'
+#    permissions:
+#      contents: read
+#      id-token: write
+#  report-workflow:
+#    if: github.ref == 'refs/heads/develop'
+#    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
+#    # dependency is not required but makes the action run page more readable
+#    needs: git_hash
+#    with:
+#      relates-to-chart-releases: 'datarepo-dev'
+#      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+#      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+#    permissions:
+#      id-token: write

@@ -20,7 +20,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.62')
+        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.63')
         // Required for gradle liquibase plugin
         classpath ('org.liquibase:liquibase-core:4.29.2')
     }
@@ -33,7 +33,7 @@ plugins {
     id 'org.gradle.test-retry' version '1.6.0'
     id 'antlr'
     id 'org.hidetake.swagger.generator' version '2.19.2'
-    id 'org.springframework.boot' version '3.3.4'
+    id 'org.springframework.boot' version '3.3.5'
     id 'idea'
     id 'java'
     id 'io.spring.dependency-management' version '1.1.6'
@@ -63,8 +63,8 @@ allprojects {
             mavenBom SpringBootPlugin.BOM_COORDINATES
         }
         dependencies {
-            dependency 'io.swagger.core.v3:swagger-annotations:2.2.24'
-            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.62'
+            dependency 'io.swagger.core.v3:swagger-annotations:2.2.25'
+            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.63'
         }
     }
 }
@@ -164,14 +164,14 @@ dependencies {
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
 
-    implementation platform('com.google.cloud:libraries-bom:26.47.0')
+    implementation platform('com.google.cloud:libraries-bom:26.49.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
     implementation 'com.google.cloud:google-cloud-bigquery'
     implementation 'com.google.cloud:google-cloud-storage'
     implementation 'com.google.cloud:google-cloud-firestore'
     implementation 'com.google.cloud:google-cloud-pubsub'
-    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:5.6.1'
+    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:5.8.0'
     implementation 'com.google.http-client:google-http-client'
 
     implementation 'org.apache.commons:commons-compress:1.27.1' // For srcclr, jib plugin conflict
@@ -206,9 +206,9 @@ dependencies {
 
     implementation 'bio.terra:terra-common-lib:1.1.18-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.241'
-    implementation 'bio.terra:terra-policy-client:1.0.15-SNAPSHOT'
+    implementation 'bio.terra:terra-policy-client:1.0.17-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'
-    implementation 'bio.terra:externalcreds-client-resttemplate:1.46.0-SNAPSHOT'
+    implementation 'bio.terra:externalcreds-client-resttemplate:1.51.0-SNAPSHOT'
 
     implementation 'org.glassfish.jersey.inject:jersey-hk2'
 
@@ -221,34 +221,34 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     // Azure related dependencies
-    implementation 'com.azure:azure-identity:1.13.3'
+    implementation 'com.azure:azure-identity:1.14.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.43.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.0.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0-beta.4'
-    implementation 'com.azure:azure-storage-common:12.27.0'
+    implementation 'com.azure:azure-storage-common:12.27.1'
     implementation 'com.azure:azure-storage-file-datalake:12.21.0'
-    implementation 'com.azure:azure-data-tables:12.4.5'
+    implementation 'com.azure:azure-data-tables:12.4.6'
 
-    implementation platform('io.sentry:sentry-bom:7.14.0') //import bom
+    implementation platform('io.sentry:sentry-bom:7.16.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')
     implementation('io.sentry:sentry-logback')
 
     // OpenTelemetry @WithSpan annotations:
     implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.8.0'
 
-    testImplementation 'org.apache.parquet:parquet-common:1.14.2'
-    testImplementation 'org.apache.parquet:parquet-hadoop:1.14.2'
-    testImplementation 'org.apache.parquet:parquet-hadoop-bundle:1.14.2'
-    testImplementation 'org.apache.parquet:parquet-encoding:1.14.2'
-    testImplementation 'org.apache.parquet:parquet-column:1.14.2'
-    testImplementation ('org.apache.hadoop:hadoop-common:3.4.0')  {
+    testImplementation 'org.apache.parquet:parquet-common:1.14.3'
+    testImplementation 'org.apache.parquet:parquet-hadoop:1.14.3'
+    testImplementation 'org.apache.parquet:parquet-hadoop-bundle:1.14.3'
+    testImplementation 'org.apache.parquet:parquet-encoding:1.14.3'
+    testImplementation 'org.apache.parquet:parquet-column:1.14.3'
+    testImplementation ('org.apache.hadoop:hadoop-common:3.4.1')  {
         exclude group: 'com.sun.jersey', module: 'jersey-core'
         exclude group: 'com.sun.jersey', module: 'jersey-servlet'
         exclude group: 'com.sun.jersey', module: 'jersey-json'
         exclude group: 'com.sun.jersey', module: 'jersey-server'
         exclude group: 'org.slf4j', module: 'slf4j-reload4j'
     }
-    testImplementation('org.apache.hadoop:hadoop-mapreduce-client-core:3.4.0') {
+    testImplementation('org.apache.hadoop:hadoop-mapreduce-client-core:3.4.1') {
         exclude group: 'com.sun.jersey', module: 'jersey-core'
         exclude group: 'com.sun.jersey', module: 'jersey-servlet'
         exclude group: 'com.sun.jersey', module: 'jersey-json'

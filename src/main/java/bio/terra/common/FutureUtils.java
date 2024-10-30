@@ -15,6 +15,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class FutureUtils {
+  public static final String INTERRUPTED_THREAD_MESSAGE = "Thread was interrupted";
 
   private FutureUtils() {}
 
@@ -65,7 +66,8 @@ public final class FutureUtils {
                     // Cancellation may not be necessary, but it can't hurt:
                     f.cancel(true);
                   } catch (InterruptedException e) {
-                    foundFailure.compareAndSet(null, new ApiException("Thread was interrupted", e));
+                    foundFailure.compareAndSet(
+                        null, new ApiException(INTERRUPTED_THREAD_MESSAGE, e));
                     // Cancellation may not be necessary, but it can't hurt:
                     f.cancel(true);
                   } catch (ExecutionException e) {

@@ -17,7 +17,6 @@ import com.azure.data.tables.models.TableEntity;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -36,7 +35,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 @EmbeddedDatabaseTest
-@Ignore("DCJ-826: Temporarily disabled due to missing Azure resources")
 public class TableServiceClientUtilsTest {
   private static final Logger logger = LoggerFactory.getLogger(TableServiceClientUtilsTest.class);
   private TableServiceClient tableServiceClient;

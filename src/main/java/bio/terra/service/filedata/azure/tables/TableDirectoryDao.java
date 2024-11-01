@@ -329,6 +329,7 @@ public class TableDirectoryDao {
     try {
       return tableClient.getEntity(partitionKey, rowKey);
     } catch (TableServiceException ex) {
+      logger.info("lookupByFilePath operation failed", ex);
       return null;
     }
   }
@@ -381,6 +382,7 @@ public class TableDirectoryDao {
     List<Future<Void>> futures = new ArrayList<>();
     for (List<String> fileIdsBatch :
         ListUtils.partition(List.copyOf(fileIds), MAX_FILTER_CLAUSES)) {
+      logger.info("Processing batch of {} fileIds", fileIdsBatch.size());
       futures.add(
           azureTableThreadpool.submit(
               () -> {
@@ -408,12 +410,18 @@ public class TableDirectoryDao {
                 // Find directory paths that need to be created; plus add to the cache
                 Set<String> newPaths =
                     FileMetadataUtils.findNewDirectoryPaths(directoryEntries, pathMap);
+                logger.info(
+                    "Out of {} directory entries, found {} new paths to create",
+                    directoryEntries.size(),
+                    newPaths.size());
                 List<FireStoreDirectoryEntry> datasetDirectoryEntries =
                     batchRetrieveByPath(
                         datasetTableServiceClient,
                         datasetId,
                         StorageTableName.DATASET.toTableName(datasetId),
                         newPaths);
+                logger.info(
+                    "Retrieved {} dataset directory entries", datasetDirectoryEntries.size());
 
                 // Create snapshot file system entries
                 List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();
@@ -428,6 +436,7 @@ public class TableDirectoryDao {
                     snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
                   }
                 }
+                logger.info("Snapshot entries to store: {}", snapshotEntries.size());
                 // Store the batch of entries. This will override existing entries,
                 // but that is not the typical case and it is lower cost just overwrite
                 // rather than retrieve to avoid the write.

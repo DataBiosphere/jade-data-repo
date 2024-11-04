@@ -1,6 +1,8 @@
 package bio.terra.service.filedata.azure.tables;
 
+import static bio.terra.service.filedata.google.firestore.FireStoreFile.FILE_ID_FIELD_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
@@ -14,6 +16,7 @@ import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.data.tables.models.TableEntity;
+import java.util.List;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -35,8 +38,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 @EmbeddedDatabaseTest
-public class TableServiceClientUtilsTest {
-  private static final Logger logger = LoggerFactory.getLogger(TableServiceClientUtilsTest.class);
+public class TableServiceClientUtilsConnectedTest {
+  private static final Logger logger =
+      LoggerFactory.getLogger(TableServiceClientUtilsConnectedTest.class);
   private TableServiceClient tableServiceClient;
   private String tableName;
 
@@ -93,7 +97,9 @@ public class TableServiceClientUtilsTest {
     assertThat("table should have zero entries", !tableZeroEntry);
 
     // add an entry to the table
-    tableClient.createEntity(new TableEntity("test1", UUID.randomUUID().toString()));
+    tableClient.createEntity(
+        new TableEntity("test1", UUID.randomUUID().toString())
+            .addProperty(FILE_ID_FIELD_NAME, "test1"));
     boolean tableHasEntries =
         TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName);
     assertThat("table should have one entry", tableHasEntries);
@@ -103,10 +109,18 @@ public class TableServiceClientUtilsTest {
     assertThat("table should have one entry", tableOneEntry);
 
     // add a second entry to the table
-    tableClient.createEntity(new TableEntity("test2", UUID.randomUUID().toString()));
+    tableClient.createEntity(
+        new TableEntity("test2", UUID.randomUUID().toString())
+            .addProperty(FILE_ID_FIELD_NAME, "test2"));
     boolean tableTwoEntry =
         TableServiceClientUtils.tableHasSingleEntry(tableServiceClient, tableName, null);
     assertThat("table should have two entries", !tableTwoEntry);
+
+    // filter to one entry
+    String filter = "fileId eq 'test1'";
+    List<TableEntity> entities =
+        TableServiceClientUtils.filterTable(tableServiceClient, tableName, filter);
+    assertThat("table should have one entry", entities, hasSize(1));
 
     tableClient.deleteTable();
     boolean tableExistsAfterDelete =

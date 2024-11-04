@@ -30,7 +30,7 @@ repositories {
 dependencies {
     ext {
         jersey = "3.1.9"
-        jackson = "2.18.0"
+        jackson = "2.18.1"
         swaggerAnnotations = "2.2.25"
 
     }

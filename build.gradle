@@ -164,7 +164,7 @@ dependencies {
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
 
-    implementation platform('com.google.cloud:libraries-bom:26.49.0')
+    implementation platform('com.google.cloud:libraries-bom:26.50.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
     implementation 'com.google.cloud:google-cloud-bigquery'
@@ -256,8 +256,8 @@ dependencies {
         exclude group: 'org.slf4j', module: 'slf4j-reload4j'
     }
 
-    testImplementation 'au.com.dius.pact.provider:junit5:4.6.14'
-    testImplementation 'au.com.dius.pact.provider:junit5spring:4.6.14'
+    testImplementation 'au.com.dius.pact.provider:junit5:4.6.15'
+    testImplementation 'au.com.dius.pact.provider:junit5spring:4.6.15'
 
     antlr 'org.antlr:antlr4:4.13.2'
 

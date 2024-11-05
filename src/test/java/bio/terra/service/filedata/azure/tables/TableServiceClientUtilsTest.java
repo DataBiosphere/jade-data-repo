@@ -20,39 +20,27 @@ import com.azure.data.tables.models.TableItem;
 import com.azure.data.tables.models.TableServiceException;
 import java.util.Iterator;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.junit.runner.RunWith;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
-@AutoConfigureMockMvc
+@ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
 class TableServiceClientUtilsTest {
 
   @Mock TableServiceClient tableServiceClient;
   @Mock TableClient tableClient;
 
-  @BeforeEach
-  void setUp() {
-    // mock table exists check
-    mockTableExists(true);
-
-    // get table client
-    when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
-  }
-
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void tableHasEntries(boolean hasEntries) {
+    when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
+    mockTableExists(true);
     mockTableHasEntries(hasEntries);
 
     assertThat(
@@ -62,6 +50,8 @@ class TableServiceClientUtilsTest {
 
   @Test
   void tableHasEntriesCatchThrownException() {
+    when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
+    mockTableExists(true);
     when(tableClient.listEntities(any(), any(), any()))
         .thenThrow(new TableServiceException("error", mock(HttpResponse.class)));
 
@@ -88,17 +78,22 @@ class TableServiceClientUtilsTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void filterTable(boolean hasEntries) {
-    mockTableHasEntries(true);
+    when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
+    mockTableExists(true);
+    // mock tableHasEntries
+    PagedIterable<TableEntity> hasEntriesMockPagedIterable = mock(PagedIterable.class);
+    when(tableClient.listEntities(any(), any(), any())).thenReturn(hasEntriesMockPagedIterable);
 
     // Mock listing entities with filter
     var filter = "exampleParameter eq '1'";
     TableEntity fireStoreDependencyEntity = new TableEntity("partitionKey", "rowKey");
     PagedIterable<TableEntity> mockPagedIterable2 = mock(PagedIterable.class);
-    Iterator<TableEntity> mockIterator2 = mock(Iterator.class);
-    when(mockIterator2.hasNext()).thenReturn(hasEntries, false);
-    when(mockIterator2.next()).thenReturn(fireStoreDependencyEntity);
-    when(mockPagedIterable2.iterator()).thenReturn(mockIterator2);
-    when(mockPagedIterable2.stream()).thenReturn(Stream.of(fireStoreDependencyEntity));
+    Iterator<TableEntity> mockIterator = mock(Iterator.class);
+    when(mockIterator.hasNext()).thenReturn(hasEntries, false);
+    when(mockPagedIterable2.iterator()).thenReturn(mockIterator);
+    if (hasEntries) {
+      when(mockPagedIterable2.stream()).thenReturn(Stream.of(fireStoreDependencyEntity));
+    }
     // only match for listing entities with filter
     ArgumentMatcher<ListEntitiesOptions> matcher =
         options -> options.getFilter() != null && options.getFilter().contains(filter);
@@ -111,7 +106,11 @@ class TableServiceClientUtilsTest {
 
   @Test
   void filterTableCatchThrownException() {
-    mockTableHasEntries(true);
+    when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
+    mockTableExists(true);
+    // mock tableHasEntries
+    PagedIterable<TableEntity> hasEntriesMockPagedIterable = mock(PagedIterable.class);
+    when(tableClient.listEntities(any(), any(), any())).thenReturn(hasEntriesMockPagedIterable);
 
     var filter = "exampleParameter eq '1'";
     // only match for listing entities with filter

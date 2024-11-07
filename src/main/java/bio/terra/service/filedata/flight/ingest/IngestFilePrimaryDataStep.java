@@ -80,15 +80,18 @@ public class IngestFilePrimaryDataStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
-    FlightMap inputParameters = context.getInputParameters();
-    FileLoadModel fileLoadModel =
-        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
-    FlightMap workingMap = context.getWorkingMap();
-    String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
-    GoogleBucketResource bucketResource =
-        FlightUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
-    String fileName = getLastNameFromPath(fileLoadModel.getSourcePath());
-    gcsPdao.deleteFileById(dataset, fileId, fileName, bucketResource);
+    // If the dataset is self-hosted, don't try to delete the file on Undo.
+    if (!dataset.isSelfHosted()) {
+      FlightMap inputParameters = context.getInputParameters();
+      FileLoadModel fileLoadModel =
+          inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
+      FlightMap workingMap = context.getWorkingMap();
+      String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
+      GoogleBucketResource bucketResource =
+          FlightUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+      String fileName = getLastNameFromPath(fileLoadModel.getSourcePath());
+      gcsPdao.deleteFileById(dataset, fileId, fileName, bucketResource);
+    }
 
     return StepResult.getStepResultSuccess();
   }

@@ -4,13 +4,12 @@ import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import com.google.api.client.auth.oauth2.TokenResponseException;
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.auth.oauth2.GoogleCredentials;
 import java.io.File;
 import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -29,10 +28,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class AuthService {
   private static Logger logger = LoggerFactory.getLogger(AuthService.class);
-  private static ExpirationPolicy<String, GoogleCredential> TOKEN_CACHE_EXPIRATION_POLICY =
+  private static ExpirationPolicy<String, GoogleCredentials> TOKEN_CACHE_EXPIRATION_POLICY =
       // Make sure this value never returns a negative since that means the entry never expires
-      (key, value) ->
-          Math.max(0, value.getExpirationTimeMilliseconds() - TimeUnit.MINUTES.toMillis(5));
+      (key, value) -> Math.max(0, 5 - TimeUnit.MINUTES.toMillis(5));
 
   // the list of scopes we request from end users when they log in.
   // this should always match exactly what the UI requests, so our tests represent actual user
@@ -48,11 +46,11 @@ public class AuthService {
   private JacksonFactory jsonFactory = JacksonFactory.getDefaultInstance();
   private File pemfile;
   private String saEmail;
-  private Map<String, GoogleCredential> userTokens =
+  private Map<String, GoogleCredentials> userTokens =
       Collections.synchronizedMap(new PassiveExpiringMap<>(TOKEN_CACHE_EXPIRATION_POLICY));
   private Map<String, String> petAccountTokens =
       Collections.synchronizedMap(new PassiveExpiringMap<>(55, TimeUnit.MINUTES));
-  private Map<String, GoogleCredential> directAccessTokens =
+  private Map<String, GoogleCredentials> directAccessTokens =
       Collections.synchronizedMap(new PassiveExpiringMap<>(TOKEN_CACHE_EXPIRATION_POLICY));
   private TestConfiguration testConfig;
   private IamProviderInterface iamProvider;
@@ -69,7 +67,7 @@ public class AuthService {
   }
 
   public String getAuthToken(String userEmail) {
-    return userTokens.computeIfAbsent(userEmail, this::makeToken).getAccessToken();
+    return userTokens.computeIfAbsent(userEmail, this::makeToken).getAccessToken().getTokenValue();
   }
 
   public String getPetAccountAuthToken(String userEmail) {
@@ -79,26 +77,25 @@ public class AuthService {
   public String getDirectAccessAuthToken(String userEmail) {
     return directAccessTokens
         .computeIfAbsent(userEmail, this::makeDirectAccessToken)
-        .getAccessToken();
+        .getAccessToken()
+        .getTokenValue();
   }
 
-  private GoogleCredential buildCredential(String email, List<String> scopes)
-      throws IOException, GeneralSecurityException {
-    if (!Optional.ofNullable(pemfile).isPresent()) {
-      throw new IllegalStateException(
-          String.format("pemfile not found: %s", testConfig.getJadePemFileName()));
-    }
-    return new GoogleCredential.Builder()
-        .setTransport(httpTransport)
-        .setJsonFactory(jsonFactory)
-        .setServiceAccountId(saEmail)
-        .setServiceAccountPrivateKeyFromPemFile(pemfile)
-        .setServiceAccountScopes(scopes)
-        .setServiceAccountUser(email)
-        .build();
+  private GoogleCredentials buildCredential(String email, List<String> scopes) throws IOException {
+    GoogleCredentials googleCredentials = GoogleCredentials.getApplicationDefault();
+    return googleCredentials.createDelegated(email).createScoped(scopes);
+
+    //    // Create the impersonated credential.
+    //    return ImpersonatedCredentials.newBuilder()
+    //        .setSourceCredentials(googleCredentials)
+    //        .setTargetPrincipal(email)
+    //        .setScopes(scopes)
+    //        .setLifetime(300)
+    //        .setDelegates(delegates)
+    //        .build();
   }
 
-  private GoogleCredential makeDirectAccessToken(String userEmail) {
+  private GoogleCredentials makeDirectAccessToken(String userEmail) {
     List<String> allScopes =
         Stream.of(userLoginScopes, directAccessScopes)
             .flatMap(Collection::stream)
@@ -106,11 +103,11 @@ public class AuthService {
     return makeTokenForScopes(userEmail, allScopes);
   }
 
-  private GoogleCredential makeTokenForScopes(String userEmail, List<String> scopes) {
+  private GoogleCredentials makeTokenForScopes(String userEmail, List<String> scopes) {
     try {
-      GoogleCredential cred = buildCredential(userEmail, scopes);
-      cred.refreshToken();
-      return cred;
+      var impersonatedCredentials = buildCredential(userEmail, scopes);
+      impersonatedCredentials.refresh();
+      return impersonatedCredentials;
     } catch (TokenResponseException e) {
       logger.error("Encountered " + e.getStatusCode() + " error getting access token.");
     } catch (Exception ioe) {
@@ -119,7 +116,7 @@ public class AuthService {
     throw new RuntimeException("unable to get access token");
   }
 
-  private GoogleCredential makeToken(String userEmail) {
+  private GoogleCredentials makeToken(String userEmail) {
     return makeTokenForScopes(userEmail, userLoginScopes);
   }
 
@@ -130,7 +127,7 @@ public class AuthService {
               AuthenticatedUserRequest.builder()
                   .setSubjectId("PetServiceAccount")
                   .setEmail(userEmail)
-                  .setToken(makeToken(userEmail).getAccessToken())
+                  .setToken(makeToken(userEmail).getAccessToken().getTokenValue())
                   .build(),
               userLoginScopes)
           .replaceAll("\\.+$", "");

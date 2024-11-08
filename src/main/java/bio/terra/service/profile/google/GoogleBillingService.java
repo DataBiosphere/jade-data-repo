@@ -9,6 +9,7 @@ import com.google.api.gax.rpc.ApiException;
 import com.google.api.resourcenames.ResourceName;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.billing.v1.BillingAccountName;
 import com.google.cloud.billing.v1.CloudBillingClient;
 import com.google.cloud.billing.v1.CloudBillingSettings;
@@ -44,7 +45,8 @@ public class GoogleBillingService {
         logger.info("user is null or token is empty");
         // Authentication is provided by the 'gcloud' tool when running locally
         // and by built-in service accounts when running on GAE, GCE, or GKE.
-        GoogleCredentials serviceAccountCredentials = GoogleCredentials.getApplicationDefault();
+        GoogleCredentials serviceAccountCredentials =
+            ServiceAccountCredentials.getApplicationDefault();
         logger.info(
             "app default credentials: {}, credentials.getUniverseDomain(): {}",
             serviceAccountCredentials.getAuthenticationType(),

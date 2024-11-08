@@ -67,6 +67,10 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - bump_version
+    # Needed for integration with workload identity
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     steps:
       - name: Checkout tagged branch of jade-data-repo
         uses: actions/checkout@v3

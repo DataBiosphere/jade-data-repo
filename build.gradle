@@ -20,9 +20,9 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.63')
+        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.64')
         // Required for gradle liquibase plugin
-        classpath ('org.liquibase:liquibase-core:4.29.2')
+        classpath ('org.liquibase:liquibase-core:4.30.0')
     }
 }
 
@@ -64,7 +64,7 @@ allprojects {
         }
         dependencies {
             dependency 'io.swagger.core.v3:swagger-annotations:2.2.25'
-            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.63'
+            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.64'
         }
     }
 }
@@ -208,7 +208,7 @@ dependencies {
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.241'
     implementation 'bio.terra:terra-policy-client:1.0.17-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'
-    implementation 'bio.terra:externalcreds-client-resttemplate:1.52.0-SNAPSHOT'
+    implementation 'bio.terra:externalcreds-client-resttemplate:1.53.0-SNAPSHOT'
 
     implementation 'org.glassfish.jersey.inject:jersey-hk2'
 
@@ -221,7 +221,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     // Azure related dependencies
-    implementation 'com.azure:azure-identity:1.14.0'
+    implementation 'com.azure:azure-identity:1.14.1'
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.44.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.0.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0-beta.5'

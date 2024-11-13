@@ -2,8 +2,8 @@ package bio.terra.service.filedata.azure.tables;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -25,10 +25,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,15 +35,13 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@Tag(Unit.TAG)
 @EmbeddedDatabaseTest
-public class TableDirectoryDaoTest {
+class TableDirectoryDaoTest {
   private static final String FULL_PATH = "/directory/file.json";
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final String PARTITION_KEY = DATASET_ID + " _dr_ directory";
@@ -60,8 +57,8 @@ public class TableDirectoryDaoTest {
   @MockBean private TableClient tableClient;
   @Autowired private TableDirectoryDao dao;
 
-  @Before
-  public void setUp() {
+  @BeforeEach
+  void setUp() {
     dao = spy(dao);
     when(authService.getTableServiceClient(any(), any(), any())).thenReturn(tableServiceClient);
     when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
@@ -90,7 +87,7 @@ public class TableDirectoryDaoTest {
   }
 
   @Test
-  public void testRetrieveByPath() {
+  void testRetrieveByPath() {
     when(tableClient.getEntity(PARTITION_KEY, ROW_KEY)).thenReturn(entity);
     FireStoreDirectoryEntry response =
         dao.retrieveByPath(
@@ -98,7 +95,7 @@ public class TableDirectoryDaoTest {
             DATASET_ID,
             StorageTableName.DATASET.toTableName(DATASET_ID),
             FULL_PATH);
-    assertEquals("The same entry is returned", directoryEntry, response);
+    assertThat("The same entry is returned", directoryEntry, equalTo(response));
 
     when(tableClient.getEntity(PARTITION_KEY, NONEXISTENT_ROW_KEY))
         .thenThrow(TableServiceException.class);
@@ -108,11 +105,11 @@ public class TableDirectoryDaoTest {
             DATASET_ID,
             StorageTableName.DATASET.toTableName(DATASET_ID),
             NONEXISTENT_PATH);
-    assertNull("The entry does not exist", nonExistentEntry);
+    assertThat("The entry does not exist", nonExistentEntry, is(nullValue()));
   }
 
   @Test
-  public void testRetrieveByFileId() {
+  void testRetrieveByFileId() {
     PagedIterable<TableEntity> mockPagedIterable = mock(PagedIterable.class);
     Iterator<TableEntity> mockIterator = mock(Iterator.class);
     when(mockIterator.hasNext()).thenReturn(true, false);
@@ -136,7 +133,7 @@ public class TableDirectoryDaoTest {
   }
 
   @Test
-  public void testRetrieveByFileIdNotFound() {
+  void testRetrieveByFileIdNotFound() {
     PagedIterable<TableEntity> mockPagedIterable = mock(PagedIterable.class);
     Iterator<TableEntity> mockIterator = mock(Iterator.class);
     when(mockIterator.hasNext()).thenReturn(false);
@@ -146,11 +143,11 @@ public class TableDirectoryDaoTest {
     FireStoreDirectoryEntry response =
         dao.retrieveById(
             tableServiceClient, StorageTableName.DATASET.toTableName(DATASET_ID), "nonexistentId");
-    assertNull("The entry does not exist", response);
+    assertThat("The entry does not exist", response, is(nullValue()));
   }
 
   @Test
-  public void validateRefIdsFindsMissingRecords() {
+  void validateRefIdsFindsMissingRecords() {
     PagedIterable<TableEntity> mockPagedIterable = mock(PagedIterable.class);
     Iterator<TableEntity> mockIterator = mock(Iterator.class);
     when(mockIterator.hasNext()).thenReturn(false);
@@ -160,19 +157,23 @@ public class TableDirectoryDaoTest {
     String missingId = UUID.randomUUID().toString();
     List<String> refIds = List.of(missingId);
     List<String> response = dao.validateRefIds(tableServiceClient, DATASET_ID, refIds);
-    assertEquals(response.get(0), missingId);
+    assertThat(response.get(0), equalTo(missingId));
   }
 
   @Test
-  public void testEnumerateDirectory() {
+  void testEnumerateDirectory() {
     PagedIterable<TableEntity> mockPagedIterable = mock(PagedIterable.class);
-    Stream<TableEntity> mockStream = List.of(entity).stream();
+    Stream<TableEntity> mockStream = Stream.of(entity);
     when(mockPagedIterable.stream()).thenReturn(mockStream);
     when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);
 
     List<FireStoreDirectoryEntry> response =
         dao.enumerateDirectory(
             tableServiceClient, StorageTableName.DATASET.toTableName(DATASET_ID), FILE_ID);
-    assertEquals(response.get(0), directoryEntry);
+    assertThat(response.get(0), equalTo(directoryEntry));
   }
+
+  //  @Test
+  //  void storeDirectoryEntries() {
+  //  }
 }

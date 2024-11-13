@@ -489,13 +489,7 @@ public class TableDirectoryDao {
       List<FireStoreDirectoryEntry> snapshotEntries) {
     String tableName = StorageTableName.SNAPSHOT.toTableName(snapshotId);
     TableClient tableClient = snapshotTableServiceClient.getTableClient(tableName);
-    FutureUtils.waitFor(
-        snapshotEntries.stream()
-            .map(
-                snapshotEntry ->
-                    azureTableThreadpool.submit(
-                        () ->
-                            createEntityForPath(tableClient, snapshotId, tableName, snapshotEntry)))
-            .toList());
+    snapshotEntries.forEach(
+        snapshotEntry -> createEntityForPath(tableClient, snapshotId, tableName, snapshotEntry));
   }
 }

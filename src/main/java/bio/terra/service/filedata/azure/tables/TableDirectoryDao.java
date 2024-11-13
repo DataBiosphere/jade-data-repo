@@ -440,7 +440,7 @@ public class TableDirectoryDao {
                 // Store the batch of entries. This will override existing entries,
                 // but that is not the typical case and it is lower cost just overwrite
                 // rather than retrieve to avoid the write.
-                batchStoreDirectoryEntry(snapshotTableServiceClient, snapshotId, snapshotEntries);
+                storeDirectoryEntries(snapshotTableServiceClient, snapshotId, snapshotEntries);
 
                 return null;
               }));
@@ -484,6 +484,23 @@ public class TableDirectoryDao {
   }
 
   void batchStoreDirectoryEntry(
+      TableServiceClient snapshotTableServiceClient,
+      UUID snapshotId,
+      List<FireStoreDirectoryEntry> snapshotEntries) {
+    String tableName = StorageTableName.SNAPSHOT.toTableName(snapshotId);
+    TableClient tableClient = snapshotTableServiceClient.getTableClient(tableName);
+    FutureUtils.waitFor(
+        snapshotEntries.stream()
+            .map(
+                snapshotEntry ->
+                    azureTableThreadpool.submit(
+                        () ->
+                            createEntityForPath(tableClient, snapshotId, tableName, snapshotEntry)))
+            .toList());
+  }
+
+  // Store the directory entries in the snapshot table sequentially, without a thread pool
+  void storeDirectoryEntries(
       TableServiceClient snapshotTableServiceClient,
       UUID snapshotId,
       List<FireStoreDirectoryEntry> snapshotEntries) {

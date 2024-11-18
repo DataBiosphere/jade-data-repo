@@ -2,11 +2,14 @@ package bio.terra.service.filedata.flight.ingest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
@@ -108,6 +111,16 @@ class IngestFilePrimaryDataStepTest {
     verify(gcsPdao, times(3)).linkSelfHostedFile(any(), any(), any());
     assertThat(
         "Retried step succeeds", result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+  }
+
+  @Test
+  void undoStepSelfHostedSkipDelete() {
+    // Dataset is self-hosted.
+    when(dataset.isSelfHosted()).thenReturn(true);
+    // Remove unused mocks to avoid strict stubbing errors.
+    reset(flightContext);
+    assertThat(step.undoStep(flightContext), is(StepResult.getStepResultSuccess()));
+    verifyNoInteractions(gcsPdao);
   }
 
   @Test

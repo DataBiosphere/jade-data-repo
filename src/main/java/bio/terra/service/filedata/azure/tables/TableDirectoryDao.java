@@ -10,12 +10,15 @@ import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.core.http.rest.PagedIterable;
+import com.azure.core.http.rest.Response;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
+import com.azure.data.tables.models.TableEntityUpdateMode;
 import com.azure.data.tables.models.TableServiceException;
 import com.google.common.annotations.VisibleForTesting;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -121,13 +124,39 @@ public class TableDirectoryDao {
       String partitionKey = getCollectionPartitionKey(collectionId, testPath);
       String rowKey = encodePathAsAzureRowKey(testPath);
       TableEntity entity = FireStoreDirectoryEntry.toTableEntity(partitionKey, rowKey, dirToCreate);
-      logger.info("Upserting directory entry for {} in table {}", testPath, tableName);
       // For file ingest worker flights,
       // It's possible that another thread is trying to write the same directory entity at the same
       // time upsert rather than create so that it does not fail if it already exists
-      tableClient.upsertEntity(entity);
+      upsertEntityCheckStatus(tableClient, entity, testPath, tableName);
     }
     createEntityForPath(tableClient, collectionId, tableName, createEntry);
+  }
+
+  public void upsertEntityCheckStatus(
+      TableClient tableClient, TableEntity entity, String path, String tableName) {
+    try {
+      Response<Void> response =
+          tableClient.upsertEntityWithResponse(
+              entity, TableEntityUpdateMode.MERGE, Duration.ofSeconds(20), null);
+      if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
+        logger.info(
+            "Entity upsert successful with status code: {} for {} in table {}",
+            response.getStatusCode(),
+            path,
+            tableName);
+      } else {
+        throw new FileSystemExecutionException(
+            "Error upserting entity with status code: "
+                + response.getStatusCode()
+                + " for "
+                + path
+                + " in table "
+                + tableName);
+      }
+    } catch (TableServiceException ex) {
+      throw new FileSystemExecutionException(
+          "Error upserting entity for " + path + " in table " + tableName, ex);
+    }
   }
 
   private void createEntityForPath(
@@ -141,8 +170,7 @@ public class TableDirectoryDao {
     String rowKey = encodePathAsAzureRowKey(lookupPath);
     TableEntity createEntryEntity =
         FireStoreDirectoryEntry.toTableEntity(partitionKey, rowKey, createEntry);
-    logger.info("Upserting directory entry for {} in table {}", fullPath, tableName);
-    tableClient.upsertEntity(createEntryEntity);
+    upsertEntityCheckStatus(tableClient, createEntryEntity, fullPath, tableName);
   }
 
   // true - directory entry existed and was deleted; false - directory entry did not exist
@@ -301,6 +329,7 @@ public class TableDirectoryDao {
     try {
       return tableClient.getEntity(partitionKey, rowKey);
     } catch (TableServiceException ex) {
+      logger.info("lookupByFilePath operation failed", ex);
       return null;
     }
   }
@@ -353,6 +382,7 @@ public class TableDirectoryDao {
     List<Future<Void>> futures = new ArrayList<>();
     for (List<String> fileIdsBatch :
         ListUtils.partition(List.copyOf(fileIds), MAX_FILTER_CLAUSES)) {
+      logger.info("Processing batch of {} fileIds", fileIdsBatch.size());
       futures.add(
           azureTableThreadpool.submit(
               () -> {
@@ -380,12 +410,18 @@ public class TableDirectoryDao {
                 // Find directory paths that need to be created; plus add to the cache
                 Set<String> newPaths =
                     FileMetadataUtils.findNewDirectoryPaths(directoryEntries, pathMap);
+                logger.info(
+                    "Out of {} directory entries, found {} new paths to create",
+                    directoryEntries.size(),
+                    newPaths.size());
                 List<FireStoreDirectoryEntry> datasetDirectoryEntries =
                     batchRetrieveByPath(
                         datasetTableServiceClient,
                         datasetId,
                         StorageTableName.DATASET.toTableName(datasetId),
                         newPaths);
+                logger.info(
+                    "Retrieved {} dataset directory entries", datasetDirectoryEntries.size());
 
                 // Create snapshot file system entries
                 List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();
@@ -400,10 +436,11 @@ public class TableDirectoryDao {
                     snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
                   }
                 }
+                logger.info("Snapshot entries to store: {}", snapshotEntries.size());
                 // Store the batch of entries. This will override existing entries,
                 // but that is not the typical case and it is lower cost just overwrite
                 // rather than retrieve to avoid the write.
-                batchStoreDirectoryEntry(snapshotTableServiceClient, snapshotId, snapshotEntries);
+                storeDirectoryEntries(snapshotTableServiceClient, snapshotId, snapshotEntries);
 
                 return null;
               }));
@@ -460,5 +497,16 @@ public class TableDirectoryDao {
                         () ->
                             createEntityForPath(tableClient, snapshotId, tableName, snapshotEntry)))
             .toList());
+  }
+
+  // Store the directory entries in the snapshot table sequentially, without a thread pool
+  void storeDirectoryEntries(
+      TableServiceClient snapshotTableServiceClient,
+      UUID snapshotId,
+      List<FireStoreDirectoryEntry> snapshotEntries) {
+    String tableName = StorageTableName.SNAPSHOT.toTableName(snapshotId);
+    TableClient tableClient = snapshotTableServiceClient.getTableClient(tableName);
+    snapshotEntries.forEach(
+        snapshotEntry -> createEntityForPath(tableClient, snapshotId, tableName, snapshotEntry));
   }
 }

@@ -187,7 +187,7 @@ public class DatasetServiceTest {
 
   @Test
   public void datasetOmopTest() throws IOException, SQLException {
-    createDataset("omop/it-dataset-omop.jsonl");
+    createDataset("omop/it-dataset-omop.json");
   }
 
   @Test(expected = DatasetNotFoundException.class)

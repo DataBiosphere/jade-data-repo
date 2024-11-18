@@ -1930,6 +1930,31 @@
                         "datatype": "date"
                     }
                 ]
+            },
+            {
+                "name": "sample",
+                "columns": [
+                    {"name":  "collaborator_participant_id", "datatype": "int64"},
+                    {"name":  "collaborator_sample_id", "datatype": "string"},
+                    {"name":  "bge_single_sample_vcf_index_path", "datatype": "fileref"},
+                    {"name":  "bge_single_sample_vcf_md5_path", "datatype": "fileref"},
+                    {"name":  "bge_single_sample_vcf_path", "datatype": "fileref"},
+                    {"name":  "contamination_rate", "datatype": "float"},
+                    {"name":  "exome_gvcf_index_path", "datatype": "fileref"},
+                    {"name":  "exome_gvcf_md5_path", "datatype": "fileref"},
+                    {"name":  "exome_gvcf_path", "datatype": "fileref"},
+                    {"name":  "genome_crai_path", "datatype": "fileref"},
+                    {"name":  "genome_cram_md5_path", "datatype": "fileref"},
+                    {"name":  "genome_cram_path", "datatype": "fileref"},
+                    {"name":  "mapped_percentage", "datatype": "float"},
+                    {"name":  "mean_off_target_coverage", "datatype": "float"},
+                    {"name":  "mean_target_coverage", "datatype": "float"},
+                    {"name":  "percent_target_bases_at_10x", "datatype": "float"},
+                    {"name":  "percent_wgs_bases_at_1x", "datatype": "float"},
+                    {"name":  "reblocked_gvcf", "datatype": "fileref"},
+                    {"name":  "reblocked_gvcf_index", "datatype": "fileref"},
+                    {"name":  "total_bases", "datatype":  "int64"}
+                ]
             }
         ],
         "relationships": [
@@ -3922,6 +3947,17 @@
               "to": {
                 "table": "observation",
                 "column": "person_id"
+              }
+            },
+            {
+              "name": "fpk_person_sample",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "sample",
+                "column": "collaborator_participant_id"
               }
             }
         ],

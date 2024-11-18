@@ -1,118 +1,141 @@
 package bio.terra.service.filedata.azure.tables;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertFalse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import bio.terra.app.configuration.ConnectedTestConfiguration;
-import bio.terra.common.AzureUtils;
-import bio.terra.common.EmbeddedDatabaseTest;
-import bio.terra.common.category.Connected;
-import bio.terra.common.fixtures.ConnectedOperations;
-import bio.terra.common.fixtures.Names;
-import bio.terra.service.auth.iam.IamProviderInterface;
-import com.azure.core.credential.AzureNamedKeyCredential;
+import bio.terra.common.category.Unit;
+import com.azure.core.http.HttpResponse;
+import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
-import com.azure.data.tables.TableServiceClientBuilder;
+import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
-import java.util.UUID;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import com.azure.data.tables.models.TableItem;
+import com.azure.data.tables.models.TableServiceException;
+import java.util.Iterator;
+import java.util.stream.Stream;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentMatcher;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles({"google", "connectedtest"})
-@Category(Connected.class)
-@EmbeddedDatabaseTest
-@Ignore("DCJ-826: Temporarily disabled due to missing Azure resources")
-public class TableServiceClientUtilsTest {
-  private static final Logger logger = LoggerFactory.getLogger(TableServiceClientUtilsTest.class);
-  private TableServiceClient tableServiceClient;
-  private String tableName;
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class TableServiceClientUtilsTest {
 
-  @Autowired ConnectedOperations connectedOperations;
-  @Autowired private ConnectedTestConfiguration testConfig;
-  @MockBean private IamProviderInterface samService;
-  @Autowired AzureUtils azureUtils;
+  @Mock TableServiceClient tableServiceClient;
+  @Mock TableClient tableClient;
 
-  @Before
-  public void setup() throws Exception {
-    connectedOperations.stubOutSamCalls(samService);
-    tableServiceClient =
-        new TableServiceClientBuilder()
-            .credential(
-                new AzureNamedKeyCredential(
-                    testConfig.getSourceStorageAccountName(),
-                    azureUtils.getSourceStorageAccountPrimarySharedKey()))
-            .endpoint(
-                "https://" + testConfig.getSourceStorageAccountName() + ".table.core.windows.net")
-            .buildClient();
-  }
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void tableHasEntries(boolean hasEntries) {
+    when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
+    mockTableExists(true);
+    mockTableHasEntries(hasEntries);
 
-  @After
-  public void cleanup() throws Exception {
-    if (tableName != null) {
-      try {
-        TableClient tableClient = tableServiceClient.getTableClient(tableName);
-        tableClient.deleteTable();
-      } catch (Exception ex) {
-        logger.error("Unable to delete table {}", tableName, ex);
-      }
-    }
-
-    connectedOperations.teardown();
+    assertThat(
+        TableServiceClientUtils.tableHasEntries(tableServiceClient, "tableName", null),
+        equalTo(hasEntries));
   }
 
   @Test
-  public void testUtils() {
-    tableName = Names.randomizeName("testTable123").replaceAll("_", "");
-    TableClient tableClient = tableServiceClient.getTableClient(tableName);
+  void tableHasEntriesCatchThrownException() {
+    when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
+    mockTableExists(true);
+    when(tableClient.listEntities(any(), any(), any()))
+        .thenThrow(new TableServiceException("error", mock(HttpResponse.class)));
 
-    boolean tableExists = TableServiceClientUtils.tableExists(tableServiceClient, tableName);
-    assertThat("table should not exist", !tableExists);
+    assertFalse(TableServiceClientUtils.tableHasEntries(tableServiceClient, "tableName", null));
+  }
 
-    tableServiceClient.createTableIfNotExists(tableName);
-    boolean tableExistsNow = TableServiceClientUtils.tableExists(tableServiceClient, tableName);
-    assertThat("table should exist", tableExistsNow);
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void tableExists(boolean tableExists) {
+    mockTableExists(tableExists);
 
-    boolean tableNoEntries = TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName);
-    assertThat("table should have no entries", !tableNoEntries);
+    assertThat(
+        TableServiceClientUtils.tableExists(tableServiceClient, "tableName"), equalTo(tableExists));
+  }
 
-    boolean tableZeroEntry =
-        TableServiceClientUtils.tableHasSingleEntry(tableServiceClient, tableName, null);
-    assertThat("table should have zero entries", !tableZeroEntry);
+  @Test
+  void tableExistsCatchThrownException() {
+    when(tableServiceClient.listTables(any(), any(), any()))
+        .thenThrow(new TableServiceException("error", mock(HttpResponse.class)));
 
-    // add an entry to the table
-    tableClient.createEntity(new TableEntity("test1", UUID.randomUUID().toString()));
-    boolean tableHasEntries =
-        TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName);
-    assertThat("table should have one entry", tableHasEntries);
+    assertFalse(TableServiceClientUtils.tableExists(tableServiceClient, "tableName"));
+  }
 
-    boolean tableOneEntry =
-        TableServiceClientUtils.tableHasSingleEntry(tableServiceClient, tableName, null);
-    assertThat("table should have one entry", tableOneEntry);
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void filterTable(boolean hasEntries) {
+    when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
+    mockTableExists(true);
+    // mock tableHasEntries
+    PagedIterable<TableEntity> hasEntriesMockPagedIterable = mock(PagedIterable.class);
+    when(tableClient.listEntities(any(), any(), any())).thenReturn(hasEntriesMockPagedIterable);
 
-    // add a second entry to the table
-    tableClient.createEntity(new TableEntity("test2", UUID.randomUUID().toString()));
-    boolean tableTwoEntry =
-        TableServiceClientUtils.tableHasSingleEntry(tableServiceClient, tableName, null);
-    assertThat("table should have two entries", !tableTwoEntry);
+    // Mock listing entities with filter
+    var filter = "exampleParameter eq '1'";
+    TableEntity fireStoreDependencyEntity = new TableEntity("partitionKey", "rowKey");
+    PagedIterable<TableEntity> mockPagedIterable2 = mock(PagedIterable.class);
+    Iterator<TableEntity> mockIterator = mock(Iterator.class);
+    when(mockIterator.hasNext()).thenReturn(hasEntries, false);
+    when(mockPagedIterable2.iterator()).thenReturn(mockIterator);
+    if (hasEntries) {
+      when(mockPagedIterable2.stream()).thenReturn(Stream.of(fireStoreDependencyEntity));
+    }
+    // only match for listing entities with filter
+    ArgumentMatcher<ListEntitiesOptions> matcher =
+        options -> options.getFilter() != null && options.getFilter().contains(filter);
+    when(tableClient.listEntities(argThat(matcher), any(), any())).thenReturn(mockPagedIterable2);
 
-    tableClient.deleteTable();
-    boolean tableExistsAfterDelete =
-        TableServiceClientUtils.tableExists(tableServiceClient, tableName);
-    assertThat("table should not exist after delete", !tableExistsAfterDelete);
+    assertThat(
+        TableServiceClientUtils.filterTable(tableServiceClient, "tableName", filter),
+        hasSize(hasEntries ? 1 : 0));
+  }
+
+  @Test
+  void filterTableCatchThrownException() {
+    when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
+    mockTableExists(true);
+    // mock tableHasEntries
+    PagedIterable<TableEntity> hasEntriesMockPagedIterable = mock(PagedIterable.class);
+    when(tableClient.listEntities(any(), any(), any())).thenReturn(hasEntriesMockPagedIterable);
+
+    var filter = "exampleParameter eq '1'";
+    // only match for listing entities with filter
+    ArgumentMatcher<ListEntitiesOptions> matcher =
+        options -> options.getFilter() != null && options.getFilter().contains(filter);
+    when(tableClient.listEntities(argThat(matcher), any(), any()))
+        .thenThrow(new TableServiceException("error", mock(HttpResponse.class)));
+
+    assertThat(
+        TableServiceClientUtils.filterTable(tableServiceClient, "tableName", filter), hasSize(0));
+  }
+
+  private void mockTableExists(boolean shouldExist) {
+    PagedIterable<TableItem> mockPagedIterable = mock(PagedIterable.class);
+    Iterator<TableItem> mockIterator = mock(Iterator.class);
+    when(mockIterator.hasNext()).thenReturn(shouldExist);
+    when(mockPagedIterable.iterator()).thenReturn(mockIterator);
+    when(tableServiceClient.listTables(any(), any(), any())).thenReturn(mockPagedIterable);
+  }
+
+  private void mockTableHasEntries(boolean shouldHaveEntries) {
+    PagedIterable<TableEntity> mockPagedIterable = mock(PagedIterable.class);
+    Iterator<TableEntity> mockIterator = mock(Iterator.class);
+    when(mockIterator.hasNext()).thenReturn(shouldHaveEntries);
+    when(mockPagedIterable.iterator()).thenReturn(mockIterator);
+    when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);
   }
 }

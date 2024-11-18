@@ -29,13 +29,13 @@ See [started guide](docs/jade-getting-started.md) for information on running con
 ### Run TDR locally
 
 To run TDR locally:
-`./scripts/run local`
+`./scripts/run start_local`
 
 To run TDR in docker:
-`./scripts/run docker`
+`./scripts/run start_docker`
 
 To run TDR locally and wait for debugger to attach on port 5005:
-`./scripts/run local --debug-jvm`
+`./scripts/run start_local --debug-jvm`
 
 To have the code hot reload, enable automatic builds in intellij, go to:
 `Preferences -> Build, Execution, Deployment -> Compiler`

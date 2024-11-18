@@ -3,7 +3,7 @@
       "name": "Azure_OMOP_Dataset",
       "schema": "OMOPDataset",
       "cloud_platform": "azure",
-      "tables": ["person","procedure_occurrence","condition_occurrence", "drug_exposure", "domain", "concept", "concept_ancestor"],
+      "tables": ["person","procedure_occurrence","condition_occurrence", "drug_exposure", "domain", "concept", "concept_ancestor", "sample"],
       "format": "array",
       "stewards": [],
       "custodians": [],

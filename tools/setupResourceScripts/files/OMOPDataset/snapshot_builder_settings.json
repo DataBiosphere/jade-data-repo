@@ -46,7 +46,8 @@
       },
       "conceptCount": 3,
       "participantCount": 300
-    },{
+    },
+    {
       "kind": "domain",
       "name": "Device",
       "id": 17,
@@ -60,7 +61,8 @@
       },
       "conceptCount": 7,
       "participantCount": 29
-    },{
+    },
+    {
       "kind": "domain",
       "name": "Condition",
       "id": 19,
@@ -74,7 +76,8 @@
       },
       "conceptCount": 151,
       "participantCount": 299
-    },{
+    },
+    {
       "kind": "domain",
       "name": "Procedure",
       "id": 10,
@@ -88,7 +91,8 @@
       },
       "conceptCount": 105,
       "participantCount": 299
-    },{
+    },
+    {
       "kind": "domain",
       "name": "Observation",
       "id": 27,
@@ -113,7 +117,8 @@
       "columnName": "year_of_birth",
       "min": 1911,
       "max": 2021
-    },{
+    },
+    {
       "kind": "list",
       "name": "Gender",
       "id": 1,
@@ -131,7 +136,8 @@
           "id": 0
         }
       ]
-    },{
+    },
+    {
       "kind": "list",
       "name": "Ethnicity",
       "id": 2,
@@ -149,7 +155,8 @@
           "id": 0
         }
       ]
-    },{
+    },
+    {
       "kind": "list",
       "name": "Race",
       "id": 3,
@@ -185,7 +192,8 @@
           "fpk_drug_route_concept",
           "fpk_drug_concept_s"]
       }
-    },{
+    },
+    {
       "name": "Measurement",
       "table": {
         "datasetTableName": "measurement",
@@ -199,7 +207,8 @@
           "fpk_measurement_type_concept",
           "fpk_measurement_operator"]
       }
-    },{
+    },
+    {
       "name": "Visit",
       "table": {
         "datasetTableName": "visit_occurrence",
@@ -212,7 +221,8 @@
           "fpk_visit_concept",
           "fpk_visit_discharge"]
       }
-    },{
+    },
+    {
       "name": "Device",
       "table": {
         "datasetTableName": "device_exposure",
@@ -223,7 +233,8 @@
           "fpk_device_concept_s",
           "fpk_device_type_concept"]
       }
-    },{
+    },
+    {
       "name": "Procedure",
       "table": {
         "datasetTableName": "procedure_occurrence",
@@ -235,7 +246,8 @@
           "fpk_procedure_type_concept",
           "fpk_procedure_modifier"]
       }
-    },{
+    },
+    {
       "name": "Condition",
       "table": {
         "datasetTableName": "condition_occurrence",
@@ -247,7 +259,8 @@
           "fpk_condition_status_concept",
           "fpk_condition_concept_s"]
       }
-    },{
+    },
+    {
       "name": "Observation",
       "table": {
         "datasetTableName": "observation",
@@ -260,6 +273,15 @@
           "fpk_observation_qualifier",
           "fpk_observation_type_concept",
           "fpk_observation_value"]
+      }
+    },
+    {
+      "name": "Sample",
+      "table": {
+        "datasetTableName": "sample",
+        "columns": [],
+        "primaryTableRelationship": "fpk_person_sample",
+        "secondaryTableRelationships": []
       }
     }
   ],

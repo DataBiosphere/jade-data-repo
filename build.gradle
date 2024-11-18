@@ -221,7 +221,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     // Azure related dependencies
-    implementation 'com.azure:azure-identity:1.14.1'
+    implementation 'com.azure:azure-identity:1.14.2'
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.44.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.0.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0-beta.5'

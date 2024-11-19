@@ -30,7 +30,7 @@ public class AuthService {
   private static Logger logger = LoggerFactory.getLogger(AuthService.class);
   private static ExpirationPolicy<String, GoogleCredentials> TOKEN_CACHE_EXPIRATION_POLICY =
       // Make sure this value never returns a negative since that means the entry never expires
-      (key, value) -> Math.max(0, 5 - TimeUnit.MINUTES.toMillis(5));
+      (key, value) -> Math.max(0, TimeUnit.MINUTES.toMillis(5));
 
   // the list of scopes we request from end users when they log in.
   // this should always match exactly what the UI requests, so our tests represent actual user

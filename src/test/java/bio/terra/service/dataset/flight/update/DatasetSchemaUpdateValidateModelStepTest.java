@@ -61,7 +61,7 @@ import org.springframework.test.context.ContextConfiguration;
     })
 @WebMvcTest
 @Tag(Unit.TAG)
-class DatasetSchemaUpdateValidationTest {
+class DatasetSchemaUpdateValidateModelStepTest {
 
   @MockBean private JobService jobService;
   @MockBean private DatasetService datasetService;

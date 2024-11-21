@@ -185,6 +185,7 @@ public class DatasetRequestValidator implements Validator {
     }
   }
 
+  // specifically this method that is shared between update schema and create dataset
   public void validateTable(TableModel table, Errors errors, SchemaValidationContext context) {
     String tableName = table.getName();
     List<ColumnModel> columns = table.getColumns();

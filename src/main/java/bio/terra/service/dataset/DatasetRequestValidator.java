@@ -193,7 +193,7 @@ public class DatasetRequestValidator implements Validator {
     List<String> columnNames = new ArrayList<>();
     if (columns.isEmpty()) {
       errors.rejectValue(
-          "schema", "IncompleteSchemaDefinition", "Each table must contain at least one column");
+          "changes", "IncompleteSchemaDefinition", "Each table must contain at least one column");
     } else {
       columns.stream().map(ColumnModel::getName).forEach(columnNames::add);
     }

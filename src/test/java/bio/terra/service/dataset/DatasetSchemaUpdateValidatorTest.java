@@ -150,4 +150,25 @@ class DatasetSchemaUpdateValidatorTest {
         errorModel.getErrorDetail().get(0),
         containsString("DuplicateRelationshipNames"));
   }
+
+  @Test
+  void testNoColumns() throws Exception {
+    String newTableName = "new_table";
+    String newTableColumnName = "new_table_column";
+    DatasetSchemaUpdateModel updateModel =
+        new DatasetSchemaUpdateModel()
+            .description("column addition tests")
+            .changes(
+                new DatasetSchemaUpdateModelChanges()
+                    .addTables(
+                        List.of(
+                            DatasetFixtures.tableModel(newTableName, List.of(newTableColumnName)),
+                            DatasetFixtures.tableModel(
+                                newTableName, List.of(newTableColumnName)))));
+    ErrorModel errorModel = expectBadDatasetUpdateRequest(updateModel);
+    assertThat(
+        "Required column throws error",
+        errorModel.getErrorDetail().get(0),
+        containsString("DuplicateTableNames"));
+  }
 }

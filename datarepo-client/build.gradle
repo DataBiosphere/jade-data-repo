@@ -31,7 +31,7 @@ dependencies {
     ext {
         jersey = "3.1.9"
         jackson = "2.18.1"
-        swaggerAnnotations = "2.2.25"
+        swaggerAnnotations = "2.2.26"
 
     }
 

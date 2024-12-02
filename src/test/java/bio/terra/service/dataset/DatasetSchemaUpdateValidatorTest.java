@@ -287,8 +287,7 @@ class DatasetSchemaUpdateValidatorTest {
   @Test
   void testMissingDatePartitionColumnName() throws Exception {
     String newTableName = "new_table";
-    DatePartitionOptionsModel datePartitionOptions =
-        new DatePartitionOptionsModel();
+    DatePartitionOptionsModel datePartitionOptions = new DatePartitionOptionsModel();
     TableModel tableModel = DatasetFixtures.tableModel(newTableName, List.of("column1"));
     tableModel.setPartitionMode(TableModel.PartitionModeEnum.DATE);
     tableModel.setDatePartitionOptions(datePartitionOptions);
@@ -300,7 +299,8 @@ class DatasetSchemaUpdateValidatorTest {
     ErrorModel errorModel = expectBadDatasetUpdateRequest(updateModel);
     assertThat(
         "Missing date partition column name with new table throws error",
-        errorModel.getErrorDetail().get(0),
+        // first error is NotNull error for column, second is MissingDatePartitionColumnName
+        errorModel.getErrorDetail().get(1),
         containsString("MissingDatePartitionColumnName"));
   }
 
@@ -325,7 +325,7 @@ class DatasetSchemaUpdateValidatorTest {
     assertThat(
         "Invalid date partition column type with new table throws error",
         errorModel.getErrorDetail().get(0),
-        containsString("MissingDatePartitionColumnName"));
+        containsString("InvalidDatePartitionColumnType"));
   }
 
   @Test
@@ -348,21 +348,29 @@ class DatasetSchemaUpdateValidatorTest {
     assertThat(
         "Invalid date partition column name with new table throws error",
         errorModel.getErrorDetail().get(0),
-        containsString("MissingDatePartitionColumnName"));
+        containsString("InvalidDatePartitionColumnName"));
   }
 
   @Test
   void testInvalidDatePartitionOptions() throws Exception {
     String newTableName = "new_table";
     DatePartitionOptionsModel datePartitionOptions =
-        new DatePartitionOptionsModel();
-    TableModel tableModel = DatasetFixtures.tableModel(newTableName, List.of("column1"));
+        new DatePartitionOptionsModel().column("column1");
+    TableModel tableModel = DatasetFixtures.tableModel(newTableName, List.of());
+    tableModel.addColumnsItem(
+        DatasetFixtures.columnModel("column1", TableDataType.INTEGER, false, false));
     tableModel.setPartitionMode(TableModel.PartitionModeEnum.INT);
     tableModel.setDatePartitionOptions(datePartitionOptions);
+    IntPartitionOptionsModel intPartitionOptions = new IntPartitionOptionsModel();
+    intPartitionOptions.min(1L);
+    intPartitionOptions.max(10L);
+    intPartitionOptions.interval(1L);
+    intPartitionOptions.column("column1");
+    tableModel.setIntPartitionOptions(intPartitionOptions);
 
     DatasetSchemaUpdateModel updateModel =
         new DatasetSchemaUpdateModel()
-            .description("Invalid date partition options with new table")
+            .description("Invalid date partition options with mode Int with new table")
             .changes(new DatasetSchemaUpdateModelChanges().addTables(List.of(tableModel)));
     ErrorModel errorModel = expectBadDatasetUpdateRequest(updateModel);
     assertThat(
@@ -392,6 +400,9 @@ class DatasetSchemaUpdateValidatorTest {
   void testMissingIntPartitionColumnName() throws Exception {
     String newTableName = "new_table";
     IntPartitionOptionsModel intPartitionOptions = new IntPartitionOptionsModel();
+    intPartitionOptions.min(1L);
+    intPartitionOptions.max(10L);
+    intPartitionOptions.interval(1L);
     TableModel tableModel = DatasetFixtures.tableModel(newTableName, List.of("column1"));
     tableModel.setPartitionMode(TableModel.PartitionModeEnum.INT);
     tableModel.setIntPartitionOptions(intPartitionOptions);
@@ -402,7 +413,8 @@ class DatasetSchemaUpdateValidatorTest {
     ErrorModel errorModel = expectBadDatasetUpdateRequest(updateModel);
     assertThat(
         "Missing int partition column name with new table throws error",
-        errorModel.getErrorDetail().get(0),
+        // first error is NotNull error for column, second is MissingIntPartitionColumnName
+        errorModel.getErrorDetail().get(1),
         containsString("MissingIntPartitionColumnName"));
   }
 
@@ -412,6 +424,9 @@ class DatasetSchemaUpdateValidatorTest {
     String newColumnName = "column1";
     IntPartitionOptionsModel intPartitionOptions =
         new IntPartitionOptionsModel().column(newColumnName);
+    intPartitionOptions.min(1L);
+    intPartitionOptions.max(10L);
+    intPartitionOptions.interval(1L);
     ColumnModel newColumn =
         DatasetFixtures.columnModel(newColumnName, TableDataType.STRING, false, true);
     TableModel tableModel = DatasetFixtures.tableModel(newTableName, List.of());
@@ -433,8 +448,10 @@ class DatasetSchemaUpdateValidatorTest {
   @Test
   void testInvalidIntPartitionColumnName() throws Exception {
     String newTableName = "new_table";
-    IntPartitionOptionsModel intPartitionOptions =
-        new IntPartitionOptionsModel().column("column1");
+    IntPartitionOptionsModel intPartitionOptions = new IntPartitionOptionsModel().column("column1");
+    intPartitionOptions.min(1L);
+    intPartitionOptions.max(10L);
+    intPartitionOptions.interval(1L);
     ColumnModel newColumn =
         DatasetFixtures.columnModel("column2", TableDataType.INTEGER, false, true);
     TableModel tableModel = DatasetFixtures.tableModel(newTableName, List.of());
@@ -457,12 +474,21 @@ class DatasetSchemaUpdateValidatorTest {
   void testInvalidIntPartitionOptions() throws Exception {
     String newTableName = "new_table";
     IntPartitionOptionsModel intPartitionOptions = new IntPartitionOptionsModel();
-    TableModel tableModel = DatasetFixtures.tableModel(newTableName, List.of("column1"));
+    intPartitionOptions.min(1L);
+    intPartitionOptions.max(10L);
+    intPartitionOptions.interval(1L);
+    intPartitionOptions.column("column1");
+    DatePartitionOptionsModel datePartitionOptions =
+        new DatePartitionOptionsModel().column("column1");
+    TableModel tableModel = DatasetFixtures.tableModel(newTableName, List.of());
+    tableModel.addColumnsItem(
+        DatasetFixtures.columnModel("column1", TableDataType.DATE, false, false));
     tableModel.setPartitionMode(TableModel.PartitionModeEnum.DATE);
+    tableModel.setDatePartitionOptions(datePartitionOptions);
     tableModel.setIntPartitionOptions(intPartitionOptions);
     DatasetSchemaUpdateModel updateModel =
         new DatasetSchemaUpdateModel()
-            .description("Invalid int partition options with new table")
+            .description("Invalid int partition options with mode Date with new table")
             .changes(new DatasetSchemaUpdateModelChanges().addTables(List.of(tableModel)));
     ErrorModel errorModel = expectBadDatasetUpdateRequest(updateModel);
     assertThat(

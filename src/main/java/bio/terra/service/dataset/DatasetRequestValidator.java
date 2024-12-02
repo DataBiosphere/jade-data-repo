@@ -50,14 +50,31 @@ public class DatasetRequestValidator implements Validator {
 
   public static class SchemaValidationContext {
 
+    enum Operation {
+      CREATE("schema"),
+      UPDATE("changes");
+
+      private final String fieldName;
+
+      Operation(String fieldName) {
+        this.fieldName = fieldName;
+      }
+    }
+
     private HashMap<String, HashSet<String>> tableColumnMap;
     private HashMap<String, HashSet<String>> tableArrayColumns;
     private HashSet<String> relationshipNameSet;
+    private Operation operation;
 
-    SchemaValidationContext() {
+    SchemaValidationContext(Operation op) {
       tableColumnMap = new HashMap<>();
       tableArrayColumns = new HashMap<>();
       relationshipNameSet = new HashSet<>();
+      operation = op;
+    }
+
+    String getFieldName() {
+      return operation.fieldName;
     }
 
     void addTable(String tableName, List<ColumnModel> columns) {
@@ -106,11 +123,14 @@ public class DatasetRequestValidator implements Validator {
   }
 
   private void validateDatePartitionOptions(
-      DatePartitionOptionsModel options, List<ColumnModel> columns, Errors errors) {
+      DatePartitionOptionsModel options,
+      List<ColumnModel> columns,
+      Errors errors,
+      SchemaValidationContext context) {
     String targetColumn = options.getColumn();
 
     if (targetColumn == null) {
-      errors.rejectValue("schema", "MissingDatePartitionColumnName");
+      errors.rejectValue(context.getFieldName(), "MissingDatePartitionColumnName");
     } else if (!targetColumn.equals(PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS)) {
       Optional<ColumnModel> matchingColumn =
           columns.stream().filter(c -> targetColumn.equals(c.getName())).findFirst();
@@ -120,23 +140,28 @@ public class DatasetRequestValidator implements Validator {
 
         if (colType != TableDataType.DATE && colType != TableDataType.TIMESTAMP) {
           errors.rejectValue(
-              "schema",
+              context.getFieldName(),
               "InvalidDatePartitionColumnType",
               "partitionColumn in datePartitionOptions must refer to a DATE or TIMESTAMP column");
         }
       } else {
         errors.rejectValue(
-            "schema", "InvalidDatePartitionColumnName", "No such column: " + targetColumn);
+            context.getFieldName(),
+            "InvalidDatePartitionColumnName",
+            "No such column: " + targetColumn);
       }
     }
   }
 
   private void validateIntPartitionOptions(
-      IntPartitionOptionsModel options, List<ColumnModel> columns, Errors errors) {
+      IntPartitionOptionsModel options,
+      List<ColumnModel> columns,
+      Errors errors,
+      SchemaValidationContext context) {
     String targetColumn = options.getColumn();
 
     if (targetColumn == null) {
-      errors.rejectValue("schema", "MissingIntPartitionColumnName");
+      errors.rejectValue(context.getFieldName(), "MissingIntPartitionColumnName");
     } else {
       Optional<ColumnModel> matchingColumn =
           columns.stream().filter(c -> targetColumn.equals(c.getName())).findFirst();
@@ -146,13 +171,15 @@ public class DatasetRequestValidator implements Validator {
 
         if (colType != TableDataType.INTEGER && colType != TableDataType.INT64) {
           errors.rejectValue(
-              "schema",
+              context.getFieldName(),
               "InvalidIntPartitionColumnType",
               "partitionColumn in intPartitionOptions must refer to an INTEGER or INT64 column");
         }
       } else {
         errors.rejectValue(
-            "schema", "InvalidIntPartitionColumnName", "No such column: " + targetColumn);
+            context.getFieldName(),
+            "InvalidIntPartitionColumnName",
+            "No such column: " + targetColumn);
       }
     }
 
@@ -162,30 +189,31 @@ public class DatasetRequestValidator implements Validator {
 
     if (min == null || max == null || interval == null) {
       errors.rejectValue(
-          "schema",
+          context.getFieldName(),
           "MissingIntPartitionOptions",
           "intPartitionOptions must specify min, max, and interval");
     } else {
       if (max <= min) {
         errors.rejectValue(
-            "schema",
+            context.getFieldName(),
             "InvalidIntPartitionRange",
             "Max partition value must be larger than min partition value");
       }
       if (interval <= 0) {
         errors.rejectValue(
-            "schema", "InvalidIntPartitionInterval", "Partition interval must be >= 1");
+            context.getFieldName(),
+            "InvalidIntPartitionInterval",
+            "Partition interval must be >= 1");
       }
       if (max > min && interval > 0 && (max - min) / interval > 4000L) {
         errors.rejectValue(
-            "schema",
+            context.getFieldName(),
             "TooManyIntPartitions",
             "Cannot configure more than 4K partitions through min, max, and interval");
       }
     }
   }
 
-  // specifically this method that is shared between update schema and create dataset
   public void validateTable(TableModel table, Errors errors, SchemaValidationContext context) {
     String tableName = table.getName();
     List<ColumnModel> columns = table.getColumns();
@@ -193,18 +221,20 @@ public class DatasetRequestValidator implements Validator {
     List<String> columnNames = new ArrayList<>();
     if (columns.isEmpty()) {
       errors.rejectValue(
-          "changes", "IncompleteSchemaDefinition", "Each table must contain at least one column");
+          context.getFieldName(),
+          "IncompleteSchemaDefinition",
+          "Each table must contain at least one column");
     } else {
       columns.stream().map(ColumnModel::getName).forEach(columnNames::add);
     }
 
     if (tableName != null) {
-      validateDataTypes(columns, errors);
+      validateDataTypes(columns, errors, context);
 
       if (ValidationUtils.hasDuplicates(columnNames)) {
         List<String> duplicates = ValidationUtils.findDuplicates(columnNames);
         errors.rejectValue(
-            "schema",
+            context.getFieldName(),
             "DuplicateColumnNames",
             String.format("Duplicate columns: %s", String.join(", ", duplicates)));
       }
@@ -213,16 +243,16 @@ public class DatasetRequestValidator implements Validator {
           List<String> missingKeys = new ArrayList<>(primaryKeyList);
           missingKeys.removeAll(columnNames);
           errors.rejectValue(
-              "schema",
+              context.getFieldName(),
               "MissingPrimaryKeyColumn",
               String.format("Expected column(s): %s", String.join(", ", missingKeys)));
         }
       }
       for (ColumnModel columnModel : table.getColumns()) {
         if (primaryKeyList != null && primaryKeyList.contains(columnModel.getName())) {
-          validateColumnType(errors, columnModel, PRIMARY_KEY);
+          validateColumnType(errors, columnModel, PRIMARY_KEY, context);
         }
-        validateColumnMode(errors, columnModel);
+        validateColumnMode(errors, columnModel, context);
       }
 
       context.addTable(tableName, columns);
@@ -235,15 +265,15 @@ public class DatasetRequestValidator implements Validator {
     if (mode == TableModel.PartitionModeEnum.DATE) {
       if (dateOptions == null) {
         errors.rejectValue(
-            "schema",
+            context.getFieldName(),
             "MissingDatePartitionOptions",
             "datePartitionOptions must be specified when using 'date' partitionMode");
       } else {
-        validateDatePartitionOptions(dateOptions, columns, errors);
+        validateDatePartitionOptions(dateOptions, columns, errors, context);
       }
     } else if (dateOptions != null) {
       errors.rejectValue(
-          "schema",
+          context.getFieldName(),
           "InvalidDatePartitionOptions",
           "datePartitionOptions can only be specified when using 'date' partitionMode");
     }
@@ -251,58 +281,67 @@ public class DatasetRequestValidator implements Validator {
     if (mode == TableModel.PartitionModeEnum.INT) {
       if (intOptions == null) {
         errors.rejectValue(
-            "schema",
+            context.getFieldName(),
             "MissingIntPartitionOptions",
             "intPartitionOptions must be specified when using 'int' partitionMode");
       } else {
-        validateIntPartitionOptions(intOptions, columns, errors);
+        validateIntPartitionOptions(intOptions, columns, errors, context);
       }
     } else if (intOptions != null) {
       errors.rejectValue(
-          "schema",
+          context.getFieldName(),
           "InvalidIntPartitionOptions",
           "intPartitionOptions can only be specified when using 'int' partitionMode");
     }
   }
 
   // Primary Keys and Foreign Keys cannot be filerefs or dirrefs and Primary keys cannot be arrays
-  private void validateColumnType(Errors errors, ColumnModel columnModel, String keyType) {
+  private void validateColumnType(
+      Errors errors, ColumnModel columnModel, String keyType, SchemaValidationContext context) {
     if (keyType.equals(PRIMARY_KEY) && columnModel.isArrayOf()) {
-      rejectKey(errors, keyType, columnModel.getName(), "array");
+      rejectKey(errors, keyType, columnModel.getName(), "array", context);
     }
 
     Set<TableDataType> invalidTypes = Set.of(TableDataType.DIRREF, TableDataType.FILEREF);
     if (columnModel.getDatatype() != null && invalidTypes.contains(columnModel.getDatatype())) {
-      rejectKey(errors, keyType, columnModel.getName(), columnModel.getDatatype().toString());
+      rejectKey(
+          errors, keyType, columnModel.getName(), columnModel.getDatatype().toString(), context);
     }
     if (PRIMARY_KEY.equals(keyType) && Boolean.FALSE.equals(columnModel.isRequired())) {
       errors.rejectValue(
-          "schema",
+          context.getFieldName(),
           "OptionalPrimaryKeyColumn",
           String.format("A %s column cannot be marked as not required", PRIMARY_KEY));
     }
   }
 
-  private void validateColumnMode(Errors errors, ColumnModel columnModel) {
+  private void validateColumnMode(
+      Errors errors, ColumnModel columnModel, SchemaValidationContext context) {
     // Explicitly check if isRequired is true to avoid a null pointer exception.
     // isArrayOf has a default value set in the open-api spec so it does not require
     // the same handling.
     if (Boolean.TRUE.equals(columnModel.isRequired()) && columnModel.isArrayOf()) {
       errors.rejectValue(
-          "schema",
+          context.getFieldName(),
           "InvalidColumnMode",
           String.format("Array column %s cannot be marked as required", columnModel.getName()));
     }
   }
 
-  private void rejectKey(Errors errors, String keyType, String columnName, String type) {
+  private void rejectKey(
+      Errors errors,
+      String keyType,
+      String columnName,
+      String type,
+      SchemaValidationContext context) {
     errors.rejectValue(
-        "schema",
+        context.getFieldName(),
         String.format("Invalid%s", keyType),
         String.format("%s %s cannot be a column with %s type", keyType, columnName, type));
   }
 
-  private void validateDataTypes(List<ColumnModel> columns, Errors errors) {
+  private void validateDataTypes(
+      List<ColumnModel> columns, Errors errors, SchemaValidationContext context) {
     List<ColumnModel> invalidColumns = new ArrayList<>();
     for (ColumnModel column : columns) {
       // spring defaults user input not belonging to the TableDataType enum to null
@@ -312,7 +351,7 @@ public class DatasetRequestValidator implements Validator {
     }
     if (!invalidColumns.isEmpty()) {
       errors.rejectValue(
-          "schema",
+          context.getFieldName(),
           "InvalidDatatype",
           "invalid datatype in table column(s): "
               + invalidColumns.stream().map(ColumnModel::getName).collect(Collectors.joining(", "))
@@ -328,7 +367,7 @@ public class DatasetRequestValidator implements Validator {
       SchemaValidationContext context) {
     ArrayList<LinkedHashMap<String, String>> validationErrors =
         ValidationUtils.getRelationshipValidationErrors(relationship, tables);
-    validationErrors.forEach(e -> rejectValues(errors, e));
+    validationErrors.forEach(e -> rejectValues(errors, e, context));
 
     String relationshipName = relationship.getName();
     if (relationshipName != null) {
@@ -336,11 +375,12 @@ public class DatasetRequestValidator implements Validator {
     }
   }
 
-  private void rejectValues(Errors errors, Map<String, String> errorMap) {
+  private void rejectValues(
+      Errors errors, Map<String, String> errorMap, SchemaValidationContext context) {
     for (var entry : errorMap.entrySet()) {
       var errorCode = entry.getKey();
       var errorMessage = entry.getValue();
-      errors.rejectValue("schema", errorCode, errorMessage);
+      errors.rejectValue(context.getFieldName(), errorCode, errorMessage);
     }
   }
 
@@ -354,14 +394,15 @@ public class DatasetRequestValidator implements Validator {
       // specification.
       if (columnNames.size() == 0) {
         if (!context.isValidTable(tableName)) {
-          errors.rejectValue("schema", "InvalidAssetTable", "Invalid asset table: " + tableName);
+          errors.rejectValue(
+              context.getFieldName(), "InvalidAssetTable", "Invalid asset table: " + tableName);
         }
       } else {
         columnNames.forEach(
             (columnName) -> {
               if (!context.isValidTableColumn(tableName, columnName)) {
                 errors.rejectValue(
-                    "schema",
+                    context.getFieldName(),
                     "InvalidAssetTableColumn",
                     "Invalid asset table: " + tableName + " column: " + columnName);
               }
@@ -383,12 +424,12 @@ public class DatasetRequestValidator implements Validator {
         if (assetTable.getName().equals(rootTable)) {
           if (!context.isValidTableColumn(rootTable, rootColumn)) {
             errors.rejectValue(
-                "schema",
+                context.getFieldName(),
                 "InvalidRootColumn",
                 "Invalid root table column. Table: " + rootTable + " Column: " + rootColumn);
           } else if (context.isArrayColumn(rootTable, rootColumn)) {
             errors.rejectValue(
-                "schema",
+                context.getFieldName(),
                 "InvalidArrayRootColumn",
                 "Invalid use of array column as asset root. Table: "
                     + rootTable
@@ -399,7 +440,7 @@ public class DatasetRequestValidator implements Validator {
         }
       }
       if (!hasRootTable) {
-        errors.rejectValue("schema", "NoRootTable");
+        errors.rejectValue(context.getFieldName(), "NoRootTable");
       }
     }
 
@@ -407,7 +448,7 @@ public class DatasetRequestValidator implements Validator {
     if (follows != null) {
       if (follows.stream()
           .anyMatch(relationshipName -> !context.isValidRelationship(relationshipName))) {
-        errors.rejectValue("schema", "InvalidFollowsRelationship");
+        errors.rejectValue(context.getFieldName(), "InvalidFollowsRelationship");
       }
     }
     // TODO: There is another validation that can be done here to make sure that the graph is
@@ -416,16 +457,19 @@ public class DatasetRequestValidator implements Validator {
   }
 
   private void validateSchema(DatasetSpecificationModel schema, Errors errors) {
-    SchemaValidationContext context = new SchemaValidationContext();
+    SchemaValidationContext context =
+        new SchemaValidationContext(SchemaValidationContext.Operation.CREATE);
     List<TableModel> tables = schema.getTables();
     if (tables.isEmpty()) {
       errors.rejectValue(
-          "schema", "IncompleteSchemaDefinition", "Dataset tables must be defined in the schema");
+          context.getFieldName(),
+          "IncompleteSchemaDefinition",
+          "Dataset tables must be defined in the schema");
     } else {
       List<String> tableNames =
           tables.stream().map(TableModel::getName).collect(Collectors.toList());
       if (ValidationUtils.hasDuplicates(tableNames)) {
-        errors.rejectValue("schema", "DuplicateTableNames");
+        errors.rejectValue(context.getFieldName(), "DuplicateTableNames");
       }
       tables.forEach((table) -> validateTable(table, errors, context));
     }
@@ -435,7 +479,7 @@ public class DatasetRequestValidator implements Validator {
       List<String> relationshipNames =
           relationships.stream().map(RelationshipModel::getName).collect(Collectors.toList());
       if (ValidationUtils.hasDuplicates(relationshipNames)) {
-        errors.rejectValue("schema", "DuplicateRelationshipNames");
+        errors.rejectValue(context.getFieldName(), "DuplicateRelationshipNames");
       }
       relationships.forEach(
           (relationship) -> validateRelationship(relationship, tables, errors, context));
@@ -448,7 +492,7 @@ public class DatasetRequestValidator implements Validator {
       if (ValidationUtils.hasDuplicates(assetNames)) {
         List<String> duplicates = ValidationUtils.findDuplicates(assetNames);
         errors.rejectValue(
-            "schema",
+            context.getFieldName(),
             "DuplicateAssetNames",
             String.format("Duplicate asset names: %s", String.join(", ", duplicates)));
       }

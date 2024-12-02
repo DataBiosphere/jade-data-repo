@@ -90,4 +90,5 @@
     <include file="changesets/20240822_load_rename_to_load_lock.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20240816_addsamgrouptorequest.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20240830_dataset_table_dataset_id_index.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20241127_asset_column_asset_id_index.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

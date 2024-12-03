@@ -29,7 +29,6 @@ import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import java.util.List;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -183,7 +182,7 @@ class DatasetSchemaUpdateValidatorTest {
     assertThat(
         "Invalid DataTypes are logged and returned",
         responseBody,
-        Matchers.containsString(
+        containsString(
             "invalid datatype in table column(s): bad_column, "
                 + "DataTypes must be lowercase, valid DataTypes are [string, boolean, bytes, date, datetime, dirref, fileref, "
                 + "float, float64, integer, int64, numeric, record, text, time, timestamp]"));

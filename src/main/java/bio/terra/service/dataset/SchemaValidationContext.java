@@ -2,39 +2,42 @@ package bio.terra.service.dataset;
 
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.ValidationUtils;
+import bio.terra.model.AssetModel;
+import bio.terra.model.AssetTableModel;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatePartitionOptionsModel;
 import bio.terra.model.IntPartitionOptionsModel;
+import bio.terra.model.RelationshipModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.validation.Errors;
 
 /**
- * SchemaValidationContext represents shared functionality between DatasetRequestValidator (used for
- * creating dataset schemas) and DatasetSchemaUpdateValidator (used for updating dataset schemas).
+ * SchemaValidationContext represents shared functionality used to validate schemas for datasets.
+ * Much of this functionality is shared between DatasetRequestValidator (used for creating dataset
+ * schemas) and DatasetSchemaUpdateValidator (used for updating dataset schemas).
  */
 public class SchemaValidationContext {
 
   private static final String PRIMARY_KEY = "PrimaryKey";
 
-  private final HashMap<String, HashSet<String>> tableColumnMap;
-  private final HashMap<String, HashSet<String>> tableArrayColumns;
-  private final HashSet<String> relationshipNameSet;
+  private final Map<String, Set<String>> tableColumnMap = new HashMap<>();
+  private final Map<String, Set<String>> tableArrayColumns = new HashMap<>();
+  private final Set<String> relationshipNameSet = new HashSet<>();
   private final String fieldName;
 
-  SchemaValidationContext(String field) {
-    tableColumnMap = new HashMap<>();
-    tableArrayColumns = new HashMap<>();
-    relationshipNameSet = new HashSet<>();
-    fieldName = field;
+  SchemaValidationContext(String fieldName) {
+    this.fieldName = fieldName;
   }
 
   static SchemaValidationContext forUpdate() {
@@ -109,15 +112,13 @@ public class SchemaValidationContext {
             "DuplicateColumnNames",
             String.format("Duplicate columns: %s", String.join(", ", duplicates)));
       }
-      if (primaryKeyList != null) {
-        if (!columnNames.containsAll(primaryKeyList)) {
-          List<String> missingKeys = new ArrayList<>(primaryKeyList);
-          missingKeys.removeAll(columnNames);
-          errors.rejectValue(
-              getFieldName(),
-              "MissingPrimaryKeyColumn",
-              String.format("Expected column(s): %s", String.join(", ", missingKeys)));
-        }
+      if (primaryKeyList != null && !new HashSet<>(columnNames).containsAll(primaryKeyList)) {
+        List<String> missingKeys = new ArrayList<>(primaryKeyList);
+        missingKeys.removeAll(columnNames);
+        errors.rejectValue(
+            getFieldName(),
+            "MissingPrimaryKeyColumn",
+            String.format("Expected column(s): %s", String.join(", ", missingKeys)));
       }
       for (ColumnModel columnModel : table.getColumns()) {
         if (primaryKeyList != null && primaryKeyList.contains(columnModel.getName())) {
@@ -300,5 +301,95 @@ public class SchemaValidationContext {
         getFieldName(),
         String.format("Invalid%s", keyType),
         String.format("%s %s cannot be a column with %s type", keyType, columnName, type));
+  }
+
+  void validateRelationship(
+      RelationshipModel relationship, List<TableModel> tables, Errors errors) {
+    ArrayList<LinkedHashMap<String, String>> validationErrors =
+        ValidationUtils.getRelationshipValidationErrors(relationship, tables);
+    validationErrors.forEach(e -> rejectValues(errors, e));
+
+    String relationshipName = relationship.getName();
+    if (relationshipName != null) {
+      addRelationship(relationshipName);
+    }
+  }
+
+  private void rejectValues(Errors errors, Map<String, String> errorMap) {
+    for (var entry : errorMap.entrySet()) {
+      var errorCode = entry.getKey();
+      var errorMessage = entry.getValue();
+      errors.rejectValue(getFieldName(), errorCode, errorMessage);
+    }
+  }
+
+  private void validateAssetTable(AssetTableModel assetTable, Errors errors) {
+
+    String tableName = assetTable.getName();
+    List<String> columnNames = assetTable.getColumns();
+    if (tableName != null && columnNames != null) {
+      // An empty list acts like a wildcard to include all columns from a table in the asset
+      // specification.
+      if (columnNames.isEmpty()) {
+        if (!isValidTable(tableName)) {
+          errors.rejectValue(
+              getFieldName(), "InvalidAssetTable", "Invalid asset table: " + tableName);
+        }
+      } else {
+        columnNames.forEach(
+            (columnName) -> {
+              if (!isValidTableColumn(tableName, columnName)) {
+                errors.rejectValue(
+                    getFieldName(),
+                    "InvalidAssetTableColumn",
+                    "Invalid asset table: " + tableName + " column: " + columnName);
+              }
+            });
+      }
+    }
+  }
+
+  void validateAsset(AssetModel asset, Errors errors) {
+    List<AssetTableModel> assetTables = asset.getTables();
+
+    String rootTable = asset.getRootTable();
+    String rootColumn = asset.getRootColumn();
+
+    if (assetTables != null) {
+      boolean hasRootTable = false;
+      for (AssetTableModel assetTable : assetTables) {
+        validateAssetTable(assetTable, errors);
+        if (assetTable.getName().equals(rootTable)) {
+          if (!isValidTableColumn(rootTable, rootColumn)) {
+            errors.rejectValue(
+                getFieldName(),
+                "InvalidRootColumn",
+                "Invalid root table column. Table: " + rootTable + " Column: " + rootColumn);
+          } else if (isArrayColumn(rootTable, rootColumn)) {
+            errors.rejectValue(
+                getFieldName(),
+                "InvalidArrayRootColumn",
+                "Invalid use of array column as asset root. Table: "
+                    + rootTable
+                    + " Column: "
+                    + rootColumn);
+          }
+          hasRootTable = true;
+        }
+      }
+      if (!hasRootTable) {
+        errors.rejectValue(getFieldName(), "NoRootTable");
+      }
+    }
+
+    List<String> follows = asset.getFollow();
+    if (follows != null) {
+      if (follows.stream().anyMatch(relationshipName -> !isValidRelationship(relationshipName))) {
+        errors.rejectValue(getFieldName(), "InvalidFollowsRelationship");
+      }
+    }
+    // TODO: There is another validation that can be done here to make sure that the graph is
+    // connected that has
+    // been left out to avoid complexity before we know if we're going keep using this or not.
   }
 }

@@ -153,7 +153,7 @@ public class DatasetRequestValidator implements Validator {
       if (ValidationUtils.hasDuplicates(tableNames)) {
         errors.rejectValue(context.getFieldName(), "DuplicateTableNames");
       }
-      tables.forEach((table) -> context.validateTable(table, errors));
+      tables.forEach(table -> context.validateTable(table, errors));
     }
 
     List<RelationshipModel> relationships = schema.getRelationships();

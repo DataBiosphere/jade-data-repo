@@ -25,17 +25,6 @@ public class SchemaValidationContext {
 
   private static final String PRIMARY_KEY = "PrimaryKey";
 
-  enum Operation {
-    CREATE("schema"),
-    UPDATE("changes");
-
-    private final String fieldName;
-
-    Operation(String fieldName) {
-      this.fieldName = fieldName;
-    }
-  }
-
   private final HashMap<String, HashSet<String>> tableColumnMap;
   private final HashMap<String, HashSet<String>> tableArrayColumns;
   private final HashSet<String> relationshipNameSet;

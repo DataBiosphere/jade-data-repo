@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.category.Unit;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
@@ -20,6 +21,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.ShortUUID;
 import com.azure.storage.blob.BlobUrlParts;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -192,5 +194,18 @@ class IngestUtilsTest {
     IngestRequestModel ingestRequest = new IngestRequestModel().updateStrategy(updateStrategy);
     inputParameters.put(JobMapKeys.REQUEST.getKeyName(), ingestRequest);
     return inputParameters;
+  }
+
+  @Test
+  void putIngestStatistics() {
+    when(context.getWorkingMap()).thenReturn(new FlightMap());
+    PdaoLoadStatistics ingestStatistics =
+        new PdaoLoadStatistics(123, 456, Instant.EPOCH, Instant.EPOCH);
+    IngestUtils.putIngestStatistics(context, ingestStatistics);
+    PdaoLoadStatistics actual = IngestUtils.getIngestStatistics(context);
+    assertEquals(ingestStatistics.getRowCount(), actual.getRowCount());
+    assertEquals(ingestStatistics.getBadRecords(), actual.getBadRecords());
+    assertEquals(ingestStatistics.getStartTime(), actual.getStartTime());
+    assertEquals(ingestStatistics.getEndTime(), actual.getEndTime());
   }
 }

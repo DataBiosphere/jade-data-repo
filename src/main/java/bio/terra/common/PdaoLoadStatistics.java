@@ -1,5 +1,6 @@
 package bio.terra.common;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.cloud.bigquery.JobStatistics;
 import java.time.Instant;
 
@@ -9,7 +10,11 @@ public class PdaoLoadStatistics {
   private final Instant startTime;
   private final Instant endTime;
 
-  public PdaoLoadStatistics(long badRecords, long rowCount, Instant startTime, Instant endTime) {
+  public PdaoLoadStatistics(
+      @JsonProperty("badRecords") long badRecords,
+      @JsonProperty("rowCount") long rowCount,
+      @JsonProperty("startTime") Instant startTime,
+      @JsonProperty("endTime") Instant endTime) {
     this.badRecords = badRecords;
     this.rowCount = rowCount;
     this.startTime = startTime;

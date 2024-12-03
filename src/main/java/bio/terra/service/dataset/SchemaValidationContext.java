@@ -39,17 +39,25 @@ public class SchemaValidationContext {
   private final HashMap<String, HashSet<String>> tableColumnMap;
   private final HashMap<String, HashSet<String>> tableArrayColumns;
   private final HashSet<String> relationshipNameSet;
-  private final Operation operation;
+  private final String fieldName;
 
-  SchemaValidationContext(Operation op) {
+  SchemaValidationContext(String field) {
     tableColumnMap = new HashMap<>();
     tableArrayColumns = new HashMap<>();
     relationshipNameSet = new HashSet<>();
-    operation = op;
+    fieldName = field;
+  }
+
+  static SchemaValidationContext forUpdate() {
+    return new SchemaValidationContext("changes");
+  }
+
+  static SchemaValidationContext forCreate() {
+    return new SchemaValidationContext("schema");
   }
 
   String getFieldName() {
-    return operation.fieldName;
+    return fieldName;
   }
 
   void addTable(String tableName, List<ColumnModel> columns) {

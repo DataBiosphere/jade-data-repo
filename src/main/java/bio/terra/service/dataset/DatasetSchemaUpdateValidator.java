@@ -26,8 +26,7 @@ public class DatasetSchemaUpdateValidator implements Validator {
 
   private void validateDatasetSchemaUpdate(DatasetSchemaUpdateModel updateModel, Errors errors) {
     if (DatasetSchemaUpdateUtils.hasTableAdditions(updateModel)) {
-      SchemaValidationContext context =
-          new SchemaValidationContext(SchemaValidationContext.Operation.UPDATE);
+      SchemaValidationContext context = SchemaValidationContext.forUpdate();
       for (TableModel tableModel : updateModel.getChanges().getAddTables()) {
         context.validateTable(tableModel, errors);
       }

@@ -140,8 +140,7 @@ public class DatasetRequestValidator implements Validator {
   }
 
   private void validateSchema(DatasetSpecificationModel schema, Errors errors) {
-    SchemaValidationContext context =
-        new SchemaValidationContext(SchemaValidationContext.Operation.CREATE);
+    SchemaValidationContext context = SchemaValidationContext.forCreate();
     List<TableModel> tables = schema.getTables();
     if (tables.isEmpty()) {
       errors.rejectValue(

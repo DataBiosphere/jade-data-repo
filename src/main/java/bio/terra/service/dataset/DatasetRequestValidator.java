@@ -1,28 +1,18 @@
 package bio.terra.service.dataset;
 
 import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.common.PdaoConstant;
 import bio.terra.common.ValidationUtils;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
-import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
-import bio.terra.model.DatePartitionOptionsModel;
-import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
-import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
@@ -40,78 +30,9 @@ import org.springframework.validation.Validator;
 @Component
 public class DatasetRequestValidator implements Validator {
 
-  private static String PRIMARY_KEY = "PrimaryKey";
-  private static String FOREIGN_KEY = "ForeignKey";
-
   @Override
   public boolean supports(Class<?> clazz) {
     return true;
-  }
-
-  public static class SchemaValidationContext {
-
-    enum Operation {
-      CREATE("schema"),
-      UPDATE("changes");
-
-      private final String fieldName;
-
-      Operation(String fieldName) {
-        this.fieldName = fieldName;
-      }
-    }
-
-    private HashMap<String, HashSet<String>> tableColumnMap;
-    private HashMap<String, HashSet<String>> tableArrayColumns;
-    private HashSet<String> relationshipNameSet;
-    private Operation operation;
-
-    SchemaValidationContext(Operation op) {
-      tableColumnMap = new HashMap<>();
-      tableArrayColumns = new HashMap<>();
-      relationshipNameSet = new HashSet<>();
-      operation = op;
-    }
-
-    String getFieldName() {
-      return operation.fieldName;
-    }
-
-    void addTable(String tableName, List<ColumnModel> columns) {
-      HashSet<String> colNames = new HashSet<>();
-      HashSet<String> arrayCols = new HashSet<>();
-
-      for (ColumnModel col : columns) {
-        colNames.add(col.getName());
-        if (col.isArrayOf()) {
-          arrayCols.add(col.getName());
-        }
-      }
-
-      tableColumnMap.put(tableName, colNames);
-      tableArrayColumns.put(tableName, arrayCols);
-    }
-
-    void addRelationship(String relationshipName) {
-      relationshipNameSet.add(relationshipName);
-    }
-
-    boolean isValidTable(String tableName) {
-      return tableColumnMap.containsKey(tableName);
-    }
-
-    boolean isValidTableColumn(String tableName, String columnName) {
-      return isValidTable(tableName) && tableColumnMap.get(tableName).contains(columnName);
-    }
-
-    boolean isArrayColumn(String tableName, String columnName) {
-      return isValidTableColumn(tableName, columnName)
-          && tableArrayColumns.get(tableName).contains(columnName);
-    }
-
-    boolean isValidRelationship(String relationshipName) {
-      return relationshipNameSet.contains(relationshipName);
-    }
   }
 
   private void validateDatasetName(String datasetName, Errors errors) {
@@ -119,244 +40,6 @@ public class DatasetRequestValidator implements Validator {
     // versions of Swagger codegen now auto-generate an equivalent check.
     if (datasetName == null) {
       errors.rejectValue("name", "DatasetNameMissing");
-    }
-  }
-
-  private void validateDatePartitionOptions(
-      DatePartitionOptionsModel options,
-      List<ColumnModel> columns,
-      Errors errors,
-      SchemaValidationContext context) {
-    String targetColumn = options.getColumn();
-
-    if (targetColumn == null) {
-      errors.rejectValue(context.getFieldName(), "MissingDatePartitionColumnName");
-    } else if (!targetColumn.equals(PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS)) {
-      Optional<ColumnModel> matchingColumn =
-          columns.stream().filter(c -> targetColumn.equals(c.getName())).findFirst();
-
-      if (matchingColumn.isPresent()) {
-        TableDataType colType = matchingColumn.get().getDatatype();
-
-        if (colType != TableDataType.DATE && colType != TableDataType.TIMESTAMP) {
-          errors.rejectValue(
-              context.getFieldName(),
-              "InvalidDatePartitionColumnType",
-              "partitionColumn in datePartitionOptions must refer to a DATE or TIMESTAMP column");
-        }
-      } else {
-        errors.rejectValue(
-            context.getFieldName(),
-            "InvalidDatePartitionColumnName",
-            "No such column: " + targetColumn);
-      }
-    }
-  }
-
-  private void validateIntPartitionOptions(
-      IntPartitionOptionsModel options,
-      List<ColumnModel> columns,
-      Errors errors,
-      SchemaValidationContext context) {
-    String targetColumn = options.getColumn();
-
-    if (targetColumn == null) {
-      errors.rejectValue(context.getFieldName(), "MissingIntPartitionColumnName");
-    } else {
-      Optional<ColumnModel> matchingColumn =
-          columns.stream().filter(c -> targetColumn.equals(c.getName())).findFirst();
-
-      if (matchingColumn.isPresent()) {
-        TableDataType colType = matchingColumn.get().getDatatype();
-
-        if (colType != TableDataType.INTEGER && colType != TableDataType.INT64) {
-          errors.rejectValue(
-              context.getFieldName(),
-              "InvalidIntPartitionColumnType",
-              "partitionColumn in intPartitionOptions must refer to an INTEGER or INT64 column");
-        }
-      } else {
-        errors.rejectValue(
-            context.getFieldName(),
-            "InvalidIntPartitionColumnName",
-            "No such column: " + targetColumn);
-      }
-    }
-
-    Long min = options.getMin();
-    Long max = options.getMax();
-    Long interval = options.getInterval();
-
-    if (min == null || max == null || interval == null) {
-      errors.rejectValue(
-          context.getFieldName(),
-          "MissingIntPartitionOptions",
-          "intPartitionOptions must specify min, max, and interval");
-    } else {
-      if (max <= min) {
-        errors.rejectValue(
-            context.getFieldName(),
-            "InvalidIntPartitionRange",
-            "Max partition value must be larger than min partition value");
-      }
-      if (interval <= 0) {
-        errors.rejectValue(
-            context.getFieldName(),
-            "InvalidIntPartitionInterval",
-            "Partition interval must be >= 1");
-      }
-      if (max > min && interval > 0 && (max - min) / interval > 4000L) {
-        errors.rejectValue(
-            context.getFieldName(),
-            "TooManyIntPartitions",
-            "Cannot configure more than 4K partitions through min, max, and interval");
-      }
-    }
-  }
-
-  public void validateTable(TableModel table, Errors errors, SchemaValidationContext context) {
-    String tableName = table.getName();
-    List<ColumnModel> columns = table.getColumns();
-    List<String> primaryKeyList = table.getPrimaryKey();
-    List<String> columnNames = new ArrayList<>();
-    if (columns.isEmpty()) {
-      errors.rejectValue(
-          context.getFieldName(),
-          "IncompleteSchemaDefinition",
-          "Each table must contain at least one column");
-    } else {
-      columns.stream().map(ColumnModel::getName).forEach(columnNames::add);
-    }
-
-    if (tableName != null) {
-      validateDataTypes(columns, errors, context);
-
-      if (ValidationUtils.hasDuplicates(columnNames)) {
-        List<String> duplicates = ValidationUtils.findDuplicates(columnNames);
-        errors.rejectValue(
-            context.getFieldName(),
-            "DuplicateColumnNames",
-            String.format("Duplicate columns: %s", String.join(", ", duplicates)));
-      }
-      if (primaryKeyList != null) {
-        if (!columnNames.containsAll(primaryKeyList)) {
-          List<String> missingKeys = new ArrayList<>(primaryKeyList);
-          missingKeys.removeAll(columnNames);
-          errors.rejectValue(
-              context.getFieldName(),
-              "MissingPrimaryKeyColumn",
-              String.format("Expected column(s): %s", String.join(", ", missingKeys)));
-        }
-      }
-      for (ColumnModel columnModel : table.getColumns()) {
-        if (primaryKeyList != null && primaryKeyList.contains(columnModel.getName())) {
-          validateColumnType(errors, columnModel, PRIMARY_KEY, context);
-        }
-        validateColumnMode(errors, columnModel, context);
-      }
-
-      context.addTable(tableName, columns);
-    }
-
-    TableModel.PartitionModeEnum mode = table.getPartitionMode();
-    DatePartitionOptionsModel dateOptions = table.getDatePartitionOptions();
-    IntPartitionOptionsModel intOptions = table.getIntPartitionOptions();
-
-    if (mode == TableModel.PartitionModeEnum.DATE) {
-      if (dateOptions == null) {
-        errors.rejectValue(
-            context.getFieldName(),
-            "MissingDatePartitionOptions",
-            "datePartitionOptions must be specified when using 'date' partitionMode");
-      } else {
-        validateDatePartitionOptions(dateOptions, columns, errors, context);
-      }
-    } else if (dateOptions != null) {
-      errors.rejectValue(
-          context.getFieldName(),
-          "InvalidDatePartitionOptions",
-          "datePartitionOptions can only be specified when using 'date' partitionMode");
-    }
-
-    if (mode == TableModel.PartitionModeEnum.INT) {
-      if (intOptions == null) {
-        errors.rejectValue(
-            context.getFieldName(),
-            "MissingIntPartitionOptions",
-            "intPartitionOptions must be specified when using 'int' partitionMode");
-      } else {
-        validateIntPartitionOptions(intOptions, columns, errors, context);
-      }
-    } else if (intOptions != null) {
-      errors.rejectValue(
-          context.getFieldName(),
-          "InvalidIntPartitionOptions",
-          "intPartitionOptions can only be specified when using 'int' partitionMode");
-    }
-  }
-
-  // Primary Keys and Foreign Keys cannot be filerefs or dirrefs and Primary keys cannot be arrays
-  private void validateColumnType(
-      Errors errors, ColumnModel columnModel, String keyType, SchemaValidationContext context) {
-    if (keyType.equals(PRIMARY_KEY) && columnModel.isArrayOf()) {
-      rejectKey(errors, keyType, columnModel.getName(), "array", context);
-    }
-
-    Set<TableDataType> invalidTypes = Set.of(TableDataType.DIRREF, TableDataType.FILEREF);
-    if (columnModel.getDatatype() != null && invalidTypes.contains(columnModel.getDatatype())) {
-      rejectKey(
-          errors, keyType, columnModel.getName(), columnModel.getDatatype().toString(), context);
-    }
-    if (PRIMARY_KEY.equals(keyType) && Boolean.FALSE.equals(columnModel.isRequired())) {
-      errors.rejectValue(
-          context.getFieldName(),
-          "OptionalPrimaryKeyColumn",
-          String.format("A %s column cannot be marked as not required", PRIMARY_KEY));
-    }
-  }
-
-  private void validateColumnMode(
-      Errors errors, ColumnModel columnModel, SchemaValidationContext context) {
-    // Explicitly check if isRequired is true to avoid a null pointer exception.
-    // isArrayOf has a default value set in the open-api spec so it does not require
-    // the same handling.
-    if (Boolean.TRUE.equals(columnModel.isRequired()) && columnModel.isArrayOf()) {
-      errors.rejectValue(
-          context.getFieldName(),
-          "InvalidColumnMode",
-          String.format("Array column %s cannot be marked as required", columnModel.getName()));
-    }
-  }
-
-  private void rejectKey(
-      Errors errors,
-      String keyType,
-      String columnName,
-      String type,
-      SchemaValidationContext context) {
-    errors.rejectValue(
-        context.getFieldName(),
-        String.format("Invalid%s", keyType),
-        String.format("%s %s cannot be a column with %s type", keyType, columnName, type));
-  }
-
-  private void validateDataTypes(
-      List<ColumnModel> columns, Errors errors, SchemaValidationContext context) {
-    List<ColumnModel> invalidColumns = new ArrayList<>();
-    for (ColumnModel column : columns) {
-      // spring defaults user input not belonging to the TableDataType enum to null
-      if (column.getDatatype() == null) {
-        invalidColumns.add(column);
-      }
-    }
-    if (!invalidColumns.isEmpty()) {
-      errors.rejectValue(
-          context.getFieldName(),
-          "InvalidDatatype",
-          "invalid datatype in table column(s): "
-              + invalidColumns.stream().map(ColumnModel::getName).collect(Collectors.joining(", "))
-              + ", DataTypes must be lowercase, valid DataTypes are "
-              + Arrays.toString(TableDataType.values()));
     }
   }
 
@@ -471,7 +154,7 @@ public class DatasetRequestValidator implements Validator {
       if (ValidationUtils.hasDuplicates(tableNames)) {
         errors.rejectValue(context.getFieldName(), "DuplicateTableNames");
       }
-      tables.forEach((table) -> validateTable(table, errors, context));
+      tables.forEach((table) -> context.validateTable(table, errors));
     }
 
     List<RelationshipModel> relationships = schema.getRelationships();

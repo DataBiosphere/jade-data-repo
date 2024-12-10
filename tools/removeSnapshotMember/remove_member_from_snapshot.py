@@ -41,23 +41,31 @@ def main():
         help="The data repo root URL to point to. This is required flag. Examples include `http://localhost:8080` or `https://jade.datarepo-dev.broadinstitute.org`",
     )
     parser.add_argument(
-        "--snapshot_id",
+        "--request",
         required=True,
-        help="snapshot_id to remove member from",
+        help="file name for request containing member email, role and list of snapshots",
     )
-    parser.add_argument(
-        "--member_email",
-        required=True,
-        help="member email to remove from snapshot",
-    )
+
     args = parser.parse_args()
     clients = Clients(args.host)
 
-    snapshot_id = args.snapshot_id
-    member_email = args.member_email
+    request = args.request
 
-    print(f"Removing {member_email} as reader from Snapshot {snapshot_id}")
-    clients.snapshots_api.remove_snapshot_policy_member(snapshot_id, "reader", policy_member={"email": member_email})
+    with open(request) as remove_member_json:
+        removal_request = json.load(remove_member_json)
+        email = removal_request["email"]
+        role = removal_request["role"]
+        snapshot_ids = removal_request["snapshotIds"]
+
+        print(f"Removing {email} as {role} from {len(snapshot_ids)} snapshots")
+        for snapshot_id in snapshot_ids:
+            print(f"Removing from {snapshot_id}")
+            result = clients.snapshots_api.delete_snapshot_policy_member(snapshot_id, role, email)
+            print(result)
+            print(f"Done: Removed from {snapshot_id}")
+
+
+
 
 
 

@@ -1,8 +1,6 @@
 package bio.terra.service.dataset.flight.create;
 
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.iam.exception.IamNotFoundException;
-import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -30,10 +28,10 @@ public class CreateDatasetRegisterIngestServiceAccountStep implements Step {
 
     try {
       iamService.registerUser(datasetServiceAccount);
-    } catch (IamNotFoundException | IamUnauthorizedException e) {
+    } catch (Exception e) {
       logger.warn(
           String.format(
-              "Service account, %s, is not yet ready to use. Retrying.", datasetServiceAccount),
+              "Service account, %s, may not be ready to use yet. Retrying.", datasetServiceAccount),
           e);
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
     }

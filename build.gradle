@@ -164,14 +164,14 @@ dependencies {
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
 
-    implementation platform('com.google.cloud:libraries-bom:26.50.0')
+    implementation platform('com.google.cloud:libraries-bom:26.51.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
     implementation 'com.google.cloud:google-cloud-bigquery'
     implementation 'com.google.cloud:google-cloud-storage'
     implementation 'com.google.cloud:google-cloud-firestore'
     implementation 'com.google.cloud:google-cloud-pubsub'
-    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:5.8.0'
+    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:5.9.0'
     implementation 'com.google.http-client:google-http-client'
 
     implementation 'org.apache.commons:commons-compress:1.27.1' // For srcclr, jib plugin conflict
@@ -202,13 +202,13 @@ dependencies {
 
     // For distributed locking of Spring @Scheduled tasks across multiple instances
     implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.0.2'
-    implementation 'net.javacrumbs.shedlock:shedlock-spring:6.0.1'
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:6.0.2'
 
     implementation 'bio.terra:terra-common-lib:1.1.18-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.241'
     implementation 'bio.terra:terra-policy-client:1.0.17-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'
-    implementation 'bio.terra:externalcreds-client-resttemplate:1.53.0-SNAPSHOT'
+    implementation 'bio.terra:externalcreds-client-resttemplate:1.54.0-SNAPSHOT'
 
     implementation 'org.glassfish.jersey.inject:jersey-hk2'
 
@@ -236,11 +236,11 @@ dependencies {
     // OpenTelemetry @WithSpan annotations:
     implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.10.0'
 
-    testImplementation 'org.apache.parquet:parquet-common:1.14.4'
-    testImplementation 'org.apache.parquet:parquet-hadoop:1.14.4'
-    testImplementation 'org.apache.parquet:parquet-hadoop-bundle:1.14.4'
-    testImplementation 'org.apache.parquet:parquet-encoding:1.14.4'
-    testImplementation 'org.apache.parquet:parquet-column:1.14.4'
+    testImplementation 'org.apache.parquet:parquet-common:1.15.0'
+    testImplementation 'org.apache.parquet:parquet-hadoop:1.15.0'
+    testImplementation 'org.apache.parquet:parquet-hadoop-bundle:1.15.0'
+    testImplementation 'org.apache.parquet:parquet-encoding:1.15.0'
+    testImplementation 'org.apache.parquet:parquet-column:1.15.0'
     testImplementation ('org.apache.hadoop:hadoop-common:3.4.1')  {
         exclude group: 'com.sun.jersey', module: 'jersey-core'
         exclude group: 'com.sun.jersey', module: 'jersey-servlet'
@@ -256,8 +256,8 @@ dependencies {
         exclude group: 'org.slf4j', module: 'slf4j-reload4j'
     }
 
-    testImplementation 'au.com.dius.pact.provider:junit5:4.6.15'
-    testImplementation 'au.com.dius.pact.provider:junit5spring:4.6.15'
+    testImplementation 'au.com.dius.pact.provider:junit5:4.6.16'
+    testImplementation 'au.com.dius.pact.provider:junit5spring:4.6.16'
 
     antlr 'org.antlr:antlr4:4.13.2'
 

@@ -29,6 +29,8 @@ public class CreateDatasetRegisterIngestServiceAccountStep implements Step {
     try {
       iamService.registerUser(datasetServiceAccount);
     } catch (Exception e) {
+      // catch transient errors from Sam, where the service account created in the previous step
+      // may not be ready to use yet
       logger.warn(
           String.format(
               "Service account, %s, may not be ready to use yet. Retrying.", datasetServiceAccount),

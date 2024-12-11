@@ -2,13 +2,14 @@ package bio.terra.service.dataset.flight.create;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bio.terra.app.controller.exception.ApiException;
 import bio.terra.common.category.Unit;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.iam.exception.IamInternalServerErrorException;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -43,18 +44,22 @@ class CreateDatasetRegisterIngestServiceAccountStepTest {
   }
 
   @Test
-  void doStep_Retry401() throws InterruptedException {
+  void doStep_RetryIAmException() throws InterruptedException {
     doThrow(new IamUnauthorizedException("Unauthorized")).when(iamService).registerUser("email");
     assertThat(
         step.doStep(flightContext).getStepStatus(), equalTo(StepStatus.STEP_RESULT_FAILURE_RETRY));
   }
 
   @Test
-  void doStep_500() throws InterruptedException {
-    doThrow(new IamInternalServerErrorException("Internal Server Error"))
-        .when(iamService)
-        .registerUser("email");
+  void doStep_ApiException() throws InterruptedException {
+    doThrow(new ApiException("ApiException")).when(iamService).registerUser("email");
     assertThat(
         step.doStep(flightContext).getStepStatus(), equalTo(StepStatus.STEP_RESULT_FAILURE_RETRY));
+  }
+
+  @Test
+  void doStep_NullPointerException() {
+    doThrow(new NullPointerException()).when(iamService).registerUser("email");
+    assertThrows(NullPointerException.class, () -> step.doStep(flightContext));
   }
 }

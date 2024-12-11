@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.create;
 
+import bio.terra.common.exception.ErrorReportException;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -28,9 +29,10 @@ public class CreateDatasetRegisterIngestServiceAccountStep implements Step {
 
     try {
       iamService.registerUser(datasetServiceAccount);
-    } catch (Exception e) {
-      // catch transient errors from Sam, where the service account created in the previous step
-      // may not be ready to use yet
+    } catch (ErrorReportException e) {
+      // This is the super class type of IamExceptions (i.e. IAmNotFoundException) and ApiExceptions
+      // Catch transient errors from Sam, where the service account created in the previous step
+      // may not be ready to use yet. Do not catch InterruptedExceptions.
       logger.warn(
           String.format(
               "Service account, %s, may not be ready to use yet. Retrying.", datasetServiceAccount),

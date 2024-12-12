@@ -63,7 +63,7 @@ allprojects {
             mavenBom SpringBootPlugin.BOM_COORDINATES
         }
         dependencies {
-            dependency 'io.swagger.core.v3:swagger-annotations:2.2.26'
+            dependency 'io.swagger.core.v3:swagger-annotations:2.2.27'
             dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.64'
         }
     }
@@ -229,7 +229,7 @@ dependencies {
     implementation 'com.azure:azure-storage-file-datalake:12.22.0'
     implementation 'com.azure:azure-data-tables:12.5.0'
 
-    implementation platform('io.sentry:sentry-bom:7.18.1') //import bom
+    implementation platform('io.sentry:sentry-bom:7.19.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')
     implementation('io.sentry:sentry-logback')
 

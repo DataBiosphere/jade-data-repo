@@ -33,8 +33,9 @@ jobs:
         with:
           # Centralized in dsp-tools-k8s; ask in #dsp-devops-champions for help troubleshooting
           workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
+          token_format: 'access_token'
           service_account: 'jade-k8-sa@broad-jade-dev.iam.gserviceaccount.com'
-          access_token_scopes: 'profile, email, openid, cloud-billing'
+          access_token_scopes: 'profile, email, openid'
       - name: Run unit tests
         env:
           # required for sonarqube reports

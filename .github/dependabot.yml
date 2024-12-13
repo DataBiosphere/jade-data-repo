@@ -29,7 +29,7 @@ updates:
       - "dependency"
       - "gradle"
     commit-message:
-      prefix: "[DT-400-gradle]"
+      prefix: "[DCJ-400-gradle]"
     ignore:
       # Google API dependencies use a version format that Dependabot wrongly interprets as semver.
       - dependency-name: "com.google.apis:*"

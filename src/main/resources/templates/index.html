@@ -121,7 +121,7 @@
                   ac.classList.add('hidden');
                 } else {
                   // Set the correct client ID value using the native input component (needed for newer react versions used by Swagger UI)
-                  var clientIdInput = ac.querySelector('#client_id_authorizationCode');
+                  var clientIdInput = ac.querySelector('#client_id');
                   if (clientIdInput) {
                     var nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
                     nativeInputValueSetter.call(clientIdInput, clientIds[scheme]);

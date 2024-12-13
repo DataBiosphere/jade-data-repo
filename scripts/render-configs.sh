@@ -112,9 +112,15 @@ GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
 # By default, RBS will use the tools project. GCP projects will automatically be deleted after 1 day.
 # Other option: dev - this will allow for projects to persist for longer than 1 day
 if [[ "${RBS_ENV}" == "tools" ]]; then
+    BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH=secret/dsde/terra/kernel/integration/tools/buffer/client-sa
+    BUFFER_CLIENT_SERVICE_ACCOUNT_GSM_PROJECT=broad-dsde-qa
+    BUFFER_CLIENT_GSM_SECRET=buffer-client-sa-b64-integration
     RBS_POOLID=datarepo_v1
     RBS_INSTANCEURL=https://buffer.tools.integ.envs.broadinstitute.org
 elif [[ "${RBS_ENV}" == "dev" ]]; then
+    BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH=secret/dsde/terra/kernel/dev/dev/buffer/client-sa
+    BUFFER_CLIENT_SERVICE_ACCOUNT_GSM_PROJECT=broad-jade-dev
+    BUFFER_CLIENT_GSM_SECRET=buffer-client-sa-b64
     RBS_POOLID=datarepo_v3
     RBS_INSTANCEURL=https://buffer.dsde-dev.broadinstitute.org
 else
@@ -124,6 +130,16 @@ fi
 # writing these values to tmp files so the value can match the set RBS environment
 echo $RBS_POOLID > "/tmp/rbs-pool-id.txt"
 echo $RBS_INSTANCEURL > "/tmp/rbs-instance-url.txt"
+
+RBS_CLIENTCREDENTIALFILEPATH=/tmp/buffer-client-sa-account.json
+
+if $USE_VAULT; then
+  vault read -field=key "$BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH" \
+    | base64 -d > "$RBS_CLIENTCREDENTIALFILEPATH"
+else
+  gcloud secrets versions access latest --project $BUFFER_CLIENT_SERVICE_ACCOUNT_GSM_PROJECT --secret $BUFFER_CLIENT_GSM_SECRET \
+    | jq -r '.key' | base64 -d > "$RBS_CLIENTCREDENTIALFILEPATH"
+fi
 
 
 VARIABLE_NAMES=(AZURE_SYNAPSE_WORKSPACENAME AZURE_CREDENTIALS_HOMETENANTID AZURE_CREDENTIALS_APPLICATIONID AZURE_CREDENTIALS_SECRET AZURE_SYNAPSE_SQLADMINUSER AZURE_SYNAPSE_SQLADMINPASSWORD AZURE_SYNAPSE_ENCRYPTIONKEY GOOGLE_APPLICATION_CREDENTIALS GOOGLE_SA_CERT RBS_POOLID RBS_INSTANCEURL)

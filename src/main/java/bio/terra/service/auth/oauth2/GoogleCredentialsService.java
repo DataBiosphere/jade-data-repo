@@ -25,7 +25,9 @@ public class GoogleCredentialsService {
    */
   public String getAccessToken(GoogleCredentials credentials, List<String> scopes) {
     try {
-      credentials = credentials.createScoped(scopes);
+      if (credentials.createScopedRequired()) {
+        credentials = credentials.createScoped(scopes);
+      }
       return credentials.refreshAccessToken().getTokenValue();
     } catch (IOException e) {
       throw new GoogleResourceException("Could not generate Google access token", e);

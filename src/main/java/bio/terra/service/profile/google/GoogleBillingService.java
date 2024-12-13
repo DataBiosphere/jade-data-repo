@@ -152,9 +152,7 @@ public class GoogleBillingService {
         return false;
       }
       String message =
-          String.format(
-              "Could not check permissions on billing account '%s' for user '%s'",
-              billingAccountId, user.getEmail());
+          String.format("Could not check permissions on billing account '%s'", billingAccountId);
       throw new BillingServiceException(message, e);
     }
   }

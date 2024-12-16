@@ -63,7 +63,7 @@ allprojects {
             mavenBom SpringBootPlugin.BOM_COORDINATES
         }
         dependencies {
-            dependency 'io.swagger.core.v3:swagger-annotations:2.2.26'
+            dependency 'io.swagger.core.v3:swagger-annotations:2.2.27'
             dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.64'
         }
     }
@@ -223,13 +223,13 @@ dependencies {
     // Azure related dependencies
     implementation 'com.azure:azure-identity:1.14.2'
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.45.0'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.0.0'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0-beta.5'
     implementation 'com.azure:azure-storage-common:12.28.0'
     implementation 'com.azure:azure-storage-file-datalake:12.22.0'
     implementation 'com.azure:azure-data-tables:12.5.0'
 
-    implementation platform('io.sentry:sentry-bom:7.18.1') //import bom
+    implementation platform('io.sentry:sentry-bom:7.19.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')
     implementation('io.sentry:sentry-logback')
 

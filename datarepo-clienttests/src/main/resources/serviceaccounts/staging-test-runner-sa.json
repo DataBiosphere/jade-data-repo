@@ -1,4 +1,5 @@
 {
   "name": "datarepo-jade-test-runner@terra-datarepo-staging.iam.gserviceaccount.com",
-  "jsonKeyCredFilePath": "/tmp/staging-test-runner.json"
+  "jsonKeyFilename": "staging-test-runner.json",
+  "jsonKeyDirectoryPath": "/tmp"
 }

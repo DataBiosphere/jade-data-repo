@@ -7,13 +7,14 @@ import java.io.InputStream;
 
 public class ServiceAccountSpecification implements SpecificationInterface {
   public String name;
-  public String jsonKeyCredFilePath;
+  public String jsonKeyDirectoryPath;
+  public String jsonKeyFilename;
 
   public File jsonKeyFile;
 
   public static final String resourceDirectory = "serviceaccounts";
-  public static final String keyCredFilePathEnvironmentVarName =
-      "GOOGLE_APPLICATION_CREDENTIALS";
+  public static final String keyDirectoryPathEnvironmentVarName =
+      "TEST_RUNNER_SA_KEY_DIRECTORY_PATH";
 
   ServiceAccountSpecification() {}
 
@@ -33,20 +34,20 @@ public class ServiceAccountSpecification implements SpecificationInterface {
     ServiceAccountSpecification serviceAccount =
         objectMapper.readValue(inputStream, ServiceAccountSpecification.class);
 
-    String credFilePathEnvVarOverride = readCredFilePathEnvironmentVariable();
-    if (credFilePathEnvVarOverride != null) {
-      serviceAccount.jsonKeyCredFilePath = credFilePathEnvVarOverride;
+    String keyDirectoryPathEnvVarOverride = readKeyDirectoryPathEnvironmentVariable();
+    if (keyDirectoryPathEnvVarOverride != null) {
+      serviceAccount.jsonKeyDirectoryPath = keyDirectoryPathEnvVarOverride;
     }
 
     return serviceAccount;
   }
 
-  protected static String readCredFilePathEnvironmentVariable() {
-    // look for a full file path defined for the service account credentials
+  protected static String readKeyDirectoryPathEnvironmentVariable() {
+    // look for the service account JSON key file in a directory defined by, in order:
     //   1. environment variable
-    //   2. service account jsonKeyCredFilePath property
-    String keyCredFilePathEnvironmentVarValue = System.getenv(keyCredFilePathEnvironmentVarName);
-    return keyCredFilePathEnvironmentVarValue;
+    //   2. service account jsonKeyDirectoryPath property
+    String keyDirectoryPathEnvironmentVarValue = System.getenv(keyDirectoryPathEnvironmentVarName);
+    return keyDirectoryPathEnvironmentVarValue;
   }
 
   /**
@@ -56,14 +57,19 @@ public class ServiceAccountSpecification implements SpecificationInterface {
   public void validate() {
     if (name == null || name.equals("")) {
       throw new IllegalArgumentException("Service account name cannot be empty");
-    } else if (jsonKeyCredFilePath == null || jsonKeyCredFilePath.equals("")) {
-      throw new IllegalArgumentException("JSON key file path cannot be empty");
+    } else if (jsonKeyFilename == null || jsonKeyFilename.equals("")) {
+      throw new IllegalArgumentException("JSON key file name cannot be empty");
+    } else if (jsonKeyDirectoryPath == null || jsonKeyDirectoryPath.equals("")) {
+      throw new IllegalArgumentException("JSON key directory path cannot be empty");
     }
 
-    jsonKeyFile = new File(jsonKeyCredFilePath);
+    jsonKeyFile = new File(jsonKeyDirectoryPath, jsonKeyFilename);
     if (!jsonKeyFile.exists()) {
       throw new IllegalArgumentException(
-          "JSON key file does not exist: (filePath)" + jsonKeyCredFilePath);
+          "JSON key file does not exist: (directory)"
+              + jsonKeyDirectoryPath
+              + ", (filename)"
+              + jsonKeyFilename);
     }
   }
 }

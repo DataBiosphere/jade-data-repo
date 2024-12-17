@@ -32,14 +32,20 @@ on:
 jobs:
   cherry-pick-image:
     runs-on: ubuntu-latest
+    # Needed for integration with workload identity
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     steps:
-      - name: "Authenticate with GCR SA Credentials"
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcr-sa.json
-        run: |
-          # write token
-          base64 --decode <<< ${{ secrets.GCR_SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
-          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+      # Needed for integration with workload identity
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: 'Auth as gcr-sa'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          # Centralized in dsp-tools-k8s; ask in #dsp-devops-champions for help troubleshooting
+          workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
+          service_account: 'gcr-sa@datarepo-public-gcr.iam.gserviceaccount.com'
       - name: "Perform cherry-pick"
         run: |
           SOURCE_IMAGE="${{ inputs.source_gcr_url }}:${{ inputs.gcr_tag }}"

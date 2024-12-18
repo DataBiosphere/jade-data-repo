@@ -1674,7 +1674,7 @@ public class AzureIntegrationTest extends UsersBase {
   }
 
   @Test
-  @Ignore
+  @Ignore("Ignoring due to flakiness and deprioritization of Azure")
   public void testDatasetFileRefValidation() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(

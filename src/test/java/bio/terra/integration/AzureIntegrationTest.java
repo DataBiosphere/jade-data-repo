@@ -103,6 +103,7 @@ import com.azure.storage.common.policy.RetryPolicyType;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -127,6 +128,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Disabled;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,6 +138,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.util.ResourceUtils;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -1665,6 +1668,137 @@ public class AzureIntegrationTest extends UsersBase {
           loadHistoryModel,
           not(in(loadHistoryList1and2.getItems())));
     }
+
+    // Make sure that any failure in tearing down is presented as a test failure
+    azureBlobIOTestUtility.teardown();
+  }
+
+  @Test
+  @Disabled
+  public void testDatasetFileRefValidation() throws Exception {
+    DatasetSummaryModel summaryModel =
+        dataRepoFixtures.createDataset(
+            steward, profileId, "dataset-ingest-azure-fileref.json", CloudPlatform.AZURE);
+    datasetId = summaryModel.getId();
+    recordStorageAccount(steward, CollectionType.DATASET, datasetId);
+
+    String noFilesContents =
+        "sample_name,data_type,vcf_file_ref,vcf_index_file_ref\n"
+            + String.format("NA12878_none,none,%s,%s", UUID.randomUUID(), UUID.randomUUID());
+    String noFilesControlFile =
+        azureBlobIOTestUtility.uploadFileWithContents(
+            "dataset-files-ingest-fail.csv", noFilesContents);
+
+    IngestRequestModel noFilesIngestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.CSV)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path(noFilesControlFile)
+            .profileId(profileId)
+            .loadTag(Names.randomizeName("test2"))
+            .csvSkipLeadingRows(2);
+
+    DataRepoResponse<IngestResponseModel> noFilesIngestResponse =
+        dataRepoFixtures.ingestJsonDataRaw(steward, datasetId, noFilesIngestRequest);
+
+    assertThat(
+        "No files yet loaded doesn't result in an NPE",
+        noFilesIngestResponse.getErrorObject().get().getMessage(),
+        equalTo("Invalid file ids found during ingest (2 returned in details)"));
+
+    String loadTag = UUID.randomUUID().toString();
+    var arrayRequestModel =
+        new BulkLoadArrayRequestModel()
+            .profileId(summaryModel.getDefaultProfileId())
+            .loadTag(loadTag);
+
+    long fileSize = MIB / 10;
+    Stream.of(
+            "NA12878_PLUMBING_exome.g.vcf.gz",
+            "NA12878_PLUMBING_exome.g.vcf.gz.tbi",
+            "NA12878_PLUMBING_wgs.g.vcf.gz",
+            "NA12878_PLUMBING_wgs.g.vcf.gz.tbi")
+        .map(
+            name -> {
+              String sourceFile = azureBlobIOTestUtility.uploadSourceFile(name, fileSize);
+              return new BulkLoadFileModel()
+                  .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFile))
+                  .targetPath("/vcfs/downsampled/" + name)
+                  .description("Test file for " + name)
+                  .mimeType("text/plain");
+            })
+        .forEach(arrayRequestModel::addLoadArrayItem);
+
+    var bulkLoadArrayResultModel =
+        dataRepoFixtures.bulkLoadArray(steward, datasetId, arrayRequestModel);
+
+    var resultModels =
+        bulkLoadArrayResultModel.getLoadFileResults().stream()
+            .collect(
+                Collectors.toMap(
+                    m -> m.getTargetPath().replaceAll("/vcfs/downsampled/NA12878_PLUMBING_", ""),
+                    Function.identity()));
+    var exomeVcf = resultModels.get("exome.g.vcf.gz");
+    var exomeVcfIndex = resultModels.get("exome.g.vcf.gz.tbi");
+    var wgsVcf = resultModels.get("wgs.g.vcf.gz");
+    var wgsVcfIndex = resultModels.get("wgs.g.vcf.gz.tbi");
+
+    var datasetMetadata =
+        Files.readString(
+            ResourceUtils.getFile("classpath:dataset-ingest-combined-metadata-only.csv").toPath());
+    var metadataWithFileIds =
+        datasetMetadata
+            .replaceFirst("EXOME_VCF_FILE_REF", exomeVcf.getFileId())
+            .replaceFirst("EXOME_VCF_INDEX_FILE_REF", exomeVcfIndex.getFileId())
+            .replaceFirst("WGS_VCF_FILE_REF", wgsVcf.getFileId())
+            .replaceFirst("WGS_VCF_INDEX_FILE_REF", wgsVcfIndex.getFileId());
+
+    String controlFile =
+        azureBlobIOTestUtility.uploadFileWithContents(
+            "dataset-files-ingest.csv", metadataWithFileIds);
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.CSV)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path(controlFile)
+            .profileId(profileId)
+            .loadTag(Names.randomizeName("test"))
+            .csvSkipLeadingRows(2);
+
+    IngestResponseModel ingestResponseJson =
+        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
+
+    assertThat(
+        "there are two successful ingest rows", ingestResponseJson.getRowCount(), equalTo(2L));
+    assertThat("there were no bad ingest rows", ingestResponseJson.getBadRowCount(), equalTo(0L));
+
+    IngestRequestModel failingIngestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.CSV)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path(noFilesControlFile)
+            .profileId(profileId)
+            .loadTag(Names.randomizeName("test2"))
+            .csvSkipLeadingRows(2);
+
+    DataRepoResponse<IngestResponseModel> failingIngestResponse =
+        dataRepoFixtures.ingestJsonDataRaw(steward, datasetId, failingIngestRequest);
+
+    assertThat(
+        "Failing fileIds return an error",
+        failingIngestResponse.getErrorObject().isPresent(),
+        is(true));
+
+    assertThat(
+        "2 invalid ids were returned",
+        failingIngestResponse.getErrorObject().get().getErrorDetail(),
+        hasSize(2));
 
     // Make sure that any failure in tearing down is presented as a test failure
     azureBlobIOTestUtility.teardown();

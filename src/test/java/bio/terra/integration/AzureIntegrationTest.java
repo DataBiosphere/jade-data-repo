@@ -126,6 +126,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Disabled;
@@ -1674,7 +1675,7 @@ public class AzureIntegrationTest extends UsersBase {
   }
 
   @Test
-  @Disabled
+  @Ignore
   public void testDatasetFileRefValidation() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(

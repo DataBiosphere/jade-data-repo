@@ -20,7 +20,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.64')
+        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.66')
         // Required for gradle liquibase plugin
         classpath ('org.liquibase:liquibase-core:4.29.2')
     }
@@ -33,10 +33,10 @@ plugins {
     id 'org.gradle.test-retry' version '1.6.0'
     id 'antlr'
     id 'org.hidetake.swagger.generator' version '2.19.2'
-    id 'org.springframework.boot' version '3.4.0'
+    id 'org.springframework.boot' version '3.4.1'
     id 'idea'
     id 'java'
-    id 'io.spring.dependency-management' version '1.1.6'
+    id 'io.spring.dependency-management' version '1.1.7'
     id 'jacoco'
     // After merging a spotless version update which requires a large-scale code reformat, add the
     // commit hash to .git-blame-ignore-revs to avoid cluttering git blame.
@@ -64,7 +64,7 @@ allprojects {
         }
         dependencies {
             dependency 'io.swagger.core.v3:swagger-annotations:2.2.27'
-            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.64'
+            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.66'
         }
     }
 }
@@ -164,7 +164,7 @@ dependencies {
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
 
-    implementation platform('com.google.cloud:libraries-bom:26.51.0')
+    implementation platform('com.google.cloud:libraries-bom:26.52.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
     implementation 'com.google.cloud:google-cloud-bigquery'
@@ -222,7 +222,7 @@ dependencies {
 
     // Azure related dependencies
     implementation 'com.azure:azure-identity:1.14.2'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.45.0'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.46.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0-beta.5'
     implementation 'com.azure:azure-storage-common:12.28.0'

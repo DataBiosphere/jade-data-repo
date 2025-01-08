@@ -246,11 +246,13 @@ class ProfileDaoTest {
                 dataset.getId(),
                 dataset.getName(),
                 dataset.getDescription(),
+                dataset.getCreatedDate(),
                 ProfileOwnedResource.Type.DATASET),
             new ProfileOwnedResource(
                 snapshot.getId(),
                 snapshot.getName(),
                 snapshot.getDescription(),
+                snapshot.getCreatedDate(),
                 ProfileOwnedResource.Type.SNAPSHOT)));
   }
 }

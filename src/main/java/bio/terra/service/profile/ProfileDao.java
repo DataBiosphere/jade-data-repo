@@ -193,10 +193,10 @@ public class ProfileDao {
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public List<ProfileOwnedResource> listProfileOwnedResources(UUID profileId) {
     String sql =
-        "SELECT dataset.id AS id, dataset.name AS name, dataset.description AS description, 'DATASET' AS type "
+        "SELECT dataset.id AS id, dataset.name AS name, dataset.description AS description, dataset.created_date as created_date, 'DATASET' AS type "
             + "FROM dataset WHERE dataset.default_profile_id = :profile_id "
             + "UNION ALL "
-            + "SELECT snapshot.id AS id, snapshot.name AS name, snapshot.description AS description, 'SNAPSHOT' AS type "
+            + "SELECT snapshot.id AS id, snapshot.name AS name, snapshot.description AS description, snapshot.created_date as created_date, 'SNAPSHOT' AS type "
             + "FROM snapshot WHERE snapshot.profile_id = :profile_id";
     return jdbcTemplate.query(
         sql,
@@ -206,6 +206,7 @@ public class ProfileDao {
                 rs.getObject("id", UUID.class),
                 rs.getString("name"),
                 rs.getString("description"),
+                rs.getTimestamp("created_date").toInstant(),
                 ProfileOwnedResource.Type.valueOf(rs.getString("type"))));
   }
 

@@ -61,12 +61,15 @@ public class DaoOperations {
     BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
     BillingProfileModel billingProfile =
         profileDao.createBillingProfile(profileRequest, "testUser");
+    return createDataset(billingProfile.getId(), path);
+  }
 
+  public Dataset createDataset(UUID billingProfileId, String path) throws IOException {
+    BillingProfileModel billingProfile = profileDao.getBillingProfileById(billingProfileId);
     GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
     UUID projectId = resourceDao.createProject(projectResource);
     projectResource.id(projectId);
-
-    return createDataset(billingProfile.getId(), projectId, path);
+    return createDataset(billingProfileId, projectId, path);
   }
 
   public Dataset createDataset(UUID billingProfileId, UUID projectResourceId, String path)

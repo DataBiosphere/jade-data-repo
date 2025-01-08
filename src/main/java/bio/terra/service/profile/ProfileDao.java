@@ -13,6 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,8 +66,7 @@ public class ProfileDao {
             + " (:id, :name, :biller, :billing_account_id, :description, :cloud_platform, "
             + "     :tenant_id, :subscription_id, :resource_group_name, :application_deployment_name, :created_by)";
 
-    String billingAccountId =
-        Optional.ofNullable(profileRequest.getBillingAccountId()).orElse(null);
+    String billingAccountId = profileRequest.getBillingAccountId();
     String cloudPlatform =
         Optional.ofNullable(profileRequest.getCloudPlatform())
             .or(() -> Optional.of(CloudPlatform.GCP))
@@ -74,10 +74,8 @@ public class ProfileDao {
             .get();
     UUID tenantId = profileRequest.getTenantId();
     UUID subscriptionId = profileRequest.getSubscriptionId();
-    String resourceGroupName =
-        Optional.ofNullable(profileRequest.getResourceGroupName()).orElse(null);
-    String applicationDeploymentName =
-        Optional.ofNullable(profileRequest.getApplicationDeploymentName()).orElse(null);
+    String resourceGroupName = profileRequest.getResourceGroupName();
+    String applicationDeploymentName = profileRequest.getApplicationDeploymentName();
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
@@ -190,6 +188,25 @@ public class ProfileDao {
       // handle a case of some active references.
       throw new ProfileInUseException("Profile is in use and cannot be deleted", ex);
     }
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+  public List<ProfileOwnedResource> listProfileOwnedResources(UUID profileId) {
+    String sql =
+        "select dataset.id as id, dataset.name as name, dataset.description as description, 'DATASET' as type "
+            + "from dataset where dataset.default_profile_id = :profile_id "
+            + "union all "
+            + "select snapshot.id as id, snapshot.name as name, snapshot.description as description, 'SNAPSHOT' as type "
+            + "from snapshot where snapshot.profile_id = :profile_id";
+    return jdbcTemplate.query(
+        sql,
+        Map.of("profile_id", profileId),
+        (rs, rowNum) ->
+            new ProfileOwnedResource(
+                rs.getObject("id", UUID.class),
+                rs.getString("name"),
+                rs.getString("description"),
+                ProfileOwnedResource.Type.valueOf(rs.getString("type"))));
   }
 
   /**

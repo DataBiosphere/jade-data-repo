@@ -2,7 +2,9 @@ package bio.terra.service.resourcemanagement;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
@@ -11,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
@@ -18,6 +21,7 @@ import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateBillingProfileModel;
 import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.profile.ProfileOwnedResource;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,6 +45,8 @@ import org.springframework.test.context.ActiveProfiles;
 class ProfileDaoTest {
 
   @Autowired private ProfileDao profileDao;
+
+  @Autowired private DaoOperations daoOperations;
 
   // keeps track of the profiles that are made so they can be cleaned up
   private BillingProfileModel makeProfile() {
@@ -224,5 +230,27 @@ class ProfileDaoTest {
         "Application deployments match",
         result.getApplicationDeploymentName(),
         equalTo(request.getApplicationDeploymentName()));
+  }
+
+  @Test
+  void listProfileOwnedResources() throws Exception {
+    UUID profileId = makeProfile().getId();
+    assertThat(profileDao.listProfileOwnedResources(profileId), empty());
+
+    var dataset = daoOperations.createDataset(profileId, "snapshot-test-dataset.json");
+    var snapshot = daoOperations.createAndIngestSnapshot(dataset, "snapshot-test-snapshot.json");
+    assertThat(
+        profileDao.listProfileOwnedResources(profileId),
+        containsInAnyOrder(
+            new ProfileOwnedResource(
+                dataset.getId(),
+                dataset.getName(),
+                dataset.getDescription(),
+                ProfileOwnedResource.Type.DATASET),
+            new ProfileOwnedResource(
+                snapshot.getId(),
+                snapshot.getName(),
+                snapshot.getDescription(),
+                ProfileOwnedResource.Type.SNAPSHOT)));
   }
 }

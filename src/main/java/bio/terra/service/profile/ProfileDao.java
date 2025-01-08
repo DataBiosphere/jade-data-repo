@@ -193,11 +193,11 @@ public class ProfileDao {
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public List<ProfileOwnedResource> listProfileOwnedResources(UUID profileId) {
     String sql =
-        "select dataset.id as id, dataset.name as name, dataset.description as description, 'DATASET' as type "
-            + "from dataset where dataset.default_profile_id = :profile_id "
-            + "union all "
-            + "select snapshot.id as id, snapshot.name as name, snapshot.description as description, 'SNAPSHOT' as type "
-            + "from snapshot where snapshot.profile_id = :profile_id";
+        "SELECT dataset.id AS id, dataset.name AS name, dataset.description AS description, 'DATASET' AS type "
+            + "FROM dataset WHERE dataset.default_profile_id = :profile_id "
+            + "UNION ALL "
+            + "SELECT snapshot.id AS id, snapshot.name AS name, snapshot.description AS description, 'SNAPSHOT' AS type "
+            + "FROM snapshot WHERE snapshot.profile_id = :profile_id";
     return jdbcTemplate.query(
         sql,
         Map.of("profile_id", profileId),

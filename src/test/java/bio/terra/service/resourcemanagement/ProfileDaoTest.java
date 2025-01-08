@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
@@ -17,7 +18,6 @@ import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateBillingProfileModel;
 import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,42 +26,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@Tag(Unit.TAG)
 @EmbeddedDatabaseTest
-public class ProfileDaoTest {
+class ProfileDaoTest {
 
   @Autowired private ProfileDao profileDao;
-
-  @Autowired private ProfileService profileService;
-
-  private ArrayList<UUID> profileIds;
-
-  @Before
-  public void setup() throws Exception {
-    profileIds = new ArrayList<>();
-  }
-
-  @After
-  public void teardown() throws Exception {
-    for (UUID profileId : profileIds) {
-      profileDao.deleteBillingProfileById(profileId);
-    }
-  }
 
   // keeps track of the profiles that are made so they can be cleaned up
   private BillingProfileModel makeProfile() {
@@ -69,13 +48,11 @@ public class ProfileDaoTest {
     BillingProfileModel billingProfileModel =
         profileDao.createBillingProfile(profileRequest, "me@me.me");
     assertRequestMatchesResult(profileRequest, billingProfileModel);
-    UUID profileId = billingProfileModel.getId();
-    profileIds.add(profileId);
     return billingProfileModel;
   }
 
   @Test
-  public void profileCloudProvidersTest() throws Exception {
+  void profileCloudProvidersTest() {
     var googleBillingProfile = makeProfile();
     var tenant = UUID.randomUUID();
     var subscription = UUID.randomUUID();
@@ -91,8 +68,6 @@ public class ProfileDaoTest {
     var azureBillingProfile =
         profileDao.createBillingProfile(azureBillingProfileRequest, "me@me.me");
     assertRequestMatchesResult(azureBillingProfileRequest, azureBillingProfile);
-    var azureProfileId = azureBillingProfile.getId();
-    profileIds.add(azureProfileId);
 
     var retrievedGoogleBillingProfile =
         profileDao.getBillingProfileById(googleBillingProfile.getId());
@@ -132,16 +107,16 @@ public class ProfileDaoTest {
         contains(tenant, subscription, resourceGroup, applicationName));
   }
 
-  @Test(expected = ProfileNotFoundException.class)
-  public void profileDeleteTest() {
+  @Test
+  void profileDeleteTest() {
     UUID profileId = makeProfile().getId();
     boolean deleted = profileDao.deleteBillingProfileById(profileId);
     assertThat("able to delete", deleted, equalTo(true));
-    profileDao.getBillingProfileById(profileId);
+    assertThrows(ProfileNotFoundException.class, () -> profileDao.getBillingProfileById(profileId));
   }
 
   @Test
-  public void profileUpdate() {
+  void profileUpdate() {
     BillingProfileModel profile = makeProfile();
 
     // Start with old Billing account, then set to newBillingAccount
@@ -168,18 +143,19 @@ public class ProfileDaoTest {
         "Description should be updated", newProfile.getDescription(), containsString("updated"));
   }
 
-  @Test(expected = ProfileNotFoundException.class)
-  public void updateNonExistentProfile() {
+  @Test
+  void updateNonExistentProfile() {
     BillingProfileUpdateModel updateModel =
         new BillingProfileUpdateModel()
             .id(UUID.randomUUID())
             .billingAccountId(ProfileFixtures.randomBillingAccountId())
             .description("random");
-    profileDao.updateBillingProfileById(updateModel);
+    assertThrows(
+        ProfileNotFoundException.class, () -> profileDao.updateBillingProfileById(updateModel));
   }
 
   @Test
-  public void profileEnumerateTest() throws Exception {
+  void profileEnumerateTest() {
     Map<UUID, String> profileIdToAccountId = new HashMap<>();
     List<UUID> accessibleProfileId = new ArrayList<>();
     for (int i = 0; i < 6; i++) {

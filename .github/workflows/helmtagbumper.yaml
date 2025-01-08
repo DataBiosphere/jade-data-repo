@@ -11,6 +11,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: develop
+          persist-credentials: false
       - name: 'Fetch latest jade-data-repo image tag'
         id: apiprevioustag
         run: |
@@ -22,6 +23,7 @@ jobs:
           repository: 'broadinstitute/datarepo-helm'
           path: datarepo-helm
           token: "${{ secrets.BROADBOT_TOKEN }}"
+          persist-credentials: false
       - name: "[datarepo-helm] [value.yaml] Update image tag"
         uses: docker://mikefarah/yq:3
         with:

@@ -50,6 +50,7 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           token: ${{ secrets.BROADBOT_TOKEN }} # this allows the push to succeed later
+          persist-credentials: false
       - name: Bump the tag to a new version
         # https://github.com/DataBiosphere/github-actions/tree/master/actions/bumper
         uses: databiosphere/github-actions/actions/bumper@bumper-0.3.0
@@ -66,7 +67,9 @@ jobs:
       - name: Echo tag to console
         if: ${{ inputs.print-tag == 'true' }}
         run: |
-          echo "Newly created version tag: '${{ steps.tag.outputs.new_tag }}'"
+          echo "Newly created version tag: '${NEW_TAG}'"
           echo "build.gradle"
           echo "==============="
           cat build.gradle
+        env:
+          NEW_TAG: ${{ steps.tag.outputs.new_tag }}

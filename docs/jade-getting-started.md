@@ -254,7 +254,7 @@ export HOST=localhost
 * Ensure docker is running
 * Auth as your broadinstitute.org to pull from Google Secrets Manager `gcloud auth login <you>@broadinstitute.org`
 * Run `./scripts/run-db start` to start the DB in a docker container
-* Run `./scripts/run local` to run TDR locally or `./scripts/run docker` to run TDR in a docker container
+* Run `./scripts/run start_local` to run TDR locally or `./scripts/run start_docker` to run TDR in a docker container
 * To Build the code and run the unit tests:
 
 ```

@@ -33,6 +33,7 @@ import bio.terra.model.JobModel.JobStatusEnum;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
+import bio.terra.model.ProfileOwnedResourceModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -239,11 +240,29 @@ class ProfileAPIControllerTest {
   @Test
   void getProfileResources() throws Exception {
     UUID id = UUID.randomUUID();
-    ProfileOwnedResource resource =
+    var dataset =
         new ProfileOwnedResource(
             id, "name", "description", Instant.now(), ProfileOwnedResource.Type.DATASET);
-    var model = new EnumerateBillingProfileResourcesModel().items(List.of(resource.toModel()));
-    when(profileService.getProfileResources(id)).thenReturn(List.of(resource));
+    var snapshot =
+        new ProfileOwnedResource(
+            id, "name", "description", Instant.now(), ProfileOwnedResource.Type.SNAPSHOT);
+    var model =
+        new EnumerateBillingProfileResourcesModel()
+            .items(
+                List.of(
+                    new ProfileOwnedResourceModel()
+                        .id(dataset.id())
+                        .name(dataset.name())
+                        .description(dataset.description())
+                        .type(ProfileOwnedResourceModel.TypeEnum.DATASET)
+                        .createdDate(dataset.createdDate().toString()),
+                    new ProfileOwnedResourceModel()
+                        .id(snapshot.id())
+                        .name(snapshot.name())
+                        .description(snapshot.description())
+                        .type(ProfileOwnedResourceModel.TypeEnum.SNAPSHOT)
+                        .createdDate(snapshot.createdDate().toString())));
+    when(profileService.getProfileResources(id)).thenReturn(List.of(dataset, snapshot));
     mockMvc
         .perform(get(createUri(getApi().getProfileResources(id))))
         .andExpect(status().isOk())

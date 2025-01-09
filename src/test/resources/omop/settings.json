@@ -1,4 +1,6 @@
 {
+  "name": "Integration test settings",
+  "description": "Description for integration test settings",
   "domainOptions": [
     {
       "kind": "domain",
@@ -258,6 +260,15 @@
           "fpk_observation_qualifier",
           "fpk_observation_type_concept",
           "fpk_observation_value"]
+      }
+    },
+    {
+      "name": "Sample",
+      "table": {
+        "datasetTableName": "sample",
+        "columns": [],
+        "primaryTableRelationship": "fpk_person_sample",
+        "secondaryTableRelationships": []
       }
     }
   ],

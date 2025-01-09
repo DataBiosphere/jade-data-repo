@@ -42,13 +42,15 @@ import java.util.UUID;
 
 public class SnapshotBuilderTestData {
 
+  public static final int CONDITION_CONCEPT_ID = 100;
+
   private static SnapshotBuilderDomainOption generateSnapshotBuilderDomainOption(
       int id, String tableName, String columnName, String name, SnapshotBuilderConcept root) {
     SnapshotBuilderDomainOption domainOption = new SnapshotBuilderDomainOption();
     domainOption
         .root(root)
-        .conceptCount(100)
-        .participantCount(100)
+        .conceptCount(CONDITION_CONCEPT_ID)
+        .participantCount(CONDITION_CONCEPT_ID)
         .id(id)
         .tableName(tableName)
         .columnName(columnName)
@@ -98,8 +100,15 @@ public class SnapshotBuilderTestData {
   public static final int GENDER_PROGRAM_DATA_ID = 3;
   public static final int RACE_PROGRAM_DATA_ID = 4;
 
+  public static final SnapshotBuilderProgramDataListItem RACE_PROGRAM_DATA_LIST_ITEM_ONE =
+      new SnapshotBuilderProgramDataListItem().id(43).name("race name one");
+  public static final SnapshotBuilderProgramDataListItem RACE_PROGRAM_DATA_LIST_ITEM_TWO =
+      new SnapshotBuilderProgramDataListItem().id(44).name("race name two");
+
   public static final SnapshotBuilderSettings SETTINGS =
       new SnapshotBuilderSettings()
+          .name("Snapshot builder settings name")
+          .description("Snapshot builder settings description")
           .domainOptions(
               List.of(
                   generateSnapshotBuilderDomainOption(
@@ -108,9 +117,9 @@ public class SnapshotBuilderTestData {
                       ConditionOccurrence.CONDITION_CONCEPT_ID,
                       "Condition",
                       new SnapshotBuilderConcept()
-                          .id(100)
+                          .id(CONDITION_CONCEPT_ID)
                           .name("Condition")
-                          .count(100)
+                          .count(CONDITION_CONCEPT_ID)
                           .hasChildren(true)),
                   generateSnapshotBuilderDomainOption(
                       PROCEDURE_OCCURRENCE_DOMAIN_ID,
@@ -120,7 +129,7 @@ public class SnapshotBuilderTestData {
                       new SnapshotBuilderConcept()
                           .id(200)
                           .name("Procedure")
-                          .count(100)
+                          .count(CONDITION_CONCEPT_ID)
                           .hasChildren(true)),
                   generateSnapshotBuilderDomainOption(
                       OBSERVATION_DOMAIN_ID,
@@ -130,7 +139,7 @@ public class SnapshotBuilderTestData {
                       new SnapshotBuilderConcept()
                           .id(300)
                           .name("Observation")
-                          .count(100)
+                          .count(CONDITION_CONCEPT_ID)
                           .hasChildren(true)),
                   // add option for Drug table
                   generateSnapshotBuilderDomainOption(
@@ -141,7 +150,7 @@ public class SnapshotBuilderTestData {
                       new SnapshotBuilderConcept()
                           .id(400)
                           .name("Drug")
-                          .count(100)
+                          .count(CONDITION_CONCEPT_ID)
                           .hasChildren(true))))
           .programDataOptions(
               List.of(
@@ -151,7 +160,7 @@ public class SnapshotBuilderTestData {
                       Person.YEAR_OF_BIRTH,
                       "Year of birth",
                       0,
-                      100),
+                      CONDITION_CONCEPT_ID),
                   generateSnapshotBuilderProgramDataListOption(
                       ETHNICITY_PROGRAM_DATA_ID,
                       Person.TABLE_NAME,
@@ -169,7 +178,7 @@ public class SnapshotBuilderTestData {
                       Person.TABLE_NAME,
                       Person.RACE_CONCEPT_ID,
                       "Race",
-                      List.of(new SnapshotBuilderProgramDataListItem().id(43).name("unused 3")))))
+                      List.of(RACE_PROGRAM_DATA_LIST_ITEM_ONE, RACE_PROGRAM_DATA_LIST_ITEM_TWO))))
           .datasetConceptSets(
               List.of(
                   new SnapshotBuilderDatasetConceptSet()
@@ -390,7 +399,7 @@ public class SnapshotBuilderTestData {
                         .kind(SnapshotBuilderCriteria.KindEnum.LIST))
                 .addCriteriaItem(
                     new SnapshotBuilderDomainCriteria()
-                        .conceptId(100)
+                        .conceptId(CONDITION_CONCEPT_ID)
                         .id(CONDITION_OCCURRENCE_DOMAIN_ID)
                         .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN))
                 .addCriteriaItem(
@@ -429,6 +438,8 @@ public class SnapshotBuilderTestData {
         null,
         SnapshotAccessRequestStatus.SUBMITTED,
         null,
+        null,
+        null,
         null);
   }
 
@@ -442,5 +453,41 @@ public class SnapshotBuilderTestData {
                     .mode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID)
                     .requestIdSpec(
                         new SnapshotRequestIdModel().snapshotRequestId(snapshotAccessRequestId))));
+  }
+
+  public static SnapshotAccessRequestModel createAccessRequestModelApproved() {
+    SnapshotAccessRequest request = createSnapshotAccessRequest(UUID.randomUUID());
+    return new SnapshotAccessRequestModel(
+        UUID.randomUUID(),
+        request.getName(),
+        request.getResearchPurposeStatement(),
+        request.getSourceSnapshotId(),
+        null,
+        "user@gmail.com",
+        Instant.now(),
+        Instant.now(),
+        SnapshotAccessRequestStatus.APPROVED,
+        null,
+        null,
+        null,
+        null);
+  }
+
+  public static SnapshotAccessRequestModel createAccessRequestModelSnapshotCreated() {
+    SnapshotAccessRequest request = createSnapshotAccessRequest(UUID.randomUUID());
+    return new SnapshotAccessRequestModel(
+        UUID.randomUUID(),
+        request.getName(),
+        request.getResearchPurposeStatement(),
+        request.getSourceSnapshotId(),
+        null,
+        "user@gmail.com",
+        Instant.now(),
+        Instant.now(),
+        SnapshotAccessRequestStatus.APPROVED,
+        UUID.randomUUID(),
+        "Flight ID",
+        "Group name",
+        "Group created by Terra ID");
   }
 }

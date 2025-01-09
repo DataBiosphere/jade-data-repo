@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.broadinstitute.dsde.workbench.client.sam.model.ManagedResourceGroupCoordinates;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserIdInfo;
 
 /**
  * This is the interface to IAM used in the main body of the repository code. Right now, the only
@@ -260,6 +261,46 @@ public interface IamProviderInterface {
   String getGroup(String accessToken, String groupName) throws InterruptedException;
 
   /**
+   * List the members of a Sam group
+   *
+   * @param accessToken valid oauth token for the account getting the group
+   * @param groupName name of the Sam group to get
+   * @param policyName name of the Sam policy
+   * @return the list of emails in the group
+   * @throws InterruptedException
+   */
+  List<String> getGroupPolicyEmails(String accessToken, String groupName, String policyName)
+      throws InterruptedException;
+
+  /**
+   * Add a member to a Sam group
+   *
+   * @param accessToken valid oauth token for the account adding to the group
+   * @param groupName name of the Sam group being added to
+   * @param policyName name of the Sam policy
+   * @param memberEmail the email to be added to the group
+   * @return the list of emails in the group after adding the member
+   * @throws InterruptedException
+   */
+  List<String> addGroupPolicyEmail(
+      String accessToken, String groupName, String policyName, String memberEmail)
+      throws InterruptedException;
+
+  /**
+   * Remove a member from a Sam group
+   *
+   * @param accessToken valid oauth token for the account removing from the group
+   * @param groupName name of the Sam group being removed from
+   * @param policyName name of the Sam policy
+   * @param memberEmail the email to be removed from the group
+   * @return the list of emails in the group after removing the member
+   * @throws InterruptedException
+   */
+  List<String> removeGroupPolicyEmail(
+      String accessToken, String groupName, String policyName, String memberEmail)
+      throws InterruptedException;
+
+  /**
    * @param accessToken valid oauth token for the account modifying the group policy members
    * @param userRequest information about the requesting user - we'll use this to pull the user's
    *     email and add it to the group
@@ -275,6 +316,7 @@ public interface IamProviderInterface {
       String policyName,
       List<String> emailAddresses)
       throws InterruptedException;
+
   /**
    * @param accessToken valid oauth token for the account modifying the group policy members
    * @param groupName name of Firecloud managed group
@@ -331,4 +373,6 @@ public interface IamProviderInterface {
   boolean getResourceTypeAdminPermission(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action)
       throws InterruptedException;
+
+  UserIdInfo getUserIds(String accessToken, String userEmail) throws InterruptedException;
 }

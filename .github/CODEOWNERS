@@ -4,7 +4,7 @@
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
 # These owners will be the default owners for everything in the repo.
-*       @DataBiosphere/data-custodian-journeys @DataBiosphere/data-explorer-eng
+*       @DataBiosphere/dsp-data-team-eng
 
 # Order is important. The last matching pattern has the most precedence.
 # Example: if a pull request only touches files in a `/snapshotbuilder` directory

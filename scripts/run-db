@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# manage / interact with postgres container with initial repo setup
+
+usage() {
+  cat <<-'EOF'
+usage: run-db [--clean-db] [-h|--help] COMMAND
+[--clean-db]       clean the database
+[-h|--help]        print this help text
+COMMAND is one of:
+- start            start a local database server
+- stop             stop the local database server
+- shell            connect to the local database server
+EOF
+}
+
+# script variables and defaults
+source "$(dirname "$0")"/init.sh
+
+
+# these values are currently shared in other scripts
+# init-db/postgres-init.sql
+# service/src/main/resources/application.yml
+DATABASE_NAME=${DATABASE_NAME:-datarepo}
+DATABASE_USER=${DATABASE_USER:-drmanager}
+
+clean_db=false
+
+
+# process command-line options (if any)
+die() { log_error "$*" >&2; echo ""; usage; exit 2; }  # complain to STDERR and exit with error
+needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
+
+while getopts hc-: OPT; do  # allow -h and -- "with arg"
+  # support long options: https://stackoverflow.com/a/28466267/519360
+  if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
+    OPT="${OPTARG%%=*}"       # extract long option name
+    OPTARG="${OPTARG#"$OPT"}"   # extract long option argument (may be empty)
+    OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
+  fi
+  case "$OPT" in
+    c | clean-db ) clean_db=true ;;
+    h | help )     usage; exit 0 ;;
+    \? )           usage; exit 2 ;;  # bad short option (error reported via getopts)
+    * )            die "Illegal option --$OPT" ;;            # bad long option
+  esac
+done
+shift $((OPTIND-1)) # remove parsed options and args from $@ list
+
+
+# process positional arguments (if any)
+COMMAND=$1
+
+remove_database() {
+  if [ "$clean_db" = "true" ]; then
+    log_info "erasing existing database state"
+    rm -r "$TMP_DIR"/postgres-data
+  fi
+}
+
+start() {
+  stop
+  docker compose -f "$ROOT_DIR"/scripts/compose.yaml up database -d
+}
+
+stop() {
+  docker compose -f "$ROOT_DIR"/scripts/compose.yaml down database
+  remove_database
+}
+
+shell() {
+  docker compose -f "$ROOT_DIR"/scripts/compose.yaml exec database psql -U "$DATABASE_USER" "$DATABASE_NAME"
+}
+
+case "$COMMAND" in
+  start )       start ;;
+  stop )        stop ;;
+  shell )       shell ;;
+  * )           usage ;;
+esac

@@ -1,46 +1,33 @@
+# Build the Docker image and scan it with Trivy
 name: dsp-appsec-trivy
-on: [pull_request]
+on:
+  workflow_dispatch: {}
+  pull_request:
 
 jobs:
   appsec-trivy:
-    # Parse Dockerfile and build, scan image if a "blessed" base image is not used
     name: DSP AppSec Trivy check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-
-      # fetch JDK
-      - uses: actions/setup-java@v2
+      - name: Check out the code
+        uses: actions/checkout@v4
+      - name: Set up JDK 17 and cache Gradle build
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
-      # set up Gradle cache
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key:
-            gradle-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: |
-            gradle-
-
-      # build the image
-      - name: Build
+          cache: 'gradle'
+      - name: Echo image name to output
         id: build
         run: |
-          # Enable pipefail so a gradle build failure fails this step.
+          # enable pipefail so a gradle build failure fails this step.
           set -o pipefail
           # build sources and store the plain log without colors
-          ./gradlew jibDockerBuild --console=plain \
-            | perl -pe 's/\x1b\[[0-9;]*[mG]//g' | tee build.log
-
+          ./gradlew jibDockerBuild --console=plain | tee build.log
           # export image name from the log
           image=$(grep 'Built image' build.log | awk '{print $NF}')
           echo "image=${image}" >> $GITHUB_OUTPUT
-
-      # scan the image
-      - uses: broadinstitute/dsp-appsec-trivy-action@v1
+      - name: Scan the image with the AppSec Trivy action
+        uses: broadinstitute/dsp-appsec-trivy-action@v1
         with:
           image: ${{ steps.build.outputs.image }}

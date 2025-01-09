@@ -24,6 +24,7 @@ public class SamApiService {
 
   private final SamConfiguration samConfig;
   private final ConfigurationService configurationService;
+
   /** OkHttpClients should be shared among requests to reduce latency and save memory * */
   private final OkHttpClient sharedHttpClient;
 

@@ -14,7 +14,6 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.SamFixtures;
-import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
@@ -30,7 +29,6 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -55,7 +53,6 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   @Autowired private JsonLoader jsonLoader;
   @Autowired private TestConfiguration testConfiguration;
   @Autowired private GoogleResourceManagerService resourceManagerService;
-  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private UUID datasetId;
   private UUID profileId;

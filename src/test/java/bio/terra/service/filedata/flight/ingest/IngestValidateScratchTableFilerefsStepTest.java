@@ -91,7 +91,7 @@ class IngestValidateScratchTableFilerefsStepTest {
   private void mockDatasetWithColumns(Column... columns) {
     DatasetTable table = new DatasetTable().name(TABLE_NAME).columns(Arrays.asList(columns));
     Dataset dataset = new Dataset().id(DATASET_ID).tables(List.of(table));
-    when(datasetService.retrieve(DATASET_ID)).thenReturn(dataset);
+    when(datasetService.retrieveForIngest(DATASET_ID)).thenReturn(dataset);
   }
 
   /**

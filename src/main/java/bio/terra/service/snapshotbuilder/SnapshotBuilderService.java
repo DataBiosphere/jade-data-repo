@@ -1,6 +1,8 @@
 package bio.terra.service.snapshotbuilder;
 
+import bio.terra.app.configuration.TerraConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.ValidationUtils;
 import bio.terra.common.exception.ApiException;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -8,6 +10,8 @@ import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotAccessRequestDetailsResponse;
+import bio.terra.model.SnapshotAccessRequestMembersResponse;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
@@ -19,10 +23,12 @@ import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.notification.NotificationService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshotbuilder.query.Query;
@@ -61,9 +67,10 @@ public class SnapshotBuilderService {
   private final IamService iamService;
   private final SnapshotService snapshotService;
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
-
   private final AzureSynapsePdao azureSynapsePdao;
   private final QueryBuilderFactory queryBuilderFactory;
+  private final NotificationService notificationService;
+  private final TerraConfiguration terraConfiguration;
 
   public SnapshotBuilderService(
       SnapshotRequestDao snapshotRequestDao,
@@ -72,16 +79,20 @@ public class SnapshotBuilderService {
       IamService iamService,
       SnapshotService snapshotService,
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
+      NotificationService notificationService,
       AzureSynapsePdao azureSynapsePdao,
-      QueryBuilderFactory queryBuilderFactory) {
+      QueryBuilderFactory queryBuilderFactory,
+      TerraConfiguration terraConfiguration) {
     this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
     this.datasetService = datasetService;
     this.iamService = iamService;
     this.snapshotService = snapshotService;
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
+    this.notificationService = notificationService;
     this.azureSynapsePdao = azureSynapsePdao;
     this.queryBuilderFactory = queryBuilderFactory;
+    this.terraConfiguration = terraConfiguration;
   }
 
   public SnapshotAccessRequestResponse createRequest(
@@ -98,8 +109,7 @@ public class SnapshotBuilderService {
       throw e;
     }
 
-    return snapshotAccessRequestModel.toApiResponse(
-        snapshotBuilderSettingsDao.getBySnapshotId(snapshotAccessRequestModel.sourceSnapshotId()));
+    return snapshotAccessRequestModel.toApiResponse();
   }
 
   private <T> List<T> runSnapshotBuilderQuery(
@@ -207,20 +217,17 @@ public class SnapshotBuilderService {
 
   private EnumerateSnapshotAccessRequest generateResponseFromRequestModels(
       List<SnapshotAccessRequestModel> models) {
-    Map<UUID, SnapshotBuilderSettings> settings =
-        models.stream()
-            .map(SnapshotAccessRequestModel::sourceSnapshotId)
-            .distinct()
-            .collect(Collectors.toMap(id -> id, snapshotBuilderSettingsDao::getBySnapshotId));
     return new EnumerateSnapshotAccessRequest()
-        .items(
-            models.stream()
-                .map(model -> model.toApiResponse(settings.get(model.sourceSnapshotId())))
-                .toList());
+        .items(models.stream().map(SnapshotAccessRequestModel::toApiResponse).toList());
   }
 
   public SnapshotAccessRequestResponse getRequest(UUID id) {
-    return convertModelToApiResponse(snapshotRequestDao.getById(id));
+    return snapshotRequestDao.getById(id).toApiResponse();
+  }
+
+  public SnapshotAccessRequestDetailsResponse getRequestDetails(
+      AuthenticatedUserRequest userRequest, UUID id) {
+    return generateModelDetails(userRequest, snapshotRequestDao.getById(id));
   }
 
   public void deleteRequest(AuthenticatedUserRequest user, UUID id) {
@@ -391,20 +398,69 @@ public class SnapshotBuilderService {
 
   public SnapshotAccessRequestResponse rejectRequest(UUID id) {
     snapshotRequestDao.updateStatus(id, SnapshotAccessRequestStatus.REJECTED);
-    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
-    return convertModelToApiResponse(model);
+    return snapshotRequestDao.getById(id).toApiResponse();
   }
 
   public SnapshotAccessRequestResponse approveRequest(UUID id) {
     snapshotRequestDao.updateStatus(id, SnapshotAccessRequestStatus.APPROVED);
-    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
-    return convertModelToApiResponse(model);
+    return snapshotRequestDao.getById(id).toApiResponse();
   }
 
-  private SnapshotAccessRequestResponse convertModelToApiResponse(
-      SnapshotAccessRequestModel model) {
-    return model.toApiResponse(
-        snapshotBuilderSettingsDao.getBySnapshotId(model.sourceSnapshotId()));
+  @VisibleForTesting
+  static void validateGroupParams(SnapshotAccessRequestModel model, String memberEmail) {
+    if (memberEmail != null) {
+      ValidationUtils.requireValidEmail(memberEmail, "Invalid member email");
+    }
+    ValidationUtils.requireNotBlank(
+        model.samGroupName(),
+        "Snapshot must be created from this request in order to manage group membership.");
+  }
+
+  public SnapshotAccessRequestMembersResponse getGroupMembers(UUID id) {
+    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
+    validateGroupParams(model, null);
+    return new SnapshotAccessRequestMembersResponse()
+        .members(iamService.getGroupPolicyEmails(model.samGroupName(), IamRole.MEMBER.toString()));
+  }
+
+  public SnapshotAccessRequestMembersResponse addGroupMember(UUID id, String memberEmail) {
+    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
+    validateGroupParams(model, memberEmail);
+    return new SnapshotAccessRequestMembersResponse()
+        .members(
+            iamService.addEmailToGroup(
+                model.samGroupName(), IamRole.MEMBER.toString(), memberEmail));
+  }
+
+  public SnapshotAccessRequestMembersResponse deleteGroupMember(UUID id, String memberEmail) {
+    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
+    validateGroupParams(model, memberEmail);
+    return new SnapshotAccessRequestMembersResponse()
+        .members(
+            iamService.removeEmailFromGroup(
+                model.samGroupName(), IamRole.MEMBER.toString(), memberEmail));
+  }
+
+  private SnapshotAccessRequestDetailsResponse generateModelDetails(
+      AuthenticatedUserRequest userRequest, SnapshotAccessRequestModel model) {
+    List<Integer> conceptIds = model.generateConceptIds();
+    SnapshotBuilderSettings settings =
+        snapshotBuilderSettingsDao.getBySnapshotId(model.sourceSnapshotId());
+    Map<Integer, String> concepts =
+        conceptIds.isEmpty()
+            ? Map.of()
+            : runSnapshotBuilderQuery(
+                    queryBuilderFactory
+                        .enumerateConceptsQueryBuilder()
+                        .getConceptsFromConceptIds(conceptIds),
+                    snapshotService.retrieve(model.sourceSnapshotId()),
+                    userRequest,
+                    AggregateBQQueryResultsUtils::toConceptIdNamePair,
+                    AggregateSynapseQueryResultsUtils::toConceptIdNamePair)
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    return model.generateModelDetails(settings, concepts);
   }
 
   private SnapshotBuilderDomainOption getDomainOption(
@@ -413,5 +469,22 @@ public class SnapshotBuilderService {
     // this does not work for the metadata domain
     String domainId = getDomainId(conceptId, snapshot, userRequest);
     return getDomainOptionFromSettingsByName(domainId, snapshot.getId());
+  }
+
+  public String createExportSnapshotLink(UUID snapshotId) {
+    return "%s/import-data?snapshotId=%s&format=tdrexport&tdrSyncPermissions=false"
+        .formatted(terraConfiguration.basePath(), snapshotId);
+  }
+
+  public void notifySnapshotReady(
+      AuthenticatedUserRequest userRequest, String subjectId, UUID snapshotRequestId) {
+    var snapshotAccessRequest = snapshotRequestDao.getById(snapshotRequestId);
+    UUID snapshotId = snapshotAccessRequest.createdSnapshotId();
+    Snapshot snapshot = snapshotService.retrieve(snapshotId);
+    notificationService.snapshotReady(
+        subjectId,
+        createExportSnapshotLink(snapshotId),
+        snapshot.getName(),
+        generateModelDetails(userRequest, snapshotAccessRequest).getSummary());
   }
 }

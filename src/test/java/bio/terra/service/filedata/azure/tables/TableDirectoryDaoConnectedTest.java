@@ -4,6 +4,7 @@ import static bio.terra.service.common.azure.StorageTableName.DATASET;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
@@ -15,6 +16,7 @@ import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FileMetadataUtils;
+import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.core.http.rest.PagedIterable;
@@ -102,6 +104,28 @@ public class TableDirectoryDaoConnectedTest {
     }
 
     connectedOperations.teardown();
+  }
+
+  @Test
+  public void upsertEntityCheckStatus() {
+    snapshotTableName = StorageTableName.SNAPSHOT.toTableName(snapshotId);
+    tableServiceClient.createTableIfNotExists(snapshotTableName);
+    TableClient tableClient = tableServiceClient.getTableClient(snapshotTableName);
+    tableDirectoryDao.upsertEntityCheckStatus(
+        tableClient, new TableEntity("", ""), "/", snapshotTableName);
+  }
+
+  @Test
+  public void upsertEntityCheckStatusNoTable() {
+    // Upsert the entity
+    snapshotTableName = StorageTableName.SNAPSHOT.toTableName(snapshotId);
+    // "snapshotTableName" should not exist
+    TableClient tableClient = tableServiceClient.getTableClient(snapshotTableName);
+    assertThrows(
+        FileSystemExecutionException.class,
+        () ->
+            tableDirectoryDao.upsertEntityCheckStatus(
+                tableClient, new TableEntity("", ""), "/", snapshotTableName));
   }
 
   @Test

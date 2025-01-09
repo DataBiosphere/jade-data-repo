@@ -181,6 +181,7 @@ public abstract class BigQueryPdao {
       return 0;
     }
   }
+
   /*
    * WARNING: Ensure input parameters are validated before executing this method!
    */

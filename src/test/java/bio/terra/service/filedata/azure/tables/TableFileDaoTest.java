@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
@@ -62,14 +61,6 @@ public class TableFileDaoTest {
   }
 
   @Test
-  void testRetrieveFileMetadataFailure() {
-    when(tableClient.getEntity(PARTITION_KEY, FILE_ID)).thenThrow(TableServiceException.class);
-    assertThrows(
-        TableServiceException.class,
-        () -> dao.retrieveFileMetadata(tableServiceClient, DATASET_ID, FILE_ID));
-  }
-
-  @Test
   void testDeleteFileMetadata() {
     boolean exists = dao.deleteFileMetadata(tableServiceClient, DATASET_ID, FILE_ID);
     assertTrue(exists, "Existing row is deleted");
@@ -83,7 +74,17 @@ public class TableFileDaoTest {
   @Test
   void testBatchRetrieveFileMetadata() {
     FireStoreDirectoryEntry fsDirectoryEntry = new FireStoreDirectoryEntry().fileId(FILE_ID);
-    List<FireStoreDirectoryEntry> directoryEntries = List.of(fsDirectoryEntry);
+
+    // test that invalid fileId is ignored and excluded from the results of
+    // batchRetrieveFileMetadata
+    var invalidFileId = UUID.randomUUID().toString();
+    FireStoreDirectoryEntry fsDirectoryEntry_notValid =
+        new FireStoreDirectoryEntry().fileId(invalidFileId);
+    when(tableClient.getEntity(PARTITION_KEY, invalidFileId))
+        .thenThrow(TableServiceException.class);
+
+    List<FireStoreDirectoryEntry> directoryEntries =
+        List.of(fsDirectoryEntry, fsDirectoryEntry_notValid);
     List<FireStoreFile> expectedFiles = List.of(FireStoreFile.fromTableEntity(entity));
     List<FireStoreFile> files =
         dao.batchRetrieveFileMetadata(tableServiceClient, DATASET_ID, directoryEntries);

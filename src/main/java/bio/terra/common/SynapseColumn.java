@@ -98,8 +98,8 @@ public class SynapseColumn extends Column {
       case TIME -> "time";
         // Data of type RECORD contains table-like that can be nested or repeated
         // It's provided in JSON format, making it hard to parse from inside a CSV/JSON ingest
-      case RECORD -> throw new NotSupportedException(
-          "RECORD type is not yet supported for synapse");
+      case RECORD ->
+          throw new NotSupportedException("RECORD type is not yet supported for synapse");
     };
   }
 

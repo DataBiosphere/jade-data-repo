@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: asset_column_asset_id_index
+      author: rjohanek
+      changes:
+        - createIndex:
+            indexName: asset_column_asset_id_idx
+            tableName: asset_column
+            columns:
+              - column:
+                  name: asset_id

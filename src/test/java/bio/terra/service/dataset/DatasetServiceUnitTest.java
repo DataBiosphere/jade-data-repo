@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -30,14 +31,19 @@ import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.TableDataType;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.job.JobBuilder;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.profile.ProfileDao;
@@ -72,6 +78,7 @@ class DatasetServiceUnitTest {
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
 
+  private static final UUID DATASET_ID = UUID.randomUUID();
   private static final String DATASET_TABLE_NAME = "Table1";
 
   @Mock private DatasetDao datasetDao;
@@ -120,20 +127,33 @@ class DatasetServiceUnitTest {
   }
 
   @Test
+  void retrieve() {
+    var dataset = new Dataset().id(DATASET_ID);
+    when(datasetDao.retrieve(DATASET_ID)).thenReturn(dataset);
+    assertThat(datasetService.retrieve(DATASET_ID), equalTo(dataset));
+  }
+
+  @Test
+  void retrieveForIngest() {
+    var dataset = new Dataset().id(DATASET_ID);
+    when(datasetDao.retrieve(DATASET_ID, false, false)).thenReturn(dataset);
+    assertThat(datasetService.retrieveForIngest(DATASET_ID), equalTo(dataset));
+  }
+
+  @Test
   void enumerate() {
-    UUID uuid = UUID.randomUUID();
     IamRole role = IamRole.DISCOVERER;
-    Map<UUID, Set<IamRole>> resourcesAndRoles = Map.of(uuid, Set.of(role));
+    Map<UUID, Set<IamRole>> resourcesAndRoles = Map.of(DATASET_ID, Set.of(role));
     MetadataEnumeration<DatasetSummary> metadataEnumeration = new MetadataEnumeration<>();
     DatasetSummary summary =
-        new DatasetSummary().id(uuid).createdDate(Instant.now()).storage(List.of());
+        new DatasetSummary().id(DATASET_ID).createdDate(Instant.now()).storage(List.of());
     metadataEnumeration.items(List.of(summary));
     when(datasetDao.enumerate(
             anyInt(), anyInt(), any(), any(), any(), any(), eq(resourcesAndRoles.keySet()), any()))
         .thenReturn(metadataEnumeration);
     var datasets = datasetService.enumerate(0, 10, null, null, null, null, resourcesAndRoles, null);
-    assertThat(datasets.getItems().get(0).getId(), equalTo(uuid));
-    assertThat(datasets.getRoleMap(), hasEntry(uuid.toString(), List.of(role.toString())));
+    assertThat(datasets.getItems().get(0).getId(), equalTo(DATASET_ID));
+    assertThat(datasets.getRoleMap(), hasEntry(DATASET_ID.toString(), List.of(role.toString())));
   }
 
   @Test
@@ -162,13 +182,12 @@ class DatasetServiceUnitTest {
 
   @Test
   void updatePredictableIdsFlag() {
-    UUID datasetId = UUID.randomUUID();
     DatasetSummary summary = mock(DatasetSummary.class);
-    when(summary.toModel()).thenReturn(new DatasetSummaryModel().id(datasetId));
-    when(datasetDao.retrieveSummaryById(datasetId)).thenReturn(summary);
-    datasetService.setPredictableFileIds(datasetId, true);
-    verify(datasetDao).setPredictableFileId(datasetId, true);
-    verify(datasetDao).retrieveSummaryById(datasetId);
+    when(summary.toModel()).thenReturn(new DatasetSummaryModel().id(DATASET_ID));
+    when(datasetDao.retrieveSummaryById(DATASET_ID)).thenReturn(summary);
+    datasetService.setPredictableFileIds(DATASET_ID, true);
+    verify(datasetDao).setPredictableFileId(DATASET_ID, true);
+    verify(datasetDao).retrieveSummaryById(DATASET_ID);
   }
 
   @Test
@@ -232,7 +251,7 @@ class DatasetServiceUnitTest {
     DatasetDataModel datasetDataModel =
         datasetService.retrieveData(
             TEST_USER,
-            UUID.randomUUID(),
+            DATASET_ID,
             DATASET_TABLE_NAME,
             100,
             0,
@@ -259,7 +278,7 @@ class DatasetServiceUnitTest {
       ColumnStatisticsTextModel statsModel =
           (ColumnStatisticsTextModel)
               datasetService.retrieveColumnStatistics(
-                  TEST_USER, UUID.randomUUID(), DATASET_TABLE_NAME, "column1", "");
+                  TEST_USER, DATASET_ID, DATASET_TABLE_NAME, "column1", "");
       assertThat("Correct stats value", statsModel.getValues(), containsInAnyOrder(expectedValue));
     }
   }
@@ -280,7 +299,7 @@ class DatasetServiceUnitTest {
     ColumnStatisticsTextModel statsModel =
         (ColumnStatisticsTextModel)
             datasetService.retrieveColumnStatistics(
-                TEST_USER, UUID.randomUUID(), DATASET_TABLE_NAME, "column1", "");
+                TEST_USER, DATASET_ID, DATASET_TABLE_NAME, "column1", "");
     assertThat("Correct stats value", statsModel.getValues(), containsInAnyOrder(expectedValue));
   }
 
@@ -296,7 +315,7 @@ class DatasetServiceUnitTest {
       ColumnStatisticsDoubleModel statsModel =
           (ColumnStatisticsDoubleModel)
               datasetService.retrieveColumnStatistics(
-                  TEST_USER, UUID.randomUUID(), DATASET_TABLE_NAME, "column1", "");
+                  TEST_USER, DATASET_ID, DATASET_TABLE_NAME, "column1", "");
       assertThat(
           "Correct max value", statsModel.getMaxValue(), equalTo(expectedValue.getMaxValue()));
       assertThat(
@@ -318,7 +337,7 @@ class DatasetServiceUnitTest {
     ColumnStatisticsDoubleModel statsModel =
         (ColumnStatisticsDoubleModel)
             datasetService.retrieveColumnStatistics(
-                TEST_USER, UUID.randomUUID(), DATASET_TABLE_NAME, "column1", "");
+                TEST_USER, DATASET_ID, DATASET_TABLE_NAME, "column1", "");
     assertThat("Correct max value", statsModel.getMaxValue(), equalTo(expectedValue.getMaxValue()));
     assertThat("Correct min value", statsModel.getMinValue(), equalTo(expectedValue.getMinValue()));
   }
@@ -334,7 +353,7 @@ class DatasetServiceUnitTest {
       ColumnStatisticsIntModel statsModel =
           (ColumnStatisticsIntModel)
               datasetService.retrieveColumnStatistics(
-                  TEST_USER, UUID.randomUUID(), DATASET_TABLE_NAME, "column1", "");
+                  TEST_USER, DATASET_ID, DATASET_TABLE_NAME, "column1", "");
       assertThat(
           "Correct max value", statsModel.getMaxValue(), equalTo(expectedValue.getMaxValue()));
       assertThat(
@@ -355,17 +374,16 @@ class DatasetServiceUnitTest {
     ColumnStatisticsIntModel statsModel =
         (ColumnStatisticsIntModel)
             datasetService.retrieveColumnStatistics(
-                TEST_USER, UUID.randomUUID(), DATASET_TABLE_NAME, "column1", "");
+                TEST_USER, DATASET_ID, DATASET_TABLE_NAME, "column1", "");
     assertThat("Correct max value", statsModel.getMaxValue(), equalTo(expectedValue.getMaxValue()));
     assertThat("Correct min value", statsModel.getMinValue(), equalTo(expectedValue.getMinValue()));
   }
 
   private void mockDataset(CloudPlatform cloudPlatform, TableDataType columnDataType) {
     List<DatasetTable> tables = List.of(new DatasetTable().name(DATASET_TABLE_NAME));
-    UUID datasetId = UUID.randomUUID();
     Dataset mockDataset =
         new Dataset(new DatasetSummary().cloudPlatform(cloudPlatform))
-            .id(datasetId)
+            .id(DATASET_ID)
             .tables(tables)
             .tables(
                 List.of(
@@ -373,5 +391,26 @@ class DatasetServiceUnitTest {
                         .name(DATASET_TABLE_NAME)
                         .columns(List.of(new Column().name("column1").type(columnDataType)))));
     when(datasetDao.retrieve(any())).thenReturn(mockDataset);
+  }
+
+  private ResourceLocks mockSubmitAndWait(UnlockResourceRequest request, JobBuilder jobBuilder) {
+    when(jobService.newJob(anyString(), eq(DatasetUnlockFlight.class), eq(request), eq(TEST_USER)))
+        .thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(any(), any())).thenReturn(jobBuilder);
+    ResourceLocks resourceLocks = new ResourceLocks().exclusive("an-exclusive-lock");
+    when(jobBuilder.submitAndWait(ResourceLocks.class)).thenReturn(resourceLocks);
+    return resourceLocks;
+  }
+
+  @Test
+  void manualUnlock() {
+    UnlockResourceRequest request = new UnlockResourceRequest().lockName("flightId");
+    JobBuilder jobBuilder = mock(JobBuilder.class);
+    ResourceLocks expected = mockSubmitAndWait(request, jobBuilder);
+
+    ResourceLocks actual = datasetService.manualUnlock(TEST_USER, DATASET_ID, request);
+    assertThat("Job is submitted and ResourceLocks returned", actual, equalTo(expected));
+    // Dataset ID is supplied as an input parameter
+    verify(jobBuilder).addParameter(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID);
   }
 }

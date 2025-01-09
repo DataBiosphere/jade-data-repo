@@ -8,7 +8,6 @@ import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.integration.DataRepoFixtures;
-import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
@@ -23,7 +22,6 @@ import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.SyncReportEntry;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -46,7 +44,6 @@ public class SamRetryIntegrationTest extends UsersBase {
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private IamProviderInterface iam;
   @Autowired private SamConfiguration samConfig;
-  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private String stewardToken;
   private UUID fakeDatasetId;

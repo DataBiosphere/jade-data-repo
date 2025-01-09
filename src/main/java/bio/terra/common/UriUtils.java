@@ -1,9 +1,9 @@
 package bio.terra.common;
 
-import autovalue.shaded.kotlin.text.Charsets;
 import bio.terra.service.filedata.exception.InvalidUriException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import org.apache.http.NameValuePair;
@@ -25,7 +25,7 @@ public class UriUtils {
    */
   public static String getValueFromQueryParameter(String uri, String parameter) {
     List<String> values =
-        URLEncodedUtils.parse(toUri(uri), Charsets.UTF_8).stream()
+        URLEncodedUtils.parse(toUri(uri), StandardCharsets.UTF_8.name()).stream()
             .filter(p -> Objects.equals(p.getName(), parameter))
             .map(NameValuePair::getValue)
             .toList();
@@ -47,7 +47,7 @@ public class UriUtils {
   public static String omitQueryParameter(String uri, String parameter) {
     URI initUri = toUri(uri);
     List<NameValuePair> newQueryParams =
-        URLEncodedUtils.parse(toUri(uri), Charsets.UTF_8).stream()
+        URLEncodedUtils.parse(toUri(uri), StandardCharsets.UTF_8.name()).stream()
             .filter(p -> !Objects.equals(p.getName(), parameter))
             .toList();
     return new URIBuilder(initUri).setParameters(newQueryParams).toString();

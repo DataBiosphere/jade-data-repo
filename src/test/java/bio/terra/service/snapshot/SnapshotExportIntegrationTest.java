@@ -20,7 +20,6 @@ import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
-import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
@@ -58,7 +57,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -83,7 +81,6 @@ public class SnapshotExportIntegrationTest extends UsersBase {
   @Autowired private GcsPdao gcsPdao;
   @Autowired private GoogleBucketService googleBucketService;
   @Autowired private AuthService authService;
-  @Rule @Autowired public TestJobWatcher testWatcher;
 
   @Autowired
   @Qualifier("objectMapper")

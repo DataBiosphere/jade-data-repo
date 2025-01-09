@@ -1,10 +1,13 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.FlightUtils;
+import bio.terra.common.FutureUtils;
+import bio.terra.common.exception.ApiException;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.tables.TableDao;
+import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.snapshot.Snapshot;
@@ -12,6 +15,7 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import com.azure.data.tables.TableServiceClient;
 import java.util.Set;
 import java.util.UUID;
@@ -61,13 +65,25 @@ public class CreateSnapshotStorageTableDataStep implements Step {
 
     Set<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
 
-    tableDao.addFilesToSnapshot(
-        datasetTableServiceClient,
-        snapshotTableServiceClient,
-        datasetId,
-        datasetName,
-        snapshot,
-        refIds);
+    try {
+      tableDao.addFilesToSnapshot(
+          datasetTableServiceClient,
+          snapshotTableServiceClient,
+          datasetId,
+          datasetName,
+          snapshot,
+          refIds);
+    } catch (ApiException ex) {
+      // retry step if thread is interrupted
+      if (ex.getMessage().contains(FutureUtils.INTERRUPTED_THREAD_MESSAGE)) {
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
+      } else {
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
+      }
+    } catch (FileSystemExecutionException ex) {
+      // retry for case that Azure Table operations fail in transient way
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
+    }
 
     return StepResult.getStepResultSuccess();
   }

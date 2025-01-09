@@ -84,6 +84,7 @@ public final class MetadataDataAccessUtils {
       final Snapshot snapshot, final AuthenticatedUserRequest userRequest) {
     return accessInfoFromSnapshot(snapshot, userRequest, null);
   }
+
   /** Generate an {@link AccessInfoModel} from a Snapshot */
   public AccessInfoModel accessInfoFromSnapshot(
       final Snapshot snapshot, final AuthenticatedUserRequest userRequest, String forTable) {

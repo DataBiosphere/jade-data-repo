@@ -67,6 +67,8 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
             Map.of(
                 BardEventProperties.METHOD_FIELD_NAME, method,
                 BardEventProperties.PATH_FIELD_NAME, path));
+    addToPropertiesIfPresentInHeader(
+        request, properties, "X-Transaction-Id", BardEventProperties.TRANSACTION_ID_FIELD_NAME);
     eventProperties.setAll(properties);
     HashMap<String, Object> bardEventProperties = eventProperties.get();
 
@@ -85,5 +87,26 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
   /** Should we actually ignore sending a tracking event for this path */
   private boolean ignoreEventForPath(String path) {
     return metricsConfig.ignorePaths().stream().anyMatch(p -> FilenameUtils.wildcardMatch(path, p));
+  }
+
+  /**
+   * If a given header is present in the request and has a value, add it to the properties map to be
+   * tracked in Bard
+   *
+   * @param request The request being logged
+   * @param properties The properties map that will be sent to Bard for tracking
+   * @param headerName The name of the header to examine
+   * @param propertyName The name of the map key to use when adding the header value to the
+   *     properties map
+   */
+  private void addToPropertiesIfPresentInHeader(
+      HttpServletRequest request,
+      Map<String, Object> properties,
+      String headerName,
+      String propertyName) {
+    var headerValue = request.getHeader(headerName);
+    if (headerValue != null) {
+      properties.put(propertyName, headerValue);
+    }
   }
 }

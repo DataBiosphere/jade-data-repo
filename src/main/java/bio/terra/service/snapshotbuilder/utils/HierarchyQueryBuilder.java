@@ -85,6 +85,7 @@ public class HierarchyQueryBuilder {
         .orderBy(List.of(new OrderByVariable(conceptName, OrderByDirection.ASCENDING)))
         .build();
   }
+
   /**
    * Filter concept to only allow standard concepts. See <a
    * href="https://www.ohdsi.org/web/wiki/doku.php?id=documentation:vocabulary:standard_classification_and_source_concepts">Standard,

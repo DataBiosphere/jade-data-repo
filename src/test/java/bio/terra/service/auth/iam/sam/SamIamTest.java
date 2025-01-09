@@ -900,6 +900,82 @@ class SamIamTest {
       doThrow(samEx).when(samGroupApi).deleteGroup(GROUP_NAME);
       assertThrows(IamNotFoundException.class, () -> samIam.deleteGroup(accessToken, GROUP_NAME));
     }
+
+    @Test
+    void testGetGroupPolicyEmails() throws ApiException, InterruptedException {
+      String accessToken = TEST_USER.getToken();
+      String policyName = IamRole.MEMBER.toString();
+      when(samGroupApi.getGroupPolicyEmails(GROUP_NAME, policyName)).thenReturn(List.of());
+      assertThat(
+          "Group emails are returned",
+          samIam.getGroupPolicyEmails(accessToken, GROUP_NAME, policyName),
+          equalTo(List.of()));
+    }
+
+    @Test
+    void testGetGroupPolicyEmailsThrowsWhenSamGroupApiThrows() throws ApiException {
+      String accessToken = TEST_USER.getToken();
+      String policyName = IamRole.MEMBER.toString();
+      ApiException samEx =
+          new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
+      doThrow(samEx).when(samGroupApi).getGroupPolicyEmails(GROUP_NAME, policyName);
+      assertThrows(
+          IamNotFoundException.class,
+          () -> samIam.getGroupPolicyEmails(accessToken, GROUP_NAME, policyName));
+    }
+
+    @Test
+    void testAddGroupPolicyEmail() throws ApiException, InterruptedException {
+      String accessToken = TEST_USER.getToken();
+      String policyName = IamRole.MEMBER.toString();
+      String memberEmail = "user@gmail.com";
+      when(samIam.getGroupPolicyEmails(accessToken, GROUP_NAME, policyName))
+          .thenReturn(List.of(memberEmail));
+      assertThat(
+          "Group emails are returned and email has been added",
+          samIam.addGroupPolicyEmail(accessToken, GROUP_NAME, policyName, memberEmail),
+          equalTo(List.of(memberEmail)));
+      verify(samGroupApi).addEmailToGroup(GROUP_NAME, policyName, memberEmail, null);
+    }
+
+    @Test
+    void testAddGroupPolicyEmailThrowsWhenSamGroupApiThrows() throws ApiException {
+      String accessToken = TEST_USER.getToken();
+      String policyName = IamRole.MEMBER.toString();
+      String memberEmail = "user@gmail.com";
+      ApiException samEx =
+          new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
+      doThrow(samEx).when(samGroupApi).addEmailToGroup(GROUP_NAME, policyName, memberEmail, null);
+      assertThrows(
+          IamNotFoundException.class,
+          () -> samIam.addGroupPolicyEmail(accessToken, GROUP_NAME, policyName, memberEmail));
+    }
+
+    @Test
+    void testRemoveGroupPolicyEmail() throws ApiException, InterruptedException {
+      String accessToken = TEST_USER.getToken();
+      String policyName = IamRole.MEMBER.toString();
+      String memberEmail = "user@gmail.com";
+      when(samIam.getGroupPolicyEmails(accessToken, GROUP_NAME, policyName)).thenReturn(List.of());
+      assertThat(
+          "Group emails are returned and email has been removed",
+          samIam.removeGroupPolicyEmail(accessToken, GROUP_NAME, policyName, memberEmail),
+          equalTo(List.of()));
+      verify(samGroupApi).removeEmailFromGroup(GROUP_NAME, policyName, memberEmail);
+    }
+
+    @Test
+    void testRemoveGroupPolicyEmailThrowsWhenSamGroupApiThrows() throws ApiException {
+      String accessToken = TEST_USER.getToken();
+      String policyName = IamRole.MEMBER.toString();
+      String memberEmail = "user@gmail.com";
+      ApiException samEx =
+          new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
+      doThrow(samEx).when(samGroupApi).removeEmailFromGroup(GROUP_NAME, policyName, memberEmail);
+      assertThrows(
+          IamNotFoundException.class,
+          () -> samIam.removeGroupPolicyEmail(accessToken, GROUP_NAME, policyName, memberEmail));
+    }
   }
 
   @Nested

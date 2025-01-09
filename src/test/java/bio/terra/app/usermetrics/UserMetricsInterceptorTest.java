@@ -106,7 +106,6 @@ class UserMetricsInterceptorTest {
   @Test
   void testSendEvent() throws Exception {
     mockRequestAuth(request);
-
     runAndWait();
 
     verify(bardClient)
@@ -161,6 +160,33 @@ class UserMetricsInterceptorTest {
                         BardEventProperties.SNAPSHOT_NAME_FIELD_NAME, snapshotName,
                         BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, billingProfileId,
                         BardEventProperties.CLOUD_PLATFORM_FIELD_NAME, cloudPlatform),
+                    APP_ID,
+                    DNS_NAME)));
+
+    assertThat("token is correct", authCaptor.getValue().getToken(), equalTo(TOKEN));
+  }
+
+  @Test
+  void testSendEventWithTransactionIdHeader() throws Exception {
+    String transactionId = UUID.randomUUID().toString();
+    when(request.getHeader("X-Transaction-Id")).thenReturn(transactionId);
+    mockRequestAuth(request);
+
+    runAndWait();
+
+    verify(bardClient)
+        .logEvent(
+            authCaptor.capture(),
+            eq(
+                new BardEvent(
+                    UserMetricsInterceptor.API_EVENT_NAME,
+                    Map.of(
+                        BardEventProperties.METHOD_FIELD_NAME,
+                        METHOD.toUpperCase(),
+                        BardEventProperties.PATH_FIELD_NAME,
+                        REQUEST_URI,
+                        BardEventProperties.TRANSACTION_ID_FIELD_NAME,
+                        transactionId),
                     APP_ID,
                     DNS_NAME)));
 

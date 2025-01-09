@@ -27,6 +27,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserIdInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -161,7 +162,9 @@ public class IamService {
     String userEmail = userReq.getEmail();
     if (!isResourceTypeAdminAuthorized(userReq, iamResourceType, action)) {
       throw new IamForbiddenException(
-          "User '" + userEmail + "' does not have required action: " + action);
+          String.format(
+              "User '%s' does not have required action '%s' for resource type %s",
+              userEmail, action, iamResourceType));
     }
   }
 
@@ -463,6 +466,41 @@ public class IamService {
   }
 
   /**
+   * @param groupName name of the Sam group
+   * @param policyName name of the Sam group policy
+   * @return list of emails on the group
+   */
+  public List<String> getGroupPolicyEmails(String groupName, String policyName) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(
+        () -> iamProvider.getGroupPolicyEmails(tdrSaAccessToken, groupName, policyName));
+  }
+
+  /**
+   * @param groupName name of the Sam group
+   * @param policyName name of the Sam group policy
+   * @param email the email to add to the group
+   * @return list of emails on the group after adding
+   */
+  public List<String> addEmailToGroup(String groupName, String policyName, String email) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(
+        () -> iamProvider.addGroupPolicyEmail(tdrSaAccessToken, groupName, policyName, email));
+  }
+
+  /**
+   * @param groupName name of the Sam group
+   * @param policyName name of the Sam group policy
+   * @param email the email to remove from the group
+   * @return list of emails on the group after removing
+   */
+  public List<String> removeEmailFromGroup(String groupName, String policyName, String email) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(
+        () -> iamProvider.removeGroupPolicyEmail(tdrSaAccessToken, groupName, policyName, email));
+  }
+
+  /**
    * Overwrite group membership to include listed emails AND the current user's email
    *
    * @param userRequest current authenticated user - we'll use this to pull the requesting user's *
@@ -521,5 +559,10 @@ public class IamService {
   public String signUrlForBlob(
       AuthenticatedUserRequest userReq, String project, String path, Duration duration) {
     return callProvider(() -> iamProvider.signUrlForBlob(userReq, project, path, duration));
+  }
+
+  public UserIdInfo getUserIds(String userEmail) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(() -> iamProvider.getUserIds(tdrSaAccessToken, userEmail));
   }
 }

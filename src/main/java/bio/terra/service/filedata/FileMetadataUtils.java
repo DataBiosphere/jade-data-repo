@@ -16,10 +16,12 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.IntStream;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang3.StringUtils;
 
@@ -196,17 +198,25 @@ public class FileMetadataUtils {
   public static List<FileModel> toFileModel(
       List<FireStoreDirectoryEntry> directoryEntries,
       List<FireStoreFile> files,
-      String collectionId) {
-    if (directoryEntries.size() != files.size()) {
-      throw new FileSystemExecutionException("List sizes should be identical");
+      String collectionId,
+      boolean enforceMatchingDirectoryEntries) {
+    if (enforceMatchingDirectoryEntries && (directoryEntries.size() != files.size())) {
+      throw new FileSystemExecutionException(
+          "Unexpected discrepancy in retrieving file metadata. When enforceMatchingDirectoryEntries is enabled, the number of directory entries should match the number of files.");
     }
 
-    return IntStream.range(0, files.size())
-        .mapToObj(
-            i -> {
-              FireStoreFile file = files.get(i);
-              FireStoreDirectoryEntry entry = directoryEntries.get(i);
+    Map<String, FireStoreDirectoryEntry> fileIdDirectoryMap =
+        directoryEntries.stream()
+            .collect(Collectors.toMap(FireStoreDirectoryEntry::getFileId, Function.identity()));
 
+    return files.stream()
+        .map(
+            file -> {
+              FireStoreDirectoryEntry entry = fileIdDirectoryMap.get(file.getFileId());
+              if (entry == null) {
+                throw new FileSystemExecutionException(
+                    "Unexpected discrepancy in retrieving file metadata. There should be a matching directory entry for every file.");
+              }
               return new FileModel()
                   .fileId(entry.getFileId())
                   .collectionId(collectionId)

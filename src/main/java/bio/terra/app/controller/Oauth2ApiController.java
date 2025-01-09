@@ -3,10 +3,10 @@ package bio.terra.app.controller;
 import bio.terra.app.configuration.OpenIDConnectConfiguration;
 import bio.terra.common.exception.BadRequestException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.api.client.util.Charsets;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -52,10 +52,11 @@ public class Oauth2ApiController {
 
   // Modify the query parameters that were passed to be compatible with configured Oauth flow
   private String decorateAuthRedirectQueryParameters(String initialParams) {
-    List<NameValuePair> parameters = URLEncodedUtils.parse(initialParams, Charsets.UTF_8);
+    List<NameValuePair> parameters = URLEncodedUtils.parse(initialParams, StandardCharsets.UTF_8);
 
     parameters.addAll(
-        URLEncodedUtils.parse(openIDConnectConfiguration.getExtraAuthParams(), Charsets.UTF_8));
+        URLEncodedUtils.parse(
+            openIDConnectConfiguration.getExtraAuthParams(), StandardCharsets.UTF_8));
 
     parameters =
         parameters.stream()
@@ -71,7 +72,7 @@ public class Oauth2ApiController {
                 })
             .toList();
 
-    return URLEncodedUtils.format(parameters, Charsets.UTF_8);
+    return URLEncodedUtils.format(parameters, StandardCharsets.UTF_8);
   }
 
   @RequestMapping(
@@ -100,7 +101,7 @@ public class Oauth2ApiController {
 
   // Modify the form url encoded body and add the client secret if it was not specified
   private String addClientSecret(String requestBody) {
-    List<NameValuePair> parameters = URLEncodedUtils.parse(requestBody, Charsets.UTF_8);
+    List<NameValuePair> parameters = URLEncodedUtils.parse(requestBody, StandardCharsets.UTF_8);
 
     if (!StringUtils.isEmpty(openIDConnectConfiguration.getClientSecret())
         && parameters.stream()
@@ -113,6 +114,6 @@ public class Oauth2ApiController {
               CLIENT_SECRET_PARAM, openIDConnectConfiguration.getClientSecret()));
     }
 
-    return URLEncodedUtils.format(parameters, Charsets.UTF_8);
+    return URLEncodedUtils.format(parameters, StandardCharsets.UTF_8);
   }
 }

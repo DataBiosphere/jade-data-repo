@@ -21,7 +21,6 @@ import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
-import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.AssetModel;
 import bio.terra.model.CloudPlatform;
@@ -46,9 +45,9 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.Storage.BlobWriteOption;
 import com.google.cloud.storage.StorageOptions;
-import com.google.common.base.Charsets;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,7 +56,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -85,7 +83,6 @@ public class DatasetIntegrationTest extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;
-  @Rule @Autowired public TestJobWatcher testWatcher;
   @Autowired private JsonLoader jsonLoader;
   @Autowired private GoogleResourceManagerService resourceManagerService;
 
@@ -118,7 +115,7 @@ public class DatasetIntegrationTest extends UsersBase {
   @Test
   public void datasetHappyPath() throws Exception {
     DatasetSummaryModel summaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.jsonl");
+        dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.json");
     datasetId = summaryModel.getId();
 
     logger.info("dataset id is " + summaryModel.getId());
@@ -263,7 +260,7 @@ public class DatasetIntegrationTest extends UsersBase {
   public void datasetHappyPathWithPet() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward(), profileId, "omop/it-dataset-omop.jsonl", CloudPlatform.GCP, true, null);
+            steward(), profileId, "omop/it-dataset-omop.json", CloudPlatform.GCP, true, null);
     datasetId = summaryModel.getId();
 
     logger.info("dataset id is " + summaryModel.getId());
@@ -361,7 +358,7 @@ public class DatasetIntegrationTest extends UsersBase {
   public void testAssetCreationUndo() throws Exception {
     // create a dataset
     DatasetSummaryModel summaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.jsonl");
+        dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.json");
     datasetId = summaryModel.getId();
     DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
     List<AssetModel> originalAssetList = datasetModel.getSchema().getAssets();
@@ -412,7 +409,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDatasetWithPolicies(
-            steward(), profileId, "omop/it-dataset-omop.jsonl", policiesRequest);
+            steward(), profileId, "omop/it-dataset-omop.json", policiesRequest);
     datasetId = summaryModel.getId();
 
     Map<String, List<String>> rolesToPolicies =
@@ -472,7 +469,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
     try (WriteChannel writer = storage.writer(blob, options)) {
       for (String line : contents) {
-        writer.write(ByteBuffer.wrap((line + "\n").getBytes(Charsets.UTF_8)));
+        writer.write(ByteBuffer.wrap((line + "\n").getBytes(StandardCharsets.UTF_8)));
       }
     }
     return String.format("gs://%s/%s", blob.getBucket(), targetPath);

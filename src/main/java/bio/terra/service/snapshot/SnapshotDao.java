@@ -163,12 +163,12 @@ public class SnapshotDao implements TaggableResourceDao {
     if (numRowsUpdated == 0) {
       // this method checks if the snapshot exists
       // if it does not exist, then the method throws a SnapshotNotFoundException
-      // we don't need the result (snapshot summary) here, just the existence check, so ignore the
-      // return value.
-      retrieveSummaryById(snapshotId);
+      // if it does exist, get any locks that exist because this is helpful info for a user
+      SnapshotSummary summary = retrieveSummaryById(snapshotId);
 
       throw new SnapshotLockException(
-          "Failed to lock the snapshot", LockOperation.LOCK_EXCLUSIVE.getErrorDetails());
+          "Failed to lock the snapshot",
+          LockOperation.LOCK_EXCLUSIVE.getErrorDetails(summary.getResourceLocks()));
     }
   }
 

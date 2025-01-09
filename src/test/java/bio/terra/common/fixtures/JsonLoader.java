@@ -6,11 +6,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
-import org.apache.curator.shaded.com.google.common.base.Charsets;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -30,7 +30,7 @@ public class JsonLoader {
       if (stream == null) {
         throw new FileNotFoundException(resourcePath);
       }
-      return IOUtils.toString(stream, Charsets.UTF_8);
+      return IOUtils.toString(stream, StandardCharsets.UTF_8);
     }
   }
 

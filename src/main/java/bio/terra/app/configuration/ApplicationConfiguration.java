@@ -49,14 +49,18 @@ public class ApplicationConfiguration {
   private String dnsName;
   private String resourceId;
   private String userId;
+
   /**
    * Size of the Stairway thread pool. The pool is consumed by requests and by file load threads.
    */
   private int maxStairwayThreads;
+
   /** Maximum number of file loads allowed in the input array in a bulk file load */
   private int maxBulkFileLoadArray;
+
   /** Number of file loads to run concurrently in a bulk file load */
   private int loadConcurrentFiles;
+
   /**
    * Number of file loads to run concurrently. NOTE: the maximum number of threads used for load is
    * one for the driver flight and N for the number of concurrent files: {@code

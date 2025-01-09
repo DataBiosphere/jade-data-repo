@@ -70,11 +70,12 @@ public class Literal implements SelectExpression {
     return switch (dataType) {
       case STRING -> stringVal == null ? "NULL" : "'" + sqlEscape(stringVal) + "'";
       case INT64 -> String.valueOf(int64Val);
-      case BOOLEAN -> context
-          .getPlatform()
-          // In T-SQL, TRUE is not a keyword, so we need to use 1 instead. The JDBC API converts
-          // the 1 to a boolean TRUE when the query result is processed.
-          .choose(() -> String.valueOf(booleanVal), () -> booleanVal ? "1" : "0");
+      case BOOLEAN ->
+          context
+              .getPlatform()
+              // In T-SQL, TRUE is not a keyword, so we need to use 1 instead. The JDBC API converts
+              // the 1 to a boolean TRUE when the query result is processed.
+              .choose(() -> String.valueOf(booleanVal), () -> booleanVal ? "1" : "0");
       case DATE -> "DATE('" + dateVal.toString() + "')";
       case DOUBLE -> "FLOAT('" + doubleVal + "')";
     };

@@ -12,15 +12,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 
 @Component
 public class DatasetSchemaUpdateValidator implements Validator {
-
-  @Autowired private DatasetRequestValidator datasetRequestValidator;
 
   @Override
   public boolean supports(Class<?> clazz) {
@@ -29,10 +26,9 @@ public class DatasetSchemaUpdateValidator implements Validator {
 
   private void validateDatasetSchemaUpdate(DatasetSchemaUpdateModel updateModel, Errors errors) {
     if (DatasetSchemaUpdateUtils.hasTableAdditions(updateModel)) {
-      DatasetRequestValidator.SchemaValidationContext context =
-          new DatasetRequestValidator.SchemaValidationContext();
+      SchemaValidationContext context = SchemaValidationContext.forUpdate();
       for (TableModel tableModel : updateModel.getChanges().getAddTables()) {
-        datasetRequestValidator.validateTable(tableModel, errors, context);
+        context.validateTable(tableModel, errors);
       }
       List<String> newTableNames = DatasetSchemaUpdateUtils.getNewTableNames(updateModel);
       Object[] duplicateTables =

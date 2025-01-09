@@ -27,7 +27,7 @@ services:
       - /tmp/jade-dev-account.json:/tmp/jade-dev-account.json
 
   database:
-    image: postgres:14
+    image: postgres:16.4
     environment:
       - POSTGRES_PASSWORD=drpasswd
     ports:

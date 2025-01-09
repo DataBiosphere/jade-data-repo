@@ -303,4 +303,8 @@ public class ProfileService {
               + "operation");
     }
   }
+
+  public List<ProfileOwnedResource> getProfileResources(UUID profileId) {
+    return profileDao.listProfileOwnedResources(profileId);
+  }
 }

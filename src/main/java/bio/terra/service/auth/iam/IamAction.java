@@ -48,6 +48,7 @@ public enum IamAction {
   // billing profiles
   UPDATE_BILLING_ACCOUNT,
   LINK,
+  LIST_CHILDREN,
   // journal
   VIEW_JOURNAL,
   // lock/unlock resources

@@ -13,6 +13,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.category.Unit;
@@ -22,6 +27,7 @@ import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileUpdateModel;
+import bio.terra.model.EnumerateBillingProfileResourcesModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.JobModel.JobStatusEnum;
 import bio.terra.model.PolicyMemberRequest;
@@ -34,6 +40,10 @@ import bio.terra.service.auth.iam.PolicyMemberValidator;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URI;
+import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,6 +59,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
 
 @ActiveProfiles({"google", "unittest"})
 @ContextConfiguration(
@@ -68,9 +79,20 @@ class ProfileAPIControllerTest {
   @MockBean private IamService iamService;
   @MockBean private ApplicationConfiguration applicationConfiguration;
 
+  @Autowired private ObjectMapper objectMapper;
+  @Autowired private MockMvc mvc;
   @Autowired ProfileApiController apiController;
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
+  @Autowired private MockMvc mockMvc;
+
+  private static <T> URI createUri(ResponseEntity<T> object) {
+    return linkTo(object).toUri();
+  }
+
+  private static ProfileApiController getApi() {
+    return methodOn(ProfileApiController.class);
+  }
 
   @BeforeEach
   void setup() {
@@ -212,5 +234,19 @@ class ProfileAPIControllerTest {
         .when(iamService)
         .verifyAuthorization(
             TEST_USER, IamResourceType.SPEND_PROFILE, profileId.toString(), action);
+  }
+
+  @Test
+  void getProfileResources() throws Exception {
+    UUID id = UUID.randomUUID();
+    ProfileOwnedResource resource =
+        new ProfileOwnedResource(
+            id, "name", "description", Instant.now(), ProfileOwnedResource.Type.DATASET);
+    var model = new EnumerateBillingProfileResourcesModel().items(List.of(resource.toModel()));
+    when(profileService.getProfileResources(id)).thenReturn(List.of(resource));
+    mockMvc
+        .perform(get(createUri(getApi().getProfileResources(id))))
+        .andExpect(status().isOk())
+        .andExpect(content().json(objectMapper.writeValueAsString(model)));
   }
 }

@@ -48,8 +48,12 @@ jobs:
           service_account: 'gcr-sa@datarepo-public-gcr.iam.gserviceaccount.com'
       - name: "Perform cherry-pick"
         run: |
-          SOURCE_IMAGE="${{ inputs.source_gcr_url }}:${{ inputs.gcr_tag }}"
-          TARGET_IMAGE="${{ inputs.target_gcr_url }}:${{ inputs.gcr_tag }}"
-          echo "Cherry picking ${{ inputs.gcr_tag }} from ${SOURCE_IMAGE} to ${TARGET_IMAGE}"
+          SOURCE_IMAGE="${SOURCE_GCR_URL}:${GCR_TAG}"
+          TARGET_IMAGE="${TARGET_GCR_URL}:${GCR_TAG}"
+          echo "Cherry picking ${GCR_TAG} from ${SOURCE_IMAGE} to ${TARGET_IMAGE}"
           gcloud container images add-tag --quiet "${SOURCE_IMAGE}" "${TARGET_IMAGE}"
+        env:
+          SOURCE_GCR_URL: ${{ inputs.source_gcr_url }}
+          TARGET_GCR_URL: ${{ inputs.target_gcr_url }}
+          GCR_TAG: ${{ inputs.gcr_tag }}
 

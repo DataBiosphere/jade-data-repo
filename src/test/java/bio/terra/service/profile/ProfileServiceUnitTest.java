@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
@@ -29,6 +30,8 @@ import bio.terra.service.profile.flight.delete.ProfileDeleteFlight;
 import bio.terra.service.profile.flight.update.ProfileUpdateFlight;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
+import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -51,7 +54,8 @@ class ProfileServiceUnitTest {
   @Mock private ApplicationConfiguration applicationConfiguration;
 
   private ProfileService profileService;
-  private AuthenticatedUserRequest user;
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticationFixtures.randomUserRequest();
   private static final UUID PROFILE_ID = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
 
   @BeforeEach
@@ -59,12 +63,6 @@ class ProfileServiceUnitTest {
     profileService =
         new ProfileService(
             profileDao, iamService, jobService, googleBillingService, azureAuthzService);
-    user =
-        AuthenticatedUserRequest.builder()
-            .setSubjectId("DatasetUnit")
-            .setEmail("dataset@unit.com")
-            .setToken("token")
-            .build();
   }
 
   @Test
@@ -77,12 +75,15 @@ class ProfileServiceUnitTest {
     billingProfileRequestModel.setProfileName("name");
 
     when(jobService.newJob(
-            anyString(), eq(ProfileCreateFlight.class), eq(billingProfileRequestModel), eq(user)))
+            anyString(),
+            eq(ProfileCreateFlight.class),
+            eq(billingProfileRequestModel),
+            eq(TEST_USER)))
         .thenReturn(jobBuilder);
 
-    String result = profileService.createProfile(billingProfileRequestModel, user);
+    String result = profileService.createProfile(billingProfileRequestModel, TEST_USER);
     verify(jobBuilder, times(1)).submit();
-    assertEquals(result, jobId);
+    assertEquals(jobId, result);
   }
 
   @Test
@@ -105,13 +106,16 @@ class ProfileServiceUnitTest {
     when(jobBuilder.submit()).thenReturn(jobId);
 
     when(jobService.newJob(
-            anyString(), eq(ProfileUpdateFlight.class), eq(billingProfileUpdateModel), eq(user)))
+            anyString(),
+            eq(ProfileUpdateFlight.class),
+            eq(billingProfileUpdateModel),
+            eq(TEST_USER)))
         .thenReturn(jobBuilder);
 
-    String result = profileService.updateProfile(billingProfileUpdateModel, user);
+    String result = profileService.updateProfile(billingProfileUpdateModel, TEST_USER);
 
     verify(jobBuilder, times(1)).submit();
-    assertEquals(result, jobId);
+    assertEquals(jobId, result);
   }
 
   @ParameterizedTest
@@ -140,31 +144,45 @@ class ProfileServiceUnitTest {
     billingProfileModel.setCloudPlatform(CloudPlatform.GCP);
     when(profileDao.getBillingProfileById(deleteId)).thenReturn(billingProfileModel);
 
-    when(jobService.newJob(anyString(), eq(ProfileDeleteFlight.class), eq(null), eq(user)))
+    when(jobService.newJob(anyString(), eq(ProfileDeleteFlight.class), eq(null), eq(TEST_USER)))
         .thenReturn(jobBuilder);
 
-    String result = profileService.deleteProfile(deleteId, deleteCloudResources, user);
+    String result = profileService.deleteProfile(deleteId, deleteCloudResources, TEST_USER);
     verify(jobBuilder, times(1)).submit();
-    assertEquals(result, jobId);
+    assertEquals(jobId, result);
   }
 
   @Test
   void testVerifyAccountHasAccess() {
     String id = "id";
 
-    when(googleBillingService.canAccess(eq(user), eq(id))).thenReturn(true);
+    when(googleBillingService.canAccess(TEST_USER, id)).thenReturn(true);
 
-    profileService.verifyGoogleBillingAccount(id, user);
+    profileService.verifyGoogleBillingAccount(id, TEST_USER);
   }
 
   @Test
   void testVerifyAccountNoAccess() {
     String id = "id";
 
-    when(googleBillingService.canAccess(eq(user), eq(id))).thenReturn(false);
+    when(googleBillingService.canAccess(TEST_USER, id)).thenReturn(false);
 
     assertThrows(
         InaccessibleBillingAccountException.class,
-        () -> profileService.verifyGoogleBillingAccount(id, user));
+        () -> profileService.verifyGoogleBillingAccount(id, TEST_USER));
+  }
+
+  @Test
+  void getProfileResources() {
+    var expected =
+        List.of(
+            new ProfileOwnedResource(
+                UUID.randomUUID(),
+                "name",
+                "description",
+                Instant.now(),
+                ProfileOwnedResource.Type.DATASET));
+    when(profileDao.listProfileOwnedResources(PROFILE_ID)).thenReturn(expected);
+    assertEquals(expected, profileService.getProfileResources(PROFILE_ID));
   }
 }

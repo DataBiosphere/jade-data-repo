@@ -23,7 +23,6 @@ jobs:
           repository: 'broadinstitute/datarepo-helm'
           path: datarepo-helm
           token: "${{ secrets.BROADBOT_TOKEN }}"
-          persist-credentials: false
       - name: "[datarepo-helm] [value.yaml] Update image tag"
         uses: docker://mikefarah/yq:3
         with:

@@ -20,6 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.app.controller.GlobalExceptionHandler;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -55,11 +56,11 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ActiveProfiles({"google", "unittest"})
@@ -68,24 +69,24 @@ import org.springframework.test.web.servlet.MockMvc;
       ProfileApiController.class,
       ProfileRequestValidator.class,
       ProfileUpdateRequestValidator.class,
-      PolicyMemberValidator.class
+      PolicyMemberValidator.class,
+      GlobalExceptionHandler.class
     })
 @Tag(Unit.TAG)
 @WebMvcTest
 class ProfileAPIControllerTest {
-  @MockBean private ProfileService profileService;
-  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
-  @MockBean private JobService jobService;
+  @MockitoBean private ProfileService profileService;
+  @MockitoBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockitoBean private JobService jobService;
 
-  @MockBean private IamService iamService;
-  @MockBean private ApplicationConfiguration applicationConfiguration;
+  @MockitoBean private IamService iamService;
+  @MockitoBean private ApplicationConfiguration applicationConfiguration;
 
   @Autowired private ObjectMapper objectMapper;
   @Autowired private MockMvc mvc;
   @Autowired ProfileApiController apiController;
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
-  @Autowired private MockMvc mockMvc;
 
   private static <T> URI createUri(ResponseEntity<T> object) {
     return linkTo(object).toUri();
@@ -239,13 +240,20 @@ class ProfileAPIControllerTest {
 
   @Test
   void getProfileResources() throws Exception {
-    UUID id = UUID.randomUUID();
     var dataset =
         new ProfileOwnedResource(
-            id, "name", "description", Instant.now(), ProfileOwnedResource.Type.DATASET);
+            UUID.randomUUID(),
+            "name",
+            "description",
+            Instant.now(),
+            ProfileOwnedResource.Type.DATASET);
     var snapshot =
         new ProfileOwnedResource(
-            id, "name", "description", Instant.now(), ProfileOwnedResource.Type.SNAPSHOT);
+            UUID.randomUUID(),
+            "name",
+            "description",
+            Instant.now(),
+            ProfileOwnedResource.Type.SNAPSHOT);
     var model =
         new EnumerateBillingProfileResourcesModel()
             .items(
@@ -262,10 +270,24 @@ class ProfileAPIControllerTest {
                         .description(snapshot.description())
                         .type(ProfileOwnedResourceModel.TypeEnum.SNAPSHOT)
                         .createdDate(snapshot.createdDate().toString())));
-    when(profileService.getProfileResources(id)).thenReturn(List.of(dataset, snapshot));
-    mockMvc
-        .perform(get(createUri(getApi().getProfileResources(id))))
+    UUID profileId = UUID.randomUUID();
+    when(profileService.getProfileResources(profileId)).thenReturn(List.of(dataset, snapshot));
+    mvc.perform(get(createUri(getApi().getProfileResources(profileId))))
         .andExpect(status().isOk())
         .andExpect(content().json(objectMapper.writeValueAsString(model)));
+  }
+
+  @Test
+  void getProfileResourcesForbidden() throws Exception {
+    UUID profileId = UUID.randomUUID();
+    doThrow(IamForbiddenException.class)
+        .when(iamService)
+        .verifyAuthorization(
+            TEST_USER,
+            IamResourceType.SPEND_PROFILE,
+            profileId.toString(),
+            IamAction.LIST_CHILDREN);
+    mvc.perform(get(createUri(getApi().getProfileResources(profileId))))
+        .andExpect(status().isForbidden());
   }
 }

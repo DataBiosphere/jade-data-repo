@@ -280,13 +280,7 @@ class ProfileAPIControllerTest {
   @Test
   void getProfileResourcesForbidden() throws Exception {
     UUID profileId = UUID.randomUUID();
-    doThrow(IamForbiddenException.class)
-        .when(iamService)
-        .verifyAuthorization(
-            TEST_USER,
-            IamResourceType.SPEND_PROFILE,
-            profileId.toString(),
-            IamAction.LIST_CHILDREN);
+`    mockProfileForbidden(profileId, IamAction.LIST_CHILDREN);
     mvc.perform(get(createUri(getApi().getProfileResources(profileId))))
         .andExpect(status().isForbidden());
   }

@@ -24,7 +24,6 @@ jobs:
         with:
           ref: develop
           token: ${{ secrets.BROADBOT_TOKEN }}
-          persist-credentials: false
       - name: "Bump the tag to a new version"
         id: bumperstep
         uses: broadinstitute/datarepo-actions/actions/main@0.74.0

@@ -19,23 +19,12 @@ import bio.terra.stairway.StepStatus;
 import java.time.Instant;
 import org.springframework.http.HttpStatus;
 
-public class CreateSnapshotPrimaryDataAssetGcpStep implements Step {
-
-  private BigQuerySnapshotPdao bigQuerySnapshotPdao;
-  private SnapshotDao snapshotDao;
-  private SnapshotService snapshotService;
-  private SnapshotRequestModel snapshotReq;
-
-  public CreateSnapshotPrimaryDataAssetGcpStep(
-      BigQuerySnapshotPdao bigQuerySnapshotPdao,
-      SnapshotDao snapshotDao,
-      SnapshotService snapshotService,
-      SnapshotRequestModel snapshotReq) {
-    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
-    this.snapshotDao = snapshotDao;
-    this.snapshotService = snapshotService;
-    this.snapshotReq = snapshotReq;
-  }
+public record CreateSnapshotPrimaryDataAssetGcpStep(
+    BigQuerySnapshotPdao bigQuerySnapshotPdao,
+    SnapshotDao snapshotDao,
+    SnapshotService snapshotService,
+    SnapshotRequestModel snapshotReq)
+    implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
@@ -61,12 +50,11 @@ public class CreateSnapshotPrimaryDataAssetGcpStep implements Step {
           StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
     }
 
-    bigQuerySnapshotPdao.createSnapshot(snapshot, rowIdMatch.getMatchingRowIds(), createdAt);
-
-    // REVIEWERS: There used to be a block of code here for updating FireStore with dependency info.
-    // I *think*
-    // this is currently handled by CreateSnapshotFireStoreDataStep, so I am removing it from this
-    // step.
+    FlightUtils.handleGcpAclException(
+        context,
+        () ->
+            bigQuerySnapshotPdao.createSnapshot(
+                snapshot, rowIdMatch.getMatchingRowIds(), createdAt));
 
     return StepResult.getStepResultSuccess();
   }

@@ -2,6 +2,7 @@ package bio.terra.common;
 
 import bio.terra.model.ErrorModel;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
@@ -90,5 +91,37 @@ public final class FlightUtils {
 
   public static <T> T getTyped(FlightMap workingMap, String key) {
     return workingMap.get(key, new TypeReference<>() {});
+  }
+
+  public interface Interruptable {
+    void run() throws InterruptedException;
+  }
+
+  /**
+   * Handle the case where an ACL exception is thrown due to the user exhausting the number of
+   * authorized entities in the BigQuery dataset. In this case, we want to report the error as a 400
+   * Bad Request and provide a message to the user. The original exception is still thrown and will
+   * be caught by the Stairway flight runner.
+   *
+   * @param context the current flight context
+   * @param runnable the code to run that may throw a GoogleResourceException
+   */
+  public static void handleGcpAclException(FlightContext context, Interruptable runnable)
+      throws InterruptedException {
+    try {
+      runnable.run();
+    } catch (GoogleResourceException e) {
+      if (e.getCause() != null
+          && e.getCause()
+              .getMessage()
+              .startsWith("Too many authorized entities in this dataset.")) {
+        setErrorResponse(
+            context,
+            e.getCause().getMessage()
+                + " Resolve this by deleting snapshots or creating a second dataset.",
+            HttpStatus.BAD_REQUEST);
+      }
+      throw e;
+    }
   }
 }

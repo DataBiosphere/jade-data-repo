@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
+import bio.terra.common.FlightUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.dataset.AssetSpecification;
@@ -14,28 +15,14 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import java.time.Instant;
 
-public class CreateSnapshotByRequestIdGcpStep implements CreateSnapshotByRequestIdInterface, Step {
-  private final SnapshotRequestModel snapshotReq;
-  private final SnapshotService snapshotService;
-  private final SnapshotBuilderService snapshotBuilderService;
-  private final SnapshotDao snapshotDao;
-  private final AuthenticatedUserRequest userReq;
-  private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
-
-  public CreateSnapshotByRequestIdGcpStep(
-      SnapshotRequestModel snapshotReq,
-      SnapshotService snapshotService,
-      SnapshotBuilderService snapshotBuilderService,
-      SnapshotDao snapshotDao,
-      AuthenticatedUserRequest userReq,
-      BigQuerySnapshotPdao bigQuerySnapshotPdao) {
-    this.snapshotReq = snapshotReq;
-    this.snapshotService = snapshotService;
-    this.snapshotBuilderService = snapshotBuilderService;
-    this.snapshotDao = snapshotDao;
-    this.userReq = userReq;
-    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
-  }
+public record CreateSnapshotByRequestIdGcpStep(
+    SnapshotRequestModel snapshotReq,
+    SnapshotService snapshotService,
+    SnapshotBuilderService snapshotBuilderService,
+    SnapshotDao snapshotDao,
+    AuthenticatedUserRequest userReq,
+    BigQuerySnapshotPdao bigQuerySnapshotPdao)
+    implements CreateSnapshotByRequestIdInterface, Step {
 
   @Override
   public StepResult createSnapshot(
@@ -45,8 +32,11 @@ public class CreateSnapshotByRequestIdGcpStep implements CreateSnapshotByRequest
       String sqlQuery,
       Instant filterBefore)
       throws InterruptedException {
-    bigQuerySnapshotPdao.createSnapshotByQuery(
-        assetSpecification, snapshot, sqlQuery, filterBefore);
+    FlightUtils.handleGcpAclException(
+        context,
+        () ->
+            bigQuerySnapshotPdao.createSnapshotByQuery(
+                assetSpecification, snapshot, sqlQuery, filterBefore));
     return StepResult.getStepResultSuccess();
   }
 

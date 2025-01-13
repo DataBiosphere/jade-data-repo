@@ -22,23 +22,12 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 
-public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
-
-  private BigQuerySnapshotPdao bigQuerySnapshotPdao;
-  private SnapshotDao snapshotDao;
-  private SnapshotService snapshotService;
-  private SnapshotRequestModel snapshotReq;
-
-  public CreateSnapshotPrimaryDataRowIdsStep(
-      BigQuerySnapshotPdao bigQuerySnapshotPdao,
-      SnapshotDao snapshotDao,
-      SnapshotService snapshotService,
-      SnapshotRequestModel snapshotReq) {
-    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
-    this.snapshotDao = snapshotDao;
-    this.snapshotService = snapshotService;
-    this.snapshotReq = snapshotReq;
-  }
+public record CreateSnapshotPrimaryDataRowIdsStep(
+    BigQuerySnapshotPdao bigQuerySnapshotPdao,
+    SnapshotDao snapshotDao,
+    SnapshotService snapshotService,
+    SnapshotRequestModel snapshotReq)
+    implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
@@ -48,7 +37,7 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
     SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();
     Instant createdAt = CommonFlightUtils.getCreatedAt(context);
 
-    // for each table, make sure all of the row ids match
+    // for each table, make sure all the row ids match
     for (SnapshotRequestRowIdTableModel table : rowIdModel.getTables()) {
       List<UUID> rowIds = table.getRowIds();
       if (!rowIds.isEmpty()) {
@@ -63,7 +52,10 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
         }
       }
     }
-    bigQuerySnapshotPdao.createSnapshotWithProvidedIds(snapshot, contentsModel, createdAt);
+    FlightUtils.handleGcpAclException(
+        context,
+        () ->
+            bigQuerySnapshotPdao.createSnapshotWithProvidedIds(snapshot, contentsModel, createdAt));
 
     return StepResult.getStepResultSuccess();
   }

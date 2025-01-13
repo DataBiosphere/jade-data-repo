@@ -183,6 +183,12 @@ class ProfileServiceUnitTest {
                 Instant.now(),
                 ProfileOwnedResource.Type.DATASET));
     when(profileDao.listProfileOwnedResources(PROFILE_ID)).thenReturn(expected);
-    assertEquals(expected, profileService.getProfileResources(PROFILE_ID));
+    assertEquals(expected, profileService.getProfileResources(PROFILE_ID, TEST_USER));
+    verify(iamService)
+        .verifyAuthorization(
+            TEST_USER,
+            IamResourceType.SPEND_PROFILE,
+            PROFILE_ID.toString(),
+            IamAction.READ_SPEND_REPORT);
   }
 }

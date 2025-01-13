@@ -304,7 +304,10 @@ public class ProfileService {
     }
   }
 
-  public List<ProfileOwnedResource> getProfileResources(UUID profileId) {
+  public List<ProfileOwnedResource> getProfileResources(
+      UUID profileId, AuthenticatedUserRequest user) {
+    iamService.verifyAuthorization(
+        user, IamResourceType.SPEND_PROFILE, profileId.toString(), IamAction.READ_SPEND_REPORT);
     return profileDao.listProfileOwnedResources(profileId);
   }
 }

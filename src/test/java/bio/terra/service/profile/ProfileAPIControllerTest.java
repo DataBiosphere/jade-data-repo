@@ -271,7 +271,8 @@ class ProfileAPIControllerTest {
                         .type(ProfileOwnedResourceModel.TypeEnum.SNAPSHOT)
                         .createdDate(snapshot.createdDate().toString())));
     UUID profileId = UUID.randomUUID();
-    when(profileService.getProfileResources(profileId)).thenReturn(List.of(dataset, snapshot));
+    when(profileService.getProfileResources(profileId, TEST_USER))
+        .thenReturn(List.of(dataset, snapshot));
     mvc.perform(get(createUri(getApi().getProfileResources(profileId))))
         .andExpect(status().isOk())
         .andExpect(content().json(objectMapper.writeValueAsString(model)));
@@ -280,7 +281,8 @@ class ProfileAPIControllerTest {
   @Test
   void getProfileResourcesForbidden() throws Exception {
     UUID profileId = UUID.randomUUID();
-    mockProfileForbidden(profileId, IamAction.LIST_CHILDREN);
+    when(profileService.getProfileResources(profileId, TEST_USER))
+        .thenThrow(IamForbiddenException.class);
     mvc.perform(get(createUri(getApi().getProfileResources(profileId))))
         .andExpect(status().isForbidden());
   }

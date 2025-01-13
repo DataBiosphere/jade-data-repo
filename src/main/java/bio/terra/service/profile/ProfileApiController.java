@@ -189,10 +189,10 @@ public class ProfileApiController implements ProfilesApi {
   @Override
   public ResponseEntity<EnumerateBillingProfileResourcesModel> getProfileResources(UUID id) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
-    iamService.verifyAuthorization(
-        user, IamResourceType.SPEND_PROFILE, id.toString(), IamAction.LIST_CHILDREN);
     var resources =
-        profileService.getProfileResources(id).stream().map(ProfileOwnedResource::toModel).toList();
+        profileService.getProfileResources(id, user).stream()
+            .map(ProfileOwnedResource::toModel)
+            .toList();
     return ResponseEntity.ok(new EnumerateBillingProfileResourcesModel().items(resources));
   }
 }

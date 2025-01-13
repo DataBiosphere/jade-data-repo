@@ -159,14 +159,16 @@ class EcmServiceTest {
     String visaJwt = (visa == null) ? "" : String.format("\"%s\"", toJwtToken(visa));
     String passportPayload =
         """
-            {"%s": [%s]}""".formatted(EcmService.GA4GH_PASSPORT_V1_CLAIM, visaJwt);
+            {"%s": [%s]}"""
+            .formatted(EcmService.GA4GH_PASSPORT_V1_CLAIM, visaJwt);
     String returned = toJwtToken(passportPayload);
     System.out.println(returned);
     return returned;
   }
 
   private String toJwtToken(String payload) throws Exception {
-    String header = """
+    String header =
+        """
         {"alg":"none","typ":"JWT"}
         """;
     return new PlainJWT(base64(header), base64(payload)).serialize();

@@ -444,7 +444,8 @@ class JobServiceTest {
     NamedParameterJdbcTemplate jdbcTemplate =
         new NamedParameterJdbcTemplate(stairwayJdbcConfiguration.getDataSource());
 
-    String sql = """
+    String sql =
+        """
 update flight
 set submit_time=:submit_time
 where flightid=:id

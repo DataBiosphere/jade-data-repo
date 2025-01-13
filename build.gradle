@@ -269,7 +269,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'io.zonky.test:embedded-database-spring-test:2.6.0'
     testImplementation 'io.zonky.test:embedded-postgres:2.1.0'
-    implementation enforcedPlatform('io.zonky.test.postgres:embedded-postgres-binaries-bom:16.4.0')
+    implementation enforcedPlatform('io.zonky.test.postgres:embedded-postgres-binaries-bom:17.2.0')
 
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'
     // boot-starter-validation required for jakarta.validation.Valid references, @Valid tags

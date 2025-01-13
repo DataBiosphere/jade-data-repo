@@ -1334,7 +1334,7 @@ public class BigQueryDatasetPdao {
         return LegacySQLTypeName.INTEGER; // match the SQL type
       case NUMERIC:
         return LegacySQLTypeName.NUMERIC;
-        // case RECORD:    return LegacySQLTypeName.RECORD;
+      // case RECORD:    return LegacySQLTypeName.RECORD;
       case STRING:
         return LegacySQLTypeName.STRING;
       case TEXT:

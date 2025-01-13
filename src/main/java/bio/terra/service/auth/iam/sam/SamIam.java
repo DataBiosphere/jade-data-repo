@@ -935,8 +935,8 @@ public class SamIam implements IamProviderInterface {
       case HttpStatusCodes.STATUS_CODE_FORBIDDEN -> new IamForbiddenException(message, samEx);
       case HttpStatusCodes.STATUS_CODE_NOT_FOUND -> new IamNotFoundException(message, samEx);
       case HttpStatusCodes.STATUS_CODE_CONFLICT -> new IamConflictException(message, samEx);
-        // SAM does not use a 501 NOT_IMPLEMENTED status code, so that case is skipped here
-        // A 401 error will only occur when OpenDJ is down and should be raised as a 500 error
+      // SAM does not use a 501 NOT_IMPLEMENTED status code, so that case is skipped here
+      // A 401 error will only occur when OpenDJ is down and should be raised as a 500 error
       default -> new IamInternalServerErrorException(message, samEx);
     };
   }

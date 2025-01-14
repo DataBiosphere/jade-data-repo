@@ -111,14 +111,11 @@ public final class FlightUtils {
     try {
       runnable.run();
     } catch (GoogleResourceException e) {
-      if (e.getCause() != null
-          && e.getCause()
-              .getMessage()
-              .startsWith("Too many authorized entities in this dataset.")) {
+      if (e.getCause() instanceof BigQueryException bqe
+          && bqe.getMessage().startsWith("Too many authorized entities in this dataset.")) {
         setErrorResponse(
             context,
-            e.getCause().getMessage()
-                + " Resolve this by deleting snapshots or creating a second dataset.",
+            bqe.getMessage() + " Resolve this by deleting snapshots or creating a second dataset.",
             HttpStatus.BAD_REQUEST);
       }
       throw e;

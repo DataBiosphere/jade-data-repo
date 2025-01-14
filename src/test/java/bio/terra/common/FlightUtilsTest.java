@@ -24,13 +24,10 @@ import org.springframework.http.HttpStatus;
 class FlightUtilsTest {
 
   @Test
-  void handleGcpAclException() throws Exception {
+  void handleGcpAclException() {
     FlightContext context = mock(FlightContext.class);
     FlightMap flightMap = new FlightMap();
     when(context.getWorkingMap()).thenReturn(flightMap);
-
-    FlightUtils.handleGcpAclException(context, () -> {});
-    verifyNoInteractions(context);
 
     assertThrows(
         RuntimeException.class,

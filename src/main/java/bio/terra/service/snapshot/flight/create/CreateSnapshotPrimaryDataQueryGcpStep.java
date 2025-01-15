@@ -16,17 +16,35 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Map;
 
-public record CreateSnapshotPrimaryDataQueryGcpStep(
-    BigQuerySnapshotPdao bigQuerySnapshotPdao,
-    SnapshotService snapshotService,
-    DatasetService datasetService,
-    SnapshotDao snapshotDao,
-    SnapshotRequestModel snapshotReq,
-    AuthenticatedUserRequest userRequest,
-    Dataset sourceDataset)
+public class CreateSnapshotPrimaryDataQueryGcpStep
     implements CreateSnapshotPrimaryDataQueryInterface, Step {
+  private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
+  private final SnapshotService snapshotService;
+  private final DatasetService datasetService;
+  private final SnapshotDao snapshotDao;
+  private final SnapshotRequestModel snapshotReq;
+  private final AuthenticatedUserRequest userRequest;
+  private final Dataset sourceDataset;
+
+  public CreateSnapshotPrimaryDataQueryGcpStep(
+      BigQuerySnapshotPdao bigQuerySnapshotPdao,
+      SnapshotService snapshotService,
+      DatasetService datasetService,
+      SnapshotDao snapshotDao,
+      SnapshotRequestModel snapshotReq,
+      AuthenticatedUserRequest userRequest,
+      Dataset sourceDataset) {
+    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
+    this.snapshotService = snapshotService;
+    this.datasetService = datasetService;
+    this.snapshotDao = snapshotDao;
+    this.snapshotReq = snapshotReq;
+    this.userRequest = userRequest;
+    this.sourceDataset = sourceDataset;
+  }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
@@ -57,7 +75,9 @@ public record CreateSnapshotPrimaryDataQueryGcpStep(
   @Override
   public String translateQuery(Query query, Dataset dataset) {
     DatasetModel datasetModel = datasetService.retrieveModel(dataset, userRequest);
-    BigQueryVisitor bqVisitor = new BigQueryVisitor(Map.of(dataset.getName(), datasetModel));
+    Map<String, DatasetModel> datasetMap =
+        Collections.singletonMap(dataset.getName(), datasetModel);
+    BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
     return query.translateSql(bqVisitor);
   }
 

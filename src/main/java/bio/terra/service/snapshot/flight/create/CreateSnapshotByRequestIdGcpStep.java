@@ -14,14 +14,28 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import java.time.Instant;
 
-public record CreateSnapshotByRequestIdGcpStep(
-    SnapshotRequestModel snapshotReq,
-    SnapshotService snapshotService,
-    SnapshotBuilderService snapshotBuilderService,
-    SnapshotDao snapshotDao,
-    AuthenticatedUserRequest userReq,
-    BigQuerySnapshotPdao bigQuerySnapshotPdao)
-    implements CreateSnapshotByRequestIdInterface, Step {
+public class CreateSnapshotByRequestIdGcpStep implements CreateSnapshotByRequestIdInterface, Step {
+  private final SnapshotRequestModel snapshotReq;
+  private final SnapshotService snapshotService;
+  private final SnapshotBuilderService snapshotBuilderService;
+  private final SnapshotDao snapshotDao;
+  private final AuthenticatedUserRequest userReq;
+  private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
+
+  public CreateSnapshotByRequestIdGcpStep(
+      SnapshotRequestModel snapshotReq,
+      SnapshotService snapshotService,
+      SnapshotBuilderService snapshotBuilderService,
+      SnapshotDao snapshotDao,
+      AuthenticatedUserRequest userReq,
+      BigQuerySnapshotPdao bigQuerySnapshotPdao) {
+    this.snapshotReq = snapshotReq;
+    this.snapshotService = snapshotService;
+    this.snapshotBuilderService = snapshotBuilderService;
+    this.snapshotDao = snapshotDao;
+    this.userReq = userReq;
+    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
+  }
 
   @Override
   public StepResult createSnapshot(

@@ -1,6 +1,5 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.common.FlightUtils;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.common.CommonFlightUtils;
 import bio.terra.service.dataset.Dataset;
@@ -28,9 +27,7 @@ public record CreateSnapshotPrimaryDataFullViewGcpStep(
      */
     Instant createdAt = CommonFlightUtils.getCreatedAt(context);
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-    FlightUtils.handleGcpAclException(
-        context,
-        () -> bigQuerySnapshotPdao.createSnapshotWithLiveViews(snapshot, sourceDataset, createdAt));
+    bigQuerySnapshotPdao.createSnapshotWithLiveViews(snapshot, sourceDataset, createdAt);
 
     return StepResult.getStepResultSuccess();
   }

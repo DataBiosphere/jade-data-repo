@@ -50,11 +50,7 @@ public record CreateSnapshotPrimaryDataAssetGcpStep(
           StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
     }
 
-    FlightUtils.handleGcpAclException(
-        context,
-        () ->
-            bigQuerySnapshotPdao.createSnapshot(
-                snapshot, rowIdMatch.getMatchingRowIds(), createdAt));
+    bigQuerySnapshotPdao.createSnapshot(snapshot, rowIdMatch.getMatchingRowIds(), createdAt);
 
     return StepResult.getStepResultSuccess();
   }

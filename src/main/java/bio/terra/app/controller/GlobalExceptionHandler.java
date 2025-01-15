@@ -12,6 +12,7 @@ import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.ErrorModel;
 import bio.terra.service.auth.iam.sam.SamIam;
 import bio.terra.service.job.exception.JobResponseException;
+import bio.terra.service.resourcemanagement.exception.BigQueryAclExhaustionException;
 import java.util.List;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
@@ -62,6 +63,12 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(ConflictException.class)
   @ResponseStatus(HttpStatus.CONFLICT)
   public ErrorModel conflictHandler(ErrorReportException ex) {
+    return buildErrorModel(ex, ex.getCauses());
+  }
+
+  @ExceptionHandler(BigQueryAclExhaustionException.class)
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public ErrorModel bigQueryAclExhaustionHandler(BigQueryAclExhaustionException ex) {
     return buildErrorModel(ex, ex.getCauses());
   }
 

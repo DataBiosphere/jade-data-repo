@@ -1,6 +1,5 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.common.FlightUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.Query;
 import bio.terra.grammar.google.BigQueryVisitor;
@@ -43,11 +42,8 @@ public record CreateSnapshotPrimaryDataQueryGcpStep(
       String sqlQuery,
       Instant filterBefore)
       throws InterruptedException {
-    FlightUtils.handleGcpAclException(
-        context,
-        () ->
-            bigQuerySnapshotPdao.createSnapshotByQuery(
-                assetSpecification, snapshot, sqlQuery, filterBefore));
+    bigQuerySnapshotPdao.createSnapshotByQuery(
+        assetSpecification, snapshot, sqlQuery, filterBefore);
     return StepResult.getStepResultSuccess();
   }
 

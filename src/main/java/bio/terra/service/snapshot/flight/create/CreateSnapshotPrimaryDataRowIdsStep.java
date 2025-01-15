@@ -52,10 +52,7 @@ public record CreateSnapshotPrimaryDataRowIdsStep(
         }
       }
     }
-    FlightUtils.handleGcpAclException(
-        context,
-        () ->
-            bigQuerySnapshotPdao.createSnapshotWithProvidedIds(snapshot, contentsModel, createdAt));
+    bigQuerySnapshotPdao.createSnapshotWithProvidedIds(snapshot, contentsModel, createdAt);
 
     return StepResult.getStepResultSuccess();
   }

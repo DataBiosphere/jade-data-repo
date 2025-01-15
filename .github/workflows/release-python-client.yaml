@@ -15,7 +15,7 @@ env:
 jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     # Specifying a GitHub environment is optional, but strongly encouraged
     environment: release
     permissions:
@@ -24,6 +24,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Set up Python 3.7
         uses: actions/setup-python@v4
         with:

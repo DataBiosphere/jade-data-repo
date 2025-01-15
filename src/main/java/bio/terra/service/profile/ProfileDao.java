@@ -13,6 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,8 +66,7 @@ public class ProfileDao {
             + " (:id, :name, :biller, :billing_account_id, :description, :cloud_platform, "
             + "     :tenant_id, :subscription_id, :resource_group_name, :application_deployment_name, :created_by)";
 
-    String billingAccountId =
-        Optional.ofNullable(profileRequest.getBillingAccountId()).orElse(null);
+    String billingAccountId = profileRequest.getBillingAccountId();
     String cloudPlatform =
         Optional.ofNullable(profileRequest.getCloudPlatform())
             .or(() -> Optional.of(CloudPlatform.GCP))
@@ -74,10 +74,8 @@ public class ProfileDao {
             .get();
     UUID tenantId = profileRequest.getTenantId();
     UUID subscriptionId = profileRequest.getSubscriptionId();
-    String resourceGroupName =
-        Optional.ofNullable(profileRequest.getResourceGroupName()).orElse(null);
-    String applicationDeploymentName =
-        Optional.ofNullable(profileRequest.getApplicationDeploymentName()).orElse(null);
+    String resourceGroupName = profileRequest.getResourceGroupName();
+    String applicationDeploymentName = profileRequest.getApplicationDeploymentName();
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
@@ -190,6 +188,26 @@ public class ProfileDao {
       // handle a case of some active references.
       throw new ProfileInUseException("Profile is in use and cannot be deleted", ex);
     }
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+  public List<ProfileOwnedResource> listProfileOwnedResources(UUID profileId) {
+    String sql =
+        "SELECT dataset.id AS id, dataset.name AS name, dataset.description AS description, dataset.created_date as created_date, 'DATASET' AS type "
+            + "FROM dataset WHERE dataset.default_profile_id = :profile_id "
+            + "UNION ALL "
+            + "SELECT snapshot.id AS id, snapshot.name AS name, snapshot.description AS description, snapshot.created_date as created_date, 'SNAPSHOT' AS type "
+            + "FROM snapshot WHERE snapshot.profile_id = :profile_id";
+    return jdbcTemplate.query(
+        sql,
+        Map.of("profile_id", profileId),
+        (rs, rowNum) ->
+            new ProfileOwnedResource(
+                rs.getObject("id", UUID.class),
+                rs.getString("name"),
+                rs.getString("description"),
+                rs.getTimestamp("created_date").toInstant(),
+                ProfileOwnedResource.Type.valueOf(rs.getString("type"))));
   }
 
   /**

@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Check out the code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Set up JDK 17 and cache Gradle build
         uses: actions/setup-java@v4
         with:

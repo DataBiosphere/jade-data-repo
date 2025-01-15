@@ -11,6 +11,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: develop
+          persist-credentials: false
       - name: 'Fetch latest jade-data-repo image tag'
         id: apiprevioustag
         run: |

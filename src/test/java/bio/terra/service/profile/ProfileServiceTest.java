@@ -22,8 +22,6 @@ import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.After;
@@ -65,7 +63,6 @@ public class ProfileServiceTest {
   private GoogleProjectResource projectResource;
   private String oldBillingAccountId;
   private String newBillingAccountId;
-  private List<BillingProfileModel> profiles = new ArrayList<>();
 
   @Before
   public void setup() throws Exception {
@@ -73,7 +70,6 @@ public class ProfileServiceTest {
     newBillingAccountId = testConfig.getNoSpendGoogleBillingAccountId();
 
     profile = connectedOperations.createProfileForAccount(oldBillingAccountId);
-    profiles.add(profile);
     connectedOperations.stubOutSamCalls(samService);
 
     projectResource = buildProjectResource();
@@ -83,7 +79,6 @@ public class ProfileServiceTest {
   public void teardown() throws Exception {
     googleBillingService.assignProjectBilling(profile, projectResource);
     googleResourceDao.deleteProject(projectResource.getId());
-    profiles.forEach(profile -> profileDao.deleteBillingProfileById(profile.getId()));
     // Connected operations resets the configuration
     connectedOperations.teardown();
   }
@@ -93,7 +88,7 @@ public class ProfileServiceTest {
           + "new project, test changing the billing account, and then delete the project")
   @Test
   public void updateProfileTest() throws Exception {
-    logger.debug("profile: " + profile.getProfileName());
+    logger.debug("profile: {}", profile.getProfileName());
     BillingProfileModel model = profileService.getProfileByIdNoCheck(profile.getId());
     assertThat(
         "BEFORE UPDATE: Billing account should be equal to the oldBillingAccountId",
@@ -145,7 +140,6 @@ public class ProfileServiceTest {
             .profileName(UUID.randomUUID().toString())
             .description("profile description");
     BillingProfileModel profile = connectedOperations.createProfile(requestWithoutId);
-    profiles.add(profile);
     assertNotNull(profile.getId());
   }
 

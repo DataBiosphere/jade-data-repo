@@ -225,7 +225,7 @@ dependencies {
     implementation 'com.azure:azure-identity:1.15.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.46.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0-beta.5'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'
     implementation 'com.azure:azure-storage-common:12.28.0'
     implementation 'com.azure:azure-storage-file-datalake:12.22.0'
     implementation 'com.azure:azure-data-tables:12.5.0'

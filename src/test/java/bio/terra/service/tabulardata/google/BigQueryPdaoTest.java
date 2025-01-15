@@ -103,9 +103,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MvcResult;
 import org.stringtemplate.v4.ST;
@@ -134,7 +134,7 @@ public class BigQueryPdaoTest {
   @Autowired private SnapshotService snapshotService;
   @Autowired private SnapshotBuilderService snapshotBuilderService;
   @Autowired private PolicyService policyService;
-  @MockBean private IamProviderInterface samService;
+  @MockitoBean private IamProviderInterface samService;
 
   private BillingProfileModel profileModel;
 

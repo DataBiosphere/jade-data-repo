@@ -69,8 +69,8 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
@@ -101,11 +101,11 @@ public class SnapshotDaoTest {
 
   @Autowired private DaoOperations daoOperations;
 
-  @MockBean private DuosClient duosClient;
+  @MockitoBean private DuosClient duosClient;
 
-  @MockBean private DuosService duosService;
+  @MockitoBean private DuosService duosService;
 
-  @MockBean private IamService iamService;
+  @MockitoBean private IamService iamService;
 
   private Dataset dataset;
   private UUID datasetId;

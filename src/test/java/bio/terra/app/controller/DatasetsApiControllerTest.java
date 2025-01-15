@@ -69,10 +69,10 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -82,16 +82,16 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 @WebMvcTest
 class DatasetsApiControllerTest {
   @Autowired private MockMvc mvc;
-  @MockBean private JobService jobService;
-  @MockBean private DatasetRequestValidator datasetRequestValidator;
-  @MockBean private DatasetService datasetService;
-  @MockBean private IamService iamService;
-  @MockBean private FileService fileService;
-  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
-  @MockBean private AssetModelValidator assetModelValidator;
-  @MockBean private IngestRequestValidator ingestRequestValidator;
-  @MockBean private DataDeletionRequestValidator dataDeletionRequestValidator;
-  @MockBean private DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
+  @MockitoBean private JobService jobService;
+  @MockitoBean private DatasetRequestValidator datasetRequestValidator;
+  @MockitoBean private DatasetService datasetService;
+  @MockitoBean private IamService iamService;
+  @MockitoBean private FileService fileService;
+  @MockitoBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockitoBean private AssetModelValidator assetModelValidator;
+  @MockitoBean private IngestRequestValidator ingestRequestValidator;
+  @MockitoBean private DataDeletionRequestValidator dataDeletionRequestValidator;
+  @MockitoBean private DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();

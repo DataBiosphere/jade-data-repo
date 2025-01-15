@@ -41,10 +41,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -67,9 +67,9 @@ public class FileLoadTest {
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ConfigurationService configService;
 
-  @MockBean private IamProviderInterface samService;
+  @MockitoBean private IamProviderInterface samService;
 
-  @SpyBean private GoogleProjectService projectService;
+  @MockitoSpyBean private GoogleProjectService projectService;
 
   private BillingProfileModel profileModel;
   private DatasetSummaryModel datasetSummary;

@@ -40,9 +40,9 @@ import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
@@ -60,15 +60,15 @@ class SnapshotsApiControllerTest {
 
   @Autowired private MockMvc mvc;
 
-  @MockBean private JobService jobService;
-  @MockBean private SnapshotRequestValidator snapshotRequestValidator;
-  @MockBean private SnapshotService snapshotService;
-  @MockBean private IamService iamService;
-  @MockBean private IngestRequestValidator ingestRequestValidator;
-  @MockBean private FileService fileService;
-  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
-  @MockBean private AssetModelValidator assetModelValidator;
-  @MockBean private SnapshotBuilderService snapshotBuilderService;
+  @MockitoBean private JobService jobService;
+  @MockitoBean private SnapshotRequestValidator snapshotRequestValidator;
+  @MockitoBean private SnapshotService snapshotService;
+  @MockitoBean private IamService iamService;
+  @MockitoBean private IngestRequestValidator ingestRequestValidator;
+  @MockitoBean private FileService fileService;
+  @MockitoBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockitoBean private AssetModelValidator assetModelValidator;
+  @MockitoBean private SnapshotBuilderService snapshotBuilderService;
 
   @PactBrokerConsumerVersionSelectors
   public static SelectorBuilder consumerVersionSelectors() {

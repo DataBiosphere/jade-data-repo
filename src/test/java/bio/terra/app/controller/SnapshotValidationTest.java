@@ -50,7 +50,6 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -75,7 +74,7 @@ class SnapshotValidationTest {
   @MockitoBean private FileService fileService;
   @MockitoBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   @MockitoBean private SnapshotBuilderService snapshotBuilderService;
-  @MockitoSpyBean private ApplicationConfiguration applicationConfiguration;
+  @MockitoBean private ApplicationConfiguration applicationConfiguration;
 
   private SnapshotRequestModel snapshotByAssetRequest;
 

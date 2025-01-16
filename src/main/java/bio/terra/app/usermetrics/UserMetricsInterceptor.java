@@ -25,6 +25,7 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final ApplicationConfiguration applicationConfiguration;
   private final UserMetricsConfiguration metricsConfig;
+  private final UserLoggingMetrics userLoggingMetrics;
   private final ExecutorService metricsPerformanceThreadpool;
 
   @Autowired
@@ -33,11 +34,13 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       ApplicationConfiguration applicationConfiguration,
       UserMetricsConfiguration metricsConfig,
+      UserLoggingMetrics userLoggingMetrics,
       @Qualifier("metricsReportingThreadpool") ExecutorService metricsPerformanceThreadpool) {
     this.bardClient = bardClient;
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.applicationConfiguration = applicationConfiguration;
     this.metricsConfig = metricsConfig;
+    this.userLoggingMetrics = userLoggingMetrics;
     this.metricsPerformanceThreadpool = metricsPerformanceThreadpool;
   }
 
@@ -66,6 +69,7 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
                 BardEventProperties.PATH_FIELD_NAME, path));
     addToPropertiesIfPresentInHeader(
         request, properties, "X-Transaction-Id", BardEventProperties.TRANSACTION_ID_FIELD_NAME);
+    properties.putAll(userLoggingMetrics.get());
 
     // Spawn a thread so that sending the metric doesn't slow down the initial request
     metricsPerformanceThreadpool.submit(

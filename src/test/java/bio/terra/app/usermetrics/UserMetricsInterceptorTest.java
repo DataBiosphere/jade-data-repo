@@ -87,6 +87,7 @@ class UserMetricsInterceptorTest {
             authenticatedUserRequestFactory,
             applicationConfiguration,
             metricsConfig,
+            eventProperties,
             metricsPerformanceThreadpool);
   }
 

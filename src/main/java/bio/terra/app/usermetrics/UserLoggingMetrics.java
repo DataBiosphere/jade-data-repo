@@ -4,6 +4,7 @@ import static org.springframework.web.context.WebApplicationContext.SCOPE_REQUES
 
 import java.util.HashMap;
 import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Component;
 
 /**
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Component;
  * API request will get grouped together even if they are set in different methods.
  */
 @Component
-@Scope(SCOPE_REQUEST)
+@Scope(value = SCOPE_REQUEST, proxyMode = ScopedProxyMode.TARGET_CLASS)
 public class UserLoggingMetrics {
 
   private final HashMap<String, Object> metrics = new HashMap<>();

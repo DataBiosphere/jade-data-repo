@@ -1,6 +1,9 @@
 package bio.terra.app.usermetrics;
 
+import static org.springframework.web.context.WebApplicationContext.SCOPE_REQUEST;
+
 import java.util.HashMap;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 /**
@@ -11,10 +14,10 @@ import org.springframework.stereotype.Component;
  * API request will get grouped together even if they are set in different methods.
  */
 @Component
+@Scope(SCOPE_REQUEST)
 public class UserLoggingMetrics {
 
-  private static final ThreadLocal<HashMap<String, Object>> metrics =
-      ThreadLocal.withInitial(() -> new HashMap<>());
+  private final HashMap<String, Object> metrics = new HashMap<>();
 
   /**
    * Get the current thread's metrics instance. If no metrics have been set, return the default
@@ -23,7 +26,7 @@ public class UserLoggingMetrics {
    * @return HashMap<String, Object> metrics
    */
   public HashMap<String, Object> get() {
-    return metrics.get();
+    return metrics;
   }
 
   /**
@@ -31,7 +34,7 @@ public class UserLoggingMetrics {
    * this key it will be replaced.
    */
   public void set(String key, Object value) {
-    metrics.get().put(key, value);
+    metrics.put(key, value);
   }
 
   /**
@@ -41,8 +44,6 @@ public class UserLoggingMetrics {
    * @param value HashMap of metrics to add
    */
   public void setAll(HashMap<String, Object> value) {
-    HashMap<String, Object> properties = metrics.get();
-    properties.putAll(value);
-    metrics.set(properties);
+    metrics.putAll(value);
   }
 }

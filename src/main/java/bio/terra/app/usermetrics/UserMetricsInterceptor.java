@@ -61,15 +61,13 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
     if (StringUtils.isEmpty(metricsConfig.bardBasePath()) || ignoreEventForPath(path)) {
       return;
     }
-
-    HashMap<String, Object> properties =
-        new HashMap<>(
-            Map.of(
-                BardEventProperties.METHOD_FIELD_NAME, method,
-                BardEventProperties.PATH_FIELD_NAME, path));
+    Map<String, Object> properties = new HashMap<>(userLoggingMetrics.get());
+    properties.putAll(
+        Map.of(
+            BardEventProperties.METHOD_FIELD_NAME, method,
+            BardEventProperties.PATH_FIELD_NAME, path));
     addToPropertiesIfPresentInHeader(
         request, properties, "X-Transaction-Id", BardEventProperties.TRANSACTION_ID_FIELD_NAME);
-    properties.putAll(userLoggingMetrics.get());
 
     // Spawn a thread so that sending the metric doesn't slow down the initial request
     metricsPerformanceThreadpool.submit(

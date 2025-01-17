@@ -36,8 +36,8 @@ import org.mockito.Captor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
@@ -47,9 +47,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Unit.class)
 @EmbeddedDatabaseTest
 public class TableDependencyDaoTest {
-  @MockBean private AzureAuthService authService;
-  @MockBean private TableServiceClient tableServiceClient;
-  @MockBean private TableClient tableClient;
+  @MockitoBean private AzureAuthService authService;
+  @MockitoBean private TableServiceClient tableServiceClient;
+  @MockitoBean private TableClient tableClient;
   @Autowired private TableDependencyDao dao;
 
   @Captor private ArgumentCaptor<ListEntitiesOptions> queryOptionsCaptor;

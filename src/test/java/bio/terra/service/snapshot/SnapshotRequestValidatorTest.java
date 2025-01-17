@@ -26,10 +26,10 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ActiveProfiles({"google", "unittest"})
@@ -45,15 +45,15 @@ import org.springframework.test.web.servlet.MockMvc;
 @Tag(Unit.TAG)
 class SnapshotRequestValidatorTest {
   @Autowired private MockMvc mvc;
-  @MockBean private JobService jobService;
-  @MockBean private SnapshotService snapshotService;
-  @MockBean private IamService iamService;
-  @MockBean private FileService fileService;
-  @MockBean private ApplicationConfiguration applicationConfiguration;
-  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
-  @MockBean private SnapshotBuilderService snapshotBuilderService;
-  @MockBean private IngestRequestValidator ingestRequestValidator;
-  @MockBean private AssetModelValidator assetModelValidator;
+  @MockitoBean private JobService jobService;
+  @MockitoBean private SnapshotService snapshotService;
+  @MockitoBean private IamService iamService;
+  @MockitoBean private FileService fileService;
+  @MockitoBean private ApplicationConfiguration applicationConfiguration;
+  @MockitoBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockitoBean private SnapshotBuilderService snapshotBuilderService;
+  @MockitoBean private IngestRequestValidator ingestRequestValidator;
+  @MockitoBean private AssetModelValidator assetModelValidator;
 
   @BeforeEach
   void setup() {

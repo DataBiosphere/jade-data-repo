@@ -25,10 +25,10 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ActiveProfiles({"google", "unittest"})
@@ -54,9 +54,9 @@ class DataRepositoryServiceApiControllerTest {
 
   @Autowired private MockMvc mvc;
 
-  @MockBean private ApplicationConfiguration applicationConfiguration;
-  @MockBean private DrsService drsService;
-  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockitoBean private ApplicationConfiguration applicationConfiguration;
+  @MockitoBean private DrsService drsService;
+  @MockitoBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();

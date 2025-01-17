@@ -35,9 +35,9 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @ActiveProfiles({"google", "unittest"})
 @ContextConfiguration(classes = UserLoggingMetrics.class)
@@ -45,10 +45,10 @@ import org.springframework.test.context.ContextConfiguration;
 @Tag(Unit.TAG)
 class UserMetricsInterceptorTest {
   @Autowired private UserLoggingMetrics eventProperties;
-  @MockBean private BardClient bardClient;
-  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
-  @MockBean private ApplicationConfiguration applicationConfiguration;
-  @MockBean private UserMetricsConfiguration metricsConfig;
+  @MockitoBean private BardClient bardClient;
+  @MockitoBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockitoBean private ApplicationConfiguration applicationConfiguration;
+  @MockitoBean private UserMetricsConfiguration metricsConfig;
 
   private ExecutorService metricsPerformanceThreadpool;
   private UserMetricsInterceptor userMetricsInterceptor;

@@ -54,9 +54,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
@@ -87,12 +87,12 @@ public class AzureIngestFileConnectedTest {
   private FileLoadModel fileLoadModel;
   private TableServiceClient tableServiceClient;
 
-  @SpyBean private AzureResourceConfiguration azureResourceConfiguration;
+  @MockitoSpyBean private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired AzureSynapsePdao azureSynapsePdao;
   @Autowired ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired DatasetService datasetService;
-  @MockBean private IamProviderInterface samService;
+  @MockitoBean private IamProviderInterface samService;
   @Autowired SynapseUtils synapseUtils;
   @Autowired AzureAuthService azureAuthService;
   @Autowired TableDirectoryDao tableDirectoryDao;

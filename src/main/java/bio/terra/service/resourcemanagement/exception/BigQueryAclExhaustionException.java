@@ -1,8 +1,6 @@
 package bio.terra.service.resourcemanagement.exception;
 
-import bio.terra.common.exception.BadRequestException;
-
-public class BigQueryAclExhaustionException extends BadRequestException {
+public class BigQueryAclExhaustionException extends GoogleResourceException {
   // This constructor is required so this can be deserialized using StairwayExceptionSerializer.
   public BigQueryAclExhaustionException(String message) {
     super(message);

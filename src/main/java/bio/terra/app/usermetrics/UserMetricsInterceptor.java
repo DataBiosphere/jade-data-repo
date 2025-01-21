@@ -25,8 +25,8 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final ApplicationConfiguration applicationConfiguration;
   private final UserMetricsConfiguration metricsConfig;
+  private final UserLoggingMetrics userLoggingMetrics;
   private final ExecutorService metricsPerformanceThreadpool;
-  private final UserLoggingMetrics eventProperties;
 
   @Autowired
   public UserMetricsInterceptor(
@@ -34,14 +34,14 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       ApplicationConfiguration applicationConfiguration,
       UserMetricsConfiguration metricsConfig,
-      UserLoggingMetrics eventProperties,
+      UserLoggingMetrics userLoggingMetrics,
       @Qualifier("metricsReportingThreadpool") ExecutorService metricsPerformanceThreadpool) {
     this.bardClient = bardClient;
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.applicationConfiguration = applicationConfiguration;
     this.metricsConfig = metricsConfig;
+    this.userLoggingMetrics = userLoggingMetrics;
     this.metricsPerformanceThreadpool = metricsPerformanceThreadpool;
-    this.eventProperties = eventProperties;
   }
 
   @Override
@@ -61,16 +61,13 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
     if (StringUtils.isEmpty(metricsConfig.bardBasePath()) || ignoreEventForPath(path)) {
       return;
     }
-
-    HashMap<String, Object> properties =
-        new HashMap<>(
-            Map.of(
-                BardEventProperties.METHOD_FIELD_NAME, method,
-                BardEventProperties.PATH_FIELD_NAME, path));
+    Map<String, Object> properties = new HashMap<>(userLoggingMetrics.get());
+    properties.putAll(
+        Map.of(
+            BardEventProperties.METHOD_FIELD_NAME, method,
+            BardEventProperties.PATH_FIELD_NAME, path));
     addToPropertiesIfPresentInHeader(
         request, properties, "X-Transaction-Id", BardEventProperties.TRANSACTION_ID_FIELD_NAME);
-    eventProperties.setAll(properties);
-    HashMap<String, Object> bardEventProperties = eventProperties.get();
 
     // Spawn a thread so that sending the metric doesn't slow down the initial request
     metricsPerformanceThreadpool.submit(
@@ -79,7 +76,7 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
                 userRequest,
                 new BardEvent(
                     API_EVENT_NAME,
-                    bardEventProperties,
+                    properties,
                     metricsConfig.appId(),
                     applicationConfiguration.getDnsName())));
   }

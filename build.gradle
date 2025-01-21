@@ -40,7 +40,7 @@ plugins {
     id 'jacoco'
     // After merging a spotless version update which requires a large-scale code reformat, add the
     // commit hash to .git-blame-ignore-revs to avoid cluttering git blame.
-    id 'com.diffplug.spotless' version '6.25.0'  // SEE ABOVE.
+    id 'com.diffplug.spotless' version '7.0.1'  // SEE ABOVE.
     id 'com.dorongold.task-tree' version '4.0.0'
     // enables release info in sentry events
     id 'com.gorylenko.gradle-git-properties' version '2.4.2'
@@ -50,7 +50,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '2.208.0-SNAPSHOT'
+    version '2.213.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -214,6 +214,7 @@ dependencies {
 
     implementation 'com.squareup.okhttp3:okhttp'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.hateoas:spring-hateoas'
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
     implementation 'com.fasterxml.jackson.core:jackson-core'
@@ -224,7 +225,7 @@ dependencies {
     implementation 'com.azure:azure-identity:1.15.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.46.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0-beta.5'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'
     implementation 'com.azure:azure-storage-common:12.28.0'
     implementation 'com.azure:azure-storage-file-datalake:12.22.0'
     implementation 'com.azure:azure-data-tables:12.5.0'

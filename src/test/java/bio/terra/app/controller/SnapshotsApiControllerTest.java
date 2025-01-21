@@ -69,10 +69,10 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -84,15 +84,15 @@ class SnapshotsApiControllerTest {
 
   @Autowired private MockMvc mvc;
 
-  @MockBean private JobService jobService;
-  @MockBean private SnapshotRequestValidator snapshotRequestValidator;
-  @MockBean private SnapshotService snapshotService;
-  @MockBean private IamService iamService;
-  @MockBean private IngestRequestValidator ingestRequestValidator;
-  @MockBean private FileService fileService;
-  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
-  @MockBean private AssetModelValidator assetModelValidator;
-  @MockBean private SnapshotBuilderService snapshotBuilderService;
+  @MockitoBean private JobService jobService;
+  @MockitoBean private SnapshotRequestValidator snapshotRequestValidator;
+  @MockitoBean private SnapshotService snapshotService;
+  @MockitoBean private IamService iamService;
+  @MockitoBean private IngestRequestValidator ingestRequestValidator;
+  @MockitoBean private FileService fileService;
+  @MockitoBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockitoBean private AssetModelValidator assetModelValidator;
+  @MockitoBean private SnapshotBuilderService snapshotBuilderService;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();

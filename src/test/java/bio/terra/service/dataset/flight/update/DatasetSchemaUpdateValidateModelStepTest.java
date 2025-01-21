@@ -48,9 +48,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @ActiveProfiles({"google", "unittest"})
 @ContextConfiguration(
@@ -63,16 +63,16 @@ import org.springframework.test.context.ContextConfiguration;
 @Tag(Unit.TAG)
 class DatasetSchemaUpdateValidateModelStepTest {
 
-  @MockBean private JobService jobService;
-  @MockBean private DatasetService datasetService;
-  @MockBean private IamService iamService;
-  @MockBean private FileService fileService;
-  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
-  @MockBean private SnapshotBuilderService snapshotBuilderService;
-  @MockBean private IngestRequestValidator ingestRequestValidator;
-  @MockBean private AssetModelValidator assetModelValidator;
-  @MockBean private DataDeletionRequestValidator dataDeletionRequestValidator;
-  @MockBean private DatasetRequestValidator datasetRequestValidator;
+  @MockitoBean private JobService jobService;
+  @MockitoBean private DatasetService datasetService;
+  @MockitoBean private IamService iamService;
+  @MockitoBean private FileService fileService;
+  @MockitoBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockitoBean private SnapshotBuilderService snapshotBuilderService;
+  @MockitoBean private IngestRequestValidator ingestRequestValidator;
+  @MockitoBean private AssetModelValidator assetModelValidator;
+  @MockitoBean private DataDeletionRequestValidator dataDeletionRequestValidator;
+  @MockitoBean private DatasetRequestValidator datasetRequestValidator;
 
   private UUID datasetId;
   private static final String EXISTING_TABLE = "existing_table";

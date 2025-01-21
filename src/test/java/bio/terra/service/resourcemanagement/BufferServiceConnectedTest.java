@@ -46,10 +46,10 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -72,7 +72,7 @@ public class BufferServiceConnectedTest {
   @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
   @Autowired private GoogleResourceManagerService resourceManagerService;
 
-  @MockBean private IamProviderInterface samService;
+  @MockitoBean private IamProviderInterface samService;
 
   private Storage storage = StorageOptions.getDefaultInstance().getService();
   private BillingProfileModel billingProfile;

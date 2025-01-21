@@ -38,8 +38,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
@@ -55,7 +55,7 @@ public class BulkFileLoadTest {
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private ObjectMapper objectMapper;
 
-  @MockBean private IamProviderInterface samService;
+  @MockitoBean private IamProviderInterface samService;
 
   private static final Logger logger = LoggerFactory.getLogger(BulkFileLoadTest.class);
   private BillingProfileModel profileModel;

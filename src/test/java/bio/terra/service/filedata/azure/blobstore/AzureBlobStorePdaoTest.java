@@ -66,10 +66,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
@@ -117,21 +117,21 @@ public class AzureBlobStorePdaoTest {
   private BlobContainerClientFactory sourceBlobContainerFactory;
   private BlobContainerClientFactory targetBlobContainerFactory;
   private BlobCrl blobCrl;
-  @MockBean private ProfileDao profileDao;
-  @MockBean private AzureContainerPdao azureContainerPdao;
-  @MockBean private AzureResourceConfiguration resourceConfiguration;
-  @MockBean private AzureResourceDao azureResourceDao;
-  @MockBean private AzureAuthService azureAuthService;
-  @MockBean private GcsPdao gcsPdao;
-  @MockBean private GcsProjectFactory gcsProjectFactory;
-  @MockBean private AzureBlobService azureBlobService;
+  @MockitoBean private ProfileDao profileDao;
+  @MockitoBean private AzureContainerPdao azureContainerPdao;
+  @MockitoBean private AzureResourceConfiguration resourceConfiguration;
+  @MockitoBean private AzureResourceDao azureResourceDao;
+  @MockitoBean private AzureAuthService azureAuthService;
+  @MockitoBean private GcsPdao gcsPdao;
+  @MockitoBean private GcsProjectFactory gcsProjectFactory;
+  @MockitoBean private AzureBlobService azureBlobService;
 
-  @MockBean(name = AzureResourceConfiguration.TABLE_THREADPOOL_NAME)
+  @MockitoBean(name = AzureResourceConfiguration.TABLE_THREADPOOL_NAME)
   private AsyncTaskExecutor asyncTaskExecutor;
 
   @Autowired private AzureBlobStorePdao dao;
 
-  @MockBean
+  @MockitoBean
   @Qualifier("synapseJdbcTemplate")
   private NamedParameterJdbcTemplate synapseJdbcTemplate;
 

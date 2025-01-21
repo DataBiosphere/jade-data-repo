@@ -64,11 +64,11 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -97,8 +97,8 @@ public class SnapshotConnectedTest {
   @Autowired private DrsIdService drsIdService;
   @Autowired private GoogleResourceManagerService googleResourceManagerService;
 
-  @MockBean private IamProviderInterface samService;
-  @MockBean private EcmService ecmService;
+  @MockitoBean private IamProviderInterface samService;
+  @MockitoBean private EcmService ecmService;
 
   private String snapshotOriginalName;
   private BillingProfileModel billingProfile;

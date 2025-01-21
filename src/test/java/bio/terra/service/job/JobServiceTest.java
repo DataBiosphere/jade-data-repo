@@ -50,11 +50,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @AutoConfigureMockMvc
 @SpringBootTest
@@ -97,9 +97,9 @@ class JobServiceTest {
 
   @Autowired private ApplicationConfiguration appConfig;
 
-  @MockBean private IamService samService;
+  @MockitoBean private IamService samService;
 
-  @MockBean private BardClient bardClient;
+  @MockitoBean private BardClient bardClient;
 
   @BeforeEach
   void setUp() throws Exception {
@@ -444,7 +444,8 @@ class JobServiceTest {
     NamedParameterJdbcTemplate jdbcTemplate =
         new NamedParameterJdbcTemplate(stairwayJdbcConfiguration.getDataSource());
 
-    String sql = """
+    String sql =
+        """
 update flight
 set submit_time=:submit_time
 where flightid=:id

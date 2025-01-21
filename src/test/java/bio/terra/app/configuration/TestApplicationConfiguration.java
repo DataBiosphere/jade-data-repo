@@ -7,9 +7,9 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration;
 import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @EnableAutoConfiguration(
     exclude = {
@@ -26,6 +26,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
     havingValue = "false")
 public class TestApplicationConfiguration extends ApplicationConfiguration {
 
-  @MockBean(name = "jdbcTemplate")
+  @MockitoBean(name = "jdbcTemplate")
   public NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 }

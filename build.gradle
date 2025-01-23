@@ -482,7 +482,7 @@ tasks.register('testIntegration', Test) {
             maxFailures = 15
         }
     }
-    maxParallelForks = 1
+    maxParallelForks = 8
     outputs.upToDateWhen { false }
 }
 

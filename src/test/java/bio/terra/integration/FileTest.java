@@ -1,10 +1,10 @@
 package bio.terra.integration;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
@@ -30,7 +30,6 @@ import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
-import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
@@ -48,31 +47,28 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@AutoConfigureMockMvc
-@Category(Integration.class)
-public class FileTest extends UsersBase {
+@Tag(Integration.TAG)
+class FileTest extends UsersBase {
 
-  private static Logger logger = LoggerFactory.getLogger(FileTest.class);
+  private static final Logger logger = LoggerFactory.getLogger(FileTest.class);
 
   private static final int NUM_FILES = 100;
   private static final int NUM_FAILED_FILES = 5;
@@ -85,19 +81,17 @@ public class FileTest extends UsersBase {
 
   @Autowired private TestConfiguration testConfiguration;
 
-  @MockitoBean private JobService jobService;
-
   private final Storage storage = StorageOptions.getDefaultInstance().getService();
 
   private ObjectMapper objectMapper;
   private DatasetSummaryModel datasetSummaryModel;
   private UUID datasetId;
   private UUID snapshotId;
-  private List<String> fileIds;
   private UUID profileId;
   private BlobId controlFileId;
 
-  @Before
+  @Override
+  @BeforeEach
   public void setup() throws Exception {
     super.setup();
     controlFileId = null;
@@ -110,20 +104,12 @@ public class FileTest extends UsersBase {
     objectMapper = new ObjectMapper().setDefaultPrettyPrinter(p);
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     if (snapshotId != null) {
       dataRepoFixtures.deleteSnapshot(custodian(), snapshotId);
     }
     if (datasetId != null) {
-      fileIds.forEach(
-          f -> {
-            try {
-              dataRepoFixtures.deleteFile(steward(), datasetId, f);
-            } catch (Exception e) {
-              e.printStackTrace();
-            }
-          });
       dataRepoFixtures.deleteDataset(steward(), datasetId);
     }
     if (profileId != null) {
@@ -137,9 +123,9 @@ public class FileTest extends UsersBase {
   // The purpose of this test is to have a long-running workload that completes successfully
   // while we delete pods and have them recover.
   // Marked ignore for normal testing.
-  @Ignore
+  @Disabled("long running test")
   @Test
-  public void longFileLoadTest() throws Exception {
+  void longFileLoadTest() throws Exception {
     // TODO: want this to run about 5 minutes on 2 DRmanager instances. The speed of loads is when
     // they are
     //  not local is about 2.5GB/minutes. With a fixed size of 1GB, each instance should do 2.5
@@ -180,67 +166,67 @@ public class FileTest extends UsersBase {
 
   // The purpose of these tests is to ingest files using the bulk mode in various permutations
   @Test
-  public void bulkFileLoadTestTdrHostedRandomIdFile() throws Exception {
+  void bulkFileLoadTestTdrHostedRandomIdFile() throws Exception {
     bulkFileLoadTest(NUM_FILES, false, false, false);
   }
 
   @Test
-  public void bulkFileLoadTestTdrHostedRandomIdFileHandlesMaxFailedFiles() throws Exception {
+  void bulkFileLoadTestTdrHostedRandomIdFileHandlesMaxFailedFiles() throws Exception {
     bulkFileLoadTest(NUM_FILES, false, false, false, NUM_FAILED_FILES, NUM_FAILED_FILES);
   }
 
   @Test
-  public void bulkFileLoadTestTdrHostedRandomIdFileWithZeroMaxFailedFiles() throws Exception {
+  void bulkFileLoadTestTdrHostedRandomIdFileWithZeroMaxFailedFiles() throws Exception {
     bulkFileLoadTest(NUM_FILES, false, false, false, NUM_FAILED_FILES, 0);
   }
 
   @Test
-  public void bulkFileLoadTestTdrHostedRandomIdArray() throws Exception {
+  void bulkFileLoadTestTdrHostedRandomIdArray() throws Exception {
     bulkFileLoadTest(NUM_FILES, false, false, true);
   }
 
   @Test
-  public void bulkFileLoadTestTdrHostedRandomIdArrayHandlesMaxFailedFiles() throws Exception {
+  void bulkFileLoadTestTdrHostedRandomIdArrayHandlesMaxFailedFiles() throws Exception {
     bulkFileLoadTest(NUM_FILES, false, false, true, NUM_FAILED_FILES, NUM_FAILED_FILES);
   }
 
   @Test
-  public void bulkFileLoadTestTdrHostedRandomIdArrayZeroMaxFailedFiles() throws Exception {
+  void bulkFileLoadTestTdrHostedRandomIdArrayZeroMaxFailedFiles() throws Exception {
     bulkFileLoadTest(NUM_FILES, false, false, true, 1, 0);
   }
 
   @Test
-  public void bulkFileLoadTestTdrHostedPredictableIdFile() throws Exception {
+  void bulkFileLoadTestTdrHostedPredictableIdFile() throws Exception {
     bulkFileLoadTest(NUM_FILES, false, true, false);
   }
 
   @Test
-  public void bulkFileLoadTestTdrHostedPredictableIdArray() throws Exception {
+  void bulkFileLoadTestTdrHostedPredictableIdArray() throws Exception {
     bulkFileLoadTest(NUM_FILES, false, true, true);
   }
 
   @Test
-  public void bulkFileLoadTestSelfHostedRandomIdFile() throws Exception {
+  void bulkFileLoadTestSelfHostedRandomIdFile() throws Exception {
     bulkFileLoadTest(NUM_FILES, true, false, false);
   }
 
   @Test
-  public void bulkFileLoadTestSelfHostedRandomIdArray() throws Exception {
+  void bulkFileLoadTestSelfHostedRandomIdArray() throws Exception {
     bulkFileLoadTest(NUM_FILES, true, false, true);
   }
 
   @Test
-  public void bulkFileLoadTestSelfHostedPredictableIdFile() throws Exception {
+  void bulkFileLoadTestSelfHostedPredictableIdFile() throws Exception {
     bulkFileLoadTest(NUM_FILES, true, true, false);
   }
 
   @Test
-  public void bulkFileLoadTestSelfHostedPredictableIdArray() throws Exception {
+  void bulkFileLoadTestSelfHostedPredictableIdArray() throws Exception {
     bulkFileLoadTest(NUM_FILES, true, true, true);
   }
 
   @Test
-  public void bulkFileLoadTestSelfHostedPredictableIdMoveSourceFiles() throws Exception {
+  void bulkFileLoadTestSelfHostedPredictableIdMoveSourceFiles() throws Exception {
     // Run through basic ingest
     String loadTag = bulkFileLoadTest(NUM_FILES, true, true, true);
     String originalSourcePath = "gs://jade-testdata-uswestregion/fileloadprofiletest/1KBfile.txt";
@@ -591,7 +577,7 @@ public class FileTest extends UsersBase {
     // Use DRS API to lookup the file by DRS ID
     String drsObjectId = String.format("v1_%s_%s", snapshotId, fileId);
     // Should fail due to insufficient permissions
-    assertThatThrownBy(() -> dataRepoFixtures.drsGetObject(steward(), drsObjectId));
+    assertThrows(Exception.class, () -> dataRepoFixtures.drsGetObject(steward(), drsObjectId));
     DRSObject drsObject = dataRepoFixtures.drsGetObject(custodian(), drsObjectId);
 
     logger.info("Drs Object: {}", drsObject);
@@ -672,8 +658,7 @@ public class FileTest extends UsersBase {
     datasetSummaryModel = dataRepoFixtures.waitForDatasetCreate(steward(), datasetCreateJob);
     datasetId = datasetSummaryModel.getId();
     snapshotId = null;
-    fileIds = new ArrayList<>();
-    logger.info("created dataset " + datasetId);
+    logger.info("created dataset {}", datasetId);
     dataRepoFixtures.addDatasetPolicyMember(
         steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
   }

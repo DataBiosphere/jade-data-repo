@@ -2,7 +2,8 @@ package bio.terra.app.controller;
 
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_TIMEOUT_FAULT;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Integration;
 import bio.terra.integration.DataRepoFixtures;
@@ -11,45 +12,46 @@ import bio.terra.integration.UsersBase;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.model.ConfigParameterModel;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 /**
  * This is meant to be a very lightweight integration test to make sure that SAM actions are used as
  * expected.
  */
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@Category(Integration.class)
-public class RepositoryApiControllerAccessTest extends UsersBase {
+@Tag(Integration.TAG)
+class RepositoryApiControllerAccessTest extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
 
-  @Before
+  @BeforeEach
+  @Override
   public void setup() throws Exception {
     super.setup();
   }
 
   @Test
-  public void testGetConfigList() throws Exception {
+  void testGetConfigList() throws Exception {
     // Assume this call is successful
     dataRepoFixtures.getConfigList(admin());
 
     // This call should be unsuccessful
-    assertThat(dataRepoFixtures.getConfigListRaw(reader()).getStatusCode())
-        .isEqualTo(HttpStatus.FORBIDDEN);
+    assertThat(
+        dataRepoFixtures.getConfigListRaw(reader()).getStatusCode(), is(HttpStatus.FORBIDDEN));
   }
 
   @Test
-  public void testSetConfigList() throws Exception {
+  void testSetConfigList() throws Exception {
     dataRepoFixtures.resetConfig(admin());
     ConfigGroupModel configGroup =
         new ConfigGroupModel()
@@ -64,46 +66,43 @@ public class RepositoryApiControllerAccessTest extends UsersBase {
     dataRepoFixtures.setConfigList(admin(), configGroup);
 
     // This call should be unsuccessful
-    assertThat(dataRepoFixtures.setConfigListRaw(reader(), configGroup).getStatusCode())
-        .isEqualTo(HttpStatus.FORBIDDEN);
+    assertThat(
+        dataRepoFixtures.setConfigListRaw(reader(), configGroup).getStatusCode(),
+        is(HttpStatus.FORBIDDEN));
 
     // Reset config changes
     dataRepoFixtures.resetConfig(admin());
   }
 
   @Test
-  public void testGetConfig() throws Exception {
+  void testGetConfig() throws Exception {
     assertThat(
-            dataRepoFixtures
-                .getConfig(admin(), SAM_RETRY_INITIAL_WAIT_SECONDS.name())
-                .getStatusCode())
-        .isEqualTo(HttpStatus.OK);
+        dataRepoFixtures.getConfig(admin(), SAM_RETRY_INITIAL_WAIT_SECONDS.name()).getStatusCode(),
+        is(HttpStatus.OK));
 
     assertThat(
-            dataRepoFixtures
-                .getConfig(reader(), SAM_RETRY_INITIAL_WAIT_SECONDS.name())
-                .getStatusCode())
-        .isEqualTo(HttpStatus.FORBIDDEN);
+        dataRepoFixtures.getConfig(reader(), SAM_RETRY_INITIAL_WAIT_SECONDS.name()).getStatusCode(),
+        is(HttpStatus.FORBIDDEN));
   }
 
   @Test
-  public void testSetFault() throws Exception {
-    assertThat(dataRepoFixtures.setFault(admin(), SAM_TIMEOUT_FAULT.name(), false).getStatusCode())
-        .isEqualTo(HttpStatus.NO_CONTENT);
+  void testSetFault() throws Exception {
+    assertThat(
+        dataRepoFixtures.setFault(admin(), SAM_TIMEOUT_FAULT.name(), false).getStatusCode(),
+        is(HttpStatus.NO_CONTENT));
 
-    assertThat(dataRepoFixtures.setFault(reader(), SAM_TIMEOUT_FAULT.name(), false).getStatusCode())
-        .isEqualTo(HttpStatus.FORBIDDEN);
+    assertThat(
+        dataRepoFixtures.setFault(reader(), SAM_TIMEOUT_FAULT.name(), false).getStatusCode(),
+        is(HttpStatus.FORBIDDEN));
 
     // Reset config changes
     dataRepoFixtures.resetConfig(admin());
   }
 
   @Test
-  public void testResetConfig() throws Exception {
-    assertThat(dataRepoFixtures.resetConfig(admin()).getStatusCode())
-        .isEqualTo(HttpStatus.NO_CONTENT);
+  void testResetConfig() throws Exception {
+    assertThat(dataRepoFixtures.resetConfig(admin()).getStatusCode(), is(HttpStatus.NO_CONTENT));
 
-    assertThat(dataRepoFixtures.resetConfig(reader()).getStatusCode())
-        .isEqualTo(HttpStatus.FORBIDDEN);
+    assertThat(dataRepoFixtures.resetConfig(reader()).getStatusCode(), is(HttpStatus.FORBIDDEN));
   }
 }

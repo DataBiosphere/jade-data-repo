@@ -17,28 +17,27 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import java.util.List;
 import java.util.UUID;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 // This test provides a method that performs a simple scenario of creating a dataset, ingesting some
-// rows,
-// making a snapshot, and then deleting everything.
+// rows, making a snapshot, and then deleting everything.
 //
 // The tests that drive that method can configure faults to test underlying mechanisms.
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@Category(Integration.class)
-public class SimpleScenarioFaultTests extends UsersBase {
+@Tag(Integration.TAG)
+class SimpleScenarioFaultTests extends UsersBase {
   private final Logger logger = LoggerFactory.getLogger(SimpleScenarioFaultTests.class);
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
@@ -47,7 +46,8 @@ public class SimpleScenarioFaultTests extends UsersBase {
   private UUID datasetId;
   private UUID snapshotId;
 
-  @Before
+  @Override
+  @BeforeEach
   public void setup() throws Exception {
     super.setup();
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
@@ -57,7 +57,7 @@ public class SimpleScenarioFaultTests extends UsersBase {
 
   // This is belts and suspenders, since we try to do these deletes in the scenario.
   // However, since we are testing faults, there might be failures...
-  @After
+  @AfterEach
   public void teardown() throws Exception {
     // Don't interrupt cleanup with the fault
     dataRepoFixtures.setFault(steward(), "SAM_TIMEOUT_FAULT", false);
@@ -75,7 +75,7 @@ public class SimpleScenarioFaultTests extends UsersBase {
   }
 
   @Test
-  public void testSamTimeout() throws Exception {
+  void testSamTimeout() throws Exception {
     ConfigGroupModel configGroup = buildConfigGroup(ConfigFaultCountedModel.RateStyleEnum.FIXED);
     List<ConfigModel> configList =
         dataRepoFixtures.setConfigList(steward(), configGroup).getItems();
@@ -138,11 +138,9 @@ public class SimpleScenarioFaultTests extends UsersBase {
   }
 
   private void printConfigList(String label, List<ConfigModel> configModelList) {
-    int index = 0;
-    logger.info("Config model list - " + label);
+    logger.info("Config model list - {}", label);
     for (ConfigModel configModel : configModelList) {
-      logger.info("Config model [" + index + "]: " + configModel);
-      index++;
+      logger.info("Config model [{}]: ", configModel);
     }
   }
 

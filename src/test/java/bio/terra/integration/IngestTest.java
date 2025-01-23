@@ -33,24 +33,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@AutoConfigureMockMvc
-@Category(Integration.class)
-public class IngestTest extends UsersBase {
+@Tag(Integration.TAG)
+class IngestTest extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
 
@@ -61,7 +59,8 @@ public class IngestTest extends UsersBase {
   private UUID datasetId;
   private UUID profileId;
 
-  @Before
+  @Override
+  @BeforeEach
   public void setup() throws Exception {
     super.setup();
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
@@ -75,7 +74,7 @@ public class IngestTest extends UsersBase {
         steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
   }
 
-  @After
+  @AfterEach
   public void teardown() throws Exception {
     if (datasetId != null) {
       dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
@@ -87,7 +86,7 @@ public class IngestTest extends UsersBase {
   }
 
   @Test
-  public void ingestAndUpdateParticipants() throws Exception {
+  void ingestAndUpdateParticipants() throws Exception {
     ingestAndUpdateParticipants(
         ingestFile -> {
           try {
@@ -99,7 +98,7 @@ public class IngestTest extends UsersBase {
   }
 
   @Test
-  public void ingestAndUpdateParticipantsViaDirectApi() throws Exception {
+  void ingestAndUpdateParticipantsViaDirectApi() throws Exception {
     ingestAndUpdateParticipants(
         ingestFile -> {
           try {
@@ -167,7 +166,7 @@ public class IngestTest extends UsersBase {
   }
 
   @Test
-  public void ingestAndUpdateParticipantsWithTransaction() throws Exception {
+  void ingestAndUpdateParticipantsWithTransaction() throws Exception {
     TransactionModel transaction =
         dataRepoFixtures.openTransaction(
             steward(), datasetId, new TransactionCreateModel().description("foo"));
@@ -188,7 +187,7 @@ public class IngestTest extends UsersBase {
 
     assertThat(
         "Error message looks reasonable",
-        badIngestResponse.getErrorObject().get().getMessage(),
+        badIngestResponse.getErrorObject().orElseThrow().getMessage(),
         startsWith(String.format("Transaction %s not found in dataset", badTransaction)));
 
     ingestRequest.transactionId(transaction.getId());
@@ -236,7 +235,7 @@ public class IngestTest extends UsersBase {
   }
 
   @Test
-  public void ingestJsonData() throws Exception {
+  void ingestJsonData() throws Exception {
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant-with-json-data.json");
@@ -257,7 +256,7 @@ public class IngestTest extends UsersBase {
   }
 
   @Test
-  public void ingestWildcardSuffix() throws Exception {
+  void ingestWildcardSuffix() throws Exception {
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/wildcard/ingest-test-participant*");
@@ -267,7 +266,7 @@ public class IngestTest extends UsersBase {
   }
 
   @Test
-  public void ingestWildcardMiddle() throws Exception {
+  void ingestWildcardMiddle() throws Exception {
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/wildcard/ingest-test-p*t.json");
@@ -277,7 +276,7 @@ public class IngestTest extends UsersBase {
   }
 
   @Test
-  public void ingestAuthorizationTest() throws Exception {
+  void ingestAuthorizationTest() throws Exception {
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
@@ -293,7 +292,7 @@ public class IngestTest extends UsersBase {
   }
 
   @Test
-  public void ingestAppendNoPkTest() throws Exception {
+  void ingestAppendNoPkTest() throws Exception {
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest("file", "ingest-test/ingest-test-file.json");
     IngestResponseModel ingestResponse =
@@ -305,7 +304,7 @@ public class IngestTest extends UsersBase {
   }
 
   @Test
-  public void ingestBadPathTest() throws Exception {
+  void ingestBadPathTest() throws Exception {
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest("file", "totally-legit-file.json");
     DataRepoResponse<JobModel> ingestJobResponse =
@@ -320,7 +319,7 @@ public class IngestTest extends UsersBase {
   }
 
   @Test
-  public void ingestEmptyPatternTest() throws Exception {
+  void ingestEmptyPatternTest() throws Exception {
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest("file", "prefix-matching-nothing/*");
     DataRepoResponse<JobModel> ingestJobResponse =
@@ -335,7 +334,7 @@ public class IngestTest extends UsersBase {
   }
 
   @Test
-  public void ingestSingleFileMalformedTest() throws Exception {
+  void ingestSingleFileMalformedTest() throws Exception {
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest(
             "file", "ingest-test/ingest-test-prtcpnt-malformed.json");
@@ -351,7 +350,7 @@ public class IngestTest extends UsersBase {
   }
 
   @Test
-  public void ingestWildcardMalformedTest() throws Exception {
+  void ingestWildcardMalformedTest() throws Exception {
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest("file", "ingest-test/wildcard/ingest-test-p*.json");
     DataRepoResponse<JobModel> ingestJobResponse =
@@ -366,7 +365,7 @@ public class IngestTest extends UsersBase {
   }
 
   @Test
-  public void ingestMergeHappyPathTest() throws Exception {
+  void ingestMergeHappyPathTest() throws Exception {
     DatasetModel dataset =
         dataRepoFixtures.getDataset(
             steward(), datasetId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION));
@@ -426,7 +425,7 @@ public class IngestTest extends UsersBase {
   }
 
   @Test
-  public void ingestMergeNoTargetPKTest() throws Exception {
+  void ingestMergeNoTargetPKTest() throws Exception {
     IngestRequestModel mergeIngestRequest =
         dataRepoFixtures
             .buildSimpleIngest("file", "ingest-test/ingest-test-file.json")
@@ -441,12 +440,12 @@ public class IngestTest extends UsersBase {
         "ingest failed", mergeIngestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
     assertThat(
         "failure is explained",
-        mergeIngestResponse.getErrorObject().get().getMessage(),
+        mergeIngestResponse.getErrorObject().orElseThrow().getMessage(),
         equalTo("Cannot ingest to a table without a primary key defined."));
   }
 
   @Test
-  public void ingestMergeRowsMissingPKsTest() throws Exception {
+  void ingestMergeRowsMissingPKsTest() throws Exception {
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
     IngestResponseModel ingestResponse =
@@ -467,7 +466,7 @@ public class IngestTest extends UsersBase {
         "ingest failed", mergeIngestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
     assertThat(
         "failure is explained",
-        mergeIngestResponse.getErrorObject().get().getMessage(),
+        mergeIngestResponse.getErrorObject().orElseThrow().getMessage(),
         containsString("Ingest failed"));
     assertThat(
         "primary key specification is enforced",
@@ -476,7 +475,7 @@ public class IngestTest extends UsersBase {
   }
 
   @Test
-  public void ingestMergeRowsDuplicatePKsTest() throws Exception {
+  void ingestMergeRowsDuplicatePKsTest() throws Exception {
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
     IngestResponseModel ingestResponse =
@@ -497,16 +496,16 @@ public class IngestTest extends UsersBase {
         "ingest failed", mergeIngestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
     assertThat(
         "failure is explained",
-        mergeIngestResponse.getErrorObject().get().getMessage(),
+        mergeIngestResponse.getErrorObject().orElseThrow().getMessage(),
         containsString("Duplicate primary keys identified"));
     assertThat(
         "all duplicate primary keys are found in error details",
-        mergeIngestResponse.getErrorObject().get().getErrorDetail(),
+        mergeIngestResponse.getErrorObject().orElseThrow().getErrorDetail(),
         containsInAnyOrder(containsString("sample1")));
   }
 
   @Test
-  public void ingestMergeMismatchedWithTargetTest() throws Exception {
+  void ingestMergeMismatchedWithTargetTest() throws Exception {
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
@@ -536,7 +535,7 @@ public class IngestTest extends UsersBase {
         "ingest failed", mergeIngestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
     assertThat(
         "failure is explained",
-        mergeIngestResponse.getErrorObject().get().getMessage(),
+        mergeIngestResponse.getErrorObject().orElseThrow().getMessage(),
         containsString("merge record(s) did not resolve to a single target record"));
     assertThat(
         "all primary keys without single target table matches are found in error details",

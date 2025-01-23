@@ -12,15 +12,14 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.common.CollectionType;
 import bio.terra.common.TestUtils;
-import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.configuration.TestConfiguration.User;
@@ -107,7 +106,6 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -124,37 +122,34 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.hamcrest.CoreMatchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.util.ResourceUtils;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@AutoConfigureMockMvc
-@Category(Integration.class)
-public class AzureIntegrationTest extends UsersBase {
+@Tag(Integration.TAG)
+class AzureIntegrationTest extends UsersBase {
   private static final Logger logger = LoggerFactory.getLogger(AzureIntegrationTest.class);
 
-  private static final String omopDatasetName = "it_dataset_omop";
-  private static final String omopDatasetDesc =
+  private static final String OMOP_DATASET_NAME = "it_dataset_omop";
+  private static final String OMOP_DATASET_DESC =
       "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom";
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private SamFixtures samFixtures;
-  @Autowired private AuthService authService;
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired private JsonLoader jsonLoader;
@@ -174,9 +169,10 @@ public class AzureIntegrationTest extends UsersBase {
   private GcsBlobIOTestUtility gcsBlobIOTestUtility;
   private Set<String> storageAccounts;
 
-  @Before
+  @Override
+  @BeforeEach
   public void setup() throws Exception {
-    super.setup(false);
+    setup(false);
     // Voldemort is required by this test since the application is deployed with his user authz'ed
     steward = steward("voldemort");
     admin = admin("hermione");
@@ -203,7 +199,7 @@ public class AzureIntegrationTest extends UsersBase {
     storageAccounts = new TreeSet<>();
   }
 
-  @After
+  @AfterEach
   public void teardown() throws Exception {
     if (releaseSnapshotId != null) {
       snapshotIds.add(releaseSnapshotId);
@@ -251,7 +247,7 @@ public class AzureIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void datasetsHappyPath() throws Exception {
+  void datasetsHappyPath() throws Exception {
     // Note: this region should not be the same as the default region in the application deployment
     // (eastus by default)
     AzureRegion region = AzureRegion.SOUTH_CENTRAL_US;
@@ -261,14 +257,14 @@ public class AzureIntegrationTest extends UsersBase {
             steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE, false, region);
     datasetId = summaryModel.getId();
     String storageAccountName = recordStorageAccount(steward, CollectionType.DATASET, datasetId);
-    logger.info("dataset id is " + summaryModel.getId());
-    assertThat(summaryModel.getName(), startsWith(omopDatasetName));
-    assertThat(summaryModel.getDescription(), equalTo(omopDatasetDesc));
+    logger.info("dataset id is {}", summaryModel.getId());
+    assertThat(summaryModel.getName(), startsWith(OMOP_DATASET_NAME));
+    assertThat(summaryModel.getDescription(), equalTo(OMOP_DATASET_DESC));
 
     DatasetModel datasetModel = dataRepoFixtures.getDataset(steward, summaryModel.getId());
 
-    assertThat(datasetModel.getName(), startsWith(omopDatasetName));
-    assertThat(datasetModel.getDescription(), equalTo(omopDatasetDesc));
+    assertThat(datasetModel.getName(), startsWith(OMOP_DATASET_NAME));
+    assertThat(datasetModel.getDescription(), equalTo(OMOP_DATASET_DESC));
 
     // There is a delay from when a resource is created in SAM to when it is available in an
     // enumerate call.
@@ -283,8 +279,8 @@ public class AzureIntegrationTest extends UsersBase {
               boolean found = false;
               for (DatasetSummaryModel oneDataset : enumerateDatasetModel.getItems()) {
                 if (oneDataset.getId().equals(datasetModel.getId())) {
-                  assertThat(oneDataset.getName(), startsWith(omopDatasetName));
-                  assertThat(oneDataset.getDescription(), equalTo(omopDatasetDesc));
+                  assertThat(oneDataset.getName(), startsWith(OMOP_DATASET_NAME));
+                  assertThat(oneDataset.getDescription(), equalTo(OMOP_DATASET_DESC));
                   Map<String, StorageResourceModel> storageMap =
                       datasetModel.getStorage().stream()
                           .collect(
@@ -358,7 +354,7 @@ public class AzureIntegrationTest extends UsersBase {
               return found;
             });
 
-    assertTrue("dataset was found in enumeration", metExpectation);
+    assertTrue(metExpectation, "dataset was found in enumeration");
 
     // This should fail since it currently has dataset storage account within
     assertThrows(AssertionError.class, () -> dataRepoFixtures.deleteProfile(steward, profileId));
@@ -461,7 +457,7 @@ public class AzureIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testSnapshotCreateFromRequest() throws Exception {
+  void testSnapshotCreateFromRequest() throws Exception {
     populateOmopTable();
 
     SnapshotAccessRequestResponse approvedSnapshotAccessRequest =
@@ -502,7 +498,7 @@ public class AzureIntegrationTest extends UsersBase {
     SnapshotAccessRequestResponse updatedSnapshotAccessRequest =
         dataRepoFixtures.getSnapshotAccessRequest(steward, approvedSnapshotAccessRequest.getId());
     assertNotNull(
-        "Snapshot access request flightId is set", updatedSnapshotAccessRequest.getFlightid());
+        updatedSnapshotAccessRequest.getFlightid(), "Snapshot access request flightId is set");
     assertThat(
         "Snapshot access request createdSnapshotId is correct",
         updatedSnapshotAccessRequest.getCreatedSnapshotId(),
@@ -598,7 +594,7 @@ public class AzureIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testSnapshotBuilder() throws Exception {
+  void testSnapshotBuilder() throws Exception {
     populateOmopTable();
 
     var concept1 =
@@ -708,7 +704,7 @@ public class AzureIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void datasetIngestFileHappyPath() throws Exception {
+  void datasetIngestFileHappyPath() throws Exception {
     String blobName = "myBlob";
     long fileSize = MIB / 10;
     String sourceFileAzure = azureBlobIOTestUtility.uploadSourceFile(blobName, fileSize);
@@ -908,15 +904,15 @@ public class AzureIntegrationTest extends UsersBase {
             .get(0);
     assertThat(
         "record looks as expected - domain_id",
-        ((LinkedHashMap) firstDomainRow).get("domain_id").toString(),
+        ((Map) firstDomainRow).get("domain_id").toString(),
         equalTo(domainRowData.get("domain_id")));
     assertThat(
         "record looks as expected - domain_files_custom_2 file id- value",
-        ((ArrayList<String>) ((LinkedHashMap) firstDomainRow).get("domain_files_custom_2")).get(0),
+        ((List) ((Map) firstDomainRow).get("domain_files_custom_2")).get(0),
         equalTo(file2Model.getFileId()));
     assertThat(
         "record looks as expected - domain_files_custom_3 file id- value",
-        ((LinkedHashMap) firstDomainRow).get("domain_files_custom_3").toString(),
+        ((Map) firstDomainRow).get("domain_files_custom_3").toString(),
         equalTo(file4Model.getFileId()));
 
     // Ingest 2 rows from CSV
@@ -967,10 +963,8 @@ public class AzureIntegrationTest extends UsersBase {
     assertThat(
         "The new table is in the update response",
         response.getSchema().getTables().stream()
-            .filter(tableModel -> tableModel.getName().equals("new_table"))
-            .findFirst()
-            .isPresent());
-    Map<String, String> vocab_entry2 =
+            .anyMatch(tableModel -> tableModel.getName().equals("new_table")));
+    Map<String, String> vocabEntry2 =
         Map.of(
             "vocabulary_id",
             "3",
@@ -982,7 +976,7 @@ public class AzureIntegrationTest extends UsersBase {
             "3.0",
             newColumnName,
             "new_value");
-    testMetadataArrayIngest(vocabTableName, vocab_entry2);
+    testMetadataArrayIngest(vocabTableName, vocabEntry2);
     tableRowCount.put(vocabTableName, 3);
 
     // assert correct data returns from view data endpoint
@@ -1002,15 +996,15 @@ public class AzureIntegrationTest extends UsersBase {
             .getResult();
     assertThat(
         "record looks as expected - vocabulary_id",
-        ((LinkedHashMap) vocabRows.get(0)).get("vocabulary_id").toString(),
+        ((Map) vocabRows.get(0)).get("vocabulary_id").toString(),
         equalTo("1"));
     assertThat(
         "record looks as expected - vocabulary_id",
-        ((LinkedHashMap) vocabRows.get(1)).get("vocabulary_id").toString(),
+        ((Map) vocabRows.get(1)).get("vocabulary_id").toString(),
         equalTo("2"));
     assertThat(
         "record looks as expected - new column",
-        ((LinkedHashMap) vocabRows.get(2)).get(newColumnName).toString(),
+        ((Map) vocabRows.get(2)).get(newColumnName).toString(),
         equalTo("new_value"));
     List<String> vocabList =
         dataRepoFixtures.retrieveColumnTextValues(
@@ -1038,7 +1032,7 @@ public class AzureIntegrationTest extends UsersBase {
             .getResult();
     assertThat(
         "correct vocabulary_id returned",
-        ((LinkedHashMap) flippedVocabRows.get(0)).get("vocabulary_id").toString(),
+        ((Map) flippedVocabRows.get(0)).get("vocabulary_id").toString(),
         equalTo("3"));
     String qualifiedVocabTableName = String.format("%s.%s", datasetModel.getName(), vocabTableName);
     DatasetDataModel filteredVocabRows =
@@ -1060,7 +1054,7 @@ public class AzureIntegrationTest extends UsersBase {
         equalTo(tableRowCount.get(vocabTableName)));
     assertThat(
         "Correct row is returned",
-        ((LinkedHashMap) filteredVocabRows.getResult().get(0)).get("vocabulary_id").toString(),
+        ((Map) filteredVocabRows.getResult().get(0)).get("vocabulary_id").toString(),
         equalTo("1"));
 
     // test handling of empty dataset table
@@ -1114,14 +1108,14 @@ public class AzureIntegrationTest extends UsersBase {
         tableModel.setColumns(
             datasetSchema.getTables().stream()
                 .filter(t -> t.getName().equals(table.getName()))
-                .flatMap(t -> t.getColumns().stream().map(c -> c.getName()))
+                .flatMap(t -> t.getColumns().stream().map(ColumnModel::getName))
                 .toList());
         tableModel.setRowIds(
             dataRepoFixtures
                 .getRowIds(
                     steward, datasetModel, table.getName(), tableRowCount.get(table.getName()))
                 .stream()
-                .map(id -> UUID.fromString(id))
+                .map(UUID::fromString)
                 .toList());
         snapshotRequestRowIdModel.addTablesItem(tableModel);
       }
@@ -1201,19 +1195,20 @@ public class AzureIntegrationTest extends UsersBase {
             .getResult();
     List<String> drsIds =
         vocabSnapshotRows.stream()
-            .filter(r -> ((LinkedHashMap) r).get("vocabulary_reference") != null)
-            .map(r -> ((LinkedHashMap) r).get("vocabulary_reference").toString())
+            .map(r -> (Map) r)
+            .filter(r -> r.get("vocabulary_reference") != null)
+            .map(r -> r.get("vocabulary_reference").toString())
             .toList();
 
     Object firstVocabRow = vocabSnapshotRows.get(0);
     assertThat(
         "record looks as expected - vocabulary_id",
-        ((LinkedHashMap) firstVocabRow).get("vocabulary_id").toString(),
+        ((Map) firstVocabRow).get("vocabulary_id").toString(),
         equalTo("1"));
     Object secondVocabRow = vocabSnapshotRows.get(1);
     assertThat(
         "record looks as expected - vocabulary_id",
-        ((LinkedHashMap) secondVocabRow).get("vocabulary_id").toString(),
+        ((Map) secondVocabRow).get("vocabulary_id").toString(),
         equalTo("2"));
 
     // Test filtering results from snapshot preview endpoint and check row counts
@@ -1239,7 +1234,7 @@ public class AzureIntegrationTest extends UsersBase {
         equalTo(tableRowCount.get(vocabTableName)));
     assertThat(
         "Correct row is returned",
-        ((LinkedHashMap) filteredVocabRows.getResult().get(0)).get("vocabulary_id").toString(),
+        ((Map) filteredVocabRows.getResult().get(0)).get("vocabulary_id").toString(),
         equalTo("1"));
 
     // test handling of empty snapshot table
@@ -1270,31 +1265,32 @@ public class AzureIntegrationTest extends UsersBase {
 
     // Domain Table
     dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "domain", 1);
-    Object firstSnapshotDomainRow =
-        dataRepoFixtures.retrieveFirstResultSnapshotPreviewById(
-            steward, snapshotAll.getId(), "domain", 0, 1, null);
+    Map<?, ?> firstSnapshotDomainRow =
+        (Map<?, ?>)
+            dataRepoFixtures.retrieveFirstResultSnapshotPreviewById(
+                steward, snapshotAll.getId(), "domain", 0, 1, null);
     assertThat(
         "record looks as expected - domain_id",
-        ((LinkedHashMap) firstSnapshotDomainRow).get("domain_id").toString(),
+        firstSnapshotDomainRow.get("domain_id").toString(),
         equalTo(domainRowData.get("domain_id")));
     assertThat(
         "record looks as expected - domain_name",
-        ((LinkedHashMap) firstSnapshotDomainRow).get("domain_name").toString(),
+        firstSnapshotDomainRow.get("domain_name").toString(),
         equalTo(domainRowData.get("domain_name")));
     assertThat(
         "record looks as expected - domain_concept_id",
-        ((LinkedHashMap) firstSnapshotDomainRow).get("domain_concept_id").toString(),
+        firstSnapshotDomainRow.get("domain_concept_id").toString(),
         equalTo(domainRowData.get("domain_concept_id").toString()));
     assertThat(
         "record looks as expected - domain_array_tags_custom",
-        ((LinkedHashMap) firstSnapshotDomainRow).get("domain_array_tags_custom").toString(),
+        firstSnapshotDomainRow.get("domain_array_tags_custom").toString(),
         equalTo("[tag1, tag2]"));
     assertThat(
         "record looks as expected - domain_files_custom_1 drs ids",
-        (ArrayList<String>) ((LinkedHashMap) firstSnapshotDomainRow).get("domain_files_custom_1"),
+        (List<?>) firstSnapshotDomainRow.get("domain_files_custom_1"),
         containsInAnyOrder(drsIds.toArray()));
     List<String> embeddedDrsIds2 =
-        (ArrayList<String>) ((LinkedHashMap) firstSnapshotDomainRow).get("domain_files_custom_2");
+        (List<String>) firstSnapshotDomainRow.get("domain_files_custom_2");
     assertThat(
         "record looks as expected - domain_files_custom_2 drs ids - size",
         embeddedDrsIds2,
@@ -1305,8 +1301,7 @@ public class AzureIntegrationTest extends UsersBase {
         equalTo(String.format("v1_%s_%s", snapshotByFullViewId, file2Model.getFileId())));
     assertThat(
         "record looks as expected - domain_files_custom_3 drs id",
-        DrsIdService.fromUri(
-                ((LinkedHashMap) firstSnapshotDomainRow).get("domain_files_custom_3").toString())
+        DrsIdService.fromUri(firstSnapshotDomainRow.get("domain_files_custom_3").toString())
             .toDrsObjectId(),
         equalTo(String.format("v1_%s_%s", snapshotByFullViewId, file4Model.getFileId())));
 
@@ -1558,7 +1553,7 @@ public class AzureIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testDatasetFileIngestLoadHistory() throws Exception {
+  void testDatasetFileIngestLoadHistory() throws Exception {
     String blobName = "myBlob";
     long fileSize = MIB / 10;
     String sourceFile = azureBlobIOTestUtility.uploadSourceFile(blobName, fileSize);
@@ -1674,8 +1669,8 @@ public class AzureIntegrationTest extends UsersBase {
   }
 
   @Test
-  @Ignore("Ignoring due to flakiness and deprioritization of Azure")
-  public void testDatasetFileRefValidation() throws Exception {
+  @Disabled("Ignoring due to flakiness and deprioritization of Azure")
+  void testDatasetFileRefValidation() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
             steward, profileId, "dataset-ingest-azure-fileref.json", CloudPlatform.AZURE);
@@ -1805,7 +1800,7 @@ public class AzureIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testRequiredColumnsIngest() throws Exception {
+  void testRequiredColumnsIngest() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
             steward,
@@ -1817,7 +1812,7 @@ public class AzureIntegrationTest extends UsersBase {
 
     String controlFileContents;
     try (var resourceStream =
-        this.getClass().getResourceAsStream("/dataset-ingest-combined-control-azure.json")) {
+        getClass().getResourceAsStream("/dataset-ingest-combined-control-azure.json")) {
       controlFileContents = new String(resourceStream.readAllBytes(), StandardCharsets.UTF_8);
     }
 
@@ -1869,12 +1864,12 @@ public class AzureIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testDatasetCombinedIngest() throws Exception {
+  void testDatasetCombinedIngest() throws Exception {
     testDatasetCombinedIngest(true);
   }
 
   @Test
-  public void testDatasetCombinedIngestFromApi() throws Exception {
+  void testDatasetCombinedIngestFromApi() throws Exception {
     testDatasetCombinedIngest(false);
   }
 
@@ -1887,7 +1882,7 @@ public class AzureIntegrationTest extends UsersBase {
 
     String controlFileContents;
     try (var resourceStream =
-        this.getClass().getResourceAsStream("/dataset-ingest-combined-control-azure.json")) {
+        getClass().getResourceAsStream("/dataset-ingest-combined-control-azure.json")) {
       controlFileContents = new String(resourceStream.readAllBytes(), StandardCharsets.UTF_8);
     }
 
@@ -1907,7 +1902,7 @@ public class AzureIntegrationTest extends UsersBase {
     } else {
       List<Map<String, Object>> data =
           Arrays.stream(controlFileContents.split("\\n"))
-              .map(j -> jsonLoader.loadJson(j, new TypeReference<Map<String, Object>>() {}))
+              .map(s -> jsonLoader.loadJson(s, new TypeReference<Map<String, Object>>() {}))
               .toList();
       ingestRequest
           .records(Arrays.asList(data.toArray()))
@@ -1939,7 +1934,7 @@ public class AzureIntegrationTest extends UsersBase {
 
   private String getSourceStorageAccountPrimarySharedKey() {
     AzureResourceManager client =
-        this.azureResourceConfiguration.getClient(
+        azureResourceConfiguration.getClient(
             testConfig.getTargetTenantId(), testConfig.getTargetSubscriptionId());
 
     return client
@@ -2009,7 +2004,7 @@ public class AzureIntegrationTest extends UsersBase {
     logger.info("Verifying url %s".formatted(signedUrl));
     try (CloseableHttpClient client = HttpClients.createDefault()) {
       HttpUriRequest request = new HttpHead(signedUrl);
-      try (CloseableHttpResponse response = client.execute(request); ) {
+      try (CloseableHttpResponse response = client.execute(request)) {
         assertThat(
             "URL can be accessed",
             response.getStatusLine().getStatusCode(),

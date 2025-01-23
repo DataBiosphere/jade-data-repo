@@ -6,13 +6,13 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.util.AssertionErrors.assertFalse;
 
 import bio.terra.common.PdaoConstant;
-import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoFixtures;
@@ -37,28 +37,26 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@Category(Integration.class)
-public class SnapshotIntegrationTest extends UsersBase {
+@Tag(Integration.TAG)
+class SnapshotIntegrationTest extends UsersBase {
   @Autowired private JsonLoader jsonLoader;
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
-
-  @Autowired private AuthService authService;
 
   private static final Logger logger = LoggerFactory.getLogger(SnapshotIntegrationTest.class);
   private UUID profileId;
@@ -67,7 +65,8 @@ public class SnapshotIntegrationTest extends UsersBase {
   String participantTableName;
   int participantTableRowCount;
 
-  @Before
+  @Override
+  @BeforeEach
   public void setup() throws Exception {
     super.setup();
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
@@ -90,7 +89,7 @@ public class SnapshotIntegrationTest extends UsersBase {
     dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     createdSnapshotIds.forEach(
         snapshot -> {
@@ -112,7 +111,7 @@ public class SnapshotIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void snapshotRowIdsHappyPathTest() throws Exception {
+  void snapshotRowIdsHappyPathTest() throws Exception {
     // fetch rowIds from the ingested dataset by querying the participant table
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
     String participantTable = "participant";
@@ -147,11 +146,11 @@ public class SnapshotIntegrationTest extends UsersBase {
     TimeUnit.SECONDS.sleep(10);
     createdSnapshotIds.add(snapshotSummary.getId());
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
-    assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
-    assertEquals(
+    assertThat("new snapshot has been created", snapshot.getName(), is(requestModel.getName()));
+    assertThat(
         "new snapshot has the correct number of tables",
-        requestModel.getContents().get(0).getRowIdSpec().getTables().size(),
-        snapshot.getTables().size());
+        snapshot.getTables(),
+        hasSize(requestModel.getContents().get(0).getRowIdSpec().getTables().size()));
     // TODO: get the snapshot and make sure the number of rows matches with the row ids input
     assertThat(
         "The secure monitoring is propagated from the dataset",
@@ -296,7 +295,7 @@ public class SnapshotIntegrationTest extends UsersBase {
     createdSnapshotIds.add(snapshotSummary.getId());
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
     assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
-    assertEquals("the relationship comes through", 1, snapshot.getRelationships().size());
+    assertThat("the relationship comes through", snapshot.getRelationships(), hasSize(1));
 
     // Empty snapshot table
     dataRepoFixtures.assertSnapshotTableCount(steward(), snapshot, "file", 0);
@@ -368,7 +367,7 @@ public class SnapshotIntegrationTest extends UsersBase {
     createdSnapshotIds.add(snapshotSummary.getId());
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
     assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
-    assertEquals("the relationship comes through", 1, snapshot.getRelationships().size());
+    assertThat("the relationship comes through", snapshot.getRelationships(), hasSize(1));
   }
 
   private SnapshotRequestModel snapshotByQueryRequestModel(DatasetModel dataset) throws Exception {

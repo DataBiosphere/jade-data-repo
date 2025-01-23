@@ -1,13 +1,14 @@
 package bio.terra.service.job;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import bio.terra.common.GcsUtils;
 import bio.terra.common.category.Integration;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
+import bio.terra.integration.IntegrationTestConfiguration;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
@@ -24,28 +25,27 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@AutoConfigureMockMvc
-@Category(Integration.class)
-public class JobPermissionTest extends UsersBase {
+@Tag(Integration.TAG)
+class JobPermissionTest extends UsersBase {
   private static final Logger logger = LoggerFactory.getLogger(JobPermissionTest.class);
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
@@ -55,7 +55,8 @@ public class JobPermissionTest extends UsersBase {
   private UUID datasetId;
   private UUID profileId;
 
-  @Before
+  @Override
+  @BeforeEach
   public void setup() throws Exception {
     super.setup();
     dataRepoFixtures.resetConfig(steward());
@@ -64,7 +65,7 @@ public class JobPermissionTest extends UsersBase {
         steward(), profileId, IamRole.OWNER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
   }
 
-  @After
+  @AfterEach
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward());
 
@@ -74,8 +75,8 @@ public class JobPermissionTest extends UsersBase {
   }
 
   @Test
-  @Ignore("Ignoring until DR-2723 is in so that we can pin job enumeration")
-  public void testJobPermissions() throws Exception {
+  @Disabled("Ignoring until DR-2723 is in so that we can pin job enumeration")
+  void testJobPermissions() throws Exception {
     // Create dataset
     DataRepoResponse<JobModel> jobResponse =
         dataRepoFixtures.createDatasetRaw(
@@ -112,7 +113,7 @@ public class JobPermissionTest extends UsersBase {
 
     DataRepoResponse<FileModel> fileIngestResponse =
         dataRepoClient.waitForResponse(steward(), fileIngestJobResponse, new TypeReference<>() {});
-    assert (fileIngestResponse.getStatusCode().is2xxSuccessful());
+    assertTrue(fileIngestResponse.getStatusCode().is2xxSuccessful());
 
     String vcfIndexFilePath =
         gcsUtils.uploadTestFile(
@@ -151,7 +152,7 @@ public class JobPermissionTest extends UsersBase {
                 .maxFailedFileLoads(0));
     DataRepoResponse<BulkLoadArrayResultModel> bulkLoadResponse =
         dataRepoClient.waitForResponse(steward(), bulkLoadJobResponse, new TypeReference<>() {});
-    assert (bulkLoadResponse.getStatusCode().is2xxSuccessful());
+    assertTrue(bulkLoadResponse.getStatusCode().is2xxSuccessful());
 
     // Ingest metadata
     IngestRequestModel metadataIngestRequest =
@@ -163,7 +164,7 @@ public class JobPermissionTest extends UsersBase {
 
     DataRepoResponse<JobModel> metadataIngestJobResponse =
         dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, metadataIngestRequest);
-    assert (metadataIngestJobResponse.getStatusCode().is2xxSuccessful());
+    assertTrue(metadataIngestJobResponse.getStatusCode().is2xxSuccessful());
 
     // Ingest metadata and files
     IngestRequestModel combinedIngestRequest =
@@ -177,7 +178,7 @@ public class JobPermissionTest extends UsersBase {
 
     DataRepoResponse<JobModel> combinedIngestJobResponse =
         dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, combinedIngestRequest);
-    assert (combinedIngestJobResponse.getStatusCode().is2xxSuccessful());
+    assertTrue(combinedIngestJobResponse.getStatusCode().is2xxSuccessful());
 
     // Verify custodian can view jobs
     JobModel datasetCreateJob = jobResponse.getResponseObject().get();
@@ -199,17 +200,17 @@ public class JobPermissionTest extends UsersBase {
         List.of(datasetCreateJob, fileIngestJob, bulkLoadJob, metadataIngestJob, combinedIngestJob);
 
     assertTrue(
-        "Admin can list jobs",
-        containsJobIds(dataRepoFixtures.enumerateJobs(admin(), 0, 20), jobIds));
+        containsJobIds(dataRepoFixtures.enumerateJobs(admin(), 0, 20), jobIds),
+        "Admin can list jobs");
     assertTrue(
-        "Steward can list jobs",
-        containsJobIds(dataRepoFixtures.enumerateJobs(steward(), 0, 20), jobIds));
+        containsJobIds(dataRepoFixtures.enumerateJobs(steward(), 0, 20), jobIds),
+        "Steward can list jobs");
     assertTrue(
-        "Custodian can list jobs",
-        containsJobIds(dataRepoFixtures.enumerateJobs(custodian(), 0, 20), jobIds));
+        containsJobIds(dataRepoFixtures.enumerateJobs(custodian(), 0, 20), jobIds),
+        "Custodian can list jobs");
     assertFalse(
-        "Reader cannot list jobs",
-        containsJobIds(dataRepoFixtures.enumerateJobs(reader(), 0, 10), jobIds));
+        containsJobIds(dataRepoFixtures.enumerateJobs(reader(), 0, 10), jobIds),
+        "Reader cannot list jobs");
   }
 
   private boolean containsJobIds(List<JobModel> jobs, List<JobModel> expectedJobIds) {
@@ -217,7 +218,7 @@ public class JobPermissionTest extends UsersBase {
 
     Map<String, JobModel> jobsById;
     try {
-      jobsById = jobs.stream().collect(Collectors.toMap(JobModel::getId, j -> j));
+      jobsById = jobs.stream().collect(Collectors.toMap(JobModel::getId, Function.identity()));
     } catch (IllegalStateException e) {
       logger.error("There appear to be duplicate jobs in the response:\n{}", jobs);
       throw e;

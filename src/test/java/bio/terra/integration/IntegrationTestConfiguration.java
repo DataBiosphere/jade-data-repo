@@ -9,6 +9,7 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.service.auth.iam.sam.SamApiService;
 import bio.terra.service.auth.iam.sam.SamIam;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.OpenTelemetry;
@@ -17,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Profile;
 
 @Configuration
 @Import({
@@ -37,9 +39,11 @@ import org.springframework.context.annotation.Import;
 @EnableConfigurationProperties({
   SamConfiguration.class,
   GoogleResourceConfiguration.class,
-  ApplicationConfiguration.class
+  ApplicationConfiguration.class,
+  AzureResourceConfiguration.class
 })
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@Profile("integrationtest")
 public class IntegrationTestConfiguration {
 
   @Bean("tdrServiceAccountEmail")

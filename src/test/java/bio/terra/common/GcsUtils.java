@@ -1,42 +1,39 @@
 package bio.terra.common;
 
-import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.service.common.gcs.GcsUriUtils;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
+import com.google.cloud.ServiceOptions;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Blob.BlobSourceOption;
+import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.Storage.BlobGetOption;
 import com.google.cloud.storage.StorageOptions;
-import java.util.stream.Stream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class GcsUtils {
 
-  private static Logger logger = LoggerFactory.getLogger(GcsUtils.class);
+  private static final Logger logger = LoggerFactory.getLogger(GcsUtils.class);
 
-  @Autowired private TestConfiguration testConfig;
-  @Autowired private GcsPdao gcsPdao;
+  private final String projectId = ServiceOptions.getDefaultProjectId();
+  private final Storage storage = StorageOptions.getDefaultInstance().getService();
 
-  private String projectId = StorageOptions.getDefaultProjectId();
-  private Storage storage = StorageOptions.getDefaultInstance().getService();
-
-  public String uploadTestFile(String ingestBucket, String name, Stream<String> lines) {
+  public String uploadTestFile(String ingestBucket, String name, List<String> lines) {
     String path = String.format("gs://%s/%s", ingestBucket, name);
     logger.info("Uploading test file to {}", path);
-    gcsPdao.createGcsFile(path, projectId);
-    gcsPdao.writeStreamToCloudFile(path, lines, projectId);
-
+    BlobInfo blobInfo = BlobInfo.newBuilder(ingestBucket, name).build();
+    byte[] content = String.join("\n", lines).getBytes(StandardCharsets.UTF_8);
+    storage.create(blobInfo, content, Storage.BlobTargetOption.userProject(projectId));
     return path;
   }
 
   public void deleteTestFile(String path) {
     logger.info("Removing test file at {}", path);
-    gcsPdao.deleteFileByGspath(path, projectId);
+    storage.delete(GcsUriUtils.parseBlobUri(path));
   }
 
   public boolean fileExists(String path) {

@@ -3,9 +3,7 @@ package bio.terra.service.filedata.google.firestore;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.configuration.TestConfiguration;
-import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.BigQueryFixtures;
-import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
@@ -19,7 +17,6 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -43,35 +40,11 @@ import org.springframework.test.context.ActiveProfiles;
 public class EncodeFixture {
   private static final Logger logger = LoggerFactory.getLogger(EncodeFixture.class);
 
-  @Autowired private JsonLoader jsonLoader;
-  @Autowired private ObjectMapper objectMapper;
-  @Autowired private DataRepoClient dataRepoClient;
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;
   @Autowired private TestConfiguration testConfiguration;
 
-  public static class SetupResult {
-    private final UUID profileId;
-    private final UUID datasetId;
-    private final SnapshotSummaryModel summaryModel;
-
-    public SetupResult(UUID profileId, UUID datasetId, SnapshotSummaryModel summaryModel) {
-      this.profileId = profileId;
-      this.datasetId = datasetId;
-      this.summaryModel = summaryModel;
-    }
-
-    public UUID getDatasetId() {
-      return datasetId;
-    }
-
-    public UUID getProfileId() {
-      return profileId;
-    }
-
-    public SnapshotSummaryModel getSummaryModel() {
-      return summaryModel;
-    }
+  public record SetupResult(UUID profileId, UUID datasetId, SnapshotSummaryModel summaryModel) {
   }
 
   // Create dataset, load files and tables. Create and return snapshot.

@@ -2,6 +2,7 @@ package bio.terra.integration;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.common.GcsUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.auth.Users;
 import bio.terra.common.configuration.TestConfiguration;
@@ -9,6 +10,7 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.service.auth.iam.sam.SamApiService;
 import bio.terra.service.auth.iam.sam.SamIam;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.filedata.google.firestore.EncodeFixture;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +32,8 @@ import org.springframework.context.annotation.Profile;
   SamFixtures.class,
   DataRepoFixtures.class,
   Users.class,
+  GcsUtils.class,
+  EncodeFixture.class,
   // These are required to support AuthService.makePetAccountToken()
   SamIam.class,
   SamApiService.class,

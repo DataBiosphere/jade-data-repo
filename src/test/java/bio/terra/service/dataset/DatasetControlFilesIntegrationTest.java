@@ -7,13 +7,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 
-import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
-import bio.terra.integration.SamFixtures;
+import bio.terra.integration.IntegrationTestConfiguration;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
@@ -22,50 +21,45 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
-import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 // TODO move me to integration dir
-@RunWith(SpringRunner.class)
-@SpringBootTest
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@AutoConfigureMockMvc
-@Category(Integration.class)
-public class DatasetControlFilesIntegrationTest extends UsersBase {
+@Tag(Integration.TAG)
+class DatasetControlFilesIntegrationTest extends UsersBase {
 
-  @Autowired private AuthService authService;
   @Autowired private DataRepoFixtures dataRepoFixtures;
-  @Autowired private SamFixtures samFixtures;
   @Autowired private JsonLoader jsonLoader;
   @Autowired private TestConfiguration testConfiguration;
-  @Autowired private GoogleResourceManagerService resourceManagerService;
 
   private UUID datasetId;
   private UUID profileId;
   private String ingestBucket;
 
-  @Before
+  @Override
+  @BeforeEach
   public void setup() throws Exception {
     super.setup();
     dataRepoFixtures.resetConfig(steward());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
   }
 
-  @After
+  @AfterEach
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward());
 
@@ -79,7 +73,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testCombinedMetadataDataIngest() throws Exception {
+  void testCombinedMetadataDataIngest() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
     datasetId = datasetSummaryModel.getId();
@@ -158,7 +152,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testMaxBadRecords() throws Exception {
+  void testMaxBadRecords() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
     datasetId = datasetSummaryModel.getId();
@@ -200,7 +194,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testSourcePathAuth() throws Exception {
+  void testSourcePathAuth() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
     datasetId = datasetSummaryModel.getId();
@@ -232,7 +226,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testDirectIngestSourcePathAuth() throws Exception {
+  void testDirectIngestSourcePathAuth() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
     datasetId = datasetSummaryModel.getId();
@@ -256,7 +250,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testCopyingOfControlFiles() throws Exception {
+  void testCopyingOfControlFiles() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
     datasetId = datasetSummaryModel.getId();
@@ -292,7 +286,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testCopyingOfControlFilesMultiRegion() throws Exception {
+  void testCopyingOfControlFilesMultiRegion() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(
             steward(), profileId, "dataset-ingest-combined-array-us.json");
@@ -329,7 +323,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testInvalidControlFile() throws Exception {
+  void testInvalidControlFile() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(
             steward(), profileId, "dataset-ingest-combined-array-us.json");
@@ -356,7 +350,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void interactionsFromRequesterPaysBucket() throws Exception {
+  void interactionsFromRequesterPaysBucket() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
     datasetId = datasetSummaryModel.getId();
@@ -404,7 +398,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void interactionsWithPerDatasetServiceAccount() throws Exception {
+  void interactionsWithPerDatasetServiceAccount() throws Exception {
     ingestBucket = "jade_testbucket_no_jade_sa";
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDatasetWithOwnServiceAccount(

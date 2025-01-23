@@ -3,7 +3,7 @@ package bio.terra.service.snapshot;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.Matchers.hasSize;
 
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
@@ -12,6 +12,7 @@ import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
+import bio.terra.integration.IntegrationTestConfiguration;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -33,25 +34,23 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
-@AutoConfigureMockMvc
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@Category(Integration.class)
-public class SnapshotPermissionsIntegrationTest extends UsersBase {
+@Tag(Integration.TAG)
+class SnapshotPermissionsIntegrationTest extends UsersBase {
 
   private static final Logger logger =
       LoggerFactory.getLogger(SnapshotPermissionsIntegrationTest.class);
@@ -67,7 +66,8 @@ public class SnapshotPermissionsIntegrationTest extends UsersBase {
   private DatasetSummaryModel datasetSummaryModel;
   private final List<UUID> createdSnapshotIds = new ArrayList<>();
 
-  @Before
+  @Override
+  @BeforeEach
   public void setup() throws Exception {
     super.setup();
     stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
@@ -89,15 +89,14 @@ public class SnapshotPermissionsIntegrationTest extends UsersBase {
     dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     createdSnapshotIds.forEach(
         snapshot -> {
           try {
             dataRepoFixtures.deleteSnapshot(steward(), snapshot);
           } catch (Exception ex) {
-            logger.warn("cleanup failed when deleting snapshot " + snapshot);
-            ex.printStackTrace();
+            logger.warn("cleanup failed when deleting snapshot " + snapshot, ex);
           }
         });
 
@@ -111,7 +110,7 @@ public class SnapshotPermissionsIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void snapshotInvalidEmailTest() throws Exception {
+  void snapshotInvalidEmailTest() throws Exception {
     SnapshotRequestModel requestModel =
         jsonLoader.loadObject("ingest-test-snapshot.json", SnapshotRequestModel.class);
 
@@ -148,7 +147,7 @@ public class SnapshotPermissionsIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void snapshotAclTest() throws Exception {
+  void snapshotAclTest() throws Exception {
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
 
     String datasetName = dataset.getName();
@@ -165,8 +164,8 @@ public class SnapshotPermissionsIntegrationTest extends UsersBase {
         dataRepoFixtures.createSnapshotWithRequest(steward(), datasetName, profileId, requestModel);
     createdSnapshotIds.add(snapshotSummary.getId());
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
-    assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
-    assertEquals("There should be 1 snapshot relationship", 1, snapshot.getRelationships().size());
+    assertThat("new snapshot has been created", requestModel.getName(), equalTo(snapshot.getName()));
+    assertThat("There should be 1 snapshot relationship", snapshot.getRelationships(), hasSize(1));
 
     // fetch Acls
     logger.info("---- Dataset Acls after snapshot create-----");
@@ -182,11 +181,8 @@ public class SnapshotPermissionsIntegrationTest extends UsersBase {
     logger.info("---- Dataset Acls after snapshot delete-----");
     int datasetMinusSnapshotAclCount =
         retryAclUpdate(datasetName, datasetAclCount, AclCheck.EQUALTO);
-    assertEquals(
-        "We should be back to the same number of Acls on the dataset after snapshot delete",
-        datasetAclCount,
-        datasetMinusSnapshotAclCount);
-    // Don't need to tear down snashot
+    assertThat("We should be back to the same number of Acls on the dataset after snapshot delete", datasetMinusSnapshotAclCount, equalTo(datasetAclCount));
+    // Don't need to tear down snapshot
     createdSnapshotIds.remove(snapshotSummary.getId());
   }
 
@@ -234,7 +230,7 @@ public class SnapshotPermissionsIntegrationTest extends UsersBase {
       if (check.compare(datasetPlusSnapshotCount, datasetAclCount)) {
         break;
       }
-      double delayInSeconds = ((1d / 2d) * (Math.pow(2d, n) - 1d));
+      double delayInSeconds = ((1.0 / 2) * (Math.pow(2, n) - 1));
       waitInterval = (int) Math.min(maxDelayInSeconds, delayInSeconds);
       totalWaitTime += waitInterval;
       logger.info(

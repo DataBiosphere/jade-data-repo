@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -101,7 +100,7 @@ class JobPermissionTest extends UsersBase {
         gcsUtils.uploadTestFile(
             ingestBucket,
             String.format("jobPermissionTest/%s/fake-exome.g.vcf.gz", datasetId),
-            Stream.of("test vcf file"));
+            List.of("test vcf file"));
 
     DataRepoResponse<JobModel> fileIngestJobResponse =
         dataRepoFixtures.ingestFileLaunch(
@@ -119,13 +118,13 @@ class JobPermissionTest extends UsersBase {
         gcsUtils.uploadTestFile(
             ingestBucket,
             String.format("jobPermissionTest/%s/fake-vcf-index.g.vcf.gz.tbi", datasetId),
-            Stream.of("test vcf index file"));
+            List.of("test vcf index file"));
 
     String vcfIndexFilePath2 =
         gcsUtils.uploadTestFile(
             ingestBucket,
             String.format("jobPermissionTest/%s/fake-vcf-index2.g.vcf.gz.tbi", datasetId),
-            Stream.of("another test vcf index file"));
+            List.of("another test vcf index file"));
 
     List<BulkLoadFileModel> vcfIndexLoadModels =
         List.of(
@@ -181,19 +180,19 @@ class JobPermissionTest extends UsersBase {
     assertTrue(combinedIngestJobResponse.getStatusCode().is2xxSuccessful());
 
     // Verify custodian can view jobs
-    JobModel datasetCreateJob = jobResponse.getResponseObject().get();
+    JobModel datasetCreateJob = jobResponse.getResponseObject().orElseThrow();
     dataRepoFixtures.getJobSuccess(datasetCreateJob.getId(), custodian());
 
-    JobModel fileIngestJob = fileIngestJobResponse.getResponseObject().get();
+    JobModel fileIngestJob = fileIngestJobResponse.getResponseObject().orElseThrow();
     dataRepoFixtures.getJobSuccess(fileIngestJob.getId(), custodian());
 
-    JobModel bulkLoadJob = bulkLoadJobResponse.getResponseObject().get();
+    JobModel bulkLoadJob = bulkLoadJobResponse.getResponseObject().orElseThrow();
     dataRepoFixtures.getJobSuccess(bulkLoadJob.getId(), custodian());
 
-    JobModel metadataIngestJob = metadataIngestJobResponse.getResponseObject().get();
+    JobModel metadataIngestJob = metadataIngestJobResponse.getResponseObject().orElseThrow();
     dataRepoFixtures.getJobSuccess(metadataIngestJob.getId(), custodian());
 
-    JobModel combinedIngestJob = combinedIngestJobResponse.getResponseObject().get();
+    JobModel combinedIngestJob = combinedIngestJobResponse.getResponseObject().orElseThrow();
     dataRepoFixtures.getJobSuccess(combinedIngestJob.getId(), custodian());
 
     List<JobModel> jobIds =

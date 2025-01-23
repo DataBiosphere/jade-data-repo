@@ -11,16 +11,15 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.TestUtils;
-import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
+import bio.terra.integration.IntegrationTestConfiguration;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.AssetModel;
 import bio.terra.model.CloudPlatform;
@@ -39,7 +38,6 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
@@ -50,56 +48,52 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 // TODO move me to integration dir
-@RunWith(SpringRunner.class)
-@SpringBootTest
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@AutoConfigureMockMvc
-@Category(Integration.class)
-public class DatasetIntegrationTest extends UsersBase {
-  private static final String omopDatasetName = "it_dataset_omop";
-  private static final String omopDatasetDesc =
+@Tag(Integration.TAG)
+class DatasetIntegrationTest extends UsersBase {
+  private static final String OMOP_DATASET_NAME = "it_dataset_omop";
+  private static final String OMOP_DATASET_DESC =
       "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom";
-  private static final String omopDatasetRegion = GoogleRegion.US_CENTRAL1.toString();
-  private static Logger logger = LoggerFactory.getLogger(DatasetIntegrationTest.class);
+  private static final String OMOP_DATASET_REGION = GoogleRegion.US_CENTRAL1.toString();
+  private static final Logger logger = LoggerFactory.getLogger(DatasetIntegrationTest.class);
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
-  @Autowired private AuthService authService;
   @Autowired private JsonLoader jsonLoader;
-  @Autowired private GoogleResourceManagerService resourceManagerService;
 
-  private String stewardToken;
   private UUID datasetId;
   private UUID profileId;
 
-  @Before
+  @Override
+  @BeforeEach
   public void setup() throws Exception {
     super.setup();
-    stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     dataRepoFixtures.resetConfig(steward());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     datasetId = null;
   }
 
-  @After
+  @AfterEach
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward());
 
@@ -113,22 +107,22 @@ public class DatasetIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void datasetHappyPath() throws Exception {
+  void datasetHappyPath() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.json");
     datasetId = summaryModel.getId();
 
-    logger.info("dataset id is " + summaryModel.getId());
-    assertThat(summaryModel.getName(), startsWith(omopDatasetName));
-    assertThat(summaryModel.getDescription(), equalTo(omopDatasetDesc));
+    logger.info("dataset id is {}", summaryModel.getId());
+    assertThat(summaryModel.getName(), startsWith(OMOP_DATASET_NAME));
+    assertThat(summaryModel.getDescription(), equalTo(OMOP_DATASET_DESC));
 
     List<String> stewardRoles = dataRepoFixtures.retrieveUserDatasetRoles(steward(), datasetId);
     assertThat("The Steward was given steward access", stewardRoles, hasItem("steward"));
 
     DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
 
-    assertThat(datasetModel.getName(), startsWith(omopDatasetName));
-    assertThat(datasetModel.getDescription(), equalTo(omopDatasetDesc));
+    assertThat(datasetModel.getName(), startsWith(OMOP_DATASET_NAME));
+    assertThat(datasetModel.getDescription(), equalTo(OMOP_DATASET_DESC));
 
     // There is a delay from when a resource is created in SAM to when it is available in an
     // enumerate call.
@@ -143,33 +137,28 @@ public class DatasetIntegrationTest extends UsersBase {
               boolean found = false;
               for (DatasetSummaryModel oneDataset : enumerateDatasetModel.getItems()) {
                 if (oneDataset.getId().equals(datasetModel.getId())) {
-                  assertThat(oneDataset.getName(), startsWith(omopDatasetName));
-                  assertThat(oneDataset.getDescription(), equalTo(omopDatasetDesc));
+                  assertThat(oneDataset.getName(), startsWith(OMOP_DATASET_NAME));
+                  assertThat(oneDataset.getDescription(), equalTo(OMOP_DATASET_DESC));
                   Map<String, StorageResourceModel> storageMap =
                       datasetModel.getStorage().stream()
                           .collect(
                               Collectors.toMap(
                                   StorageResourceModel::getCloudResource, Function.identity()));
 
-                  GoogleRegion omopDatasetGoogleRegion = GoogleRegion.fromValue(omopDatasetRegion);
-                  assert omopDatasetGoogleRegion != null;
+                  GoogleRegion omopDatasetGoogleRegion =
+                      Objects.requireNonNull(GoogleRegion.fromValue(OMOP_DATASET_REGION));
                   for (GoogleCloudResource cloudResource : GoogleCloudResource.values()) {
                     StorageResourceModel storage = storageMap.get(cloudResource.toString());
                     GoogleCloudResource resource =
-                        GoogleCloudResource.fromValue(storage.getCloudResource());
-                    assert resource != null;
-                    GoogleRegion expectedRegion;
-                    switch (resource) {
-                      case BUCKET:
-                        expectedRegion = omopDatasetGoogleRegion.getRegionOrFallbackBucketRegion();
-                        break;
-                      case FIRESTORE:
-                        expectedRegion =
-                            omopDatasetGoogleRegion.getRegionOrFallbackFirestoreRegion();
-                        break;
-                      default:
-                        expectedRegion = omopDatasetGoogleRegion;
-                    }
+                        Objects.requireNonNull(
+                            GoogleCloudResource.fromValue(storage.getCloudResource()));
+                    GoogleRegion expectedRegion =
+                        switch (resource) {
+                          case BUCKET -> omopDatasetGoogleRegion.getRegionOrFallbackBucketRegion();
+                          case FIRESTORE ->
+                              omopDatasetGoogleRegion.getRegionOrFallbackFirestoreRegion();
+                          case BIGQUERY -> omopDatasetGoogleRegion;
+                        };
 
                     assertThat(
                         String.format("dataset %s region is set", storage.getCloudResource()),
@@ -194,7 +183,7 @@ public class DatasetIntegrationTest extends UsersBase {
               return found;
             });
 
-    assertTrue("dataset was found in enumeration", metExpectation);
+    assertThat("dataset was found in enumeration", metExpectation);
 
     // Check permissions on lookupDatasetDataById
     dataRepoFixtures.retrieveDatasetData(
@@ -257,26 +246,26 @@ public class DatasetIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void datasetHappyPathWithPet() throws Exception {
+  void datasetHappyPathWithPet() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
             steward(), profileId, "omop/it-dataset-omop.json", CloudPlatform.GCP, true, null);
     datasetId = summaryModel.getId();
 
-    logger.info("dataset id is " + summaryModel.getId());
-    assertThat(summaryModel.getName(), startsWith(omopDatasetName));
-    assertThat(summaryModel.getDescription(), equalTo(omopDatasetDesc));
+    logger.info("dataset id is {}", summaryModel.getId());
+    assertThat(summaryModel.getName(), startsWith(OMOP_DATASET_NAME));
+    assertThat(summaryModel.getDescription(), equalTo(OMOP_DATASET_DESC));
 
     // We just need to validate the steward is able to read back the dataset (e.g. the pet account
     // resolved correctly)
     DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
 
-    assertThat(datasetModel.getName(), startsWith(omopDatasetName));
-    assertThat(datasetModel.getDescription(), equalTo(omopDatasetDesc));
+    assertThat(datasetModel.getName(), startsWith(OMOP_DATASET_NAME));
+    assertThat(datasetModel.getDescription(), equalTo(OMOP_DATASET_DESC));
   }
 
   @Test
-  public void datasetUnauthorizedPermissionsTest() throws Exception {
+  void datasetUnauthorizedPermissionsTest() throws Exception {
     // These should fail because they don't have access to the billing profile
     dataRepoFixtures.createDatasetError(
         custodian(), profileId, "dataset-minimal.json", HttpStatus.FORBIDDEN);
@@ -295,13 +284,12 @@ public class DatasetIntegrationTest extends UsersBase {
     }
     assertThat("Reader does not have access to datasets", enumDatasetsResp.getTotal(), equalTo(0));
 
-    DatasetSummaryModel summaryModel = null;
-
-    summaryModel = dataRepoFixtures.createDataset(steward(), profileId, "dataset-minimal.json");
+    DatasetSummaryModel summaryModel =
+        dataRepoFixtures.createDataset(steward(), profileId, "dataset-minimal.json");
     datasetId = summaryModel.getId();
 
     DataRepoResponse<DatasetModel> getDatasetResp =
-        dataRepoFixtures.getDatasetRaw(reader(), summaryModel.getId());
+        dataRepoFixtures.getDatasetRaw(reader(), datasetId);
     assertThat(
         "Reader is not authorized to get dataset",
         getDatasetResp.getStatusCode(),
@@ -309,7 +297,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
     // make sure reader cannot delete dataset
     DataRepoResponse<JobModel> deleteResp1 =
-        dataRepoFixtures.deleteDatasetLaunch(reader(), summaryModel.getId());
+        dataRepoFixtures.deleteDatasetLaunch(reader(), datasetId);
     assertThat(
         "Reader is not authorized to delete datasets",
         deleteResp1.getStatusCode(),
@@ -355,7 +343,7 @@ public class DatasetIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testAssetCreationUndo() throws Exception {
+  void testAssetCreationUndo() throws Exception {
     // create a dataset
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.json");
@@ -396,7 +384,7 @@ public class DatasetIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testCreateDatasetWithPolicies() throws Exception {
+  void testCreateDatasetWithPolicies() throws Exception {
     List<String> stewards = List.of(steward().getEmail(), admin().getEmail());
     String custodianEmail = custodian().getEmail();
     List<String> custodiansWithDuplicates = List.of(custodianEmail, custodianEmail);

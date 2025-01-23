@@ -93,7 +93,7 @@ class SamRetryIntegrationTest extends UsersBase {
     List<SamPolicyModel> secondSyncPolicyList =
         iam.retrievePolicies(userRequest, IamResourceType.DATASET, fakeDatasetId);
 
-    assertEquals("Policy Emails should be the same", policyEmail, secondPolicyEmail);
+    assertEquals(policyEmail, secondPolicyEmail, "Policy Emails should be the same");
 
     // Let's make sure the policy model didn't change between the first and second sync
     for (int i = 0; i < firstSyncPolicyList.size(); i++) {

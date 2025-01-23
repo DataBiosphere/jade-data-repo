@@ -1,9 +1,7 @@
 package bio.terra.common;
 
-import bio.terra.service.resourcemanagement.exception.BigQueryAclExhaustionException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.UpdatePermissionsFailedException;
-import com.google.cloud.bigquery.BigQueryException;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;

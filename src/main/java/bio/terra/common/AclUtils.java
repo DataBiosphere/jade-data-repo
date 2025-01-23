@@ -31,17 +31,6 @@ public class AclUtils {
             ex);
         lastException = ex.getCause();
       } catch (Exception ex) {
-        // If an exception is thrown due to the user exhausting the number of authorized entities
-        // in the BigQuery dataset, detect that case and return a custom exception so it can be
-        // better reported to the user.
-        // if (ex instanceof BigQueryException bqe
-        //     && bqe.getMessage().startsWith("Too many authorized entities in this dataset.")) {
-        //   throw new BigQueryAclExhaustionException(
-        //       bqe.getMessage()
-        //           + " Resolve this by deleting snapshots or creating a second Terra Data Repo dataset.",
-        //       bqe);
-        // }
-
         throw new GoogleResourceException("Error while performing ACL update", ex);
       }
 

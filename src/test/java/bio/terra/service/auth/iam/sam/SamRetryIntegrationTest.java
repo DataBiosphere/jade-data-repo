@@ -105,7 +105,8 @@ class SamRetryIntegrationTest extends UsersBase {
           firstSyncPolicy.getName(),
           (i + 1),
           firstSyncPolicyList.size());
-      assertEquals(firstSyncPolicy, secondSyncPolicy, "Policy should not have changed after second sync");
+      assertEquals(
+          firstSyncPolicy, secondSyncPolicy, "Policy should not have changed after second sync");
     }
   }
 

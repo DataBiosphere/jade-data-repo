@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import bio.terra.common.category.Integration;
 import bio.terra.integration.DataRepoFixtures;
+import bio.terra.integration.IntegrationTestConfiguration;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
@@ -15,7 +16,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
@@ -26,8 +26,7 @@ import org.springframework.test.context.junit4.SpringRunner;
  * expected.
  */
 @RunWith(SpringRunner.class)
-@SpringBootTest
-@AutoConfigureMockMvc
+@SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Category(Integration.class)
 public class RepositoryApiControllerAccessTest extends UsersBase {

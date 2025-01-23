@@ -15,8 +15,8 @@ import bio.terra.common.PdaoConstant;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
+import bio.terra.integration.IntegrationTestConfiguration;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
@@ -32,7 +32,6 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -46,19 +45,15 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest
-@AutoConfigureMockMvc
+@SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Category(Integration.class)
 public class SnapshotIntegrationTest extends UsersBase {
-  @Autowired private DataRepoClient dataRepoClient;
-
   @Autowired private JsonLoader jsonLoader;
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
@@ -67,22 +62,19 @@ public class SnapshotIntegrationTest extends UsersBase {
 
   private static final Logger logger = LoggerFactory.getLogger(SnapshotIntegrationTest.class);
   private UUID profileId;
-  private DatasetSummaryModel datasetSummaryModel;
   private UUID datasetId;
   private final List<UUID> createdSnapshotIds = new ArrayList<>();
-  private String stewardToken;
   String participantTableName;
   int participantTableRowCount;
 
   @Before
   public void setup() throws Exception {
     super.setup();
-    stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     dataRepoFixtures.addPolicyMember(
         steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
 
-    datasetSummaryModel =
+    DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
     datasetId = datasetSummaryModel.getId();
     dataRepoFixtures.addDatasetPolicyMember(
@@ -132,10 +124,7 @@ public class SnapshotIntegrationTest extends UsersBase {
             .getResult();
     List<UUID> participantIds =
         participantResults.stream()
-            .map(
-                r ->
-                    UUID.fromString(
-                        ((LinkedHashMap) r).get(PdaoConstant.PDAO_ROW_ID_COLUMN).toString()))
+            .map(r -> UUID.fromString(((Map) r).get(PdaoConstant.PDAO_ROW_ID_COLUMN).toString()))
             .toList();
     List<Object> sampleResults =
         dataRepoFixtures
@@ -143,10 +132,7 @@ public class SnapshotIntegrationTest extends UsersBase {
             .getResult();
     List<UUID> sampleIds =
         sampleResults.stream()
-            .map(
-                r ->
-                    UUID.fromString(
-                        ((LinkedHashMap) r).get(PdaoConstant.PDAO_ROW_ID_COLUMN).toString()))
+            .map(r -> UUID.fromString(((Map) r).get(PdaoConstant.PDAO_ROW_ID_COLUMN).toString()))
             .toList();
 
     // swap in these row ids in the request

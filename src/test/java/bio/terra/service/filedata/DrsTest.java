@@ -115,19 +115,20 @@ class DrsTest extends UsersBase {
         dataRepoFixtures.getSnapshot(steward(), setupResult.summaryModel().getId(), null);
     profileId = setupResult.profileId();
     datasetId = setupResult.datasetId();
-    AuthenticatedUserRequest stewardUser = AuthenticatedUserRequest.builder()
-        .setSubjectId("DRSIntegration")
-        .setEmail(steward().getEmail())
-        .setToken(stewardToken)
-        .build();
-    AuthenticatedUserRequest custodianUser = AuthenticatedUserRequest.builder()
-        .setSubjectId("DRSIntegration")
-        .setEmail(custodian().getEmail())
-        .setToken(custodianToken)
-        .build();
+    AuthenticatedUserRequest stewardUser =
+        AuthenticatedUserRequest.builder()
+            .setSubjectId("DRSIntegration")
+            .setEmail(steward().getEmail())
+            .setToken(stewardToken)
+            .build();
+    AuthenticatedUserRequest custodianUser =
+        AuthenticatedUserRequest.builder()
+            .setSubjectId("DRSIntegration")
+            .setEmail(custodian().getEmail())
+            .setToken(custodianToken)
+            .build();
     datasetIamRoles =
-        iamService.retrievePolicyEmails(
-            stewardUser, IamResourceType.DATASET, datasetId);
+        iamService.retrievePolicyEmails(stewardUser, IamResourceType.DATASET, datasetId);
     snapshotIamRoles =
         iamService.retrievePolicyEmails(
             custodianUser, IamResourceType.DATASNAPSHOT, snapshotModel.getId());
@@ -229,8 +230,10 @@ class DrsTest extends UsersBase {
     logger.info("DRS Object Id - dir: {}", dirObjectId);
 
     validateDrsObject(drsObjectDirectory, dirObjectId);
-    assertThat("Contents of directory is not null", drsObjectDirectory.getContents(), notNullValue());
-    assertThat("Access method of directory is null", drsObjectDirectory.getAccessMethods(), nullValue());
+    assertThat(
+        "Contents of directory is not null", drsObjectDirectory.getContents(), notNullValue());
+    assertThat(
+        "Access method of directory is null", drsObjectDirectory.getAccessMethods(), nullValue());
 
     // When all is done, delete the snapshot and ensure that there are fewer acls
     dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotModel.getId());

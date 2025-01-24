@@ -118,20 +118,23 @@ class SecureMonitoringIntegrationTest extends UsersBase {
         snapshot.getSource().get(0).getDataset().isSecureMonitoringEnabled());
 
     SnapshotSummaryModel enumeratedModel =
-        dataRepoFixtures.enumerateSnapshots(steward())
-            .getItems().stream()
+        dataRepoFixtures.enumerateSnapshots(steward()).getItems().stream()
             .filter(s -> s.getId().equals(snapshotId))
-            .findFirst().orElseThrow();
+            .findFirst()
+            .orElseThrow();
 
     assertThat(
         "Enumerated snapshot model has secure monitoring flag",
         enumeratedModel.isSecureMonitoringEnabled());
 
     SnapshotSummaryModel enumeratedByDatasetModel =
-        dataRepoFixtures.enumerateSnapshotsByDatasetIds(steward(), List.of(datasetId))
-            .getItems().stream()
+        dataRepoFixtures
+            .enumerateSnapshotsByDatasetIds(steward(), List.of(datasetId))
+            .getItems()
+            .stream()
             .filter(s -> s.getId().equals(snapshotId))
-            .findFirst().orElseThrow();
+            .findFirst()
+            .orElseThrow();
 
     assertThat(
         "Enumerated by dataset id snapshot model has secure monitoring flag",
@@ -146,14 +149,13 @@ class SecureMonitoringIntegrationTest extends UsersBase {
         equalTo(googleResourceConfiguration.secureFolderResourceId()));
   }
 
-  private DatasetSummaryModel datasetWithSecureMonitoring()
-      throws Exception {
+  private DatasetSummaryModel datasetWithSecureMonitoring() throws Exception {
     DatasetRequestModel requestModel =
         jsonLoader.loadObject("ingest-test-dataset.json", DatasetRequestModel.class);
     requestModel.setDefaultProfileId(profileId);
     requestModel.setName(Names.randomizeName(requestModel.getName()));
     requestModel.setCloudPlatform(CloudPlatform.GCP);
-      requestModel.setEnableSecureMonitoring(true);
+    requestModel.setEnableSecureMonitoring(true);
     requestModel.dedicatedIngestServiceAccount(false);
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(steward(), requestModel, false);

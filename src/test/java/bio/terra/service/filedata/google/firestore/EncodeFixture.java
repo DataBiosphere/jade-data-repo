@@ -44,8 +44,7 @@ public class EncodeFixture {
   @Autowired private AuthService authService;
   @Autowired private TestConfiguration testConfiguration;
 
-  public record SetupResult(UUID profileId, UUID datasetId, SnapshotSummaryModel summaryModel) {
-  }
+  public record SetupResult(UUID profileId, UUID datasetId, SnapshotSummaryModel summaryModel) {}
 
   // Create dataset, load files and tables. Create and return snapshot.
   // Steward owns dataset; custodian is custodian on dataset; reader has access to the snapshot.

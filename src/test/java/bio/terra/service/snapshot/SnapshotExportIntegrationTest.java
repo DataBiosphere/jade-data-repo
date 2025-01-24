@@ -262,9 +262,15 @@ class SnapshotExportIntegrationTest extends UsersBase {
         assertThat("Authorized user can read " + path, blob, notNullValue());
 
         StorageException notAuthorizedException =
-            assertThrows("Unauthorized user cannot read " + path, StorageException.class, () -> unauthedStorage.get(blobId));
+            assertThrows(
+                "Unauthorized user cannot read " + path,
+                StorageException.class,
+                () -> unauthedStorage.get(blobId));
 
-        assertThat("Unauthorized user cannot read " + path, notAuthorizedException.getCode(), equalTo(403));
+        assertThat(
+            "Unauthorized user cannot read " + path,
+            notAuthorizedException.getCode(),
+            equalTo(403));
       }
     }
   }

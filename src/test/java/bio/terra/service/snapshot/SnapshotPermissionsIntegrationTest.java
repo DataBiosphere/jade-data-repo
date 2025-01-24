@@ -164,7 +164,8 @@ class SnapshotPermissionsIntegrationTest extends UsersBase {
         dataRepoFixtures.createSnapshotWithRequest(steward(), datasetName, profileId, requestModel);
     createdSnapshotIds.add(snapshotSummary.getId());
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
-    assertThat("new snapshot has been created", requestModel.getName(), equalTo(snapshot.getName()));
+    assertThat(
+        "new snapshot has been created", requestModel.getName(), equalTo(snapshot.getName()));
     assertThat("There should be 1 snapshot relationship", snapshot.getRelationships(), hasSize(1));
 
     // fetch Acls
@@ -181,7 +182,10 @@ class SnapshotPermissionsIntegrationTest extends UsersBase {
     logger.info("---- Dataset Acls after snapshot delete-----");
     int datasetMinusSnapshotAclCount =
         retryAclUpdate(datasetName, datasetAclCount, AclCheck.EQUALTO);
-    assertThat("We should be back to the same number of Acls on the dataset after snapshot delete", datasetMinusSnapshotAclCount, equalTo(datasetAclCount));
+    assertThat(
+        "We should be back to the same number of Acls on the dataset after snapshot delete",
+        datasetMinusSnapshotAclCount,
+        equalTo(datasetAclCount));
     // Don't need to tear down snapshot
     createdSnapshotIds.remove(snapshotSummary.getId());
   }

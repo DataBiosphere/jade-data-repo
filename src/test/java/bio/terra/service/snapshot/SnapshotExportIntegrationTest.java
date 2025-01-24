@@ -77,10 +77,7 @@ class SnapshotExportIntegrationTest extends UsersBase {
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private GcsUtils gcsUtils;
   @Autowired private AuthService authService;
-
-  @Autowired
-  @Qualifier("objectMapper")
-  private ObjectMapper objectMapper;
+  @Autowired private ObjectMapper objectMapper;
 
   private static final Logger logger = LoggerFactory.getLogger(SnapshotExportIntegrationTest.class);
   private String stewardToken;

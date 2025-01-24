@@ -5,6 +5,7 @@ import com.google.cloud.ServiceOptions;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Blob.BlobSourceOption;
 import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.Storage.BlobGetOption;
 import com.google.cloud.storage.StorageOptions;
@@ -33,12 +34,21 @@ public class GcsUtils {
 
   public void deleteTestFile(String path) {
     logger.info("Removing test file at {}", path);
-    storage.delete(GcsUriUtils.parseBlobUri(path));
+    storage.delete(GcsUriUtils.parseBlobUri(path), Storage.BlobSourceOption.userProject(projectId));
   }
 
   public boolean fileExists(String path) {
     logger.info("Checking that file {} exists", path);
     Blob blob = storage.get(GcsUriUtils.parseBlobUri(path), BlobGetOption.userProject(projectId));
     return blob.exists(BlobSourceOption.userProject(projectId));
+  }
+
+  public byte[] getBlobBytes(String path, String projectId) {
+    Blob blob = storage.get(GcsUriUtils.parseBlobUri(path), BlobGetOption.userProject(projectId));
+    return blob.getContent();
+  }
+
+  public Bucket getCloudBucket(String bucketName) {
+    return storage.get(bucketName);
   }
 }

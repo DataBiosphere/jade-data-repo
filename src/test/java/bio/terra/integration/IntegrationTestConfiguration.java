@@ -13,6 +13,7 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.firestore.EncodeFixture;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.OpenTelemetry;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -34,6 +35,7 @@ import org.springframework.context.annotation.Profile;
   Users.class,
   GcsUtils.class,
   EncodeFixture.class,
+  GoogleResourceManagerService.class,
   // These are required to support AuthService.makePetAccountToken()
   SamIam.class,
   SamApiService.class,

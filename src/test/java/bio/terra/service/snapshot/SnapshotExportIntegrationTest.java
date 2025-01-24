@@ -15,6 +15,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThrows;
 
+import bio.terra.common.GcsUtils;
 import bio.terra.common.ParquetUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
@@ -34,8 +35,6 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.common.gcs.GcsUriUtils;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.resourcemanagement.google.GoogleBucketService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.AccessToken;
@@ -54,7 +53,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -77,8 +75,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 class SnapshotExportIntegrationTest extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
-  @Autowired private GcsPdao gcsPdao;
-  @Autowired private GoogleBucketService googleBucketService;
+  @Autowired private GcsUtils gcsUtils;
   @Autowired private AuthService authService;
 
   @Autowired
@@ -200,9 +197,8 @@ class SnapshotExportIntegrationTest extends UsersBase {
       manifestBucket = manifestBlob.getBucket();
       String bucketProject = manifestBlob.getBucket().replace("-snapshot-export-bucket", "");
       manifestContentsRaw =
-          gcsPdao
-              .getBlobsLinesStream(parquet.getManifest(), bucketProject, null)
-              .collect(Collectors.joining("\n"));
+          new String(
+              gcsUtils.getBlobBytes(parquet.getManifest(), bucketProject), StandardCharsets.UTF_8);
     }
     TypeReference<SnapshotExportResponseModel> ref = new TypeReference<>() {};
     SnapshotExportResponseModel manifestContents =
@@ -220,7 +216,7 @@ class SnapshotExportIntegrationTest extends UsersBase {
 
     Integer deleteAge = 1;
 
-    var lifecycleRules = googleBucketService.getCloudBucket(manifestBucket).getLifecycleRules();
+    var lifecycleRules = gcsUtils.getCloudBucket(manifestBucket).getLifecycleRules();
 
     var lifecycleRule = lifecycleRules.get(0);
     var lifecycleAction = lifecycleRule.getAction();
@@ -316,7 +312,7 @@ class SnapshotExportIntegrationTest extends UsersBase {
     List<Map<String, Object>> records = new ArrayList<>();
     for (String path : sampleVcfTablePaths) {
       records.addAll(
-          ParquetUtils.readGcsParquetRecords(gcsPdao, path, snapshotSummary.getDataProject()));
+          ParquetUtils.readGcsParquetRecords(gcsUtils, path, snapshotSummary.getDataProject()));
     }
 
     for (var parquetRecord : records) {

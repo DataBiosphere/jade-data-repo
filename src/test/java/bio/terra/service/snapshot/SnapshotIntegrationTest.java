@@ -9,7 +9,6 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.util.AssertionErrors.assertFalse;
 
 import bio.terra.common.PdaoConstant;
@@ -187,7 +186,7 @@ class SnapshotIntegrationTest extends UsersBase {
     TimeUnit.SECONDS.sleep(10);
     createdSnapshotIds.add(snapshotSummary.getId());
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
-    assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
+    assertThat("new snapshot has been created", snapshot.getName(), is(requestModel.getName()));
   }
 
   @Test
@@ -204,7 +203,7 @@ class SnapshotIntegrationTest extends UsersBase {
     TimeUnit.SECONDS.sleep(10);
     createdSnapshotIds.add(snapshotSummary.getId());
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
-    assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
+    assertThat("new snapshot has been created", snapshot.getName(), is(requestModel.getName()));
   }
 
   @Test
@@ -294,7 +293,7 @@ class SnapshotIntegrationTest extends UsersBase {
     TimeUnit.SECONDS.sleep(10);
     createdSnapshotIds.add(snapshotSummary.getId());
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
-    assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
+    assertThat("new snapshot has been created", snapshot.getName(), is(requestModel.getName()));
     assertThat("the relationship comes through", snapshot.getRelationships(), hasSize(1));
 
     // Empty snapshot table
@@ -366,7 +365,7 @@ class SnapshotIntegrationTest extends UsersBase {
     TimeUnit.SECONDS.sleep(10);
     createdSnapshotIds.add(snapshotSummary.getId());
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
-    assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
+    assertThat("new snapshot has been created", snapshot.getName(), is(requestModel.getName()));
     assertThat("the relationship comes through", snapshot.getRelationships(), hasSize(1));
   }
 

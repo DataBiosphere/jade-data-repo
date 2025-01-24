@@ -29,9 +29,9 @@ import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
-import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.filedata.google.firestore.EncodeFixture;
 import bio.terra.service.resourcemanagement.ResourceService;
 import com.google.api.services.cloudresourcemanager.model.Binding;
@@ -93,7 +93,7 @@ class DrsTest extends UsersBase {
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private EncodeFixture encodeFixture;
   @Autowired private AuthService authService;
-  @Autowired private IamService iamService;
+  @Autowired private IamProviderInterface iamService;
 
   private DatasetModel datasetModel;
   private SnapshotModel snapshotModel;
@@ -193,7 +193,7 @@ class DrsTest extends UsersBase {
             .filter(accessMethod -> accessMethod.getType() == TypeEnum.GS)
             .findFirst();
 
-    assertThat("DRS access method is present", drsAccessMethod.isPresent(), equalTo(true));
+    assertThat("DRS access method is present", drsAccessMethod.isPresent());
 
     String drsAccessId = drsAccessMethod.get().getAccessId();
     DrsResponse<DRSAccessURL> drsAccessUrlResponse =

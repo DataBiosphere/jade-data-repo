@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
@@ -577,7 +576,9 @@ class FileTest extends UsersBase {
     // Use DRS API to lookup the file by DRS ID
     String drsObjectId = String.format("v1_%s_%s", snapshotId, fileId);
     // Should fail due to insufficient permissions
-    assertThrows(Exception.class, () -> dataRepoFixtures.drsGetObject(steward(), drsObjectId));
+    var response = dataRepoFixtures.drsGetObjectRaw(steward(), drsObjectId);
+    assertThat(
+        "Steward is not authorized", response.getStatusCode(), equalTo(HttpStatus.FORBIDDEN));
     DRSObject drsObject = dataRepoFixtures.drsGetObject(custodian(), drsObjectId);
 
     logger.info("Drs Object: {}", drsObject);

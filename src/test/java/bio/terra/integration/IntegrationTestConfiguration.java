@@ -4,7 +4,6 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.GcsUtils;
 import bio.terra.common.auth.AuthService;
-import bio.terra.common.auth.Users;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.service.auth.iam.sam.SamApiService;

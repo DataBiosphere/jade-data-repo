@@ -92,9 +92,13 @@ public class Users {
 
   public TestUsers testUsers() {
     TestUsers testUsers = new TestUsers(admin(), steward(), custodian(), reader(), discoverer());
-    logger.info("admin: {}; steward: {}; custodian: {}; reader: {}; discoverer: {}",
-        testUsers.admin().name(), testUsers.steward().name(), testUsers.custodian().name(),
-        testUsers.reader().name(), testUsers.discoverer().name());
+    logger.info(
+        "admin: {}; steward: {}; custodian: {}; reader: {}; discoverer: {}",
+        testUsers.admin().name(),
+        testUsers.steward().name(),
+        testUsers.custodian().name(),
+        testUsers.reader().name(),
+        testUsers.discoverer().name());
     return testUsers;
   }
 }

@@ -10,11 +10,11 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
-import java.util.HashMap;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.CannotSerializeTransactionException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.transaction.TransactionSystemException;
 
 public class CreateSnapshotCountTableRowsAzureStep implements Step {
@@ -37,11 +37,11 @@ public class CreateSnapshotCountTableRowsAzureStep implements Step {
     FlightMap workingMap = flightContext.getWorkingMap();
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
     Map<String, Long> tableRowCounts =
-        workingMap.get(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, HashMap.class);
+        workingMap.get(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, new TypeReference<>() {});
     try {
       snapshotDao.updateSnapshotTableRowCounts(snapshot, tableRowCounts);
-    } catch (CannotSerializeTransactionException | TransactionSystemException ex) {
-      logger.error("Could not serialize the transaction. Retrying.", ex);
+    } catch (TransientDataAccessException | TransactionSystemException ex) {
+      logger.error("Transaction failed due to a transient error. Retrying.", ex);
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
     }
     return StepResult.getStepResultSuccess();

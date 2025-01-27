@@ -2,13 +2,12 @@ package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 
-import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.integration.DataRepoFixtures;
+import bio.terra.integration.IntegrationTestConfiguration;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
@@ -23,34 +22,26 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.api.services.cloudresourcemanager.model.ResourceId;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 // TODO move me to integration dir
-@RunWith(SpringRunner.class)
-@SpringBootTest
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@AutoConfigureMockMvc
-@Category(Integration.class)
-public class SecureMonitoringIntegrationTest extends UsersBase {
-
-  private static Logger logger = LoggerFactory.getLogger(SecureMonitoringIntegrationTest.class);
+@Tag(Integration.TAG)
+class SecureMonitoringIntegrationTest extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
-  @Autowired private AuthService authService;
   @Autowired private JsonLoader jsonLoader;
   @Autowired private GoogleResourceManagerService resourceManagerService;
   @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
@@ -59,7 +50,8 @@ public class SecureMonitoringIntegrationTest extends UsersBase {
   private UUID snapshotId;
   private UUID profileId;
 
-  @Before
+  @Override
+  @BeforeEach
   public void setup() throws Exception {
     super.setup();
     dataRepoFixtures.resetConfig(steward());
@@ -67,7 +59,7 @@ public class SecureMonitoringIntegrationTest extends UsersBase {
     datasetId = null;
   }
 
-  @After
+  @AfterEach
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward());
 
@@ -85,19 +77,17 @@ public class SecureMonitoringIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testDatasetWithSecureMonitoring() throws Exception {
-    DatasetSummaryModel summary = datasetWithSecureMonitoring(true);
+  void testDatasetWithSecureMonitoring() throws Exception {
+    DatasetSummaryModel summary = datasetWithSecureMonitoring();
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), summary.getId());
 
     assertThat(
         "Secure monitoring enabled on the dataset summary model",
-        summary.isSecureMonitoringEnabled(),
-        is(true));
+        summary.isSecureMonitoringEnabled());
 
     assertThat(
         "Secure monitoring flag was propagated to the dataset model",
-        dataset.isSecureMonitoringEnabled(),
-        is(true));
+        dataset.isSecureMonitoringEnabled());
 
     var datasetGoogleDataProject = dataset.getDataProject();
     Project datasetProject = resourceManagerService.getProject(datasetGoogleDataProject);
@@ -119,38 +109,36 @@ public class SecureMonitoringIntegrationTest extends UsersBase {
 
     assertThat(
         "Snapshot summary denotes secure monitoring enabled",
-        snapshotSummary.isSecureMonitoringEnabled(),
-        is(true));
+        snapshotSummary.isSecureMonitoringEnabled());
 
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotId, List.of());
 
     assertThat(
         "Snapshot model denotes secure monitoring enabled",
-        snapshot.getSource().get(0).getDataset().isSecureMonitoringEnabled(),
-        is(true));
+        snapshot.getSource().get(0).getDataset().isSecureMonitoringEnabled());
 
-    Optional<SnapshotSummaryModel> enumeratedModel =
+    SnapshotSummaryModel enumeratedModel =
         dataRepoFixtures.enumerateSnapshots(steward()).getItems().stream()
             .filter(s -> s.getId().equals(snapshotId))
-            .findFirst();
+            .findFirst()
+            .orElseThrow();
 
     assertThat(
         "Enumerated snapshot model has secure monitoring flag",
-        enumeratedModel.get().isSecureMonitoringEnabled(),
-        is(true));
+        enumeratedModel.isSecureMonitoringEnabled());
 
-    Optional<SnapshotSummaryModel> enumeratedByDatasetModel =
+    SnapshotSummaryModel enumeratedByDatasetModel =
         dataRepoFixtures
             .enumerateSnapshotsByDatasetIds(steward(), List.of(datasetId))
             .getItems()
             .stream()
             .filter(s -> s.getId().equals(snapshotId))
-            .findFirst();
+            .findFirst()
+            .orElseThrow();
 
     assertThat(
         "Enumerated by dataset id snapshot model has secure monitoring flag",
-        enumeratedByDatasetModel.get().isSecureMonitoringEnabled(),
-        is(true));
+        enumeratedByDatasetModel.isSecureMonitoringEnabled());
 
     var snapshotGoogleProject = snapshot.getDataProject();
     Project snapshotProject = resourceManagerService.getProject(snapshotGoogleProject);
@@ -161,14 +149,13 @@ public class SecureMonitoringIntegrationTest extends UsersBase {
         equalTo(googleResourceConfiguration.secureFolderResourceId()));
   }
 
-  private DatasetSummaryModel datasetWithSecureMonitoring(boolean secureMonitoringEnabled)
-      throws Exception {
+  private DatasetSummaryModel datasetWithSecureMonitoring() throws Exception {
     DatasetRequestModel requestModel =
         jsonLoader.loadObject("ingest-test-dataset.json", DatasetRequestModel.class);
     requestModel.setDefaultProfileId(profileId);
     requestModel.setName(Names.randomizeName(requestModel.getName()));
     requestModel.setCloudPlatform(CloudPlatform.GCP);
-    requestModel.setEnableSecureMonitoring(secureMonitoringEnabled);
+    requestModel.setEnableSecureMonitoring(true);
     requestModel.dedicatedIngestServiceAccount(false);
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(steward(), requestModel, false);

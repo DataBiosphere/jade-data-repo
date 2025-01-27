@@ -1,6 +1,5 @@
 package bio.terra.integration;
 
-import bio.terra.common.auth.AuthService;
 import bio.terra.common.auth.Users;
 import bio.terra.common.configuration.TestConfiguration;
 import org.slf4j.Logger;
@@ -15,8 +14,6 @@ public class UsersBase {
   private static final String DISCOVERER_ROLE = "discoverer";
 
   @Autowired private Users users;
-
-  @Autowired private AuthService authService;
 
   private static Logger logger = LoggerFactory.getLogger(UsersBase.class);
   private TestConfiguration.User admin;

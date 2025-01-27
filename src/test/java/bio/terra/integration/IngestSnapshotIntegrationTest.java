@@ -20,23 +20,21 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@AutoConfigureMockMvc
-@Category(Integration.class)
-public class IngestSnapshotIntegrationTest extends UsersBase {
+@Tag(Integration.TAG)
+class IngestSnapshotIntegrationTest extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
 
@@ -45,7 +43,8 @@ public class IngestSnapshotIntegrationTest extends UsersBase {
   private UUID profileId;
   private final List<UUID> createdSnapshotIds = new ArrayList<>();
 
-  @Before
+  @Override
+  @BeforeEach
   public void setup() throws Exception {
     super.setup();
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
@@ -59,7 +58,7 @@ public class IngestSnapshotIntegrationTest extends UsersBase {
         steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
   }
 
-  @After
+  @AfterEach
   public void teardown() throws Exception {
     for (UUID snapshotId : createdSnapshotIds) {
       dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotId);

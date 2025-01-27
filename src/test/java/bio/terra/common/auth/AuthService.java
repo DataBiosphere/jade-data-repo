@@ -7,7 +7,7 @@ import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.json.gson.GsonFactory;
 import java.io.File;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.apache.commons.collections4.map.PassiveExpiringMap.ExpirationPolicy;
@@ -28,8 +27,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class AuthService {
-  private static Logger logger = LoggerFactory.getLogger(AuthService.class);
-  private static ExpirationPolicy<String, GoogleCredential> TOKEN_CACHE_EXPIRATION_POLICY =
+  private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
+  private static final ExpirationPolicy<String, GoogleCredential> TOKEN_CACHE_EXPIRATION_POLICY =
       // Make sure this value never returns a negative since that means the entry never expires
       (key, value) ->
           Math.max(0, value.getExpirationTimeMilliseconds() - TimeUnit.MINUTES.toMillis(5));
@@ -37,25 +36,25 @@ public class AuthService {
   // the list of scopes we request from end users when they log in.
   // this should always match exactly what the UI requests, so our tests represent actual user
   // behavior:
-  private List<String> userLoginScopes =
+  private final List<String> userLoginScopes =
       List.of(
           "openid", "email", "profile", "https://www.googleapis.com/auth/cloud-billing.readonly");
-  private List<String> directAccessScopes =
+  private final List<String> directAccessScopes =
       List.of(
           "https://www.googleapis.com/auth/bigquery",
           "https://www.googleapis.com/auth/devstorage.full_control");
-  private NetHttpTransport httpTransport;
-  private JacksonFactory jsonFactory = JacksonFactory.getDefaultInstance();
+  private final NetHttpTransport httpTransport;
+  private final GsonFactory jsonFactory = GsonFactory.getDefaultInstance();
   private File pemfile;
-  private String saEmail;
-  private Map<String, GoogleCredential> userTokens =
+  private final String saEmail;
+  private final Map<String, GoogleCredential> userTokens =
       Collections.synchronizedMap(new PassiveExpiringMap<>(TOKEN_CACHE_EXPIRATION_POLICY));
-  private Map<String, String> petAccountTokens =
+  private final Map<String, String> petAccountTokens =
       Collections.synchronizedMap(new PassiveExpiringMap<>(55, TimeUnit.MINUTES));
-  private Map<String, GoogleCredential> directAccessTokens =
+  private final Map<String, GoogleCredential> directAccessTokens =
       Collections.synchronizedMap(new PassiveExpiringMap<>(TOKEN_CACHE_EXPIRATION_POLICY));
-  private TestConfiguration testConfig;
-  private IamProviderInterface iamProvider;
+  private final TestConfiguration testConfig;
+  private final IamProviderInterface iamProvider;
 
   @Autowired
   public AuthService(TestConfiguration testConfig, IamProviderInterface iamProvider)
@@ -84,7 +83,7 @@ public class AuthService {
 
   private GoogleCredential buildCredential(String email, List<String> scopes)
       throws IOException, GeneralSecurityException {
-    if (!Optional.ofNullable(pemfile).isPresent()) {
+    if (pemfile == null) {
       throw new IllegalStateException(
           String.format("pemfile not found: %s", testConfig.getJadePemFileName()));
     }
@@ -100,9 +99,7 @@ public class AuthService {
 
   private GoogleCredential makeDirectAccessToken(String userEmail) {
     List<String> allScopes =
-        Stream.of(userLoginScopes, directAccessScopes)
-            .flatMap(Collection::stream)
-            .collect(Collectors.toList());
+        Stream.of(userLoginScopes, directAccessScopes).flatMap(Collection::stream).toList();
     return makeTokenForScopes(userEmail, allScopes);
   }
 

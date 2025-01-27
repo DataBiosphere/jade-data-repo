@@ -16,7 +16,7 @@ import bio.terra.common.category.Integration;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
-import bio.terra.integration.SamFixtures;
+import bio.terra.integration.IntegrationTestConfiguration;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
@@ -37,7 +37,6 @@ import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.common.gcs.GcsUriUtils;
-import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -48,48 +47,40 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 // TODO move me to integration dir
-@RunWith(SpringRunner.class)
-@SpringBootTest
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@AutoConfigureMockMvc
-@Category(Integration.class)
-public class SelfHostedDatasetIntegrationTest extends UsersBase {
-  private static Logger logger = LoggerFactory.getLogger(SelfHostedDatasetIntegrationTest.class);
-
+@Tag(Integration.TAG)
+class SelfHostedDatasetIntegrationTest extends UsersBase {
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private DataRepoClient dataRepoClient;
   @Autowired private AuthService authService;
   @Autowired private GcsUtils gcsUtils;
-  @Autowired private SamFixtures samFixtures;
-  @Autowired private GoogleResourceManagerService resourceManagerService;
 
   // Disabling check while we debug failing tests.
   // See https://broadworkbench.atlassian.net/browse/DR-2858
-  private static final Boolean SHOULD_ASSERT_HTTPS_ACCESSIBILITY = false;
+  private static final boolean SHOULD_ASSERT_HTTPS_ACCESSIBILITY = false;
 
   private String stewardToken;
   private UUID datasetId;
   private UUID snapshotId;
-  private String snapshotProject;
   private UUID profileId;
   private List<String> uploadedFiles;
   private String ingestBucket;
 
-  @Before
+  @Override
+  @BeforeEach
   public void setup() throws Exception {
     super.setup();
     stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
@@ -98,7 +89,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
     uploadedFiles = new ArrayList<>();
   }
 
-  @After
+  @AfterEach
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward());
 
@@ -120,19 +111,19 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testSelfHostedDatasetLifecycle() throws Exception {
+  void testSelfHostedDatasetLifecycle() throws Exception {
     ingestBucket = "jade-testdata-useastregion";
     testSelfHostedDatasetLifecycle(false);
   }
 
   @Test
-  public void testSelfHostedDatasetWithDedicatedSALifecycle() throws Exception {
+  void testSelfHostedDatasetWithDedicatedSALifecycle() throws Exception {
     ingestBucket = "jade_testbucket_no_jade_sa";
     testSelfHostedDatasetLifecycle(true);
   }
 
   @Test
-  public void testSelfHostedDatasetRequesterPaysLifecycle() throws Exception {
+  void testSelfHostedDatasetRequesterPaysLifecycle() throws Exception {
     ingestBucket = "jade_testbucket_requester_pays";
     testSelfHostedDatasetLifecycle(true);
   }
@@ -209,11 +200,13 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
             "WGS_VCF_INDEX_FILE_ID",
                 targetPathToFileId.get("/vcfs/downsampled/wgs/NA12878_PLUMBING.g.vcf.gz.tbi"));
 
-    Stream<String> lines =
-        Files.lines(
+    List<String> lines =
+        Files.readAllLines(
                 Paths.get(ClassLoader.getSystemResource("self-hosted-dataset-ingest.json").toURI()))
+            .stream()
             .map(line -> replaceVars(line, fileReplaceMap))
-            .map(line -> replaceVars(line, Map.of("INGEST_BUCKET", ingestBucket)));
+            .map(line -> replaceVars(line, Map.of("INGEST_BUCKET", ingestBucket)))
+            .toList();
 
     // Ingest metadata + 1 combined ingest file
     String ingestPath =
@@ -260,7 +253,6 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
         dataRepoFixtures.createSnapshot(
             steward(), dataset.getName(), profileId, "dataset-ingest-combined-array-snapshot.json");
     snapshotId = snapshot.getId();
-    snapshotProject = snapshot.getDataProject();
 
     assertThat(
         "a snapshot created from a self-hosted dataset says its self-hosted too",
@@ -285,7 +277,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
           drsObject.getAccessMethods(), stewardToken, SHOULD_ASSERT_HTTPS_ACCESSIBILITY);
       DRSAccessMethod gsAccessMethod =
           drsObject.getAccessMethods().stream()
-              .filter(accessMethod -> accessMethod.getType().equals(DRSAccessMethod.TypeEnum.GS))
+              .filter(accessMethod -> accessMethod.getType() == DRSAccessMethod.TypeEnum.GS)
               .findFirst()
               .orElseThrow();
       assertThat(

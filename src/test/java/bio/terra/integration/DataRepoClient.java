@@ -38,8 +38,8 @@ public class DataRepoClient {
   @Autowired private AuthService authService;
 
   private static final Logger logger = LoggerFactory.getLogger(DataRepoClient.class);
+
   private final RestTemplate restTemplate;
-  private final HttpHeaders headers;
 
   public DataRepoClient() {
     restTemplate =
@@ -49,10 +49,13 @@ public class DataRepoClient {
             .build();
     restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
     restTemplate.setErrorHandler(new DataRepoClientErrorHandler());
+  }
 
-    headers = new HttpHeaders();
+  private HttpHeaders createHeaders() {
+    var headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
     headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+    return headers;
   }
 
   // -- RepositoryController Client --
@@ -298,14 +301,14 @@ public class DataRepoClient {
   }
 
   private HttpHeaders getHeaders(TestConfiguration.User user) {
-    HttpHeaders copy = new HttpHeaders(headers);
-    copy.setBearerAuth(authService.getAuthToken(user.email()));
-    return copy;
+    HttpHeaders headers = createHeaders();
+    headers.setBearerAuth(authService.getAuthToken(user.email()));
+    return headers;
   }
 
   private HttpHeaders getHeadersForPet(TestConfiguration.User user) {
-    HttpHeaders copy = new HttpHeaders(headers);
-    copy.setBearerAuth(authService.getPetAccountAuthToken(user.email()));
-    return copy;
+    HttpHeaders headers = createHeaders();
+    headers.setBearerAuth(authService.getPetAccountAuthToken(user.email()));
+    return headers;
   }
 }

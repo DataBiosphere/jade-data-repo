@@ -31,7 +31,6 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 // This lists the components that can be autowired into an integration test class.
 @Import({
-  TestConfiguration.class,
   AuthService.class,
   ObjectMapper.class,
   JsonLoader.class,

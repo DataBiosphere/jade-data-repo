@@ -9,6 +9,7 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.IntegrationTestConfiguration;
+import bio.terra.integration.IntegrationTestConfiguration;
 import bio.terra.integration.Users;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;

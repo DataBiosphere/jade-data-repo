@@ -23,6 +23,7 @@ import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.IntegrationTestConfiguration;
+import bio.terra.integration.IntegrationTestConfiguration;
 import bio.terra.integration.Users;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;

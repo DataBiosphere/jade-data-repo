@@ -9,6 +9,7 @@ import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.IntegrationTestConfiguration;
+import bio.terra.integration.IntegrationTestConfiguration;
 import bio.terra.integration.Users;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
@@ -51,7 +52,8 @@ class RepositoryApiControllerAccessTest {
     dataRepoFixtures.getConfigList(admin);
 
     // This call should be unsuccessful
-    assertThat(dataRepoFixtures.getConfigListRaw(reader).getStatusCode(), is(HttpStatus.FORBIDDEN));
+    assertThat(
+        dataRepoFixtures.getConfigListRaw(reader).getStatusCode(), is(HttpStatus.FORBIDDEN));
   }
 
   @Test

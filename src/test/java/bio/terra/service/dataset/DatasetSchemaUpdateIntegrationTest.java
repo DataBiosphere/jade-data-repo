@@ -50,8 +50,6 @@ class DatasetSchemaUpdateIntegrationTest {
     profileId = dataRepoFixtures.createBillingProfile(steward).getId();
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward, profileId, "snapshot-test-dataset.json");
-    DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "snapshot-test-dataset.json");
     datasetId = datasetSummaryModel.getId();
   }
 

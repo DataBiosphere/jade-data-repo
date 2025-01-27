@@ -11,6 +11,7 @@ import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.TransactionSystemException;
 
 public class DeleteSnapshotMetadataStep implements Step {
 
@@ -32,7 +33,7 @@ public class DeleteSnapshotMetadataStep implements Step {
               : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
     } catch (SnapshotNotFoundException ex) {
       stateEnum = DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
-    } catch (TransientDataAccessException ex) {
+    } catch (TransientDataAccessException | TransactionSystemException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
     }
 

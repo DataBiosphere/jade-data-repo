@@ -30,7 +30,7 @@ class CountSnapshotTableRowsStepTest {
   @Mock private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   @Mock private SnapshotDao snapshotDao;
   @Mock private FlightContext flightContext;
-  //  private FlightMap workingMap;
+
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();
   private static final Snapshot SNAPSHOT =
       new Snapshot().id(SNAPSHOT_ID).name("Snapshot-" + SNAPSHOT_ID);

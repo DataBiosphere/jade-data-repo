@@ -15,6 +15,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -38,7 +39,7 @@ class CreateSnapshotCountTableRowsAzureStepTest {
   private static final SnapshotRequestModel snapshotReq =
       new SnapshotRequestModel().name(SNAPSHOT.getName());
 
-  private final HashMap<String, Long> tableRowCounts = new HashMap<>();
+  private final Map<String, Long> tableRowCounts = new HashMap<>();
   private CreateSnapshotCountTableRowsAzureStep step;
 
   @BeforeEach

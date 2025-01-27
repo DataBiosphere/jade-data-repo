@@ -11,12 +11,13 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.OnDemand;
 import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.GcsFixtures;
-import bio.terra.integration.UsersBase;
+import bio.terra.integration.Users;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -63,14 +64,19 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "integrationtest"})
 @Category(OnDemand.class)
-public class AccessTest extends UsersBase {
+public class AccessTest {
   private static final Logger logger = LoggerFactory.getLogger(AccessTest.class);
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;
   @Autowired private IamProviderInterface iamService;
   @Autowired private TestConfiguration testConfiguration;
+  @Autowired private Users users;
 
+  private User discoverer;
+  private User reader;
+  private User custodian;
+  private User steward;
   private String discovererToken;
   private String readerToken;
   private String custodianToken;
@@ -81,11 +87,14 @@ public class AccessTest extends UsersBase {
 
   @Before
   public void setup() throws Exception {
-    super.setup();
-    discovererToken = authService.getDirectAccessAuthToken(discoverer().getEmail());
-    readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
-    custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
-    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+    discoverer = users.discoverer();
+    reader = users.reader();
+    custodian = users.custodian();
+    steward = users.steward();
+    discovererToken = authService.getDirectAccessAuthToken(discoverer.email());
+    readerToken = authService.getDirectAccessAuthToken(reader.email());
+    custodianToken = authService.getDirectAccessAuthToken(custodian.email());
+    profileId = dataRepoFixtures.createBillingProfile(steward).getId();
     datasetId = null;
     snapshotIds = new ArrayList<>();
   }
@@ -93,22 +102,22 @@ public class AccessTest extends UsersBase {
   @After
   public void teardown() throws Exception {
     for (UUID snapshotId : snapshotIds) {
-      dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
+      dataRepoFixtures.deleteSnapshotLog(steward, snapshotId);
     }
     if (datasetId != null) {
-      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+      dataRepoFixtures.deleteDatasetLog(steward, datasetId);
     }
   }
 
   private void makeIngestTestDataset() throws Exception {
     datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
+        dataRepoFixtures.createDataset(steward, profileId, "ingest-test-dataset.json");
     datasetId = datasetSummaryModel.getId();
   }
 
   private void makeAclTestDataset() throws Exception {
     datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "file-acl-test-dataset.json");
+        dataRepoFixtures.createDataset(steward, profileId, "file-acl-test-dataset.json");
     datasetId = datasetSummaryModel.getId();
   }
 
@@ -123,12 +132,12 @@ public class AccessTest extends UsersBase {
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
-    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+    dataRepoFixtures.ingestJsonData(steward, datasetId, request);
 
     request = dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
-    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+    dataRepoFixtures.ingestJsonData(steward, datasetId, request);
 
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward, datasetId);
 
     String datasetBqSnapshotName = "datarepo_" + dataset.getName();
 
@@ -146,9 +155,9 @@ public class AccessTest extends UsersBase {
     }
 
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
+        steward, datasetId, IamRole.CUSTODIAN, custodian.email());
     DataRepoResponse<EnumerateDatasetModel> enumDatasets =
-        dataRepoFixtures.enumerateDatasetsRaw(custodian());
+        dataRepoFixtures.enumerateDatasetsRaw(custodian);
     assertThat(
         "Custodian is authorized to enumerate datasets",
         enumDatasets.getStatusCode(),
@@ -159,11 +168,11 @@ public class AccessTest extends UsersBase {
 
     SnapshotSummaryModel snapshotSummaryModel =
         dataRepoFixtures.createSnapshot(
-            custodian(), datasetSummaryModel.getName(), profileId, "ingest-test-snapshot.json");
+            custodian, datasetSummaryModel.getName(), profileId, "ingest-test-snapshot.json");
 
     SnapshotModel snapshotModel =
         dataRepoFixtures.getSnapshot(
-            custodian(),
+            custodian,
             snapshotSummaryModel.getId(),
             List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION));
     BigQuery bigQuery = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
@@ -181,13 +190,10 @@ public class AccessTest extends UsersBase {
     }
 
     dataRepoFixtures.addSnapshotPolicyMember(
-        custodian(), snapshotSummaryModel.getId(), IamRole.READER, reader().getEmail());
+        custodian, snapshotSummaryModel.getId(), IamRole.READER, reader.email());
 
     AuthenticatedUserRequest authenticatedReaderRequest =
-        AuthenticatedUserRequest.builder()
-            .setEmail(reader().getEmail())
-            .setToken(readerToken)
-            .build();
+        AuthenticatedUserRequest.builder().setEmail(reader.email()).setToken(readerToken).build();
     assertThat(
         "correctly added reader",
         iamService.isAuthorized(
@@ -206,13 +212,13 @@ public class AccessTest extends UsersBase {
     makeAclTestDataset();
 
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
+        steward, datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian.email());
 
     // Ingest a file into the dataset
-    String gsPath = "gs://" + testConfiguration.getIngestbucket();
+    String gsPath = "gs://" + testConfiguration.ingestbucket();
     FileModel fileModel =
         dataRepoFixtures.ingestFile(
-            steward(),
+            steward,
             datasetSummaryModel.getId(),
             profileId,
             gsPath + "/files/File Design Notes.pdf",
@@ -222,7 +228,7 @@ public class AccessTest extends UsersBase {
     String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileModel.getFileId());
     String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
     BlobInfo targetBlobInfo =
-        BlobInfo.newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath)).build();
+        BlobInfo.newBuilder(BlobId.of(testConfiguration.ingestbucket(), targetPath)).build();
 
     Storage storage = StorageOptions.getDefaultInstance().getService();
     try (WriteChannel writer = storage.writer(targetBlobInfo)) {
@@ -231,26 +237,23 @@ public class AccessTest extends UsersBase {
 
     IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", targetPath);
     IngestResponseModel ingestResponseModel =
-        dataRepoFixtures.ingestJsonData(steward(), datasetSummaryModel.getId(), request);
+        dataRepoFixtures.ingestJsonData(steward, datasetSummaryModel.getId(), request);
 
     assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
 
     // Create a snapshot exposing the one row and grant read access to our reader.
     SnapshotSummaryModel snapshotSummaryModel =
         dataRepoFixtures.createSnapshot(
-            custodian(), datasetSummaryModel.getName(), profileId, "file-acl-test-snapshot.json");
+            custodian, datasetSummaryModel.getName(), profileId, "file-acl-test-snapshot.json");
     snapshotIds.add(snapshotSummaryModel.getId());
     SnapshotModel snapshotModel =
-        dataRepoFixtures.getSnapshot(custodian(), snapshotSummaryModel.getId(), null);
+        dataRepoFixtures.getSnapshot(custodian, snapshotSummaryModel.getId(), null);
 
     dataRepoFixtures.addSnapshotPolicyMember(
-        custodian(), snapshotModel.getId(), IamRole.READER, reader().getEmail());
+        custodian, snapshotModel.getId(), IamRole.READER, reader.email());
 
     AuthenticatedUserRequest authenticatedReaderRequest =
-        AuthenticatedUserRequest.builder()
-            .setEmail(reader().getEmail())
-            .setToken(readerToken)
-            .build();
+        AuthenticatedUserRequest.builder().setEmail(reader.email()).setToken(readerToken).build();
     boolean authorized =
         iamService.isAuthorized(
             authenticatedReaderRequest,
@@ -273,10 +276,10 @@ public class AccessTest extends UsersBase {
     // Read and validate the DRS URI from the file ref column in the 'file' table.
     String drsObjectId =
         dataRepoFixtures.retrieveDrsIdFromSnapshotPreview(
-            reader(), snapshotModel.getId(), "file", "file_ref");
+            reader, snapshotModel.getId(), "file", "file_ref");
 
     // Use DRS API to lookup the file by DRS ID (pulled out of the URI).
-    DRSObject drsObject = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
+    DRSObject drsObject = dataRepoFixtures.drsGetObject(reader, drsObjectId);
     String gsuri =
         TestUtils.validateDrsAccessMethods(drsObject.getAccessMethods(), custodianToken, false);
 
@@ -298,11 +301,10 @@ public class AccessTest extends UsersBase {
   public void fileAclFaultTest() throws Exception {
     try {
       // Run the fileAclTest with the SNAPSHOT_GRANT_FILE_ACCESS_FAULT on
-      dataRepoFixtures.setFault(
-          steward(), ConfigEnum.SNAPSHOT_GRANT_FILE_ACCESS_FAULT.name(), true);
+      dataRepoFixtures.setFault(steward, ConfigEnum.SNAPSHOT_GRANT_FILE_ACCESS_FAULT.name(), true);
       fileAclTest();
     } finally {
-      dataRepoFixtures.resetConfig(steward());
+      dataRepoFixtures.resetConfig(steward);
     }
   }
 
@@ -312,12 +314,12 @@ public class AccessTest extends UsersBase {
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
-    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+    dataRepoFixtures.ingestJsonData(steward, datasetId, request);
 
     request = dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
-    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+    dataRepoFixtures.ingestJsonData(steward, datasetId, request);
 
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward, datasetId);
 
     String datasetBqSnapshotName = PdaoConstant.PDAO_PREFIX + dataset.getName();
 
@@ -335,9 +337,9 @@ public class AccessTest extends UsersBase {
     }
 
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
+        steward, datasetId, IamRole.CUSTODIAN, custodian.email());
     DataRepoResponse<EnumerateDatasetModel> enumDatasets =
-        dataRepoFixtures.enumerateDatasetsRaw(custodian());
+        dataRepoFixtures.enumerateDatasetsRaw(custodian);
     assertThat(
         "Custodian is authorized to enumerate datasets",
         enumDatasets.getStatusCode(),
@@ -348,7 +350,7 @@ public class AccessTest extends UsersBase {
 
     // gets the "sample" table and makes a table ref to use in the query
     dataRepoFixtures.assertDatasetTableCount(
-        custodian(), dataset, dataset.getSchema().getTables().get(1).getName(), 7);
+        custodian, dataset, dataset.getSchema().getTables().get(1).getName(), 7);
   }
 
   private boolean canReadBlob(Storage storage, BlobId blobId) throws Exception {

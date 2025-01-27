@@ -16,11 +16,12 @@ import static org.junit.jupiter.api.Assertions.fail;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.UsersBase;
+import bio.terra.integration.Users;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessMethod.TypeEnum;
 import bio.terra.model.DRSAccessURL;
@@ -78,7 +79,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class DrsTest extends UsersBase {
+class DrsTest {
 
   private static final Logger logger = LoggerFactory.getLogger(DrsTest.class);
 
@@ -94,7 +95,12 @@ class DrsTest extends UsersBase {
   @Autowired private EncodeFixture encodeFixture;
   @Autowired private AuthService authService;
   @Autowired private IamProviderInterface iamService;
+  @Autowired private Users users;
 
+  private User steward;
+  private User custodian;
+  private User reader;
+  private User discoverer;
   private DatasetModel datasetModel;
   private SnapshotModel snapshotModel;
   private UUID profileId;
@@ -102,29 +108,30 @@ class DrsTest extends UsersBase {
   private Map<IamRole, String> datasetIamRoles;
   private Map<IamRole, String> snapshotIamRoles;
 
-  @Override
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
-    String custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
-    String stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
+    steward = users.steward();
+    custodian = users.custodian();
+    reader = users.reader();
+    discoverer = users.discoverer();
+    String custodianToken = authService.getDirectAccessAuthToken(custodian.email());
+    String stewardToken = authService.getDirectAccessAuthToken(steward.email());
     EncodeFixture.SetupResult setupResult =
-        encodeFixture.setupEncode(steward(), custodian(), reader(), SHOULD_ASSERT_BQ_ACCESSIBLE);
-    datasetModel = dataRepoFixtures.getDataset(steward(), setupResult.datasetId());
-    snapshotModel =
-        dataRepoFixtures.getSnapshot(steward(), setupResult.summaryModel().getId(), null);
+        encodeFixture.setupEncode(steward, custodian, reader, SHOULD_ASSERT_BQ_ACCESSIBLE);
+    datasetModel = dataRepoFixtures.getDataset(steward, setupResult.datasetId());
+    snapshotModel = dataRepoFixtures.getSnapshot(steward, setupResult.summaryModel().getId(), null);
     profileId = setupResult.profileId();
     datasetId = setupResult.datasetId();
     AuthenticatedUserRequest stewardUser =
         AuthenticatedUserRequest.builder()
             .setSubjectId("DRSIntegration")
-            .setEmail(steward().getEmail())
+            .setEmail(steward.email())
             .setToken(stewardToken)
             .build();
     AuthenticatedUserRequest custodianUser =
         AuthenticatedUserRequest.builder()
             .setSubjectId("DRSIntegration")
-            .setEmail(custodian().getEmail())
+            .setEmail(custodian.email())
             .setToken(custodianToken)
             .build();
     datasetIamRoles =
@@ -138,21 +145,21 @@ class DrsTest extends UsersBase {
   @AfterEach
   public void teardown() throws Exception {
     try {
-      dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotModel.getId());
+      dataRepoFixtures.deleteSnapshotLog(custodian, snapshotModel.getId());
     } catch (Throwable e) {
       // Already ran if everything was successful so skipping
       logger.info("Snapshot already deleted");
     }
     try {
-      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+      dataRepoFixtures.deleteDatasetLog(steward, datasetId);
     } catch (Throwable e) {
       // Already ran if everything was successful so skipping
       logger.info("Dataset already deleted");
     }
     if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward(), profileId);
+      dataRepoFixtures.deleteProfileLog(steward, profileId);
     }
-    dataRepoFixtures.resetConfig(steward());
+    dataRepoFixtures.resetConfig(steward);
   }
 
   @Test
@@ -160,17 +167,17 @@ class DrsTest extends UsersBase {
     // Get a DRS ID from the snapshot preview as a reader.
     String drsObjectId =
         dataRepoFixtures.retrieveDrsIdFromSnapshotPreview(
-            reader(), snapshotModel.getId(), "file", "file_ref");
+            reader, snapshotModel.getId(), "file", "file_ref");
 
     // DRS lookup the file and validate
     logger.info("DRS Object Id - file: {}", drsObjectId);
-    final DRSObject drsObjectFile = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
+    final DRSObject drsObjectFile = dataRepoFixtures.drsGetObject(reader, drsObjectId);
     validateDrsObject(drsObjectFile, drsObjectId);
     assertNull("Contents of file is null", drsObjectFile.getContents());
 
     TestUtils.validateDrsAccessMethods(
         drsObjectFile.getAccessMethods(),
-        authService.getDirectAccessAuthToken(steward().getEmail()),
+        authService.getDirectAccessAuthToken(steward.email()),
         false);
 
     Map<String, List<Acl>> preDeleteAcls =
@@ -197,7 +204,7 @@ class DrsTest extends UsersBase {
 
     String drsAccessId = drsAccessMethod.get().getAccessId();
     DrsResponse<DRSAccessURL> drsAccessUrlResponse =
-        dataRepoFixtures.getObjectAccessUrl(custodian(), drsObjectId, drsAccessId);
+        dataRepoFixtures.getObjectAccessUrl(custodian, drsObjectId, drsAccessId);
 
     if (drsAccessUrlResponse.getResponseObject().isEmpty()) {
       fail("Access URL response object is empty");
@@ -223,10 +230,10 @@ class DrsTest extends UsersBase {
     String dirPath = StringUtils.prependIfMissing(getDirectoryPath(filePath), "/");
 
     FileModel fsObject =
-        dataRepoFixtures.getSnapshotFileByName(steward(), snapshotModel.getId(), dirPath);
+        dataRepoFixtures.getSnapshotFileByName(steward, snapshotModel.getId(), dirPath);
     String dirObjectId = "v1_" + snapshotModel.getId() + "_" + fsObject.getFileId();
 
-    final DRSObject drsObjectDirectory = dataRepoFixtures.drsGetObject(reader(), dirObjectId);
+    final DRSObject drsObjectDirectory = dataRepoFixtures.drsGetObject(reader, dirObjectId);
     logger.info("DRS Object Id - dir: {}", dirObjectId);
 
     validateDrsObject(drsObjectDirectory, dirObjectId);
@@ -236,7 +243,7 @@ class DrsTest extends UsersBase {
         "Access method of directory is null", drsObjectDirectory.getAccessMethods(), nullValue());
 
     // When all is done, delete the snapshot and ensure that there are fewer acls
-    dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotModel.getId());
+    dataRepoFixtures.deleteSnapshotLog(custodian, snapshotModel.getId());
 
     Map<String, List<Acl>> postDeleteAcls =
         TestUtils.readDrsGCSAcls(drsObjectFile.getAccessMethods());
@@ -254,7 +261,7 @@ class DrsTest extends UsersBase {
             datasetIamRoles.get(IamRole.SNAPSHOT_CREATOR)));
 
     // Delete dataset and make sure that project level ACLs are reset
-    dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+    dataRepoFixtures.deleteDatasetLog(steward, datasetId);
 
     // Make sure that the dataset roles are now removed
     validateBQJobUserRoleNotPresent(
@@ -270,14 +277,14 @@ class DrsTest extends UsersBase {
     // Get a DRS ID from the snapshot preview as a reader.
     String drsObjectId =
         dataRepoFixtures.retrieveDrsIdFromSnapshotPreview(
-            reader(), snapshotModel.getId(), "file", "file_ref");
+            reader, snapshotModel.getId(), "file", "file_ref");
 
     String invalidDrsObjectId = drsObjectId.substring(1);
 
     // DRS lookup the file and validate
     logger.info("Invalid DRS Object Id - file: {}", invalidDrsObjectId);
     DrsResponse<DRSObject> badRequestResponse =
-        dataRepoFixtures.drsGetObjectRaw(reader(), invalidDrsObjectId);
+        dataRepoFixtures.drsGetObjectRaw(reader, invalidDrsObjectId);
     assertThat(
         "a 400 BAD_REQUEST response is returned",
         badRequestResponse.getStatusCode(),
@@ -294,7 +301,7 @@ class DrsTest extends UsersBase {
         equalTo(HttpStatus.UNAUTHORIZED));
 
     DrsResponse<DRSObject> forbiddenResponse =
-        dataRepoFixtures.drsGetObjectRaw(discoverer(), drsObjectId);
+        dataRepoFixtures.drsGetObjectRaw(discoverer, drsObjectId);
     assertThat(
         "a 403 FORBIDDEN response is returned",
         forbiddenResponse.getStatusCode(),
@@ -304,7 +311,7 @@ class DrsTest extends UsersBase {
         String.format("v1_%s_%s", snapshotModel.getId(), UUID.randomUUID());
     logger.info("Non-existent file DRS Object Id - file: {}", nonExistentFileDrsObjectId);
     DrsResponse<DRSObject> badFileResponse =
-        dataRepoFixtures.drsGetObjectRaw(reader(), nonExistentFileDrsObjectId);
+        dataRepoFixtures.drsGetObjectRaw(reader, nonExistentFileDrsObjectId);
     assertThat(
         "a 404 NOT_FOUND response is returned",
         badFileResponse.getStatusCode(),
@@ -314,7 +321,7 @@ class DrsTest extends UsersBase {
         drsObjectId.replace(snapshotModel.getId().toString(), UUID.randomUUID().toString());
     logger.info("Non-existent snapshot DRS Object Id - file: {}", nonExistentSnapshotObjectId);
     DrsResponse<DRSObject> badSnapshotResponse =
-        dataRepoFixtures.drsGetObjectRaw(reader(), nonExistentSnapshotObjectId);
+        dataRepoFixtures.drsGetObjectRaw(reader, nonExistentSnapshotObjectId);
     assertThat(
         "a 404 NOT_FOUND response is returned",
         badSnapshotResponse.getStatusCode(),

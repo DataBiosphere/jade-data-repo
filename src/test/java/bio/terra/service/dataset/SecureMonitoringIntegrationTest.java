@@ -4,11 +4,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.UsersBase;
+import bio.terra.integration.Users;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
@@ -21,9 +22,11 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.api.services.cloudresourcemanager.model.ResourceId;
+import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -39,47 +42,48 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class SecureMonitoringIntegrationTest extends UsersBase {
+class SecureMonitoringIntegrationTest {
 
+  @Autowired private Users users;
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private JsonLoader jsonLoader;
   @Autowired private GoogleResourceManagerService resourceManagerService;
   @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
 
+  private TestConfiguration.User steward;
   private UUID datasetId;
   private UUID snapshotId;
   private UUID profileId;
 
-  @Override
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
-    dataRepoFixtures.resetConfig(steward());
-    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+    steward = users.steward();
+    dataRepoFixtures.resetConfig(steward);
+    profileId = dataRepoFixtures.createBillingProfile(steward).getId();
     datasetId = null;
   }
 
   @AfterEach
   public void teardown() throws Exception {
-    dataRepoFixtures.resetConfig(steward());
+    dataRepoFixtures.resetConfig(steward);
 
     if (datasetId != null) {
-      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+      dataRepoFixtures.deleteDatasetLog(steward, datasetId);
     }
 
     if (snapshotId != null) {
-      dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
+      dataRepoFixtures.deleteSnapshotLog(steward, snapshotId);
     }
 
     if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward(), profileId);
+      dataRepoFixtures.deleteProfileLog(steward, profileId);
     }
   }
 
   @Test
   void testDatasetWithSecureMonitoring() throws Exception {
     DatasetSummaryModel summary = datasetWithSecureMonitoring();
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), summary.getId());
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward, summary.getId());
 
     assertThat(
         "Secure monitoring enabled on the dataset summary model",
@@ -103,22 +107,25 @@ class SecureMonitoringIntegrationTest extends UsersBase {
     // swap in the correct dataset name (with the id at the end)
     requestModel.getContents().get(0).setDatasetName(datasetName);
     SnapshotSummaryModel snapshotSummary =
-        dataRepoFixtures.createSnapshotWithRequest(steward(), datasetName, profileId, requestModel);
-    TimeUnit.SECONDS.sleep(10);
+        dataRepoFixtures.createSnapshotWithRequest(steward, datasetName, profileId, requestModel);
     snapshotId = snapshotSummary.getId();
 
     assertThat(
         "Snapshot summary denotes secure monitoring enabled",
         snapshotSummary.isSecureMonitoringEnabled());
 
-    SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotId, List.of());
+    SnapshotModel snapshot =
+        Awaitility.waitAtMost(Duration.ofSeconds(10))
+            .until(
+                () -> dataRepoFixtures.getSnapshot(steward, snapshotSummary.getId(), null),
+                Objects::nonNull);
 
     assertThat(
         "Snapshot model denotes secure monitoring enabled",
         snapshot.getSource().get(0).getDataset().isSecureMonitoringEnabled());
 
     SnapshotSummaryModel enumeratedModel =
-        dataRepoFixtures.enumerateSnapshots(steward()).getItems().stream()
+        dataRepoFixtures.enumerateSnapshots(steward).getItems().stream()
             .filter(s -> s.getId().equals(snapshotId))
             .findFirst()
             .orElseThrow();
@@ -129,7 +136,7 @@ class SecureMonitoringIntegrationTest extends UsersBase {
 
     SnapshotSummaryModel enumeratedByDatasetModel =
         dataRepoFixtures
-            .enumerateSnapshotsByDatasetIds(steward(), List.of(datasetId))
+            .enumerateSnapshotsByDatasetIds(steward, List.of(datasetId))
             .getItems()
             .stream()
             .filter(s -> s.getId().equals(snapshotId))
@@ -157,16 +164,15 @@ class SecureMonitoringIntegrationTest extends UsersBase {
     requestModel.setCloudPlatform(CloudPlatform.GCP);
     requestModel.setEnableSecureMonitoring(true);
     requestModel.dedicatedIngestServiceAccount(false);
-    DatasetSummaryModel summaryModel =
-        dataRepoFixtures.createDataset(steward(), requestModel, false);
+    DatasetSummaryModel summaryModel = dataRepoFixtures.createDataset(steward, requestModel, false);
     datasetId = summaryModel.getId();
 
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
-    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+    dataRepoFixtures.ingestJsonData(steward, datasetId, request);
     request = dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
-    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+    dataRepoFixtures.ingestJsonData(steward, datasetId, request);
     return summaryModel;
   }
 }

@@ -484,6 +484,7 @@ tasks.register('testIntegration', Test) {
     }
     maxParallelForks = 8
     outputs.upToDateWhen { false }
+    systemProperty 'junit.jupiter.execution.parallel.enabled', 'true'
 }
 
 tasks.register('testUnit', Test) {

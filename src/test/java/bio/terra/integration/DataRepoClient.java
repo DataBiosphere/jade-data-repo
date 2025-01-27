@@ -233,7 +233,7 @@ public class DataRepoClient {
 
   public ResponseEntity<String> makeUnauthenticatedDrsRequest(String path, HttpMethod method) {
     return restTemplate.exchange(
-        testConfig.getJadeApiUrl() + path, method, HttpEntity.EMPTY, String.class);
+        testConfig.jadeApiUrl() + path, method, HttpEntity.EMPTY, String.class);
   }
 
   /*
@@ -265,11 +265,11 @@ public class DataRepoClient {
         "api request: method={} path={} user={} body={}",
         method.toString(),
         path,
-        user.getName(),
+        user.name(),
         entity.getBody());
 
     ResponseEntity<String> response =
-        restTemplate.exchange(testConfig.getJadeApiUrl() + path, method, entity, String.class);
+        restTemplate.exchange(testConfig.jadeApiUrl() + path, method, entity, String.class);
 
     ObjectOrErrorResponse<S, T> drResponse = new ObjectOrErrorResponse<>();
     drResponse.setStatusCode(HttpStatus.valueOf(response.getStatusCode().value()));
@@ -299,13 +299,13 @@ public class DataRepoClient {
 
   private HttpHeaders getHeaders(TestConfiguration.User user) {
     HttpHeaders copy = new HttpHeaders(headers);
-    copy.setBearerAuth(authService.getAuthToken(user.getEmail()));
+    copy.setBearerAuth(authService.getAuthToken(user.email()));
     return copy;
   }
 
   private HttpHeaders getHeadersForPet(TestConfiguration.User user) {
     HttpHeaders copy = new HttpHeaders(headers);
-    copy.setBearerAuth(authService.getPetAccountAuthToken(user.getEmail()));
+    copy.setBearerAuth(authService.getPetAccountAuthToken(user.email()));
     return copy;
   }
 }

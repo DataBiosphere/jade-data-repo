@@ -13,11 +13,12 @@ import bio.terra.common.GcsUtils;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.UsersBase;
+import bio.terra.integration.Users;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
@@ -62,16 +63,18 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class SelfHostedDatasetIntegrationTest extends UsersBase {
+class SelfHostedDatasetIntegrationTest {
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private DataRepoClient dataRepoClient;
   @Autowired private AuthService authService;
   @Autowired private GcsUtils gcsUtils;
+  @Autowired private Users users;
 
   // Disabling check while we debug failing tests.
   // See https://broadworkbench.atlassian.net/browse/DR-2858
   private static final boolean SHOULD_ASSERT_HTTPS_ACCESSIBILITY = false;
 
+  private TestConfiguration.User steward;
   private String stewardToken;
   private UUID datasetId;
   private UUID snapshotId;
@@ -79,30 +82,29 @@ class SelfHostedDatasetIntegrationTest extends UsersBase {
   private List<String> uploadedFiles;
   private String ingestBucket;
 
-  @Override
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
-    stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
-    dataRepoFixtures.resetConfig(steward());
-    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+    steward = users.steward();
+    stewardToken = authService.getDirectAccessAuthToken(steward.email());
+    dataRepoFixtures.resetConfig(steward);
+    profileId = dataRepoFixtures.createBillingProfile(steward).getId();
     uploadedFiles = new ArrayList<>();
   }
 
   @AfterEach
   public void teardown() throws Exception {
-    dataRepoFixtures.resetConfig(steward());
+    dataRepoFixtures.resetConfig(steward);
 
     if (snapshotId != null) {
-      dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
+      dataRepoFixtures.deleteSnapshotLog(steward, snapshotId);
     }
 
     if (datasetId != null) {
-      dataRepoFixtures.deleteDataset(steward(), datasetId, ingestBucket);
+      dataRepoFixtures.deleteDataset(steward, datasetId, ingestBucket);
     }
 
     if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward(), profileId);
+      dataRepoFixtures.deleteProfileLog(steward, profileId);
     }
 
     for (var path : uploadedFiles) {
@@ -133,13 +135,13 @@ class SelfHostedDatasetIntegrationTest extends UsersBase {
 
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createSelfHostedDataset(
-            steward(), profileId, "dataset-ingest-combined-array.json", dedicatedServiceAccount);
+            steward, profileId, "dataset-ingest-combined-array.json", dedicatedServiceAccount);
     datasetId = datasetSummaryModel.getId();
 
     assertThat(
         "the dataset is marked as self-hosted", datasetSummaryModel.isSelfHosted(), is(true));
 
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward, datasetId);
     assertThat(
         "the dataset returned from the retrieve endpoint is marked as self-hosted",
         dataset.isSelfHosted(),
@@ -151,7 +153,7 @@ class SelfHostedDatasetIntegrationTest extends UsersBase {
     // Ingest a single file
     FileModel exomeVcfModel =
         dataRepoFixtures.ingestFile(
-            steward(),
+            steward,
             datasetId,
             profileId,
             exomeVcfPath(ingestBucket),
@@ -185,7 +187,7 @@ class SelfHostedDatasetIntegrationTest extends UsersBase {
 
     // Bulk ingest files
     BulkLoadArrayResultModel vcfIndicesModel =
-        dataRepoFixtures.bulkLoadArray(steward(), datasetId, bulkLoadArrayRequestModel);
+        dataRepoFixtures.bulkLoadArray(steward, datasetId, bulkLoadArrayRequestModel);
 
     Map<String, String> targetPathToFileId =
         vcfIndicesModel.getLoadFileResults().stream()
@@ -224,12 +226,12 @@ class SelfHostedDatasetIntegrationTest extends UsersBase {
             .table("sample_vcf")
             .path(ingestPath);
 
-    dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+    dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
 
-    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample_vcf", 2);
+    dataRepoFixtures.assertDatasetTableCount(steward, dataset, "sample_vcf", 2);
 
     List<Map<String, List<String>>> sampleVcfResults =
-        dataRepoFixtures.transformStringResults(steward(), dataset, "sample_vcf");
+        dataRepoFixtures.transformStringResults(steward, dataset, "sample_vcf");
     Set<String> ingestedFileIds =
         sampleVcfResults.stream()
             .flatMap(
@@ -251,7 +253,7 @@ class SelfHostedDatasetIntegrationTest extends UsersBase {
 
     SnapshotSummaryModel snapshot =
         dataRepoFixtures.createSnapshot(
-            steward(), dataset.getName(), profileId, "dataset-ingest-combined-array-snapshot.json");
+            steward, dataset.getName(), profileId, "dataset-ingest-combined-array-snapshot.json");
     snapshotId = snapshot.getId();
 
     assertThat(
@@ -265,7 +267,7 @@ class SelfHostedDatasetIntegrationTest extends UsersBase {
                 fileId -> {
                   try {
                     return dataRepoFixtures.drsGetObject(
-                        steward(), String.format("v1_%s_%s", snapshotId, fileId));
+                        steward, String.format("v1_%s_%s", snapshotId, fileId));
                   } catch (Exception e) {
                     throw new RuntimeException(e);
                   }
@@ -286,7 +288,7 @@ class SelfHostedDatasetIntegrationTest extends UsersBase {
           equalTo(ingestBucket));
       DRSAccessURL objectAccessUrl =
           dataRepoFixtures
-              .getObjectAccessUrl(steward(), drsObject.getId(), gsAccessMethod.getAccessId())
+              .getObjectAccessUrl(steward, drsObject.getId(), gsAccessMethod.getAccessId())
               .getResponseObject()
               .orElseThrow();
 
@@ -301,24 +303,24 @@ class SelfHostedDatasetIntegrationTest extends UsersBase {
 
     // validate that snapshot export works correctly
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
-        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, false, true);
+        dataRepoFixtures.exportSnapshotLog(steward, snapshotId, false, false, true);
     assertThat(
         "self-hosted snapshots can be exported with DRS URIs",
         exportResponse.getResponseObject().isPresent(),
         is(true));
 
     DataRepoResponse<JobModel> exportSnapshotExpectFailure =
-        dataRepoFixtures.exportSnapshot(steward(), snapshotId, true, false, true);
+        dataRepoFixtures.exportSnapshot(steward, snapshotId, true, false, true);
     DataRepoResponse<ErrorModel> errorResponse =
         dataRepoClient.waitForResponseLog(
-            steward(), exportSnapshotExpectFailure, new TypeReference<>() {});
+            steward, exportSnapshotExpectFailure, new TypeReference<>() {});
 
     assertThat(
         "self-hosted snapshots cannot be exported while resolving DRS URIs to gs-paths",
         errorResponse.getErrorObject().orElseThrow().getMessage(),
         containsString("Cannot export GS Paths for self-hosted snapshots"));
 
-    dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
+    dataRepoFixtures.deleteSnapshotLog(steward, snapshotId);
     snapshotId = null;
 
     Map<String, List<String>> rowToDelete =
@@ -329,7 +331,7 @@ class SelfHostedDatasetIntegrationTest extends UsersBase {
     UUID datarepoRowId = UUID.fromString(rowToDelete.get("datarepo_row_id").get(0));
 
     dataRepoFixtures.deleteData(
-        steward(),
+        steward,
         datasetId,
         new DataDeletionRequest()
             .deleteType(DataDeletionRequest.DeleteTypeEnum.SOFT)
@@ -348,7 +350,7 @@ class SelfHostedDatasetIntegrationTest extends UsersBase {
         fileExistsAfterDataDelete,
         is(true));
 
-    dataRepoFixtures.deleteDataset(steward(), datasetId, ingestBucket);
+    dataRepoFixtures.deleteDataset(steward, datasetId, ingestBucket);
     datasetId = null;
 
     boolean fileExistsAfterDatasetDelete = gcsUtils.fileExists(exomeVcfPath(ingestBucket));

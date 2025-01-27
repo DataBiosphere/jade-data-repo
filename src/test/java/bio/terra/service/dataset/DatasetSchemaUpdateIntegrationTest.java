@@ -3,10 +3,11 @@ package bio.terra.service.dataset;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.UsersBase;
+import bio.terra.integration.Users;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
@@ -33,32 +34,34 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class DatasetSchemaUpdateIntegrationTest extends UsersBase {
+class DatasetSchemaUpdateIntegrationTest {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
+  @Autowired private Users users;
+
+  private User steward;
   private UUID profileId;
   private UUID datasetId;
 
-  @Override
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
-    dataRepoFixtures.resetConfig(steward());
-    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+    steward = users.steward();
+    dataRepoFixtures.resetConfig(steward);
+    profileId = dataRepoFixtures.createBillingProfile(steward).getId();
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "snapshot-test-dataset.json");
+        dataRepoFixtures.createDataset(steward, profileId, "snapshot-test-dataset.json");
     datasetId = datasetSummaryModel.getId();
   }
 
   @AfterEach
   public void teardown() throws Exception {
-    dataRepoFixtures.resetConfig(steward());
+    dataRepoFixtures.resetConfig(steward);
     if (datasetId != null) {
-      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+      dataRepoFixtures.deleteDatasetLog(steward, datasetId);
     }
 
     if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward(), profileId);
+      dataRepoFixtures.deleteProfileLog(steward, profileId);
     }
   }
 
@@ -76,7 +79,7 @@ class DatasetSchemaUpdateIntegrationTest extends UsersBase {
                         List.of(
                             DatasetFixtures.tableModel(
                                 newTableName, List.of(newTableColumnName)))));
-    DatasetModel response = dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
+    DatasetModel response = dataRepoFixtures.updateSchema(steward, datasetId, updateModel);
     Optional<TableModel> newTable =
         response.getSchema().getTables().stream()
             .filter(tableModel -> tableModel.getName().equals(newTableName))
@@ -107,7 +110,7 @@ class DatasetSchemaUpdateIntegrationTest extends UsersBase {
                 new DatasetSchemaUpdateModelChanges()
                     .addColumns(
                         List.of(DatasetFixtures.columnUpdateModel(existingTableName, newColumns))));
-    DatasetModel response = dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
+    DatasetModel response = dataRepoFixtures.updateSchema(steward, datasetId, updateModel);
     Optional<TableModel> existingTable =
         response.getSchema().getTables().stream()
             .filter(tableModel -> tableModel.getName().equals(existingTableName))
@@ -139,7 +142,7 @@ class DatasetSchemaUpdateIntegrationTest extends UsersBase {
                     .addColumns(
                         List.of(DatasetFixtures.columnUpdateModel(newTableName, newColumns))));
 
-    DatasetModel response = dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
+    DatasetModel response = dataRepoFixtures.updateSchema(steward, datasetId, updateModel);
     Optional<TableModel> newTable =
         response.getSchema().getTables().stream()
             .filter(tableModel -> tableModel.getName().equals(newTableName))
@@ -167,7 +170,7 @@ class DatasetSchemaUpdateIntegrationTest extends UsersBase {
             .description("Integration test relationship addition")
             .changes(
                 new DatasetSchemaUpdateModelChanges().addRelationships(List.of(relationshipModel)));
-    DatasetModel response = dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
+    DatasetModel response = dataRepoFixtures.updateSchema(steward, datasetId, updateModel);
     Optional<RelationshipModel> createdRelationship =
         response.getSchema().getRelationships().stream()
             .filter(r -> r.getName().equals(relationshipName))

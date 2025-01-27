@@ -132,7 +132,7 @@ public class DataRepoFixtures {
   public BillingProfileModel createBillingProfile(TestConfiguration.User user) throws Exception {
     BillingProfileRequestModel billingProfileRequestModel =
         ProfileFixtures.billingProfileRequest(
-            ProfileFixtures.billingProfileForAccount(testConfig.getGoogleBillingAccountId()));
+            ProfileFixtures.billingProfileForAccount(testConfig.googleBillingAccountId()));
     String json = TestUtils.mapToJson(billingProfileRequestModel);
 
     DataRepoResponse<JobModel> jobResponse =
@@ -156,10 +156,10 @@ public class DataRepoFixtures {
     BillingProfileRequestModel billingProfileRequestModel =
         ProfileFixtures.billingProfileRequest(
             ProfileFixtures.billingProfileForDeployedApplication(
-                testConfig.getTargetTenantId(),
-                testConfig.getTargetSubscriptionId(),
-                testConfig.getTargetResourceGroupName(),
-                testConfig.getTargetApplicationName()));
+                testConfig.targetTenantId(),
+                testConfig.targetSubscriptionId(),
+                testConfig.targetResourceGroupName(),
+                testConfig.targetApplicationName()));
     String json = TestUtils.mapToJson(billingProfileRequestModel);
 
     DataRepoResponse<JobModel> jobResponse =
@@ -1595,7 +1595,7 @@ public class DataRepoFixtures {
   }
 
   public IngestRequestModel buildSimpleIngest(String table, String filename) throws Exception {
-    String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + filename;
+    String gsPath = "gs://" + testConfig.ingestbucket() + "/" + filename;
     return new IngestRequestModel()
         .format(IngestRequestModel.FormatEnum.JSON)
         .ignoreUnknownValues(false)

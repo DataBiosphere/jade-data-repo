@@ -65,17 +65,17 @@ public class EncodeFixture {
 
     UUID profileId = dataRepoFixtures.createBillingProfile(steward).getId();
     dataRepoFixtures.addPolicyMember(
-        steward, profileId, IamRole.USER, custodian.getEmail(), IamResourceType.SPEND_PROFILE);
+        steward, profileId, IamRole.USER, custodian.email(), IamResourceType.SPEND_PROFILE);
 
     DatasetSummaryModel datasetSummary =
         dataRepoFixtures.createDataset(steward, profileId, "encodefiletest-dataset.json");
     UUID datasetId = datasetSummary.getId();
 
     dataRepoFixtures.addDatasetPolicyMember(
-        steward, datasetId, IamRole.CUSTODIAN, custodian.getEmail());
+        steward, datasetId, IamRole.CUSTODIAN, custodian.email());
 
     // Parse the input data and load the files; generate revised data file
-    String stewardToken = authService.getDirectAccessAuthToken(steward.getEmail());
+    String stewardToken = authService.getDirectAccessAuthToken(steward.email());
     Storage stewardStorage = dataRepoFixtures.getStorage(stewardToken);
     String targetPath = loadFiles(datasetSummary.getId(), profileId, steward, stewardStorage);
 
@@ -90,8 +90,7 @@ public class EncodeFixture {
     dataRepoFixtures.ingestJsonData(steward, datasetId, request);
 
     // Delete the scratch blob
-    Blob scratchBlob =
-        stewardStorage.get(BlobId.of(testConfiguration.getIngestbucket(), targetPath));
+    Blob scratchBlob = stewardStorage.get(BlobId.of(testConfiguration.ingestbucket(), targetPath));
     if (scratchBlob != null) {
       scratchBlob.delete();
     }
@@ -102,11 +101,11 @@ public class EncodeFixture {
             custodian, datasetSummary.getName(), profileId, "encodefiletest-snapshot.json");
 
     dataRepoFixtures.addSnapshotPolicyMember(
-        custodian, snapshotSummary.getId(), IamRole.STEWARD, steward.getEmail());
+        custodian, snapshotSummary.getId(), IamRole.STEWARD, steward.email());
 
     // TODO: Fix use of IamProviderInterface - see DR-494
     dataRepoFixtures.addSnapshotPolicyMember(
-        custodian, snapshotSummary.getId(), IamRole.READER, reader.getEmail());
+        custodian, snapshotSummary.getId(), IamRole.READER, reader.email());
 
     if (shouldAssertBqDatasetAccessible) {
       // We wait here for SAM to sync. We expect this to take 5 minutes. It can take more as recent
@@ -124,7 +123,7 @@ public class EncodeFixture {
           snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
           snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
 
-      String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
+      String readerToken = authService.getDirectAccessAuthToken(reader.email());
       BigQuery bigQueryReader =
           BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
 
@@ -155,7 +154,7 @@ public class EncodeFixture {
     // For a bigger test use encodetest/file.json (1000+ files)
     // For normal testing encodetest/file_small.json (10 files)
     Blob sourceBlob =
-        storage.get(BlobId.of(testConfiguration.getIngestbucket(), "encodetest/file_small.json"));
+        storage.get(BlobId.of(testConfiguration.ingestbucket(), "encodetest/file_small.json"));
 
     List<BulkLoadFileModel> loadArray = new ArrayList<>();
     List<EncodeFileIn> inArray = new ArrayList<>();
@@ -193,7 +192,7 @@ public class EncodeFixture {
     }
 
     try (GcsChannelWriter writer =
-        new GcsChannelWriter(storage, testConfiguration.getIngestbucket(), loadData)) {
+        new GcsChannelWriter(storage, testConfiguration.ingestbucket(), loadData)) {
       for (EncodeFileIn encodeFileIn : inArray) {
         BulkLoadFileResultModel resultModel = resultMap.get(encodeFileIn.getFile_gs_path());
         String bamFileId = (resultModel == null) ? null : resultModel.getFileId();
@@ -209,9 +208,9 @@ public class EncodeFixture {
   }
 
   public void deleteLoadFile(TestConfiguration.User user, String loadData) {
-    String userToken = authService.getDirectAccessAuthToken(user.getEmail());
+    String userToken = authService.getDirectAccessAuthToken(user.email());
     Storage storage = dataRepoFixtures.getStorage(userToken);
-    Blob targetBlob = storage.get(BlobId.of(testConfiguration.getIngestbucket(), loadData));
+    Blob targetBlob = storage.get(BlobId.of(testConfiguration.ingestbucket(), loadData));
     targetBlob.delete();
   }
 

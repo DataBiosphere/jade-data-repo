@@ -10,6 +10,7 @@ import static org.hamcrest.Matchers.startsWith;
 
 import bio.terra.common.BQTestUtils;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.DatasetDataModel;
@@ -48,40 +49,43 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class IngestTest extends UsersBase {
+class IngestTest {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
-
   @Autowired private DataRepoClient dataRepoClient;
-
   @Autowired private JsonLoader jsonLoader;
+  @Autowired private Users users;
 
+  private User steward;
+  private User custodian;
+  private User reader;
   private UUID datasetId;
   private UUID profileId;
 
-  @Override
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
-    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+    steward = users.steward();
+    custodian = users.custodian();
+    reader = users.reader();
+    profileId = dataRepoFixtures.createBillingProfile(steward).getId();
     dataRepoFixtures.addPolicyMember(
-        steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
+        steward, profileId, IamRole.USER, custodian.email(), IamResourceType.SPEND_PROFILE);
 
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
+        dataRepoFixtures.createDataset(steward, profileId, "ingest-test-dataset.json");
     datasetId = datasetSummaryModel.getId();
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
+        steward, datasetId, IamRole.CUSTODIAN, custodian.email());
   }
 
   @AfterEach
   public void teardown() throws Exception {
     if (datasetId != null) {
-      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+      dataRepoFixtures.deleteDatasetLog(steward, datasetId);
     }
 
     if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward(), profileId);
+      dataRepoFixtures.deleteProfileLog(steward, profileId);
     }
   }
 
@@ -115,7 +119,7 @@ class IngestTest extends UsersBase {
       throws Exception {
     IngestRequestModel ingestRequest = ingestCreator.apply("ingest-test-participant.json");
     IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
     assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
 
     IngestRequestModel updateIngestRequest =
@@ -123,7 +127,7 @@ class IngestTest extends UsersBase {
             .apply("ingest-test-update-participant.json")
             .updateStrategy(UpdateStrategyEnum.REPLACE);
     IngestResponseModel updateIngestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, updateIngestRequest);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, updateIngestRequest);
     assertThat(
         "correct updated participant row count", updateIngestResponse.getRowCount(), equalTo(3L));
 
@@ -131,7 +135,7 @@ class IngestTest extends UsersBase {
     // TODO: once the preview API GA and works for datasets, we should use that here
     DatasetModel dataset =
         dataRepoFixtures.getDataset(
-            steward(), datasetId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION));
+            steward, datasetId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION));
     BigQueryProject bigQueryProject =
         BigQueryProject.get(dataset.getAccessInformation().getBigQuery().getProjectId());
     AccessInfoBigQueryModelTable bqTableInfo =
@@ -169,7 +173,7 @@ class IngestTest extends UsersBase {
   void ingestAndUpdateParticipantsWithTransaction() throws Exception {
     TransactionModel transaction =
         dataRepoFixtures.openTransaction(
-            steward(), datasetId, new TransactionCreateModel().description("foo"));
+            steward, datasetId, new TransactionCreateModel().description("foo"));
     UUID badTransaction = UUID.randomUUID();
     IngestRequestModel ingestRequest =
         dataRepoFixtures
@@ -179,7 +183,7 @@ class IngestTest extends UsersBase {
 
     // Should fail with unrecognized transaction
     DataRepoResponse<IngestResponseModel> badIngestResponse =
-        dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonDataRaw(steward, datasetId, ingestRequest);
     assertThat(
         "Could not find transaction",
         badIngestResponse.getStatusCode(),
@@ -193,7 +197,7 @@ class IngestTest extends UsersBase {
     ingestRequest.transactionId(transaction.getId());
 
     IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
     assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
 
     IngestRequestModel updateIngestRequest =
@@ -202,7 +206,7 @@ class IngestTest extends UsersBase {
             .updateStrategy(UpdateStrategyEnum.REPLACE)
             .transactionId(transaction.getId());
     IngestResponseModel updateIngestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, updateIngestRequest);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, updateIngestRequest);
     assertThat(
         "correct updated participant row count", updateIngestResponse.getRowCount(), equalTo(3L));
 
@@ -210,7 +214,7 @@ class IngestTest extends UsersBase {
     // TODO: once the preview API GA and works for datasets, we should use that here
     DatasetModel dataset =
         dataRepoFixtures.getDataset(
-            steward(), datasetId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION));
+            steward, datasetId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION));
     BigQueryProject bigQueryProject =
         BigQueryProject.get(dataset.getAccessInformation().getBigQuery().getProjectId());
     AccessInfoBigQueryModelTable bqTableInfo =
@@ -225,10 +229,7 @@ class IngestTest extends UsersBase {
 
     // Commit and rows should now be present
     dataRepoFixtures.closeTransaction(
-        steward(),
-        datasetId,
-        transaction.getId(),
-        new TransactionCloseModel().mode(ModeEnum.COMMIT));
+        steward, datasetId, transaction.getId(), new TransactionCloseModel().mode(ModeEnum.COMMIT));
 
     TableResult bqQueryResultCommitted = bigQueryProject.query(bqTableInfo.getSampleQuery());
     assertThat("Committed rows are there", bqQueryResultCommitted.getTotalRows(), equalTo(6L));
@@ -239,14 +240,14 @@ class IngestTest extends UsersBase {
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant-with-json-data.json");
-    dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+    dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
 
     DatasetDataModel data =
-        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, "participant", 0, 6, null);
+        dataRepoFixtures.retrieveDatasetData(steward, datasetId, "participant", 0, 6, null);
     assertThat("correct participant row count", data.getFilteredRowCount(), equalTo(5));
     DatasetDataModel filteredData =
         dataRepoFixtures.retrieveDatasetData(
-            steward(),
+            steward,
             datasetId,
             "participant",
             0,
@@ -261,7 +262,7 @@ class IngestTest extends UsersBase {
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/wildcard/ingest-test-participant*");
     IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
     assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(7L));
   }
 
@@ -271,7 +272,7 @@ class IngestTest extends UsersBase {
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/wildcard/ingest-test-p*t.json");
     IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
     assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(6L));
   }
 
@@ -281,10 +282,10 @@ class IngestTest extends UsersBase {
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
     IngestResponseModel ingestCustodianResp =
-        dataRepoFixtures.ingestJsonData(custodian(), datasetId, request);
+        dataRepoFixtures.ingestJsonData(custodian, datasetId, request);
     assertThat("Custodian was able to ingest", ingestCustodianResp.getRowCount(), greaterThan(0L));
     DataRepoResponse<JobModel> ingestReadResp =
-        dataRepoFixtures.ingestJsonDataLaunch(reader(), datasetId, request);
+        dataRepoFixtures.ingestJsonDataLaunch(reader, datasetId, request);
     assertThat(
         "Reader is not authorized to ingest data",
         ingestReadResp.getStatusCode(),
@@ -296,10 +297,10 @@ class IngestTest extends UsersBase {
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest("file", "ingest-test/ingest-test-file.json");
     IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, request);
     assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
 
-    ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+    ingestResponse = dataRepoFixtures.ingestJsonData(steward, datasetId, request);
     assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
   }
 
@@ -308,9 +309,9 @@ class IngestTest extends UsersBase {
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest("file", "totally-legit-file.json");
     DataRepoResponse<JobModel> ingestJobResponse =
-        dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, request);
+        dataRepoFixtures.ingestJsonDataLaunch(steward, datasetId, request);
     DataRepoResponse<IngestResponseModel> ingestResponse =
-        dataRepoClient.waitForResponse(steward(), ingestJobResponse, new TypeReference<>() {});
+        dataRepoClient.waitForResponse(steward, ingestJobResponse, new TypeReference<>() {});
     assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.NOT_FOUND));
     assertThat(
         "failure is explained",
@@ -323,9 +324,9 @@ class IngestTest extends UsersBase {
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest("file", "prefix-matching-nothing/*");
     DataRepoResponse<JobModel> ingestJobResponse =
-        dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, request);
+        dataRepoFixtures.ingestJsonDataLaunch(steward, datasetId, request);
     DataRepoResponse<IngestResponseModel> ingestResponse =
-        dataRepoClient.waitForResponse(steward(), ingestJobResponse, new TypeReference<>() {});
+        dataRepoClient.waitForResponse(steward, ingestJobResponse, new TypeReference<>() {});
     assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.NOT_FOUND));
     assertThat(
         "failure is explained",
@@ -339,9 +340,9 @@ class IngestTest extends UsersBase {
         dataRepoFixtures.buildSimpleIngest(
             "file", "ingest-test/ingest-test-prtcpnt-malformed.json");
     DataRepoResponse<JobModel> ingestJobResponse =
-        dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, request);
+        dataRepoFixtures.ingestJsonDataLaunch(steward, datasetId, request);
     DataRepoResponse<IngestResponseModel> ingestResponse =
-        dataRepoClient.waitForResponse(steward(), ingestJobResponse, new TypeReference<>() {});
+        dataRepoClient.waitForResponse(steward, ingestJobResponse, new TypeReference<>() {});
     assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
     assertThat(
         "failure is explained",
@@ -354,9 +355,9 @@ class IngestTest extends UsersBase {
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest("file", "ingest-test/wildcard/ingest-test-p*.json");
     DataRepoResponse<JobModel> ingestJobResponse =
-        dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, request);
+        dataRepoFixtures.ingestJsonDataLaunch(steward, datasetId, request);
     DataRepoResponse<IngestResponseModel> ingestResponse =
-        dataRepoClient.waitForResponse(steward(), ingestJobResponse, new TypeReference<>() {});
+        dataRepoClient.waitForResponse(steward, ingestJobResponse, new TypeReference<>() {});
     assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
     assertThat(
         "failure is explained",
@@ -368,20 +369,20 @@ class IngestTest extends UsersBase {
   void ingestMergeHappyPathTest() throws Exception {
     DatasetModel dataset =
         dataRepoFixtures.getDataset(
-            steward(), datasetId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION));
+            steward, datasetId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION));
     // -------- Simple ingest with 7 rows --------
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
     IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
     assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
     assertSampleTableIdColumnRemainsUnchanged(dataset);
     // Original ingest request should include value 'sample7' for column 'derived_from'
     dataRepoFixtures.assertColumnTextValueCount(
-        steward(), datasetId, "sample", "derived_from", "sample7", 1);
+        steward, datasetId, "sample", "derived_from", "sample7", 1);
     // Test column stats endpoint's handling of array columns
     dataRepoFixtures.assertColumnTextValueCount(
-        steward(), datasetId, "sample", "participant_ids", "participant_1", 1);
+        steward, datasetId, "sample", "participant_ids", "participant_1", 1);
 
     // Rows ingested via merge should not increase the existing live row count.
     IngestRequestModel mergeIngestRequest =
@@ -389,14 +390,14 @@ class IngestTest extends UsersBase {
             .buildSimpleIngest("sample", "ingest-test/merge/ingest-test-sample-merge.json")
             .updateStrategy(UpdateStrategyEnum.MERGE);
     IngestResponseModel mergeIngestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, mergeIngestRequest);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, mergeIngestRequest);
     assertThat("correct merge sample row count", mergeIngestResponse.getRowCount(), equalTo(2L));
     assertSampleTableIdColumnRemainsUnchanged(dataset);
     // We cannot "null-out" a value in a merge ingest request
     // so the value remains 'sample7' for the 'derived_from' column despite being set to null in the
     // request
     dataRepoFixtures.assertColumnTextValueCount(
-        steward(), datasetId, "sample", "derived_from", "sample7", 1);
+        steward, datasetId, "sample", "derived_from", "sample7", 1);
 
     // -------- Updating the same row again via merge ingest should succeed--------
     IngestRequestModel mergeAgainIngestRequest =
@@ -404,7 +405,7 @@ class IngestTest extends UsersBase {
             .buildSimpleIngest("sample", "ingest-test/merge/ingest-test-sample-merge-again.json")
             .updateStrategy(UpdateStrategyEnum.MERGE);
     IngestResponseModel mergeAgainIngestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, mergeAgainIngestRequest);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, mergeAgainIngestRequest);
     assertThat(
         "correct merge again sample row count",
         mergeAgainIngestResponse.getRowCount(),
@@ -414,9 +415,9 @@ class IngestTest extends UsersBase {
 
   private void assertSampleTableIdColumnRemainsUnchanged(DatasetModel dataset) throws Exception {
     int expectedNumRows = 7;
-    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample", expectedNumRows);
+    dataRepoFixtures.assertDatasetTableCount(steward, dataset, "sample", expectedNumRows);
     List<String> actualValues =
-        dataRepoFixtures.retrieveColumnTextValues(steward(), datasetId, "sample", "id");
+        dataRepoFixtures.retrieveColumnTextValues(steward, datasetId, "sample", "id");
     assertThat(
         "Expected values returned from column stats endpoint for sample id table",
         actualValues,
@@ -432,9 +433,9 @@ class IngestTest extends UsersBase {
             .updateStrategy(UpdateStrategyEnum.MERGE);
 
     DataRepoResponse<JobModel> mergeIngestJobResponse =
-        dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, mergeIngestRequest);
+        dataRepoFixtures.ingestJsonDataLaunch(steward, datasetId, mergeIngestRequest);
     DataRepoResponse<IngestResponseModel> mergeIngestResponse =
-        dataRepoClient.waitForResponse(steward(), mergeIngestJobResponse, new TypeReference<>() {});
+        dataRepoClient.waitForResponse(steward, mergeIngestJobResponse, new TypeReference<>() {});
 
     assertThat(
         "ingest failed", mergeIngestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
@@ -449,7 +450,7 @@ class IngestTest extends UsersBase {
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
     IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
     assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
 
     IngestRequestModel mergeIngestRequest =
@@ -458,9 +459,9 @@ class IngestTest extends UsersBase {
                 "sample", "ingest-test/merge/ingest-test-sample-merge-missing-pks.json")
             .updateStrategy(UpdateStrategyEnum.MERGE);
     DataRepoResponse<JobModel> mergeIngestJobResponse =
-        dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, mergeIngestRequest);
+        dataRepoFixtures.ingestJsonDataLaunch(steward, datasetId, mergeIngestRequest);
     DataRepoResponse<IngestResponseModel> mergeIngestResponse =
-        dataRepoClient.waitForResponse(steward(), mergeIngestJobResponse, new TypeReference<>() {});
+        dataRepoClient.waitForResponse(steward, mergeIngestJobResponse, new TypeReference<>() {});
 
     assertThat(
         "ingest failed", mergeIngestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
@@ -479,7 +480,7 @@ class IngestTest extends UsersBase {
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
     IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
     assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
 
     IngestRequestModel mergeIngestRequest =
@@ -488,9 +489,9 @@ class IngestTest extends UsersBase {
                 "sample", "ingest-test/merge/ingest-test-sample-merge-duplicate-pks.json")
             .updateStrategy(UpdateStrategyEnum.MERGE);
     DataRepoResponse<JobModel> mergeIngestJobResponse =
-        dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, mergeIngestRequest);
+        dataRepoFixtures.ingestJsonDataLaunch(steward, datasetId, mergeIngestRequest);
     DataRepoResponse<IngestResponseModel> mergeIngestResponse =
-        dataRepoClient.waitForResponse(steward(), mergeIngestJobResponse, new TypeReference<>() {});
+        dataRepoClient.waitForResponse(steward, mergeIngestJobResponse, new TypeReference<>() {});
 
     assertThat(
         "ingest failed", mergeIngestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
@@ -510,14 +511,14 @@ class IngestTest extends UsersBase {
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
     IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
     assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
 
     IngestRequestModel ingestWithDupesRequest =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-update-participant.json");
     IngestResponseModel ingestWithDupesResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestWithDupesRequest);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestWithDupesRequest);
     assertThat(
         "correct participant new row count", ingestWithDupesResponse.getRowCount(), equalTo(3L));
 
@@ -527,9 +528,9 @@ class IngestTest extends UsersBase {
                 "participant", "ingest-test/merge/ingest-test-participant-merge-mismatched.json")
             .updateStrategy(UpdateStrategyEnum.MERGE);
     DataRepoResponse<JobModel> mergeIngestJobResponse =
-        dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, mergeIngestRequest);
+        dataRepoFixtures.ingestJsonDataLaunch(steward, datasetId, mergeIngestRequest);
     DataRepoResponse<IngestResponseModel> mergeIngestResponse =
-        dataRepoClient.waitForResponse(steward(), mergeIngestJobResponse, new TypeReference<>() {});
+        dataRepoClient.waitForResponse(steward, mergeIngestJobResponse, new TypeReference<>() {});
 
     assertThat(
         "ingest failed", mergeIngestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));

@@ -16,11 +16,12 @@ import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.UsersBase;
+import bio.terra.integration.Users;
 import bio.terra.model.AssetModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DataDeletionGcsFileModel;
@@ -71,7 +72,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class DatasetIntegrationTest extends UsersBase {
+class DatasetIntegrationTest {
   private static final String OMOP_DATASET_NAME = "it_dataset_omop";
   private static final String OMOP_DATASET_DESC =
       "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom";
@@ -80,46 +81,53 @@ class DatasetIntegrationTest extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private JsonLoader jsonLoader;
+  @Autowired private Users users;
 
+  private User steward;
+  private User custodian;
+  private User reader;
+  private User admin;
   private UUID datasetId;
   private UUID profileId;
 
-  @Override
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
-    dataRepoFixtures.resetConfig(steward());
-    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+    steward = users.steward();
+    custodian = users.custodian();
+    reader = users.reader();
+    admin = users.admin();
+    dataRepoFixtures.resetConfig(steward);
+    profileId = dataRepoFixtures.createBillingProfile(steward).getId();
     datasetId = null;
   }
 
   @AfterEach
   public void teardown() throws Exception {
-    dataRepoFixtures.resetConfig(steward());
+    dataRepoFixtures.resetConfig(steward);
 
     if (datasetId != null) {
-      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+      dataRepoFixtures.deleteDatasetLog(steward, datasetId);
     }
 
     if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward(), profileId);
+      dataRepoFixtures.deleteProfileLog(steward, profileId);
     }
   }
 
   @Test
   void datasetHappyPath() throws Exception {
     DatasetSummaryModel summaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.json");
+        dataRepoFixtures.createDataset(steward, profileId, "omop/it-dataset-omop.json");
     datasetId = summaryModel.getId();
 
     logger.info("dataset id is {}", summaryModel.getId());
     assertThat(summaryModel.getName(), startsWith(OMOP_DATASET_NAME));
     assertThat(summaryModel.getDescription(), equalTo(OMOP_DATASET_DESC));
 
-    List<String> stewardRoles = dataRepoFixtures.retrieveUserDatasetRoles(steward(), datasetId);
+    List<String> stewardRoles = dataRepoFixtures.retrieveUserDatasetRoles(steward, datasetId);
     assertThat("The Steward was given steward access", stewardRoles, hasItem("steward"));
 
-    DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
+    DatasetModel datasetModel = dataRepoFixtures.getDataset(steward, summaryModel.getId());
 
     assertThat(datasetModel.getName(), startsWith(OMOP_DATASET_NAME));
     assertThat(datasetModel.getDescription(), equalTo(OMOP_DATASET_DESC));
@@ -133,7 +141,7 @@ class DatasetIntegrationTest extends UsersBase {
             true,
             () -> {
               EnumerateDatasetModel enumerateDatasetModel =
-                  dataRepoFixtures.enumerateDatasets(steward());
+                  dataRepoFixtures.enumerateDatasets(steward);
               boolean found = false;
               for (DatasetSummaryModel oneDataset : enumerateDatasetModel.getItems()) {
                 if (oneDataset.getId().equals(datasetModel.getId())) {
@@ -187,9 +195,9 @@ class DatasetIntegrationTest extends UsersBase {
 
     // Check permissions on lookupDatasetDataById
     dataRepoFixtures.retrieveDatasetData(
-        steward(), datasetId, datasetModel.getSchema().getTables().get(0).getName(), 0, 1, null);
+        steward, datasetId, datasetModel.getSchema().getTables().get(0).getName(), 0, 1, null);
     dataRepoFixtures.retrieveDatasetDataExpectFailure(
-        custodian(),
+        custodian,
         datasetId,
         datasetModel.getSchema().getTables().get(0).getName(),
         0,
@@ -199,9 +207,9 @@ class DatasetIntegrationTest extends UsersBase {
 
     // test allowable permissions
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), summaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
+        steward, summaryModel.getId(), IamRole.CUSTODIAN, custodian.email());
     DataRepoResponse<EnumerateDatasetModel> enumDatasets =
-        dataRepoFixtures.enumerateDatasetsRaw(custodian());
+        dataRepoFixtures.enumerateDatasetsRaw(custodian);
     assertThat(
         "Custodian is authorized to enumerate datasets",
         enumDatasets.getStatusCode(),
@@ -209,9 +217,9 @@ class DatasetIntegrationTest extends UsersBase {
 
     // Check permissions on lookupDatasetDataById now that the custodian has been given permission
     dataRepoFixtures.retrieveDatasetData(
-        custodian(), datasetId, datasetModel.getSchema().getTables().get(0).getName(), 0, 1, null);
+        custodian, datasetId, datasetModel.getSchema().getTables().get(0).getName(), 0, 1, null);
     dataRepoFixtures.retrieveDatasetDataExpectFailure(
-        reader(),
+        reader,
         datasetId,
         datasetModel.getSchema().getTables().get(0).getName(),
         0,
@@ -219,7 +227,7 @@ class DatasetIntegrationTest extends UsersBase {
         null,
         HttpStatus.FORBIDDEN);
 
-    List<String> custodianRoles = dataRepoFixtures.retrieveUserDatasetRoles(custodian(), datasetId);
+    List<String> custodianRoles = dataRepoFixtures.retrieveUserDatasetRoles(custodian, datasetId);
     assertThat("The Custodian was given custodian access", custodianRoles, hasItem("custodian"));
     assertThat(
         "The Custodian does not have Steward access", custodianRoles, not(hasItem("steward")));
@@ -249,7 +257,7 @@ class DatasetIntegrationTest extends UsersBase {
   void datasetHappyPathWithPet() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward(), profileId, "omop/it-dataset-omop.json", CloudPlatform.GCP, true, null);
+            steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.GCP, true, null);
     datasetId = summaryModel.getId();
 
     logger.info("dataset id is {}", summaryModel.getId());
@@ -258,7 +266,7 @@ class DatasetIntegrationTest extends UsersBase {
 
     // We just need to validate the steward is able to read back the dataset (e.g. the pet account
     // resolved correctly)
-    DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
+    DatasetModel datasetModel = dataRepoFixtures.getDataset(steward, summaryModel.getId());
 
     assertThat(datasetModel.getName(), startsWith(OMOP_DATASET_NAME));
     assertThat(datasetModel.getDescription(), equalTo(OMOP_DATASET_DESC));
@@ -268,11 +276,11 @@ class DatasetIntegrationTest extends UsersBase {
   void datasetUnauthorizedPermissionsTest() throws Exception {
     // These should fail because they don't have access to the billing profile
     dataRepoFixtures.createDatasetError(
-        custodian(), profileId, "dataset-minimal.json", HttpStatus.FORBIDDEN);
+        custodian, profileId, "dataset-minimal.json", HttpStatus.FORBIDDEN);
     dataRepoFixtures.createDatasetError(
-        reader(), profileId, "dataset-minimal.json", HttpStatus.FORBIDDEN);
+        reader, profileId, "dataset-minimal.json", HttpStatus.FORBIDDEN);
 
-    EnumerateDatasetModel enumDatasetsResp = dataRepoFixtures.enumerateDatasets(reader());
+    EnumerateDatasetModel enumDatasetsResp = dataRepoFixtures.enumerateDatasets(reader);
     List<DatasetSummaryModel> items = enumDatasetsResp.getItems();
     if (items != null) {
       for (DatasetSummaryModel datasetModel : items) {
@@ -285,11 +293,11 @@ class DatasetIntegrationTest extends UsersBase {
     assertThat("Reader does not have access to datasets", enumDatasetsResp.getTotal(), equalTo(0));
 
     DatasetSummaryModel summaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "dataset-minimal.json");
+        dataRepoFixtures.createDataset(steward, profileId, "dataset-minimal.json");
     datasetId = summaryModel.getId();
 
     DataRepoResponse<DatasetModel> getDatasetResp =
-        dataRepoFixtures.getDatasetRaw(reader(), datasetId);
+        dataRepoFixtures.getDatasetRaw(reader, datasetId);
     assertThat(
         "Reader is not authorized to get dataset",
         getDatasetResp.getStatusCode(),
@@ -297,7 +305,7 @@ class DatasetIntegrationTest extends UsersBase {
 
     // make sure reader cannot delete dataset
     DataRepoResponse<JobModel> deleteResp1 =
-        dataRepoFixtures.deleteDatasetLaunch(reader(), datasetId);
+        dataRepoFixtures.deleteDatasetLaunch(reader, datasetId);
     assertThat(
         "Reader is not authorized to delete datasets",
         deleteResp1.getStatusCode(),
@@ -309,34 +317,34 @@ class DatasetIntegrationTest extends UsersBase {
     // then the check will need two parts, as below:
     // check job launched successfully, check job result is failure with unauthorized
     //            DataRepoResponse<JobModel> jobResp1 = dataRepoFixtures.deleteDatasetLaunch(
-    //                reader(), summaryModel.getId());
+    //                reader, summaryModel.getId());
     //            assertTrue("dataset delete launch succeeded",
     // jobResp1.getStatusCode().is2xxSuccessful());
     //            assertTrue("dataset delete launch response is present",
     // jobResp1.getResponseObject().isPresent());
     //            DataRepoResponse<ErrorModel> deleteResp1 = dataRepoClient.waitForResponse(
-    //                reader(), jobResp1, ErrorModel.class);
+    //                reader, jobResp1, ErrorModel.class);
     //            assertThat("Reader is not authorized to delete datasets",
     //                deleteResp1.getStatusCode(),
     //                equalTo(HttpStatus.UNAUTHORIZED));
 
     // make sure custodian cannot delete dataset
     DataRepoResponse<JobModel> deleteResp2 =
-        dataRepoFixtures.deleteDatasetLaunch(custodian(), summaryModel.getId());
+        dataRepoFixtures.deleteDatasetLaunch(custodian, summaryModel.getId());
     assertThat(
         "Custodian is not authorized to delete datasets",
         deleteResp2.getStatusCode(),
         equalTo(HttpStatus.FORBIDDEN));
 
-    // same comment as above for the reader() delete
+    // same comment as above for the reader delete
     //            DataRepoResponse<JobModel> jobResp2 = dataRepoFixtures.deleteDatasetLaunch(
-    //                custodian(), summaryModel.getId());
+    //                custodian, summaryModel.getId());
     //            assertTrue("dataset delete launch succeeded",
     // jobResp2.getStatusCode().is2xxSuccessful());
     //            assertTrue("dataset delete launch response is present",
     // jobResp2.getResponseObject().isPresent());
     //            DataRepoResponse<ErrorModel> deleteResp2 = dataRepoClient.waitForResponse(
-    //                custodian(), jobResp2, ErrorModel.class);
+    //                custodian, jobResp2, ErrorModel.class);
     //            assertThat("Custodian is not authorized to delete datasets",
     //                deleteResp2.getStatusCode(),
     //                equalTo(HttpStatus.UNAUTHORIZED));
@@ -346,9 +354,9 @@ class DatasetIntegrationTest extends UsersBase {
   void testAssetCreationUndo() throws Exception {
     // create a dataset
     DatasetSummaryModel summaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.json");
+        dataRepoFixtures.createDataset(steward, profileId, "omop/it-dataset-omop.json");
     datasetId = summaryModel.getId();
-    DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
+    DatasetModel datasetModel = dataRepoFixtures.getDataset(steward, summaryModel.getId());
     List<AssetModel> originalAssetList = datasetModel.getSchema().getAssets();
 
     assertThat("Asset specification is as originally expected", originalAssetList, hasSize(3));
@@ -359,7 +367,7 @@ class DatasetIntegrationTest extends UsersBase {
 
     ErrorModel errorModel =
         dataRepoFixtures.addDatasetAssetExpectFailure(
-            steward(), datasetModel.getId(), invalidAssetModel);
+            steward, datasetModel.getId(), invalidAssetModel);
     assertThat(
         "At least one validation error caught for asset",
         errorModel.getMessage(),
@@ -370,12 +378,12 @@ class DatasetIntegrationTest extends UsersBase {
 
     // have the asset creation fail
     // by calling the fault insertion
-    dataRepoFixtures.setFault(steward(), ConfigEnum.CREATE_ASSET_FAULT.name(), true);
+    dataRepoFixtures.setFault(steward, ConfigEnum.CREATE_ASSET_FAULT.name(), true);
 
     // add an asset spec
-    dataRepoFixtures.addDatasetAsset(steward(), datasetModel.getId(), assetModel);
+    dataRepoFixtures.addDatasetAsset(steward, datasetModel.getId(), assetModel);
     // make sure undo is completed successfully
-    DatasetModel datasetModelWAsset = dataRepoFixtures.getDataset(steward(), datasetModel.getId());
+    DatasetModel datasetModelWAsset = dataRepoFixtures.getDataset(steward, datasetModel.getId());
     DatasetSpecificationModel datasetSpecificationModel = datasetModelWAsset.getSchema();
     List<AssetModel> assetList = datasetSpecificationModel.getAssets();
 
@@ -385,10 +393,10 @@ class DatasetIntegrationTest extends UsersBase {
 
   @Test
   void testCreateDatasetWithPolicies() throws Exception {
-    List<String> stewards = List.of(steward().getEmail(), admin().getEmail());
-    String custodianEmail = custodian().getEmail();
+    List<String> stewards = List.of(steward.email(), admin.email());
+    String custodianEmail = custodian.email();
     List<String> custodiansWithDuplicates = List.of(custodianEmail, custodianEmail);
-    String snapshotCreatorEmail = reader().getEmail();
+    String snapshotCreatorEmail = reader.email();
     DatasetRequestModelPolicies policiesRequest =
         new DatasetRequestModelPolicies()
             .stewards(stewards)
@@ -397,11 +405,11 @@ class DatasetIntegrationTest extends UsersBase {
 
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDatasetWithPolicies(
-            steward(), profileId, "omop/it-dataset-omop.json", policiesRequest);
+            steward, profileId, "omop/it-dataset-omop.json", policiesRequest);
     datasetId = summaryModel.getId();
 
     Map<String, List<String>> rolesToPolicies =
-        dataRepoFixtures.retrieveDatasetPolicies(steward(), datasetId).getPolicies().stream()
+        dataRepoFixtures.retrieveDatasetPolicies(steward, datasetId).getPolicies().stream()
             .collect(Collectors.toMap(PolicyModel::getName, PolicyModel::getMembers));
 
     assertThat(

@@ -30,6 +30,9 @@ source "$(dirname "$0")"/init.sh
 die() { log_error "$*" >&2; echo ""; usage; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
+# output plain logs instead of json
+export TDR_LOG_APPENDER=Console-Standard
+
 while getopts h-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
@@ -57,11 +60,16 @@ run_tests() {
 #./gradlew --build-cache srcclr
 }
 
+wait_until_server_up() {
+  timeout 30 bash -c "until curl -s http:/localhost:8080/status; do sleep 1; done"
+}
+
 run_integration_tests() {
   TEST_ENV=${TEST_ENV:-local}
 
   cd "${ROOT_DIR}"
   start_docker integration
+  wait_until_server_up
   # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
   ./gradlew testIntegration ${GRADLE_ARGS}
 

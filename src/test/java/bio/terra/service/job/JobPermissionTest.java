@@ -5,11 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import bio.terra.common.GcsUtils;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.UsersBase;
+import bio.terra.integration.Users;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
@@ -44,33 +45,40 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class JobPermissionTest extends UsersBase {
+class JobPermissionTest {
   private static final Logger logger = LoggerFactory.getLogger(JobPermissionTest.class);
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private GcsUtils gcsUtils;
   @Autowired private DataRepoClient dataRepoClient;
+  @Autowired private Users users;
 
+  private User steward;
+  private User custodian;
+  private User admin;
+  private User reader;
   private UUID datasetId;
   private UUID profileId;
 
-  @Override
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
-    dataRepoFixtures.resetConfig(steward());
-    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+    steward = users.steward();
+    custodian = users.custodian();
+    custodian = users.admin();
+    custodian = users.reader();
+    dataRepoFixtures.resetConfig(steward);
+    profileId = dataRepoFixtures.createBillingProfile(steward).getId();
     dataRepoFixtures.addPolicyMemberRaw(
-        steward(), profileId, IamRole.OWNER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
+        steward, profileId, IamRole.OWNER, custodian.email(), IamResourceType.SPEND_PROFILE);
   }
 
   @AfterEach
   public void teardown() throws Exception {
-    dataRepoFixtures.resetConfig(steward());
+    dataRepoFixtures.resetConfig(steward);
 
-    dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+    dataRepoFixtures.deleteDatasetLog(steward, datasetId);
 
-    dataRepoFixtures.deleteProfileLog(steward(), profileId);
+    dataRepoFixtures.deleteProfileLog(steward, profileId);
   }
 
   @Test
@@ -79,7 +87,7 @@ class JobPermissionTest extends UsersBase {
     // Create dataset
     DataRepoResponse<JobModel> jobResponse =
         dataRepoFixtures.createDatasetRaw(
-            steward(),
+            steward,
             profileId,
             "dataset-ingest-combined-array.json",
             CloudPlatform.GCP,
@@ -87,10 +95,10 @@ class JobPermissionTest extends UsersBase {
             false,
             false,
             false,
-            new DatasetRequestModelPolicies().addCustodiansItem(custodian().getEmail()),
+            new DatasetRequestModelPolicies().addCustodiansItem(custodian.email()),
             null);
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.waitForDatasetCreate(steward(), jobResponse);
+        dataRepoFixtures.waitForDatasetCreate(steward, jobResponse);
 
     datasetId = datasetSummaryModel.getId();
 
@@ -104,14 +112,14 @@ class JobPermissionTest extends UsersBase {
 
     DataRepoResponse<JobModel> fileIngestJobResponse =
         dataRepoFixtures.ingestFileLaunch(
-            steward(),
+            steward,
             datasetId,
             profileId,
             exomeFilePath,
             "/vcfs/downsampled/exome/NA12878_PLUMBING.g.vcf.gz");
 
     DataRepoResponse<FileModel> fileIngestResponse =
-        dataRepoClient.waitForResponse(steward(), fileIngestJobResponse, new TypeReference<>() {});
+        dataRepoClient.waitForResponse(steward, fileIngestJobResponse, new TypeReference<>() {});
     assertTrue(fileIngestResponse.getStatusCode().is2xxSuccessful());
 
     String vcfIndexFilePath =
@@ -142,7 +150,7 @@ class JobPermissionTest extends UsersBase {
     // Ingest bulk file array
     DataRepoResponse<JobModel> bulkLoadJobResponse =
         dataRepoFixtures.bulkLoadArrayRaw(
-            steward(),
+            steward,
             datasetId,
             new BulkLoadArrayRequestModel()
                 .profileId(profileId)
@@ -150,7 +158,7 @@ class JobPermissionTest extends UsersBase {
                 .loadTag("bulk-load-" + datasetId)
                 .maxFailedFileLoads(0));
     DataRepoResponse<BulkLoadArrayResultModel> bulkLoadResponse =
-        dataRepoClient.waitForResponse(steward(), bulkLoadJobResponse, new TypeReference<>() {});
+        dataRepoClient.waitForResponse(steward, bulkLoadJobResponse, new TypeReference<>() {});
     assertTrue(bulkLoadResponse.getStatusCode().is2xxSuccessful());
 
     // Ingest metadata
@@ -162,7 +170,7 @@ class JobPermissionTest extends UsersBase {
             .addRecordsItem(Map.of("sample_name", "sample2", "data_type", "vcf"));
 
     DataRepoResponse<JobModel> metadataIngestJobResponse =
-        dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, metadataIngestRequest);
+        dataRepoFixtures.ingestJsonDataLaunch(steward, datasetId, metadataIngestRequest);
     assertTrue(metadataIngestJobResponse.getStatusCode().is2xxSuccessful());
 
     // Ingest metadata and files
@@ -176,39 +184,39 @@ class JobPermissionTest extends UsersBase {
                 "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array.json");
 
     DataRepoResponse<JobModel> combinedIngestJobResponse =
-        dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, combinedIngestRequest);
+        dataRepoFixtures.ingestJsonDataLaunch(steward, datasetId, combinedIngestRequest);
     assertTrue(combinedIngestJobResponse.getStatusCode().is2xxSuccessful());
 
     // Verify custodian can view jobs
     JobModel datasetCreateJob = jobResponse.getResponseObject().orElseThrow();
-    dataRepoFixtures.getJobSuccess(datasetCreateJob.getId(), custodian());
+    dataRepoFixtures.getJobSuccess(datasetCreateJob.getId(), custodian);
 
     JobModel fileIngestJob = fileIngestJobResponse.getResponseObject().orElseThrow();
-    dataRepoFixtures.getJobSuccess(fileIngestJob.getId(), custodian());
+    dataRepoFixtures.getJobSuccess(fileIngestJob.getId(), custodian);
 
     JobModel bulkLoadJob = bulkLoadJobResponse.getResponseObject().orElseThrow();
-    dataRepoFixtures.getJobSuccess(bulkLoadJob.getId(), custodian());
+    dataRepoFixtures.getJobSuccess(bulkLoadJob.getId(), custodian);
 
     JobModel metadataIngestJob = metadataIngestJobResponse.getResponseObject().orElseThrow();
-    dataRepoFixtures.getJobSuccess(metadataIngestJob.getId(), custodian());
+    dataRepoFixtures.getJobSuccess(metadataIngestJob.getId(), custodian);
 
     JobModel combinedIngestJob = combinedIngestJobResponse.getResponseObject().orElseThrow();
-    dataRepoFixtures.getJobSuccess(combinedIngestJob.getId(), custodian());
+    dataRepoFixtures.getJobSuccess(combinedIngestJob.getId(), custodian);
 
     List<JobModel> jobIds =
         List.of(datasetCreateJob, fileIngestJob, bulkLoadJob, metadataIngestJob, combinedIngestJob);
 
     assertTrue(
-        containsJobIds(dataRepoFixtures.enumerateJobs(admin(), 0, 20), jobIds),
+        containsJobIds(dataRepoFixtures.enumerateJobs(admin, 0, 20), jobIds),
         "Admin can list jobs");
     assertTrue(
-        containsJobIds(dataRepoFixtures.enumerateJobs(steward(), 0, 20), jobIds),
+        containsJobIds(dataRepoFixtures.enumerateJobs(steward, 0, 20), jobIds),
         "Steward can list jobs");
     assertTrue(
-        containsJobIds(dataRepoFixtures.enumerateJobs(custodian(), 0, 20), jobIds),
+        containsJobIds(dataRepoFixtures.enumerateJobs(custodian, 0, 20), jobIds),
         "Custodian can list jobs");
     assertFalse(
-        containsJobIds(dataRepoFixtures.enumerateJobs(reader(), 0, 10), jobIds),
+        containsJobIds(dataRepoFixtures.enumerateJobs(reader, 0, 10), jobIds),
         "Reader cannot list jobs");
   }
 

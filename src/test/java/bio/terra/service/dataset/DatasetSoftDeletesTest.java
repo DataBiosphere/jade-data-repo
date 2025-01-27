@@ -8,7 +8,7 @@ import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.UsersBase;
+import bio.terra.integration.Users;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.DatasetModel;
@@ -38,57 +38,57 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class DatasetSoftDeletesTest extends UsersBase {
+class DatasetSoftDeletesTest {
 
   @Autowired private JsonLoader jsonLoader;
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private TestConfiguration testConfiguration;
+  @Autowired private Users users;
 
+  private TestConfiguration.User steward;
   private UUID datasetId;
   private UUID profileId;
   private List<UUID> snapshotIds;
 
-  @Override
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
-    dataRepoFixtures.resetConfig(steward());
-    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+    steward = users.steward();
+    dataRepoFixtures.resetConfig(steward);
+    profileId = dataRepoFixtures.createBillingProfile(steward).getId();
     snapshotIds = new LinkedList<>();
     ingestDataset();
   }
 
   @AfterEach
   public void teardown() throws Exception {
-    dataRepoFixtures.resetConfig(steward());
+    dataRepoFixtures.resetConfig(steward);
     for (UUID snapshotId : snapshotIds) {
-      dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
+      dataRepoFixtures.deleteSnapshotLog(steward, snapshotId);
     }
 
     if (datasetId != null) {
-      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+      dataRepoFixtures.deleteDatasetLog(steward, datasetId);
     }
 
     if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward(), profileId);
+      dataRepoFixtures.deleteProfileLog(steward, profileId);
     }
   }
 
   @Test
   void testSoftDeleteHappyPath() throws Exception {
     // get row ids
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    List<String> participantRowIds =
-        dataRepoFixtures.getRowIds(steward(), dataset, "participant", 3);
-    List<String> sampleRowIds = dataRepoFixtures.getRowIds(steward(), dataset, "sample", 2);
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward, datasetId);
+    List<String> participantRowIds = dataRepoFixtures.getRowIds(steward, dataset, "participant", 3);
+    List<String> sampleRowIds = dataRepoFixtures.getRowIds(steward, dataset, "sample", 2);
 
     // write them to GCS
     String participantPath =
         DatasetIntegrationTest.writeListToScratch(
-            testConfiguration.getIngestbucket(), "softDel", participantRowIds);
+            testConfiguration.ingestbucket(), "softDel", participantRowIds);
     String samplePath =
         DatasetIntegrationTest.writeListToScratch(
-            testConfiguration.getIngestbucket(), "softDel", sampleRowIds);
+            testConfiguration.ingestbucket(), "softDel", sampleRowIds);
 
     // build the deletion request with pointers to the two files with row ids to soft delete
     List<DataDeletionTableModel> dataDeletionTableModels =
@@ -99,23 +99,23 @@ class DatasetSoftDeletesTest extends UsersBase {
         DatasetIntegrationTest.dataDeletionRequest().tables(dataDeletionTableModels);
 
     // send off the soft delete request
-    dataRepoFixtures.deleteData(steward(), datasetId, request);
+    dataRepoFixtures.deleteData(steward, datasetId, request);
 
     // make sure the new counts make sense
-    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "participant", 2);
-    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample", 5);
+    dataRepoFixtures.assertDatasetTableCount(steward, dataset, "participant", 2);
+    dataRepoFixtures.assertDatasetTableCount(steward, dataset, "sample", 5);
   }
 
   @Test
   void testSoftDeleteJsonArrayHappyPath() throws Exception {
     // get row ids
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward, datasetId);
     List<UUID> participantRowIds =
-        dataRepoFixtures.getRowIds(steward(), dataset, "participant", 3).stream()
+        dataRepoFixtures.getRowIds(steward, dataset, "participant", 3).stream()
             .map(UUID::fromString)
             .toList();
     List<UUID> sampleRowIds =
-        dataRepoFixtures.getRowIds(steward(), dataset, "sample", 2).stream()
+        dataRepoFixtures.getRowIds(steward, dataset, "sample", 2).stream()
             .map(UUID::fromString)
             .toList();
 
@@ -130,11 +130,11 @@ class DatasetSoftDeletesTest extends UsersBase {
             .tables(dataDeletionTableModels);
 
     // send off the soft delete request
-    dataRepoFixtures.deleteData(steward(), datasetId, request);
+    dataRepoFixtures.deleteData(steward, datasetId, request);
 
     // make sure the new counts make sense
-    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "participant", 2);
-    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample", 5);
+    dataRepoFixtures.assertDatasetTableCount(steward, dataset, "participant", 2);
+    dataRepoFixtures.assertDatasetTableCount(steward, dataset, "sample", 5);
   }
 
   @Test
@@ -142,16 +142,16 @@ class DatasetSoftDeletesTest extends UsersBase {
     String pathPrefix = "softDelWildcard" + UUID.randomUUID();
 
     // get 5 row ids, we'll write them out to 5 separate files
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    List<String> sampleRowIds = dataRepoFixtures.getRowIds(steward(), dataset, "sample", 5);
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward, datasetId);
+    List<String> sampleRowIds = dataRepoFixtures.getRowIds(steward, dataset, "sample", 5);
     for (String rowId : sampleRowIds) {
       DatasetIntegrationTest.writeListToScratch(
-          testConfiguration.getIngestbucket(), pathPrefix, Collections.singletonList(rowId));
+          testConfiguration.ingestbucket(), pathPrefix, Collections.singletonList(rowId));
     }
 
     // make a wildcard path 'gs://ingestbucket/softDelWildcard/*'
     String wildcardPath =
-        String.format("gs://%s/scratch/%s/*", testConfiguration.getIngestbucket(), pathPrefix);
+        String.format("gs://%s/scratch/%s/*", testConfiguration.ingestbucket(), pathPrefix);
 
     // build a request and send it off
     DataDeletionRequest request =
@@ -159,19 +159,18 @@ class DatasetSoftDeletesTest extends UsersBase {
             .tables(
                 Collections.singletonList(
                     DatasetIntegrationTest.deletionTableFile("sample", wildcardPath)));
-    dataRepoFixtures.deleteData(steward(), datasetId, request);
+    dataRepoFixtures.deleteData(steward, datasetId, request);
 
     // there should be (7 - 5) = 2 rows "visible" in the sample table
-    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample", 2);
+    dataRepoFixtures.assertDatasetTableCount(steward, dataset, "sample", 2);
   }
 
   @Test
   void testSoftDeleteNotInFullView() throws Exception {
     // get row ids
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    List<String> participantRowIds =
-        dataRepoFixtures.getRowIds(steward(), dataset, "participant", 3);
-    List<String> sampleRowIds = dataRepoFixtures.getRowIds(steward(), dataset, "sample", 2);
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward, datasetId);
+    List<String> participantRowIds = dataRepoFixtures.getRowIds(steward, dataset, "participant", 3);
+    List<String> sampleRowIds = dataRepoFixtures.getRowIds(steward, dataset, "sample", 2);
 
     // swap in these row ids in the request
     SnapshotRequestModel requestModelAll =
@@ -180,20 +179,20 @@ class DatasetSoftDeletesTest extends UsersBase {
 
     SnapshotSummaryModel snapshotSummaryAll =
         dataRepoFixtures.createSnapshotWithRequest(
-            steward(), dataset.getName(), profileId, requestModelAll);
+            steward, dataset.getName(), profileId, requestModelAll);
     snapshotIds.add(snapshotSummaryAll.getId());
     SnapshotModel snapshotAll =
-        dataRepoFixtures.getSnapshot(steward(), snapshotSummaryAll.getId(), null);
-    dataRepoFixtures.assertSnapshotTableCount(steward(), snapshotAll, "participant", 5);
-    dataRepoFixtures.assertSnapshotTableCount(steward(), snapshotAll, "sample", 7);
+        dataRepoFixtures.getSnapshot(steward, snapshotSummaryAll.getId(), null);
+    dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "participant", 5);
+    dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "sample", 7);
 
     // write them to GCS
     String participantPath =
         DatasetIntegrationTest.writeListToScratch(
-            testConfiguration.getIngestbucket(), "softDel", participantRowIds);
+            testConfiguration.ingestbucket(), "softDel", participantRowIds);
     String samplePath =
         DatasetIntegrationTest.writeListToScratch(
-            testConfiguration.getIngestbucket(), "softDel", sampleRowIds);
+            testConfiguration.ingestbucket(), "softDel", sampleRowIds);
 
     // build the deletion request with pointers to the two files with row ids to soft delete
     List<DataDeletionTableModel> dataDeletionTableModels =
@@ -204,11 +203,11 @@ class DatasetSoftDeletesTest extends UsersBase {
         DatasetIntegrationTest.dataDeletionRequest().tables(dataDeletionTableModels);
 
     // send off the soft delete request
-    dataRepoFixtures.deleteData(steward(), datasetId, request);
+    dataRepoFixtures.deleteData(steward, datasetId, request);
 
     // make sure the new counts make sense
-    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "participant", 2);
-    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample", 5);
+    dataRepoFixtures.assertDatasetTableCount(steward, dataset, "participant", 2);
+    dataRepoFixtures.assertDatasetTableCount(steward, dataset, "sample", 5);
 
     // make full views snapshot
     SnapshotRequestModel requestModelLess =
@@ -217,35 +216,35 @@ class DatasetSoftDeletesTest extends UsersBase {
 
     SnapshotSummaryModel snapshotSummaryLess =
         dataRepoFixtures.createSnapshotWithRequest(
-            steward(), dataset.getName(), profileId, requestModelLess);
+            steward, dataset.getName(), profileId, requestModelLess);
     snapshotIds.add(snapshotSummaryLess.getId());
 
     SnapshotModel snapshotLess =
-        dataRepoFixtures.getSnapshot(steward(), snapshotSummaryLess.getId(), null);
+        dataRepoFixtures.getSnapshot(steward, snapshotSummaryLess.getId(), null);
 
     // make sure the old counts stayed the same
-    dataRepoFixtures.assertSnapshotTableCount(steward(), snapshotAll, "participant", 5);
-    dataRepoFixtures.assertSnapshotTableCount(steward(), snapshotAll, "sample", 7);
+    dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "participant", 5);
+    dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "sample", 7);
 
     // make sure the new counts make sense
-    dataRepoFixtures.assertSnapshotTableCount(steward(), snapshotLess, "participant", 2);
-    dataRepoFixtures.assertSnapshotTableCount(steward(), snapshotLess, "sample", 5);
+    dataRepoFixtures.assertSnapshotTableCount(steward, snapshotLess, "participant", 2);
+    dataRepoFixtures.assertSnapshotTableCount(steward, snapshotLess, "sample", 5);
   }
 
   private void ingestDataset() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
+        dataRepoFixtures.createDataset(steward, profileId, "ingest-test-dataset.json");
     datasetId = datasetSummaryModel.getId();
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
     IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
     assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
 
     ingestRequest =
         dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
-    ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+    ingestResponse = dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
     assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
   }
 }

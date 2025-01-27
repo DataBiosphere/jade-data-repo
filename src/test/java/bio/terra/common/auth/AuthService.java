@@ -60,9 +60,9 @@ public class AuthService {
   public AuthService(TestConfiguration testConfig, IamProviderInterface iamProvider)
       throws Exception {
     this.testConfig = testConfig;
-    Optional<String> pemfilename = Optional.ofNullable(testConfig.getJadePemFileName());
+    Optional<String> pemfilename = Optional.ofNullable(testConfig.jadePemFileName());
     pemfilename.ifPresent(s -> pemfile = new File(s));
-    saEmail = testConfig.getJadeEmail();
+    saEmail = testConfig.jadeEmail();
     httpTransport = GoogleNetHttpTransport.newTrustedTransport();
     this.iamProvider = iamProvider;
   }
@@ -85,7 +85,7 @@ public class AuthService {
       throws IOException, GeneralSecurityException {
     if (pemfile == null) {
       throw new IllegalStateException(
-          String.format("pemfile not found: %s", testConfig.getJadePemFileName()));
+          String.format("pemfile not found: %s", testConfig.jadePemFileName()));
     }
     return new GoogleCredential.Builder()
         .setTransport(httpTransport)

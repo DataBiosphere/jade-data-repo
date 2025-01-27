@@ -4,7 +4,6 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.GcsUtils;
 import bio.terra.common.auth.AuthService;
-import bio.terra.common.auth.Users;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.service.auth.iam.sam.SamApiService;
@@ -23,9 +22,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 
+/**
+ * This class is used to configure the spring boot context for integration tests.
+ *
+ * <p>Datarepo integration tests are run using JUnit, but they don't connect to the JUnit spring
+ * context. Instead, they connect to a separately running instance of TDR using direct HTTP calls.
+ */
 @Configuration
+// This lists the components that can be autowired into an integration test class.
 @Import({
-  TestConfiguration.class,
   AuthService.class,
   ObjectMapper.class,
   JsonLoader.class,
@@ -39,15 +44,17 @@ import org.springframework.context.annotation.Profile;
   // These are required to support AuthService.makePetAccountToken()
   SamIam.class,
   SamApiService.class,
-  ConfigurationService.class,
-  SamApiService.class
+  ConfigurationService.class
 })
+// These are the configurations that can be autowired into a test class.
 @EnableConfigurationProperties({
   SamConfiguration.class,
   GoogleResourceConfiguration.class,
   ApplicationConfiguration.class,
-  AzureResourceConfiguration.class
+  AzureResourceConfiguration.class,
+  TestConfiguration.class
 })
+// This configures the spring boot test context to start up without a web environment.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Profile("integrationtest")
 public class IntegrationTestConfiguration {
@@ -59,6 +66,7 @@ public class IntegrationTestConfiguration {
     return "";
   }
 
+  // This is required by the SamApiService component.
   @Bean
   public OpenTelemetry openTelemetry() {
     return OpenTelemetry.noop();

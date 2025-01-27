@@ -24,7 +24,7 @@ Follow our getting [started guide](docs/jade-getting-started.md) to get set up.
 If you are making code changes, run:
 `./scripts/run check`
 
-See [started guide](docs/jade-getting-started.md) for information on running connected and integraiton tests.
+See [started guide](docs/jade-getting-started.md) for information on running connected and integration tests.
 
 ### Run TDR locally
 

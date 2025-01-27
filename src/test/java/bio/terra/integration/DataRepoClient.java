@@ -44,8 +44,8 @@ public class DataRepoClient {
   public DataRepoClient() {
     restTemplate =
         new RestTemplateBuilder()
-            .setConnectTimeout(Duration.ofMinutes(5))
-            .setReadTimeout(Duration.ofMinutes(5))
+            .connectTimeout(Duration.ofMinutes(5))
+            .readTimeout(Duration.ofMinutes(5))
             .build();
     restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
     restTemplate.setErrorHandler(new DataRepoClientErrorHandler());

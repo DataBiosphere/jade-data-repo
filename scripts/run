@@ -87,7 +87,7 @@ run_connected_tests() {
 start_local() {
   eval "$("${SCRIPTS_DIR}"/render-configs.sh -e)"
   cd "$ROOT_DIR"
-  ./gradlew bootRun ${GRADLE_ARGS}
+  TDR_LOG_APPENDER=Console-Standard ./gradlew bootRun ${GRADLE_ARGS}
 }
 
 start_docker() {

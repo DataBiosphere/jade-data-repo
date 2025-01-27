@@ -6,11 +6,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class Users {
+  private static final Logger logger = LoggerFactory.getLogger(Users.class);
+
   private static final String ADMIN_ROLE = "admin";
   private static final String STEWARD_ROLE = "steward";
   private static final String CUSTODIAN_ROLE = "custodian";
@@ -87,6 +91,10 @@ public class Users {
   }
 
   public TestUsers testUsers() {
-    return new TestUsers(admin(), steward(), custodian(), reader(), discoverer());
+    TestUsers testUsers = new TestUsers(admin(), steward(), custodian(), reader(), discoverer());
+    logger.info("admin: {}; steward: {}; custodian: {}; reader: {}; discoverer: {}",
+        testUsers.admin().name(), testUsers.steward().name(), testUsers.custodian().name(),
+        testUsers.reader().name(), testUsers.discoverer().name());
+    return testUsers;
   }
 }

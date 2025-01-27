@@ -21,5 +21,5 @@ public record TestConfiguration(
     String sourceStorageAccountName,
     String ingestRequestContainer) {
 
-  public record User(String role, String name, String email, String subjectId) {}
+  public record User(String role, String name, String email) {}
 }

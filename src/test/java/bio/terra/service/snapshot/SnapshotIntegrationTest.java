@@ -64,7 +64,8 @@ class SnapshotIntegrationTest {
 
   private static final Logger logger = LoggerFactory.getLogger(SnapshotIntegrationTest.class);
 
-  private final ThreadLocal<Users.TestUsers> testUsers = new ThreadLocal<>();
+  private final ThreadLocal<Users.TestUsers> testUsers =
+      ThreadLocal.withInitial(() -> users.testUsers());
   private final ThreadLocal<UUID> profileId = new ThreadLocal<>();
   private final ThreadLocal<UUID> datasetId = new ThreadLocal<>();
   private final ThreadLocal<UUID> createdSnapshotId = new ThreadLocal<>();
@@ -93,11 +94,13 @@ class SnapshotIntegrationTest {
 
   @BeforeEach
   public void setup() throws Exception {
-    testUsers.set(users.testUsers());
-    logger.info("testUsers: {}", testUsers.get());
     profileId.set(dataRepoFixtures.createBillingProfile(steward()).getId());
     dataRepoFixtures.addPolicyMember(
-        steward(), profileId.get(), IamRole.USER, custodian().email(), IamResourceType.SPEND_PROFILE);
+        steward(),
+        profileId.get(),
+        IamRole.USER,
+        custodian().email(),
+        IamResourceType.SPEND_PROFILE);
 
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId.get(), "ingest-test-dataset.json");
@@ -259,7 +262,8 @@ class SnapshotIntegrationTest {
     Awaitility.waitAtMost(Duration.ofSeconds(10))
         .until(() -> dataRepoFixtures.getSnapshot(steward, snapshotSummary.getId(), null) != null);
     ErrorModel errorModel =
-        dataRepoFixtures.deleteDatasetAssetExpectFailure(steward, dataset.getId(), "sample_centric");
+        dataRepoFixtures.deleteDatasetAssetExpectFailure(
+            steward, dataset.getId(), "sample_centric");
     assertThat(
         "Error deleting asset",
         errorModel.getMessage(),

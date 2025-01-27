@@ -40,7 +40,7 @@ public class AclUtils {
             && bqe.getMessage().startsWith("Too many authorized entities in this dataset.")) {
           throw new BigQueryAclExhaustionException(
               bqe.getMessage()
-              + " Resolve this by deleting snapshots or creating a second Terra Data Repo dataset.",
+                  + " Resolve this by deleting snapshots or creating a second Terra Data Repo dataset.",
               bqe);
         }
 

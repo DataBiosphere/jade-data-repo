@@ -56,6 +56,7 @@ class DatasetControlFilesIntegrationTest {
 
   @BeforeEach
   public void setup() throws Exception {
+    steward = users.steward();
     dataRepoFixtures.resetConfig(steward);
     profileId = dataRepoFixtures.createBillingProfile(steward).getId();
   }

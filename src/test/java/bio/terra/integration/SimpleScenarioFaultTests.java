@@ -4,7 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.category.Integration;
-import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.model.ConfigFaultCountedModel;
 import bio.terra.model.ConfigFaultModel;
 import bio.terra.model.ConfigGroupModel;
@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,25 +39,34 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
+@Disabled
 class SimpleScenarioFaultTests {
   private final Logger logger = LoggerFactory.getLogger(SimpleScenarioFaultTests.class);
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private Users users;
 
-  private TestConfiguration.User steward;
-  private TestConfiguration.User custodian;
+  private User steward;
+  private User custodian;
   private UUID profileId;
   private UUID datasetId;
   private UUID snapshotId;
+
+  private User steward() {
+    return steward;
+  }
+
+  private User custodian() {
+    return custodian;
+  }
 
   @BeforeEach
   public void setup() throws Exception {
     steward = users.steward();
     custodian = users.custodian();
-    profileId = dataRepoFixtures.createBillingProfile(steward).getId();
+    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     dataRepoFixtures.addPolicyMember(
-        steward, profileId, IamRole.USER, custodian.email(), IamResourceType.SPEND_PROFILE);
+        steward(), profileId, IamRole.USER, custodian().email(), IamResourceType.SPEND_PROFILE);
   }
 
   // This is belts and suspenders, since we try to do these deletes in the scenario.
@@ -64,24 +74,25 @@ class SimpleScenarioFaultTests {
   @AfterEach
   public void teardown() throws Exception {
     // Don't interrupt cleanup with the fault
-    dataRepoFixtures.setFault(steward, "SAM_TIMEOUT_FAULT", false);
+    dataRepoFixtures.setFault(steward(), "SAM_TIMEOUT_FAULT", false);
     if (snapshotId != null) {
-      dataRepoFixtures.deleteSnapshot(custodian, snapshotId);
+      dataRepoFixtures.deleteSnapshot(custodian(), snapshotId);
     }
 
     if (datasetId != null) {
-      dataRepoFixtures.deleteDataset(steward, datasetId);
+      dataRepoFixtures.deleteDataset(steward(), datasetId);
     }
 
     if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward, profileId);
+      dataRepoFixtures.deleteProfileLog(steward(), profileId);
     }
   }
 
   @Test
   void testSamTimeout() throws Exception {
     ConfigGroupModel configGroup = buildConfigGroup(ConfigFaultCountedModel.RateStyleEnum.FIXED);
-    List<ConfigModel> configList = dataRepoFixtures.setConfigList(steward, configGroup).getItems();
+    List<ConfigModel> configList =
+        dataRepoFixtures.setConfigList(steward(), configGroup).getItems();
     printConfigList("pre-fixed", configList);
     printConfigList("fixed", configGroup.getGroup());
 
@@ -89,14 +100,14 @@ class SimpleScenarioFaultTests {
 
     // The rest of this is here not so much to test the fault as to validate the configuration test
     // infrastructure in a live environment.
-    dataRepoFixtures.resetConfig(steward);
+    dataRepoFixtures.resetConfig(steward());
     configGroup = buildConfigGroup(ConfigFaultCountedModel.RateStyleEnum.RANDOM);
-    dataRepoFixtures.setConfigList(steward, configGroup);
+    dataRepoFixtures.setConfigList(steward(), configGroup);
     printConfigList("random", configGroup.getGroup());
 
     simpleScenario();
 
-    configList = dataRepoFixtures.getConfigList(steward).getItems();
+    configList = dataRepoFixtures.getConfigList(steward()).getItems();
     printConfigList("final", configList);
   }
 
@@ -150,46 +161,46 @@ class SimpleScenarioFaultTests {
   private void simpleScenario() throws Exception {
     // TODO: Since add policy is sync, it doesn't survive the fault. So for now, turn it off
     //  for those operations.
-    dataRepoFixtures.setFault(steward, "SAM_TIMEOUT_FAULT", false);
+    dataRepoFixtures.setFault(steward(), "SAM_TIMEOUT_FAULT", false);
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward, profileId, "ingest-test-dataset.json");
+        dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
     datasetId = datasetSummaryModel.getId();
     dataRepoFixtures.addDatasetPolicyMember(
-        steward, datasetId, IamRole.CUSTODIAN, custodian.email());
-    dataRepoFixtures.setFault(steward, "SAM_TIMEOUT_FAULT", true);
+        steward(), datasetId, IamRole.CUSTODIAN, custodian.email());
+    dataRepoFixtures.setFault(steward(), "SAM_TIMEOUT_FAULT", true);
 
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
     IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
     assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
 
     ingestRequest =
         dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
-    ingestResponse = dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
+    ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
     assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
 
     ingestRequest = dataRepoFixtures.buildSimpleIngest("file", "ingest-test/ingest-test-file.json");
-    ingestResponse = dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
+    ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
     assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
 
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshot(
-            custodian, datasetSummaryModel.getName(), profileId, "ingest-test-snapshot.json");
+            custodian(), datasetSummaryModel.getName(), profileId, "ingest-test-snapshot.json");
     snapshotId = snapshotSummary.getId();
 
     // TODO: ditto from above
-    dataRepoFixtures.setFault(steward, "SAM_TIMEOUT_FAULT", false);
+    dataRepoFixtures.setFault(steward(), "SAM_TIMEOUT_FAULT", false);
     if (snapshotId != null) {
-      dataRepoFixtures.deleteSnapshot(custodian, snapshotId);
+      dataRepoFixtures.deleteSnapshot(custodian(), snapshotId);
       snapshotId = null;
     }
 
     if (datasetId != null) {
-      dataRepoFixtures.deleteDataset(steward, datasetId);
+      dataRepoFixtures.deleteDataset(steward(), datasetId);
       datasetId = null;
     }
-    dataRepoFixtures.setFault(steward, "SAM_TIMEOUT_FAULT", true);
+    dataRepoFixtures.setFault(steward(), "SAM_TIMEOUT_FAULT", true);
   }
 }

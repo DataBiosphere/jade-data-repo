@@ -31,6 +31,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
@@ -42,6 +44,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
+@Execution(ExecutionMode.CONCURRENT)
 class DatasetControlFilesIntegrationTest {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
@@ -49,36 +52,42 @@ class DatasetControlFilesIntegrationTest {
   @Autowired private TestConfiguration testConfiguration;
   @Autowired private Users users;
 
-  private User steward;
-  private UUID datasetId;
-  private UUID profileId;
-  private String ingestBucket;
+  private final ThreadLocal<Users.TestUsers> testUsers =
+      ThreadLocal.withInitial(() -> users.testUsers());
+  private final ThreadLocal<UUID> tlDatasetId = new ThreadLocal<>();
+  private final ThreadLocal<UUID> tlProfileId = new ThreadLocal<>();
+  private final ThreadLocal<String> tlIngestBucket = new ThreadLocal<>();
+
+  private User steward() {
+    return testUsers.get().steward();
+  }
 
   @BeforeEach
   public void setup() throws Exception {
-    steward = users.steward();
-    dataRepoFixtures.resetConfig(steward);
-    profileId = dataRepoFixtures.createBillingProfile(steward).getId();
+    dataRepoFixtures.resetConfig(steward());
+    tlProfileId.set(dataRepoFixtures.createBillingProfile(steward()).getId());
   }
 
   @AfterEach
   public void teardown() throws Exception {
-    dataRepoFixtures.resetConfig(steward);
+    dataRepoFixtures.resetConfig(steward());
 
-    if (datasetId != null) {
-      dataRepoFixtures.deleteDataset(steward, datasetId, ingestBucket);
+    if (tlDatasetId.get() != null) {
+      dataRepoFixtures.deleteDataset(steward(), tlDatasetId.get(), tlIngestBucket.get());
     }
 
-    if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward, profileId);
+    if (tlProfileId.get() != null) {
+      dataRepoFixtures.deleteProfileLog(steward(), tlProfileId.get());
     }
   }
 
   @Test
   void testCombinedMetadataDataIngest() throws Exception {
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward, profileId, "dataset-ingest-combined-array.json");
-    datasetId = datasetSummaryModel.getId();
+        dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
 
     // Initial uses bulk mode
     IngestRequestModel ingestRequest =
@@ -92,9 +101,9 @@ class DatasetControlFilesIntegrationTest {
                 "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array.json");
 
     IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
 
-    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward);
+    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
 
     assertThat(
         "All 4 rows were ingested, including the one with duplicate files",
@@ -112,7 +121,7 @@ class DatasetControlFilesIntegrationTest {
                 "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array-2.json");
 
     IngestResponseModel secondIngestResponse =
-        dataRepoFixtures.ingestJsonData(steward, datasetId, secondIngestRequest);
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, secondIngestRequest);
 
     assertThat(
         "A row with a different load tag but same files ingested correctly",
@@ -124,8 +133,8 @@ class DatasetControlFilesIntegrationTest {
         secondIngestResponse.getLoadResult().getLoadSummary().getTotalFiles(),
         equalTo(2));
 
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward, datasetId);
-    dataRepoFixtures.assertDatasetTableCount(steward, dataset, "sample_vcf", 6);
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample_vcf", 6);
 
     IngestRequestModel thirdIngestRequest =
         new IngestRequestModel()
@@ -138,7 +147,7 @@ class DatasetControlFilesIntegrationTest {
                 "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array-3.json");
 
     DataRepoResponse<IngestResponseModel> thirdIngestResponse =
-        dataRepoFixtures.ingestJsonDataRaw(steward, datasetId, thirdIngestRequest);
+        dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, thirdIngestRequest);
 
     IngestResponseModel thirdResponseModel = thirdIngestResponse.getResponseObject().orElseThrow();
 
@@ -155,9 +164,11 @@ class DatasetControlFilesIntegrationTest {
 
   @Test
   void testMaxBadRecords() throws Exception {
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward, profileId, "dataset-ingest-combined-array.json");
-    datasetId = datasetSummaryModel.getId();
+        dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -169,7 +180,7 @@ class DatasetControlFilesIntegrationTest {
             .path(
                 "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array.json");
 
-    dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
 
     IngestRequestModel secondIngestRequest =
         new IngestRequestModel()
@@ -182,7 +193,7 @@ class DatasetControlFilesIntegrationTest {
                 "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array.json");
 
     DataRepoResponse<IngestResponseModel> secondIngestResponse =
-        dataRepoFixtures.ingestJsonDataRaw(steward, datasetId, secondIngestRequest);
+        dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, secondIngestRequest);
 
     assertThat(
         "The ingest fails if there were more bad rows than badRowCount",
@@ -197,9 +208,11 @@ class DatasetControlFilesIntegrationTest {
 
   @Test
   void testSourcePathAuth() throws Exception {
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward, profileId, "dataset-ingest-combined-array.json");
-    datasetId = datasetSummaryModel.getId();
+        dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -212,7 +225,7 @@ class DatasetControlFilesIntegrationTest {
                 "gs://jade-testdata-useastregion/dataset-ingest-combined-control-unauth-source-path.json");
 
     DataRepoResponse<IngestResponseModel> ingestResponse =
-        dataRepoFixtures.ingestJsonDataRaw(steward, datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, ingestRequest);
 
     assertThat(
         "The ingest fails if there are any source paths that the user doesn't have access to",
@@ -229,14 +242,16 @@ class DatasetControlFilesIntegrationTest {
 
   @Test
   void testDirectIngestSourcePathAuth() throws Exception {
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward, profileId, "dataset-ingest-combined-array.json");
-    datasetId = datasetSummaryModel.getId();
+        dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
     Map<String, Object> data =
         jsonLoader.loadObject("test-direct-ingest-auth.json", new TypeReference<>() {});
     IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("sample_vcf", List.of(data));
     DataRepoResponse<IngestResponseModel> ingestResponse =
-        dataRepoFixtures.ingestJsonDataRaw(steward, datasetId, request);
+        dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, request);
 
     assertThat(
         "The ingest fails if there are any errors accessing the source path(s)",
@@ -253,9 +268,11 @@ class DatasetControlFilesIntegrationTest {
 
   @Test
   void testCopyingOfControlFiles() throws Exception {
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward, profileId, "dataset-ingest-combined-array.json");
-    datasetId = datasetSummaryModel.getId();
+        dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -266,12 +283,12 @@ class DatasetControlFilesIntegrationTest {
             .path("gs://jade-testdata/dataset-ingest-combined-control-duplicates-array.json");
 
     IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
 
-    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward);
+    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
 
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward, datasetId);
-    List<String> rowIds = dataRepoFixtures.getRowIds(steward, dataset, "sample_vcf", 1);
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    List<String> rowIds = dataRepoFixtures.getRowIds(steward(), dataset, "sample_vcf", 1);
     String rowIdsPath =
         DatasetIntegrationTest.writeListToScratch(
             testConfiguration.ingestbucket(), "softDel", rowIds);
@@ -281,17 +298,20 @@ class DatasetControlFilesIntegrationTest {
     DataDeletionRequest request =
         DatasetIntegrationTest.dataDeletionRequest().tables(dataDeletionTableModels);
 
-    dataRepoFixtures.deleteData(steward, datasetId, request);
+    dataRepoFixtures.deleteData(steward(), datasetId, request);
 
     // We should see that one row was deleted.
-    dataRepoFixtures.assertDatasetTableCount(steward, dataset, "sample_vcf", 3);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample_vcf", 3);
   }
 
   @Test
   void testCopyingOfControlFilesMultiRegion() throws Exception {
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward, profileId, "dataset-ingest-combined-array-us.json");
-    datasetId = datasetSummaryModel.getId();
+        dataRepoFixtures.createDataset(
+            steward(), profileId, "dataset-ingest-combined-array-us.json");
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -302,12 +322,12 @@ class DatasetControlFilesIntegrationTest {
             .path("gs://jade-testdata/dataset-ingest-combined-control-duplicates-array.json");
 
     IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
 
-    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward);
+    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
 
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward, datasetId);
-    List<String> rowIds = dataRepoFixtures.getRowIds(steward, dataset, "sample_vcf", 1);
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    List<String> rowIds = dataRepoFixtures.getRowIds(steward(), dataset, "sample_vcf", 1);
     String rowIdsPath =
         DatasetIntegrationTest.writeListToScratch(
             testConfiguration.ingestbucket(), "softDel", rowIds);
@@ -317,17 +337,20 @@ class DatasetControlFilesIntegrationTest {
     DataDeletionRequest request =
         DatasetIntegrationTest.dataDeletionRequest().tables(dataDeletionTableModels);
 
-    dataRepoFixtures.deleteData(steward, datasetId, request);
+    dataRepoFixtures.deleteData(steward(), datasetId, request);
 
     // We should see that one row was deleted.
-    dataRepoFixtures.assertDatasetTableCount(steward, dataset, "sample_vcf", 3);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample_vcf", 3);
   }
 
   @Test
   void testInvalidControlFile() throws Exception {
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward, profileId, "dataset-ingest-combined-array-us.json");
-    datasetId = datasetSummaryModel.getId();
+        dataRepoFixtures.createDataset(
+            steward(), profileId, "dataset-ingest-combined-array-us.json");
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -337,7 +360,7 @@ class DatasetControlFilesIntegrationTest {
             .table("sample_vcf")
             .path("gs://jade-testdata/dataset-combined-ingest-control-file-invalid.json");
 
-    ErrorModel error = dataRepoFixtures.ingestJsonDataFailure(steward, datasetId, ingestRequest);
+    ErrorModel error = dataRepoFixtures.ingestJsonDataFailure(steward(), datasetId, ingestRequest);
     assertThat(
         "Malformed source path field throws error",
         error.getErrorDetail().get(0),
@@ -351,9 +374,11 @@ class DatasetControlFilesIntegrationTest {
 
   @Test
   void interactionsFromRequesterPaysBucket() throws Exception {
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward, profileId, "dataset-ingest-combined-array.json");
-    datasetId = datasetSummaryModel.getId();
+        dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -365,9 +390,9 @@ class DatasetControlFilesIntegrationTest {
                 "gs://jade_testbucket_requester_pays/dataset-ingest-combined-control-duplicates-array.json");
 
     IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
 
-    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward);
+    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
 
     assertThat(
         "All 4 rows were ingested, including the one with duplicate files",
@@ -375,8 +400,8 @@ class DatasetControlFilesIntegrationTest {
         equalTo(4L));
 
     // Soft delete from file
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward, datasetId);
-    List<String> rowIds = dataRepoFixtures.getRowIds(steward, dataset, "sample_vcf", 4);
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    List<String> rowIds = dataRepoFixtures.getRowIds(steward(), dataset, "sample_vcf", 4);
     String rowIdsPath =
         DatasetIntegrationTest.writeListToScratch(
             "jade_testbucket_requester_pays",
@@ -391,21 +416,24 @@ class DatasetControlFilesIntegrationTest {
         DatasetIntegrationTest.dataDeletionRequest().tables(dataDeletionTableModels);
 
     // send off the soft delete request
-    dataRepoFixtures.deleteData(steward, datasetId, request);
+    dataRepoFixtures.deleteData(steward(), datasetId, request);
 
     // We should only see 2 records now
-    dataRepoFixtures.getRowIds(steward, dataset, "sample_vcf", 2);
+    dataRepoFixtures.getRowIds(steward(), dataset, "sample_vcf", 2);
   }
 
   @Test
   void interactionsWithPerDatasetServiceAccount() throws Exception {
-    ingestBucket = "jade_testbucket_no_jade_sa";
+    var ingestBucket = "jade_testbucket_no_jade_sa";
+    tlIngestBucket.set(ingestBucket);
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDatasetWithOwnServiceAccount(
-            steward, profileId, "dataset-ingest-combined-array.json");
+            steward(), profileId, "dataset-ingest-combined-array.json");
 
-    datasetId = datasetSummaryModel.getId();
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward, datasetId);
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -418,7 +446,7 @@ class DatasetControlFilesIntegrationTest {
                     "gs://%s/dataset-ingest-combined-control-duplicates-array.json", ingestBucket));
 
     DataRepoResponse<IngestResponseModel> ingestResponseBeforeGrant =
-        dataRepoFixtures.ingestJsonDataRaw(steward, datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, ingestRequest);
 
     assertThat(
         "ingest failed before granting SA to source bucket",
@@ -438,9 +466,9 @@ class DatasetControlFilesIntegrationTest {
     dataRepoFixtures.grantIngestBucketPermissionsToDedicatedSa(dataset, ingestBucket);
 
     IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
 
-    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward);
+    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
 
     assertThat(
         "All 4 rows were ingested, including the one with duplicate files",

@@ -61,7 +61,7 @@ run_tests() {
 }
 
 wait_until_server_up() {
-  timeout 30 bash -c "until curl -s http:/localhost:8080/status; do sleep 1; done"
+  timeout 60 bash -c "until curl -s http:/localhost:8080/status; do sleep 1; done"
 }
 
 run_integration_tests() {

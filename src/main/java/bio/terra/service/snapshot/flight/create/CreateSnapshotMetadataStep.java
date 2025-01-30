@@ -19,7 +19,7 @@ import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.CannotSerializeTransactionException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.TransactionSystemException;
 
@@ -71,8 +71,8 @@ public class CreateSnapshotMetadataStep implements Step {
     } catch (SnapshotNotFoundException ex) {
       FlightUtils.setErrorResponse(context, ex.toString(), HttpStatus.BAD_REQUEST);
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
-    } catch (CannotSerializeTransactionException | TransactionSystemException ex) {
-      logger.error("Could not serialize the transaction. Retrying.", ex);
+    } catch (TransientDataAccessException | TransactionSystemException ex) {
+      logger.error("Transaction failed due to a transient error. Retrying.", ex);
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
     }
   }

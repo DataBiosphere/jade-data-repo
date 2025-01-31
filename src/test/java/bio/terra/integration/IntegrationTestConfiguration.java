@@ -15,6 +15,7 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.OpenTelemetry;
+import java.io.IOException;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
@@ -60,10 +61,10 @@ import org.springframework.context.annotation.Profile;
 public class IntegrationTestConfiguration {
 
   @Bean("tdrServiceAccountEmail")
-  public String tdrServiceAccountEmail() {
-    // Provide a default value for the service account email when running a spring-context aware
-    // test to avoid having to set it in the test environment.
-    return "";
+  public String tdrServiceAccountEmail() throws IOException {
+    // Delegate to ApplicationConfiguration to get the service account email. Without this set,
+    // the service account would be deleted by tests on teardown.
+    return new ApplicationConfiguration().tdrServiceAccountEmail();
   }
 
   // This is required by the SamApiService component.

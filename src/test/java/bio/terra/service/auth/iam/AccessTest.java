@@ -82,15 +82,15 @@ public class AccessTest {
   private UUID profileId;
   private List<UUID> snapshotIds;
 
-  private TestConfiguration.User steward() {
+  private User steward() {
     return testUsers.steward();
   }
 
-  private TestConfiguration.User custodian() {
+  private User custodian() {
     return testUsers.custodian();
   }
 
-  private TestConfiguration.User reader() {
+  private User reader() {
     return testUsers.reader();
   }
 
@@ -307,7 +307,8 @@ public class AccessTest {
   public void fileAclFaultTest() throws Exception {
     try {
       // Run the fileAclTest with the SNAPSHOT_GRANT_FILE_ACCESS_FAULT on
-      dataRepoFixtures.setFault(steward(), ConfigEnum.SNAPSHOT_GRANT_FILE_ACCESS_FAULT.name(), true);
+      dataRepoFixtures.setFault(
+          steward(), ConfigEnum.SNAPSHOT_GRANT_FILE_ACCESS_FAULT.name(), true);
       fileAclTest();
     } finally {
       dataRepoFixtures.resetConfig(steward());

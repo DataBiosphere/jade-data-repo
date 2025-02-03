@@ -83,51 +83,61 @@ class DatasetIntegrationTest {
   @Autowired private JsonLoader jsonLoader;
   @Autowired private Users users;
 
-  private User steward;
-  private User custodian;
-  private User reader;
-  private User admin;
+  private Users.TestUsers testUsers;
   private UUID datasetId;
   private UUID profileId;
 
+  private User steward() {
+    return testUsers.steward();
+  }
+
+  private User custodian() {
+    return testUsers.custodian();
+  }
+
+  private User reader() {
+    return testUsers.reader();
+  }
+
+  private User admin() {
+    return testUsers.admin();
+  }
+
   @BeforeEach
   public void setup() throws Exception {
-    steward = users.steward();
-    custodian = users.custodian();
-    reader = users.reader();
-    admin = users.admin();
-    dataRepoFixtures.resetConfig(steward);
-    profileId = dataRepoFixtures.createBillingProfile(steward).getId();
+    testUsers = users.testUsers();
+    dataRepoFixtures.resetConfig(steward());
+    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     datasetId = null;
   }
 
   @AfterEach
   public void teardown() throws Exception {
-    dataRepoFixtures.resetConfig(steward);
+    dataRepoFixtures.resetConfig(steward());
 
     if (datasetId != null) {
-      dataRepoFixtures.deleteDatasetLog(steward, datasetId);
+      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
     }
 
     if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward, profileId);
+      dataRepoFixtures.deleteProfileLog(steward(), profileId);
     }
   }
 
   @Test
   void datasetHappyPath() throws Exception {
     DatasetSummaryModel summaryModel =
-        dataRepoFixtures.createDataset(steward, profileId, "omop/it-dataset-omop.json");
+        dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.json");
     datasetId = summaryModel.getId();
 
     logger.info("dataset id is {}", summaryModel.getId());
     assertThat(summaryModel.getName(), startsWith(OMOP_DATASET_NAME));
     assertThat(summaryModel.getDescription(), equalTo(OMOP_DATASET_DESC));
 
-    List<String> stewardRoles = dataRepoFixtures.retrieveUserDatasetRoles(steward, datasetId);
+    List<String> stewardRoles = dataRepoFixtures.retrieveUserDatasetRoles(steward(), datasetId);
     assertThat("The Steward was given steward access", stewardRoles, hasItem("steward"));
 
-    DatasetModel datasetModel = dataRepoFixtures.getDataset(steward, summaryModel.getId());
+    DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
 
     assertThat(datasetModel.getName(), startsWith(OMOP_DATASET_NAME));
     assertThat(datasetModel.getDescription(), equalTo(OMOP_DATASET_DESC));
@@ -141,7 +151,7 @@ class DatasetIntegrationTest {
             true,
             () -> {
               EnumerateDatasetModel enumerateDatasetModel =
-                  dataRepoFixtures.enumerateDatasets(steward);
+                  dataRepoFixtures.enumerateDatasets(steward());
               boolean found = false;
               for (DatasetSummaryModel oneDataset : enumerateDatasetModel.getItems()) {
                 if (oneDataset.getId().equals(datasetModel.getId())) {
@@ -195,9 +205,9 @@ class DatasetIntegrationTest {
 
     // Check permissions on lookupDatasetDataById
     dataRepoFixtures.retrieveDatasetData(
-        steward, datasetId, datasetModel.getSchema().getTables().get(0).getName(), 0, 1, null);
+        steward(), datasetId, datasetModel.getSchema().getTables().get(0).getName(), 0, 1, null);
     dataRepoFixtures.retrieveDatasetDataExpectFailure(
-        custodian,
+        custodian(),
         datasetId,
         datasetModel.getSchema().getTables().get(0).getName(),
         0,
@@ -207,9 +217,9 @@ class DatasetIntegrationTest {
 
     // test allowable permissions
     dataRepoFixtures.addDatasetPolicyMember(
-        steward, summaryModel.getId(), IamRole.CUSTODIAN, custodian.email());
+        steward(), summaryModel.getId(), IamRole.CUSTODIAN, custodian().email());
     DataRepoResponse<EnumerateDatasetModel> enumDatasets =
-        dataRepoFixtures.enumerateDatasetsRaw(custodian);
+        dataRepoFixtures.enumerateDatasetsRaw(custodian());
     assertThat(
         "Custodian is authorized to enumerate datasets",
         enumDatasets.getStatusCode(),
@@ -217,9 +227,9 @@ class DatasetIntegrationTest {
 
     // Check permissions on lookupDatasetDataById now that the custodian has been given permission
     dataRepoFixtures.retrieveDatasetData(
-        custodian, datasetId, datasetModel.getSchema().getTables().get(0).getName(), 0, 1, null);
+        custodian(), datasetId, datasetModel.getSchema().getTables().get(0).getName(), 0, 1, null);
     dataRepoFixtures.retrieveDatasetDataExpectFailure(
-        reader,
+        reader(),
         datasetId,
         datasetModel.getSchema().getTables().get(0).getName(),
         0,
@@ -227,7 +237,7 @@ class DatasetIntegrationTest {
         null,
         HttpStatus.FORBIDDEN);
 
-    List<String> custodianRoles = dataRepoFixtures.retrieveUserDatasetRoles(custodian, datasetId);
+    List<String> custodianRoles = dataRepoFixtures.retrieveUserDatasetRoles(custodian(), datasetId);
     assertThat("The Custodian was given custodian access", custodianRoles, hasItem("custodian"));
     assertThat(
         "The Custodian does not have Steward access", custodianRoles, not(hasItem("steward")));
@@ -257,7 +267,7 @@ class DatasetIntegrationTest {
   void datasetHappyPathWithPet() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.GCP, true, null);
+            steward(), profileId, "omop/it-dataset-omop.json", CloudPlatform.GCP, true, null);
     datasetId = summaryModel.getId();
 
     logger.info("dataset id is {}", summaryModel.getId());
@@ -266,7 +276,7 @@ class DatasetIntegrationTest {
 
     // We just need to validate the steward is able to read back the dataset (e.g. the pet account
     // resolved correctly)
-    DatasetModel datasetModel = dataRepoFixtures.getDataset(steward, summaryModel.getId());
+    DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
 
     assertThat(datasetModel.getName(), startsWith(OMOP_DATASET_NAME));
     assertThat(datasetModel.getDescription(), equalTo(OMOP_DATASET_DESC));
@@ -276,11 +286,11 @@ class DatasetIntegrationTest {
   void datasetUnauthorizedPermissionsTest() throws Exception {
     // These should fail because they don't have access to the billing profile
     dataRepoFixtures.createDatasetError(
-        custodian, profileId, "dataset-minimal.json", HttpStatus.FORBIDDEN);
+        custodian(), profileId, "dataset-minimal.json", HttpStatus.FORBIDDEN);
     dataRepoFixtures.createDatasetError(
-        reader, profileId, "dataset-minimal.json", HttpStatus.FORBIDDEN);
+        reader(), profileId, "dataset-minimal.json", HttpStatus.FORBIDDEN);
 
-    EnumerateDatasetModel enumDatasetsResp = dataRepoFixtures.enumerateDatasets(reader);
+    EnumerateDatasetModel enumDatasetsResp = dataRepoFixtures.enumerateDatasets(reader());
     List<DatasetSummaryModel> items = enumDatasetsResp.getItems();
     if (items != null) {
       for (DatasetSummaryModel datasetModel : items) {
@@ -293,11 +303,11 @@ class DatasetIntegrationTest {
     assertThat("Reader does not have access to datasets", enumDatasetsResp.getTotal(), equalTo(0));
 
     DatasetSummaryModel summaryModel =
-        dataRepoFixtures.createDataset(steward, profileId, "dataset-minimal.json");
+        dataRepoFixtures.createDataset(steward(), profileId, "dataset-minimal.json");
     datasetId = summaryModel.getId();
 
     DataRepoResponse<DatasetModel> getDatasetResp =
-        dataRepoFixtures.getDatasetRaw(reader, datasetId);
+        dataRepoFixtures.getDatasetRaw(reader(), datasetId);
     assertThat(
         "Reader is not authorized to get dataset",
         getDatasetResp.getStatusCode(),
@@ -305,7 +315,7 @@ class DatasetIntegrationTest {
 
     // make sure reader cannot delete dataset
     DataRepoResponse<JobModel> deleteResp1 =
-        dataRepoFixtures.deleteDatasetLaunch(reader, datasetId);
+        dataRepoFixtures.deleteDatasetLaunch(reader(), datasetId);
     assertThat(
         "Reader is not authorized to delete datasets",
         deleteResp1.getStatusCode(),
@@ -330,7 +340,7 @@ class DatasetIntegrationTest {
 
     // make sure custodian cannot delete dataset
     DataRepoResponse<JobModel> deleteResp2 =
-        dataRepoFixtures.deleteDatasetLaunch(custodian, summaryModel.getId());
+        dataRepoFixtures.deleteDatasetLaunch(custodian(), summaryModel.getId());
     assertThat(
         "Custodian is not authorized to delete datasets",
         deleteResp2.getStatusCode(),
@@ -354,9 +364,9 @@ class DatasetIntegrationTest {
   void testAssetCreationUndo() throws Exception {
     // create a dataset
     DatasetSummaryModel summaryModel =
-        dataRepoFixtures.createDataset(steward, profileId, "omop/it-dataset-omop.json");
+        dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.json");
     datasetId = summaryModel.getId();
-    DatasetModel datasetModel = dataRepoFixtures.getDataset(steward, summaryModel.getId());
+    DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
     List<AssetModel> originalAssetList = datasetModel.getSchema().getAssets();
 
     assertThat("Asset specification is as originally expected", originalAssetList, hasSize(3));
@@ -367,7 +377,7 @@ class DatasetIntegrationTest {
 
     ErrorModel errorModel =
         dataRepoFixtures.addDatasetAssetExpectFailure(
-            steward, datasetModel.getId(), invalidAssetModel);
+            steward(), datasetModel.getId(), invalidAssetModel);
     assertThat(
         "At least one validation error caught for asset",
         errorModel.getMessage(),
@@ -378,12 +388,12 @@ class DatasetIntegrationTest {
 
     // have the asset creation fail
     // by calling the fault insertion
-    dataRepoFixtures.setFault(steward, ConfigEnum.CREATE_ASSET_FAULT.name(), true);
+    dataRepoFixtures.setFault(steward(), ConfigEnum.CREATE_ASSET_FAULT.name(), true);
 
     // add an asset spec
-    dataRepoFixtures.addDatasetAsset(steward, datasetModel.getId(), assetModel);
+    dataRepoFixtures.addDatasetAsset(steward(), datasetModel.getId(), assetModel);
     // make sure undo is completed successfully
-    DatasetModel datasetModelWAsset = dataRepoFixtures.getDataset(steward, datasetModel.getId());
+    DatasetModel datasetModelWAsset = dataRepoFixtures.getDataset(steward(), datasetModel.getId());
     DatasetSpecificationModel datasetSpecificationModel = datasetModelWAsset.getSchema();
     List<AssetModel> assetList = datasetSpecificationModel.getAssets();
 
@@ -393,10 +403,10 @@ class DatasetIntegrationTest {
 
   @Test
   void testCreateDatasetWithPolicies() throws Exception {
-    List<String> stewards = List.of(steward.email(), admin.email());
-    String custodianEmail = custodian.email();
+    List<String> stewards = List.of(steward().email(), admin().email());
+    String custodianEmail = custodian().email();
     List<String> custodiansWithDuplicates = List.of(custodianEmail, custodianEmail);
-    String snapshotCreatorEmail = reader.email();
+    String snapshotCreatorEmail = reader().email();
     DatasetRequestModelPolicies policiesRequest =
         new DatasetRequestModelPolicies()
             .stewards(stewards)
@@ -405,11 +415,11 @@ class DatasetIntegrationTest {
 
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDatasetWithPolicies(
-            steward, profileId, "omop/it-dataset-omop.json", policiesRequest);
+            steward(), profileId, "omop/it-dataset-omop.json", policiesRequest);
     datasetId = summaryModel.getId();
 
     Map<String, List<String>> rolesToPolicies =
-        dataRepoFixtures.retrieveDatasetPolicies(steward, datasetId).getPolicies().stream()
+        dataRepoFixtures.retrieveDatasetPolicies(steward(), datasetId).getPolicies().stream()
             .collect(Collectors.toMap(PolicyModel::getName, PolicyModel::getMembers));
 
     assertThat(

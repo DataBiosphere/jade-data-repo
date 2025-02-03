@@ -1811,7 +1811,7 @@ class AzureIntegrationTest {
 
     String controlFileContents;
     try (var resourceStream =
-             getClass().getResourceAsStream("/dataset-ingest-combined-control-azure.json")) {
+        getClass().getResourceAsStream("/dataset-ingest-combined-control-azure.json")) {
       controlFileContents = new String(resourceStream.readAllBytes(), StandardCharsets.UTF_8);
     }
 
@@ -1881,7 +1881,7 @@ class AzureIntegrationTest {
 
     String controlFileContents;
     try (var resourceStream =
-             getClass().getResourceAsStream("/dataset-ingest-combined-control-azure.json")) {
+        getClass().getResourceAsStream("/dataset-ingest-combined-control-azure.json")) {
       controlFileContents = new String(resourceStream.readAllBytes(), StandardCharsets.UTF_8);
     }
 

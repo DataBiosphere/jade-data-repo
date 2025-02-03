@@ -62,34 +62,41 @@ class SnapshotPermissionsIntegrationTest {
   @Autowired private AuthService authService;
   @Autowired private Users users;
 
-  private User steward;
+  private Users.TestUsers testUsers;
   private String stewardToken;
   private UUID profileId;
   private UUID datasetId;
   private DatasetSummaryModel datasetSummaryModel;
   private final List<UUID> createdSnapshotIds = new ArrayList<>();
 
+  private User steward() {
+    return testUsers.steward();
+  }
+
+  private User custodian() {
+    return testUsers.custodian();
+  }
+
   @BeforeEach
   public void setup() throws Exception {
-    steward = users.steward();
-    User custodian = users.custodian();
-    stewardToken = authService.getDirectAccessAuthToken(steward.email());
-    profileId = dataRepoFixtures.createBillingProfile(steward).getId();
+    testUsers = users.testUsers();
+    stewardToken = authService.getDirectAccessAuthToken(steward().email());
+    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     dataRepoFixtures.addPolicyMember(
-        steward, profileId, IamRole.USER, custodian.email(), IamResourceType.SPEND_PROFILE);
+        steward(), profileId, IamRole.USER, custodian().email(), IamResourceType.SPEND_PROFILE);
 
     datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward, profileId, "ingest-test-dataset.json");
+        dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
     datasetId = datasetSummaryModel.getId();
     dataRepoFixtures.addDatasetPolicyMember(
-        steward, datasetId, IamRole.CUSTODIAN, custodian.email());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().email());
 
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
-    dataRepoFixtures.ingestJsonData(steward, datasetId, request);
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
     request = dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
-    dataRepoFixtures.ingestJsonData(steward, datasetId, request);
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
   }
 
   @AfterEach
@@ -97,18 +104,18 @@ class SnapshotPermissionsIntegrationTest {
     createdSnapshotIds.forEach(
         snapshot -> {
           try {
-            dataRepoFixtures.deleteSnapshot(steward, snapshot);
+            dataRepoFixtures.deleteSnapshot(steward(), snapshot);
           } catch (Exception ex) {
             logger.warn("cleanup failed when deleting snapshot " + snapshot, ex);
           }
         });
 
     if (datasetId != null) {
-      dataRepoFixtures.deleteDatasetLog(steward, datasetId);
+      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
     }
 
     if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward, profileId);
+      dataRepoFixtures.deleteProfileLog(steward(), profileId);
     }
   }
 
@@ -120,11 +127,11 @@ class SnapshotPermissionsIntegrationTest {
     requestModel.setReaders(Collections.singletonList("bad-user@not-a-real-domain.com"));
     DataRepoResponse<JobModel> jobResponse =
         dataRepoFixtures.createSnapshotRaw(
-            steward, datasetSummaryModel.getName(), profileId, requestModel, false, false);
+            steward(), datasetSummaryModel.getName(), profileId, requestModel, false, false);
     logger.info("Attempting to create the snapshot with the name: {}", requestModel.getName());
 
     DataRepoResponse<ErrorModel> snapshotResponse =
-        dataRepoClient.waitForResponse(steward, jobResponse, new TypeReference<>() {});
+        dataRepoClient.waitForResponse(steward(), jobResponse, new TypeReference<>() {});
 
     assertThat("error is present", snapshotResponse.getErrorObject().isPresent(), equalTo(true));
     assertThat(
@@ -144,14 +151,14 @@ class SnapshotPermissionsIntegrationTest {
     requestModel.setReaders(Collections.emptyList());
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshotWithRequest(
-            steward, datasetSummaryModel.getName(), profileId, requestModel, false);
+            steward(), datasetSummaryModel.getName(), profileId, requestModel, false);
 
     createdSnapshotIds.add(snapshotSummary.getId());
   }
 
   @Test
   void snapshotAclTest() throws Exception {
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward, datasetId);
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
 
     String datasetName = dataset.getName();
 
@@ -164,9 +171,9 @@ class SnapshotPermissionsIntegrationTest {
     // swap in the correct dataset name (with the id at the end)
     requestModel.getContents().get(0).setDatasetName(datasetName);
     SnapshotSummaryModel snapshotSummary =
-        dataRepoFixtures.createSnapshotWithRequest(steward, datasetName, profileId, requestModel);
+        dataRepoFixtures.createSnapshotWithRequest(steward(), datasetName, profileId, requestModel);
     createdSnapshotIds.add(snapshotSummary.getId());
-    SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward, snapshotSummary.getId(), null);
+    SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
     assertThat(
         "new snapshot has been created", requestModel.getName(), equalTo(snapshot.getName()));
     assertThat("There should be 1 snapshot relationship", snapshot.getRelationships(), hasSize(1));
@@ -181,7 +188,7 @@ class SnapshotPermissionsIntegrationTest {
         greaterThan(datasetAclCount));
 
     // -----------delete snapshot------------
-    dataRepoFixtures.deleteSnapshot(steward, snapshotSummary.getId());
+    dataRepoFixtures.deleteSnapshot(steward(), snapshotSummary.getId());
     logger.info("---- Dataset Acls after snapshot delete-----");
     int datasetMinusSnapshotAclCount =
         retryAclUpdate(datasetName, datasetAclCount, AclCheck.EQUALTO);
@@ -194,7 +201,7 @@ class SnapshotPermissionsIntegrationTest {
   }
 
   private List<Acl> fetchSourceDatasetAcls(String datasetName) throws Exception {
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward, datasetId);
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
     BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
 
     // Fetch BQ Dataset

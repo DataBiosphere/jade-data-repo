@@ -19,7 +19,7 @@ import bio.terra.common.GcsUtils;
 import bio.terra.common.ParquetUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
-import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.IntegrationTestConfiguration;
@@ -81,71 +81,81 @@ class SnapshotExportIntegrationTest {
   @Autowired private Users users;
 
   private static final Logger logger = LoggerFactory.getLogger(SnapshotExportIntegrationTest.class);
-  private TestConfiguration.User steward;
-  private TestConfiguration.User custodian;
-  private TestConfiguration.User reader;
+  private Users.TestUsers testUsers;
   private String stewardToken;
   private String readerToken;
   private UUID profileId;
   private final List<UUID> createdDatasetsIds = new ArrayList<>();
   private final List<UUID> createdSnapshotIds = new ArrayList<>();
 
+  private User steward() {
+    return testUsers.steward();
+  }
+
+  private User custodian() {
+    return testUsers.custodian();
+  }
+
+  private User reader() {
+    return testUsers.reader();
+  }
+
   @BeforeEach
   public void setup() throws Exception {
-    steward = users.steward();
-    custodian = users.custodian();
-    reader = users.reader();
-    stewardToken = authService.getDirectAccessAuthToken(steward.email());
-    readerToken = authService.getDirectAccessAuthToken(reader.email());
-    profileId = dataRepoFixtures.createBillingProfile(steward).getId();
+    stewardToken = authService.getDirectAccessAuthToken(steward().email());
+    readerToken = authService.getDirectAccessAuthToken(reader().email());
+    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     dataRepoFixtures.addPolicyMember(
-        steward, profileId, IamRole.USER, custodian.email(), IamResourceType.SPEND_PROFILE);
+        steward(), profileId, IamRole.USER, custodian().email(), IamResourceType.SPEND_PROFILE);
   }
 
   @AfterEach
   public void tearDown() throws Exception {
     for (UUID snapshotId : createdSnapshotIds) {
       try {
-        dataRepoFixtures.deleteSnapshot(steward, snapshotId);
+        dataRepoFixtures.deleteSnapshot(steward(), snapshotId);
       } catch (Exception ex) {
         logger.warn("cleanup failed when deleting snapshot " + snapshotId, ex);
       }
     }
 
     for (UUID datasetId : createdDatasetsIds) {
-      dataRepoFixtures.deleteDatasetLog(steward, datasetId);
+      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
     }
 
     if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward, profileId);
+      dataRepoFixtures.deleteProfileLog(steward(), profileId);
     }
   }
 
   @Test
   void snapshotExportTest() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward, profileId, "ingest-test-dataset.json");
+        dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
     UUID datasetId = datasetSummaryModel.getId();
     createdDatasetsIds.add(datasetId);
     dataRepoFixtures.addDatasetPolicyMember(
-        steward, datasetId, IamRole.CUSTODIAN, custodian.email());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().email());
 
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
-    dataRepoFixtures.ingestJsonData(steward, datasetId, request);
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
     request = dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
-    dataRepoFixtures.ingestJsonData(steward, datasetId, request);
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
 
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshot(
-            steward, datasetSummaryModel.getName(), profileId, "ingest-test-snapshot-no-file.json");
+            steward(),
+            datasetSummaryModel.getName(),
+            profileId,
+            "ingest-test-snapshot-no-file.json");
 
     UUID snapshotId = snapshotSummary.getId();
     createdSnapshotIds.add(snapshotId);
 
     DataRepoResponse<JobModel> failedExportResponse =
-        dataRepoFixtures.exportSnapshot(reader, snapshotSummary.getId(), false, false, false);
+        dataRepoFixtures.exportSnapshot(reader(), snapshotSummary.getId(), false, false, false);
     assertThat(
         "Reader is not authorized to export a snapshot",
         failedExportResponse.getStatusCode(),
@@ -161,7 +171,7 @@ class SnapshotExportIntegrationTest {
   private void testExport(UUID snapshotId, boolean signUrls) throws Exception {
 
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
-        dataRepoFixtures.exportSnapshotLog(steward, snapshotId, false, true, signUrls);
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, true, signUrls);
 
     SnapshotExportResponseModel exportModel = exportResponse.getResponseObject().orElseThrow();
 
@@ -279,7 +289,7 @@ class SnapshotExportIntegrationTest {
   @Test
   void snapshotGsPathExportTest() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward, profileId, "dataset-ingest-combined-array.json");
+        dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
     UUID datasetId = datasetSummaryModel.getId();
     createdDatasetsIds.add(datasetId);
 
@@ -291,11 +301,11 @@ class SnapshotExportIntegrationTest {
             .table("sample_vcf")
             .path("gs://jade-testdata-useastregion/snapshot-export-array-fileid.json");
 
-    dataRepoFixtures.ingestJsonData(steward, datasetId, request);
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
 
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshot(
-            steward,
+            steward(),
             datasetSummaryModel.getName(),
             profileId,
             "dataset-ingest-combined-array-snapshot.json");
@@ -303,7 +313,7 @@ class SnapshotExportIntegrationTest {
     UUID snapshotId = snapshotSummary.getId();
     createdSnapshotIds.add(snapshotId);
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
-        dataRepoFixtures.exportSnapshotLog(steward, snapshotId, true, false, false);
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, true, false, false);
 
     SnapshotExportResponseModel exportModel = exportResponse.getResponseObject().orElseThrow();
     SnapshotExportResponseModelFormatParquet parquet = exportModel.getFormat().getParquet();
@@ -337,31 +347,31 @@ class SnapshotExportIntegrationTest {
   @Test
   void snapshotExportValidationTest() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward, profileId, "ingest-test-dataset.json");
+        dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
     UUID datasetId = datasetSummaryModel.getId();
     createdDatasetsIds.add(datasetId);
     dataRepoFixtures.addDatasetPolicyMember(
-        steward, datasetId, IamRole.CUSTODIAN, custodian.email());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().email());
 
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
-    dataRepoFixtures.ingestJsonData(steward, datasetId, request);
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
     request = dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
-    dataRepoFixtures.ingestJsonData(steward, datasetId, request);
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
 
     // Ingest sample table twice to trigger non-unique primary keys
     request = dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
-    dataRepoFixtures.ingestJsonData(steward, datasetId, request);
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
 
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshot(
-            steward, datasetSummaryModel.getName(), profileId, "ingest-test-snapshot.json");
+            steward(), datasetSummaryModel.getName(), profileId, "ingest-test-snapshot.json");
 
     UUID snapshotId = snapshotSummary.getId();
     createdSnapshotIds.add(snapshotId);
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
-        dataRepoFixtures.exportSnapshotLog(steward, snapshotId, false, true, true);
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, true, true);
 
     ErrorModel errorModel = exportResponse.getErrorObject().orElseThrow();
 

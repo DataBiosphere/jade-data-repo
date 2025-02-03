@@ -111,21 +111,6 @@ public class AzureResourceDao {
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public UUID createApplicationDeployment(AzureApplicationDeploymentResource application) {
-    try {
-      var resource =
-          retrieveApplicationDeploymentByName(application.getAzureApplicationDeploymentName());
-      if (resource != null) {
-        // The database requires azure_application_deployment_name to be unique
-        // (see retrieveApplicationDeploymentBy below). To enforce that, we should add a db
-        // constraint
-        // and use ON CONFLICT to return the existing record instead. For now, check for a duplicate
-        // inside this transaction before writing a new record.
-        return resource.getId();
-      }
-    } catch (AzureResourceNotFoundException e) {
-      // This is the expected case, where the application deployment does not exist.
-    }
-
     String sql =
         "INSERT INTO application_deployment_resource "
             + "(azure_application_deployment_id,azure_application_deployment_name,azure_resource_group_name,"

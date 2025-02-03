@@ -149,10 +149,7 @@ class SnapshotIntegrationTest {
             .getResult();
     List<UUID> participantIds =
         participantResults.stream()
-            .map(
-                r ->
-                    UUID.fromString(
-                        ((Map<?, ?>) r).get(PdaoConstant.PDAO_ROW_ID_COLUMN).toString()))
+            .map(r -> UUID.fromString(((Map) r).get(PdaoConstant.PDAO_ROW_ID_COLUMN).toString()))
             .toList();
     List<Object> sampleResults =
         dataRepoFixtures
@@ -160,10 +157,7 @@ class SnapshotIntegrationTest {
             .getResult();
     List<UUID> sampleIds =
         sampleResults.stream()
-            .map(
-                r ->
-                    UUID.fromString(
-                        ((Map<?, ?>) r).get(PdaoConstant.PDAO_ROW_ID_COLUMN).toString()))
+            .map(r -> UUID.fromString(((Map) r).get(PdaoConstant.PDAO_ROW_ID_COLUMN).toString()))
             .toList();
 
     // swap in these row ids in the request
@@ -502,17 +496,15 @@ class SnapshotIntegrationTest {
 
     // Test enabling secure monitoring on existing project
     assertThat("Secure monitoring should be disabled", not(dataset.isSecureMonitoringEnabled()));
-    assertThat(
-        "Job completes", dataRepoFixtures.enableSecureMonitoring(steward(), dataset.getId()));
+    assertThat("Job completes", dataRepoFixtures.enableSecureMonitoring(steward(), datasetId));
     assertThat(
         "Secure monitoring should now be enabled",
-        dataRepoFixtures.getDataset(steward(), dataset.getId()).isSecureMonitoringEnabled());
+        dataRepoFixtures.getDataset(steward(), datasetId).isSecureMonitoringEnabled());
 
     // Test disabling secure monitoring on existing project
-    assertThat(
-        "Job completes", dataRepoFixtures.disableSecureMonitoring(steward(), dataset.getId()));
+    assertThat("Job completes", dataRepoFixtures.disableSecureMonitoring(steward(), datasetId));
     assertFalse(
         "Secure monitoring should now be disabled",
-        dataRepoFixtures.getDataset(steward(), dataset.getId()).isSecureMonitoringEnabled());
+        dataRepoFixtures.getDataset(steward(), datasetId).isSecureMonitoringEnabled());
   }
 }

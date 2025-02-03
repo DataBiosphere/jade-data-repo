@@ -10,6 +10,6 @@ def read_snapshot_groups(file_path):
             json.dump(modified_groups, output_file, indent=4)
 
 if __name__ == "__main__":
-    file_path = 'snapshot_groups'
-    output_file_path = 'snapshot_ids.json'
+    file_path = '../setupResourceScripts/snapshot_groups'
+    output_file_path = '../setupResourceScripts/snapshot_ids.json'
     read_snapshot_groups(file_path)

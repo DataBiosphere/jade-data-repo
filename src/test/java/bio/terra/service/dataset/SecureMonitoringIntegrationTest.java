@@ -50,40 +50,44 @@ class SecureMonitoringIntegrationTest {
   @Autowired private GoogleResourceManagerService resourceManagerService;
   @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
 
-  private TestConfiguration.User steward;
+  private Users.TestUsers testUsers;
   private UUID datasetId;
   private UUID snapshotId;
   private UUID profileId;
 
+  private TestConfiguration.User steward() {
+    return testUsers.steward();
+  }
+
   @BeforeEach
   public void setup() throws Exception {
-    steward = users.steward();
-    dataRepoFixtures.resetConfig(steward);
-    profileId = dataRepoFixtures.createBillingProfile(steward).getId();
+    testUsers = users.testUsers();
+    dataRepoFixtures.resetConfig(steward());
+    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     datasetId = null;
   }
 
   @AfterEach
   public void teardown() throws Exception {
-    dataRepoFixtures.resetConfig(steward);
+    dataRepoFixtures.resetConfig(steward());
 
     if (datasetId != null) {
-      dataRepoFixtures.deleteDatasetLog(steward, datasetId);
+      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
     }
 
     if (snapshotId != null) {
-      dataRepoFixtures.deleteSnapshotLog(steward, snapshotId);
+      dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
     }
 
     if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward, profileId);
+      dataRepoFixtures.deleteProfileLog(steward(), profileId);
     }
   }
 
   @Test
   void testDatasetWithSecureMonitoring() throws Exception {
     DatasetSummaryModel summary = datasetWithSecureMonitoring();
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward, summary.getId());
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), summary.getId());
 
     assertThat(
         "Secure monitoring enabled on the dataset summary model",
@@ -107,7 +111,7 @@ class SecureMonitoringIntegrationTest {
     // swap in the correct dataset name (with the id at the end)
     requestModel.getContents().get(0).setDatasetName(datasetName);
     SnapshotSummaryModel snapshotSummary =
-        dataRepoFixtures.createSnapshotWithRequest(steward, datasetName, profileId, requestModel);
+        dataRepoFixtures.createSnapshotWithRequest(steward(), datasetName, profileId, requestModel);
     snapshotId = snapshotSummary.getId();
 
     assertThat(
@@ -117,7 +121,7 @@ class SecureMonitoringIntegrationTest {
     SnapshotModel snapshot =
         Awaitility.waitAtMost(Duration.ofSeconds(10))
             .until(
-                () -> dataRepoFixtures.getSnapshot(steward, snapshotSummary.getId(), null),
+                () -> dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null),
                 Objects::nonNull);
 
     assertThat(
@@ -125,7 +129,7 @@ class SecureMonitoringIntegrationTest {
         snapshot.getSource().get(0).getDataset().isSecureMonitoringEnabled());
 
     SnapshotSummaryModel enumeratedModel =
-        dataRepoFixtures.enumerateSnapshots(steward).getItems().stream()
+        dataRepoFixtures.enumerateSnapshots(steward()).getItems().stream()
             .filter(s -> s.getId().equals(snapshotId))
             .findFirst()
             .orElseThrow();
@@ -136,7 +140,7 @@ class SecureMonitoringIntegrationTest {
 
     SnapshotSummaryModel enumeratedByDatasetModel =
         dataRepoFixtures
-            .enumerateSnapshotsByDatasetIds(steward, List.of(datasetId))
+            .enumerateSnapshotsByDatasetIds(steward(), List.of(datasetId))
             .getItems()
             .stream()
             .filter(s -> s.getId().equals(snapshotId))
@@ -164,15 +168,16 @@ class SecureMonitoringIntegrationTest {
     requestModel.setCloudPlatform(CloudPlatform.GCP);
     requestModel.setEnableSecureMonitoring(true);
     requestModel.dedicatedIngestServiceAccount(false);
-    DatasetSummaryModel summaryModel = dataRepoFixtures.createDataset(steward, requestModel, false);
+    DatasetSummaryModel summaryModel =
+        dataRepoFixtures.createDataset(steward(), requestModel, false);
     datasetId = summaryModel.getId();
 
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
-    dataRepoFixtures.ingestJsonData(steward, datasetId, request);
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
     request = dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
-    dataRepoFixtures.ingestJsonData(steward, datasetId, request);
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
     return summaryModel;
   }
 }

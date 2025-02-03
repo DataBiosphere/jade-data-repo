@@ -39,29 +39,33 @@ class DatasetSchemaUpdateIntegrationTest {
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private Users users;
 
-  private User steward;
+  private Users.TestUsers testUsers;
   private UUID profileId;
   private UUID datasetId;
 
+  private User steward() {
+    return testUsers.steward();
+  }
+
   @BeforeEach
   public void setup() throws Exception {
-    steward = users.steward();
-    dataRepoFixtures.resetConfig(steward);
-    profileId = dataRepoFixtures.createBillingProfile(steward).getId();
+    testUsers = users.testUsers();
+    dataRepoFixtures.resetConfig(steward());
+    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward, profileId, "snapshot-test-dataset.json");
+        dataRepoFixtures.createDataset(steward(), profileId, "snapshot-test-dataset.json");
     datasetId = datasetSummaryModel.getId();
   }
 
   @AfterEach
   public void teardown() throws Exception {
-    dataRepoFixtures.resetConfig(steward);
+    dataRepoFixtures.resetConfig(steward());
     if (datasetId != null) {
-      dataRepoFixtures.deleteDatasetLog(steward, datasetId);
+      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
     }
 
     if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward, profileId);
+      dataRepoFixtures.deleteProfileLog(steward(), profileId);
     }
   }
 
@@ -79,7 +83,7 @@ class DatasetSchemaUpdateIntegrationTest {
                         List.of(
                             DatasetFixtures.tableModel(
                                 newTableName, List.of(newTableColumnName)))));
-    DatasetModel response = dataRepoFixtures.updateSchema(steward, datasetId, updateModel);
+    DatasetModel response = dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
     Optional<TableModel> newTable =
         response.getSchema().getTables().stream()
             .filter(tableModel -> tableModel.getName().equals(newTableName))
@@ -110,7 +114,7 @@ class DatasetSchemaUpdateIntegrationTest {
                 new DatasetSchemaUpdateModelChanges()
                     .addColumns(
                         List.of(DatasetFixtures.columnUpdateModel(existingTableName, newColumns))));
-    DatasetModel response = dataRepoFixtures.updateSchema(steward, datasetId, updateModel);
+    DatasetModel response = dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
     Optional<TableModel> existingTable =
         response.getSchema().getTables().stream()
             .filter(tableModel -> tableModel.getName().equals(existingTableName))
@@ -142,7 +146,7 @@ class DatasetSchemaUpdateIntegrationTest {
                     .addColumns(
                         List.of(DatasetFixtures.columnUpdateModel(newTableName, newColumns))));
 
-    DatasetModel response = dataRepoFixtures.updateSchema(steward, datasetId, updateModel);
+    DatasetModel response = dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
     Optional<TableModel> newTable =
         response.getSchema().getTables().stream()
             .filter(tableModel -> tableModel.getName().equals(newTableName))
@@ -170,7 +174,7 @@ class DatasetSchemaUpdateIntegrationTest {
             .description("Integration test relationship addition")
             .changes(
                 new DatasetSchemaUpdateModelChanges().addRelationships(List.of(relationshipModel)));
-    DatasetModel response = dataRepoFixtures.updateSchema(steward, datasetId, updateModel);
+    DatasetModel response = dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
     Optional<RelationshipModel> createdRelationship =
         response.getSchema().getRelationships().stream()
             .filter(r -> r.getName().equals(relationshipName))

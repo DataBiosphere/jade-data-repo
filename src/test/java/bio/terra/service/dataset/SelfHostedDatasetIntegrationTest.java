@@ -331,7 +331,7 @@ class SelfHostedDatasetIntegrationTest {
         containsString("Cannot export GS Paths for self-hosted snapshots"));
 
     dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
-    tlSnapshotId.set(null);
+    tlSnapshotId.remove();
 
     Map<String, List<String>> rowToDelete =
         sampleVcfResults.stream()
@@ -361,7 +361,7 @@ class SelfHostedDatasetIntegrationTest {
         is(true));
 
     dataRepoFixtures.deleteDataset(steward(), datasetId, ingestBucket);
-    tlDatasetId.set(null);
+    tlDatasetId.remove();
 
     boolean fileExistsAfterDatasetDelete = gcsUtils.fileExists(exomeVcfPath(ingestBucket));
     assertThat(

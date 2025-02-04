@@ -4,12 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.auth.AuthService;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.Users;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamResourceType;

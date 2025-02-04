@@ -9,6 +9,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.startsWith;
 
 import bio.terra.common.BQTestUtils;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.fixtures.JsonLoader;

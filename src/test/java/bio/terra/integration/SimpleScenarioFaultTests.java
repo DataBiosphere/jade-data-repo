@@ -3,6 +3,7 @@ package bio.terra.integration;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.model.ConfigFaultCountedModel;
@@ -166,7 +167,7 @@ class SimpleScenarioFaultTests {
         dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
     datasetId = datasetSummaryModel.getId();
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian.getEmail());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
     dataRepoFixtures.setFault(steward(), "SAM_TIMEOUT_FAULT", true);
 
     IngestRequestModel ingestRequest =

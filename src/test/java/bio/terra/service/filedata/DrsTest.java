@@ -15,13 +15,13 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.Users;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessMethod.TypeEnum;
 import bio.terra.model.DRSAccessURL;

@@ -20,6 +20,7 @@ import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.common.CollectionType;
 import bio.terra.common.TestUtils;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.configuration.TestConfiguration.User;

@@ -12,12 +12,12 @@ import static org.hamcrest.Matchers.not;
 import static org.springframework.test.util.AssertionErrors.assertFalse;
 
 import bio.terra.common.PdaoConstant;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.Users;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;

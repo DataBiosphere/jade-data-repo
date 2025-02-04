@@ -2,12 +2,12 @@ package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.Users;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSchemaUpdateModel;

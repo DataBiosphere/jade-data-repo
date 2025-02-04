@@ -1,4 +1,4 @@
-package bio.terra.integration;
+package bio.terra.common.auth;
 
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.configuration.TestConfiguration.User;

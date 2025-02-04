@@ -5,11 +5,11 @@ import static bio.terra.service.configuration.ConfigEnum.SAM_TIMEOUT_FAULT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.Users;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.model.ConfigParameterModel;

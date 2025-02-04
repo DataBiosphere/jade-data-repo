@@ -4,6 +4,8 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.GcsUtils;
 import bio.terra.common.auth.AuthService;
+import bio.terra.common.auth.Users;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.service.auth.iam.sam.SamApiService;
 import bio.terra.service.auth.iam.sam.SamIam;
@@ -31,6 +33,7 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 // This lists the components that can be autowired into an integration test class.
 @Import({
+  TestConfiguration.class,
   AuthService.class,
   ObjectMapper.class,
   JsonLoader.class,

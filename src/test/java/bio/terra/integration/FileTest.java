@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.hasSize;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.configuration.TestConfiguration.User;

@@ -41,7 +41,8 @@ public class DataRepoClient {
 
   private final RestTemplate restTemplate;
   // HttpHeaders is not thread safe so we create a new copy for each thread.
-  private final ThreadLocal<HttpHeaders> headers = ThreadLocal.withInitial(DataRepoClient::createHeaders);
+  private final ThreadLocal<HttpHeaders> headers =
+      ThreadLocal.withInitial(DataRepoClient::createHeaders);
 
   public DataRepoClient() {
     restTemplate =

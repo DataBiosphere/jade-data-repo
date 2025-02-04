@@ -102,6 +102,7 @@ class SnapshotExportIntegrationTest {
 
   @BeforeEach
   public void setup() throws Exception {
+    testUsers = users.testUsers();
     stewardToken = authService.getDirectAccessAuthToken(steward().email());
     readerToken = authService.getDirectAccessAuthToken(reader().email());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();

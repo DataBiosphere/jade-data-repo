@@ -59,13 +59,13 @@ class IngestSnapshotIntegrationTest {
     testUsers = users.testUsers();
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     dataRepoFixtures.addPolicyMember(
-        steward(), profileId, IamRole.USER, custodian().email(), IamResourceType.SPEND_PROFILE);
+        steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
 
     datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
     datasetId = datasetSummaryModel.getId();
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().email());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
   }
 
   @AfterEach

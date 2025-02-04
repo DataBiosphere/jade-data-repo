@@ -97,9 +97,9 @@ public class AccessTest {
   @Before
   public void setup() throws Exception {
     testUsers = users.testUsers();
-    discovererToken = authService.getDirectAccessAuthToken(testUsers.discoverer().email());
-    readerToken = authService.getDirectAccessAuthToken(reader().email());
-    custodianToken = authService.getDirectAccessAuthToken(custodian().email());
+    discovererToken = authService.getDirectAccessAuthToken(testUsers.discoverer().getEmail());
+    readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
+    custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     datasetId = null;
     snapshotIds = new ArrayList<>();
@@ -161,7 +161,7 @@ public class AccessTest {
     }
 
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().email());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
     DataRepoResponse<EnumerateDatasetModel> enumDatasets =
         dataRepoFixtures.enumerateDatasetsRaw(custodian());
     assertThat(
@@ -196,10 +196,13 @@ public class AccessTest {
     }
 
     dataRepoFixtures.addSnapshotPolicyMember(
-        custodian(), snapshotSummaryModel.getId(), IamRole.READER, reader().email());
+        custodian(), snapshotSummaryModel.getId(), IamRole.READER, reader().getEmail());
 
     AuthenticatedUserRequest authenticatedReaderRequest =
-        AuthenticatedUserRequest.builder().setEmail(reader().email()).setToken(readerToken).build();
+        AuthenticatedUserRequest.builder()
+            .setEmail(reader().getEmail())
+            .setToken(readerToken)
+            .build();
     assertThat(
         "correctly added reader",
         iamService.isAuthorized(
@@ -218,10 +221,10 @@ public class AccessTest {
     makeAclTestDataset();
 
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().email());
+        steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
 
     // Ingest a file into the dataset
-    String gsPath = "gs://" + testConfiguration.ingestbucket();
+    String gsPath = "gs://" + testConfiguration.getIngestbucket();
     FileModel fileModel =
         dataRepoFixtures.ingestFile(
             steward(),
@@ -234,7 +237,7 @@ public class AccessTest {
     String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileModel.getFileId());
     String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
     BlobInfo targetBlobInfo =
-        BlobInfo.newBuilder(BlobId.of(testConfiguration.ingestbucket(), targetPath)).build();
+        BlobInfo.newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath)).build();
 
     Storage storage = StorageOptions.getDefaultInstance().getService();
     try (WriteChannel writer = storage.writer(targetBlobInfo)) {
@@ -256,10 +259,13 @@ public class AccessTest {
         dataRepoFixtures.getSnapshot(custodian(), snapshotSummaryModel.getId(), null);
 
     dataRepoFixtures.addSnapshotPolicyMember(
-        custodian(), snapshotModel.getId(), IamRole.READER, reader().email());
+        custodian(), snapshotModel.getId(), IamRole.READER, reader().getEmail());
 
     AuthenticatedUserRequest authenticatedReaderRequest =
-        AuthenticatedUserRequest.builder().setEmail(reader().email()).setToken(readerToken).build();
+        AuthenticatedUserRequest.builder()
+            .setEmail(reader().getEmail())
+            .setToken(readerToken)
+            .build();
     boolean authorized =
         iamService.isAuthorized(
             authenticatedReaderRequest,
@@ -344,7 +350,7 @@ public class AccessTest {
     }
 
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().email());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
     DataRepoResponse<EnumerateDatasetModel> enumDatasets =
         dataRepoFixtures.enumerateDatasetsRaw(custodian());
     assertThat(

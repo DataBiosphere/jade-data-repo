@@ -442,7 +442,7 @@ class FileTest {
     var profileId = tlProfileId.get();
     var datasetId = tlDatasetId.get();
     List<DataRepoResponse<JobModel>> responseList = new ArrayList<>();
-    String gsPath = "gs://" + testConfiguration.ingestbucket() + "/nonexistentfile";
+    String gsPath = "gs://" + testConfiguration.getIngestbucket() + "/nonexistentfile";
     String filePath = "/foo" + UUID.randomUUID() + "/bar";
 
     for (int i = 0; i < 20; i++) {
@@ -475,7 +475,7 @@ class FileTest {
     initialize(false, false);
     var profileId = tlProfileId.get();
     var datasetId = tlDatasetId.get();
-    String gsPath = "gs://" + testConfiguration.ingestbucket();
+    String gsPath = "gs://" + testConfiguration.getIngestbucket();
     String filePath = "/foo/bar";
 
     FileModel fileModel =
@@ -487,7 +487,7 @@ class FileTest {
 
     String targetPath = "scratch/file" + UUID.randomUUID() + ".json";
     BlobInfo targetBlobInfo =
-        BlobInfo.newBuilder(BlobId.of(testConfiguration.ingestbucket(), targetPath)).build();
+        BlobInfo.newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath)).build();
 
     try (WriteChannel writer = storage.writer(targetBlobInfo)) {
       writer.write(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
@@ -550,7 +550,7 @@ class FileTest {
     var datasetSummaryModel = initialize(false, false);
     var profileId = tlProfileId.get();
     var datasetId = tlDatasetId.get();
-    String gsPath = "gs://" + testConfiguration.ingestbucket();
+    String gsPath = "gs://" + testConfiguration.getIngestbucket();
     String filePath = "/foo/bar";
 
     FileModel fileModel =
@@ -570,7 +570,7 @@ class FileTest {
 
     String targetPath = "scratch/file" + UUID.randomUUID() + ".json";
     BlobInfo targetBlobInfo =
-        BlobInfo.newBuilder(BlobId.of(testConfiguration.ingestbucket(), targetPath)).build();
+        BlobInfo.newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath)).build();
 
     try (WriteChannel writer = storage.writer(targetBlobInfo)) {
       writer.write(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
@@ -613,7 +613,7 @@ class FileTest {
 
     TestUtils.validateDrsAccessMethods(
         drsObject.getAccessMethods(),
-        authService.getDirectAccessAuthToken(custodian().email()),
+        authService.getDirectAccessAuthToken(custodian().getEmail()),
         false);
   }
 
@@ -622,13 +622,13 @@ class FileTest {
     initialize(false, false);
     var profileId = tlProfileId.get();
     var datasetId = tlDatasetId.get();
-    String gsPath = "gs://" + testConfiguration.ingestbucket();
+    String gsPath = "gs://" + testConfiguration.getIngestbucket();
     String filePath = "/foo/bar";
     String gsFilePath = gsPath + "/files/file with space and #hash%percent+plus.txt";
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, reader().email());
+        steward(), datasetId, IamRole.CUSTODIAN, reader().getEmail());
     dataRepoFixtures.addPolicyMember(
-        steward(), profileId, IamRole.USER, reader().email(), IamResourceType.SPEND_PROFILE);
+        steward(), profileId, IamRole.USER, reader().getEmail(), IamResourceType.SPEND_PROFILE);
     DataRepoResponse<JobModel> ingestJob =
         dataRepoFixtures.ingestFileLaunch(
             // note: reader's proxy group should not have access to the source bucket
@@ -640,7 +640,7 @@ class FileTest {
     assertThat(
         error.getErrorObject().get().getMessage(),
         containsString(
-            "Accessing bucket " + testConfiguration.ingestbucket() + " is not authorized"));
+            "Accessing bucket " + testConfiguration.getIngestbucket() + " is not authorized"));
 
     // To be safe, make sure that ingest works for a steward
     dataRepoFixtures.ingestFile(
@@ -653,7 +653,7 @@ class FileTest {
     initialize(false, false);
     var profileId = tlProfileId.get();
     var datasetId = tlDatasetId.get();
-    String gsPath = "gs://" + testConfiguration.ingestbucket();
+    String gsPath = "gs://" + testConfiguration.getIngestbucket();
     String filePath = "foo/bar";
 
     DataRepoResponse<JobModel> job =
@@ -675,7 +675,7 @@ class FileTest {
     var profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     tlProfileId.set(profileId);
     dataRepoFixtures.addPolicyMember(
-        steward(), profileId, IamRole.USER, custodian().email(), IamResourceType.SPEND_PROFILE);
+        steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
 
     DataRepoResponse<JobModel> datasetCreateJob =
         dataRepoFixtures.createDatasetRaw(
@@ -695,7 +695,7 @@ class FileTest {
     tlDatasetId.set(datasetId);
     logger.info("created dataset {}", datasetId);
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().email());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
     return datasetSummaryModel;
   }
 }

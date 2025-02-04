@@ -66,7 +66,7 @@ class SimpleScenarioFaultTests {
     custodian = users.custodian();
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     dataRepoFixtures.addPolicyMember(
-        steward(), profileId, IamRole.USER, custodian().email(), IamResourceType.SPEND_PROFILE);
+        steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
   }
 
   // This is belts and suspenders, since we try to do these deletes in the scenario.
@@ -166,7 +166,7 @@ class SimpleScenarioFaultTests {
         dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
     datasetId = datasetSummaryModel.getId();
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian.email());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian.getEmail());
     dataRepoFixtures.setFault(steward(), "SAM_TIMEOUT_FAULT", true);
 
     IngestRequestModel ingestRequest =

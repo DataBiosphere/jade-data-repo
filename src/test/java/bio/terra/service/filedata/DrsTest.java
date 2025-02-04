@@ -124,8 +124,8 @@ class DrsTest {
   @BeforeEach
   public void setup() throws Exception {
     testUsers = users.testUsers();
-    String custodianToken = authService.getDirectAccessAuthToken(custodian().email());
-    String stewardToken = authService.getDirectAccessAuthToken(steward().email());
+    String custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
+    String stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     EncodeFixture.SetupResult setupResult =
         encodeFixture.setupEncode(steward(), custodian(), reader(), SHOULD_ASSERT_BQ_ACCESSIBLE);
     datasetModel = dataRepoFixtures.getDataset(steward(), setupResult.datasetId());
@@ -136,13 +136,13 @@ class DrsTest {
     AuthenticatedUserRequest stewardUser =
         AuthenticatedUserRequest.builder()
             .setSubjectId("DRSIntegration")
-            .setEmail(steward().email())
+            .setEmail(steward().getEmail())
             .setToken(stewardToken)
             .build();
     AuthenticatedUserRequest custodianUser =
         AuthenticatedUserRequest.builder()
             .setSubjectId("DRSIntegration")
-            .setEmail(custodian().email())
+            .setEmail(custodian().getEmail())
             .setToken(custodianToken)
             .build();
     datasetIamRoles =
@@ -188,7 +188,7 @@ class DrsTest {
 
     TestUtils.validateDrsAccessMethods(
         drsObjectFile.getAccessMethods(),
-        authService.getDirectAccessAuthToken(steward().email()),
+        authService.getDirectAccessAuthToken(steward().getEmail()),
         false);
 
     Map<String, List<Acl>> preDeleteAcls =

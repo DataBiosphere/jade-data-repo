@@ -60,12 +60,12 @@ class SamRetryIntegrationTest {
   @BeforeEach
   public void setup() throws Exception {
     steward = users.steward();
-    String stewardToken = authService.getDirectAccessAuthToken(steward.email());
+    String stewardToken = authService.getDirectAccessAuthToken(steward.getEmail());
     dataRepoFixtures.resetConfig(steward);
     userRequest =
         AuthenticatedUserRequest.builder()
             .setSubjectId("SamIntegration")
-            .setEmail(steward.email())
+            .setEmail(steward.getEmail())
             .setToken(stewardToken)
             .build();
     fakeDatasetId = UUID.randomUUID();

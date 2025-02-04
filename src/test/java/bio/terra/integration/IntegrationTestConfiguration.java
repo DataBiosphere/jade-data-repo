@@ -4,7 +4,6 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.GcsUtils;
 import bio.terra.common.auth.AuthService;
-import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.service.auth.iam.sam.SamApiService;
 import bio.terra.service.auth.iam.sam.SamIam;
@@ -52,8 +51,7 @@ import org.springframework.context.annotation.Profile;
   SamConfiguration.class,
   GoogleResourceConfiguration.class,
   ApplicationConfiguration.class,
-  AzureResourceConfiguration.class,
-  TestConfiguration.class
+  AzureResourceConfiguration.class
 })
 // This configures the spring boot test context to start up without a web environment.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)

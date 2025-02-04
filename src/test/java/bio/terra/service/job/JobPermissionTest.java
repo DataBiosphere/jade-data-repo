@@ -79,7 +79,7 @@ class JobPermissionTest {
     dataRepoFixtures.resetConfig(steward());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     dataRepoFixtures.addPolicyMemberRaw(
-        steward(), profileId, IamRole.OWNER, custodian().email(), IamResourceType.SPEND_PROFILE);
+        steward(), profileId, IamRole.OWNER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
   }
 
   @AfterEach
@@ -105,7 +105,7 @@ class JobPermissionTest {
             false,
             false,
             false,
-            new DatasetRequestModelPolicies().addCustodiansItem(custodian().email()),
+            new DatasetRequestModelPolicies().addCustodiansItem(custodian().getEmail()),
             null);
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.waitForDatasetCreate(steward(), jobResponse);

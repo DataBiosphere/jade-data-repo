@@ -9,9 +9,11 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
+@Profile("integrationtest")
 public class Users {
   private static final Logger logger = LoggerFactory.getLogger(Users.class);
 
@@ -27,13 +29,13 @@ public class Users {
 
   @Autowired
   public Users(TestConfiguration testConfig) {
-    usersByRole = testConfig.users().stream().collect(Collectors.groupingBy(User::role));
+    usersByRole = testConfig.getUsers().stream().collect(Collectors.groupingBy(User::getRole));
   }
 
   private User getUserForRole(String name, String role) {
     var usersForRole = usersByRole.get(role);
     return usersForRole.stream()
-        .filter(u -> u.name().equals(name))
+        .filter(u -> u.getName().equals(name))
         .findFirst()
         .orElseThrow(
             () ->
@@ -42,7 +44,9 @@ public class Users {
                         "User %s with role %s was not found.  Available are: [%s]",
                         name,
                         role,
-                        usersForRole.stream().map(User::name).collect(Collectors.joining(", ")))));
+                        usersForRole.stream()
+                            .map(User::getName)
+                            .collect(Collectors.joining(", ")))));
   }
 
   private User getUserForRole(String role) {
@@ -94,11 +98,11 @@ public class Users {
     TestUsers testUsers = new TestUsers(admin(), steward(), custodian(), reader(), discoverer());
     logger.info(
         "admin: {}; steward: {}; custodian: {}; reader: {}; discoverer: {}",
-        testUsers.admin().name(),
-        testUsers.steward().name(),
-        testUsers.custodian().name(),
-        testUsers.reader().name(),
-        testUsers.discoverer().name());
+        testUsers.admin().getName(),
+        testUsers.steward().getName(),
+        testUsers.custodian().getName(),
+        testUsers.reader().getName(),
+        testUsers.discoverer().getName());
     return testUsers;
   }
 }

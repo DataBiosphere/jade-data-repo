@@ -95,10 +95,10 @@ class DatasetSoftDeletesTest {
     // write them to GCS
     String participantPath =
         DatasetIntegrationTest.writeListToScratch(
-            testConfiguration.ingestbucket(), "softDel", participantRowIds);
+            testConfiguration.getIngestbucket(), "softDel", participantRowIds);
     String samplePath =
         DatasetIntegrationTest.writeListToScratch(
-            testConfiguration.ingestbucket(), "softDel", sampleRowIds);
+            testConfiguration.getIngestbucket(), "softDel", sampleRowIds);
 
     // build the deletion request with pointers to the two files with row ids to soft delete
     List<DataDeletionTableModel> dataDeletionTableModels =
@@ -158,12 +158,12 @@ class DatasetSoftDeletesTest {
     List<String> sampleRowIds = dataRepoFixtures.getRowIds(steward(), dataset, "sample", 5);
     for (String rowId : sampleRowIds) {
       DatasetIntegrationTest.writeListToScratch(
-          testConfiguration.ingestbucket(), pathPrefix, Collections.singletonList(rowId));
+          testConfiguration.getIngestbucket(), pathPrefix, Collections.singletonList(rowId));
     }
 
     // make a wildcard path 'gs://ingestbucket/softDelWildcard/*'
     String wildcardPath =
-        String.format("gs://%s/scratch/%s/*", testConfiguration.ingestbucket(), pathPrefix);
+        String.format("gs://%s/scratch/%s/*", testConfiguration.getIngestbucket(), pathPrefix);
 
     // build a request and send it off
     DataDeletionRequest request =
@@ -204,10 +204,10 @@ class DatasetSoftDeletesTest {
     // write them to GCS
     String participantPath =
         DatasetIntegrationTest.writeListToScratch(
-            testConfiguration.ingestbucket(), "softDel", participantRowIds);
+            testConfiguration.getIngestbucket(), "softDel", participantRowIds);
     String samplePath =
         DatasetIntegrationTest.writeListToScratch(
-            testConfiguration.ingestbucket(), "softDel", sampleRowIds);
+            testConfiguration.getIngestbucket(), "softDel", sampleRowIds);
 
     // build the deletion request with pointers to the two files with row ids to soft delete
     List<DataDeletionTableModel> dataDeletionTableModels =

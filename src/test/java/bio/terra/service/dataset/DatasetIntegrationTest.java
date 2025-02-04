@@ -217,7 +217,7 @@ class DatasetIntegrationTest {
 
     // test allowable permissions
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), summaryModel.getId(), IamRole.CUSTODIAN, custodian().email());
+        steward(), summaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
     DataRepoResponse<EnumerateDatasetModel> enumDatasets =
         dataRepoFixtures.enumerateDatasetsRaw(custodian());
     assertThat(
@@ -403,10 +403,10 @@ class DatasetIntegrationTest {
 
   @Test
   void testCreateDatasetWithPolicies() throws Exception {
-    List<String> stewards = List.of(steward().email(), admin().email());
-    String custodianEmail = custodian().email();
+    List<String> stewards = List.of(steward().getEmail(), admin().getEmail());
+    String custodianEmail = custodian().getEmail();
     List<String> custodiansWithDuplicates = List.of(custodianEmail, custodianEmail);
-    String snapshotCreatorEmail = reader().email();
+    String snapshotCreatorEmail = reader().getEmail();
     DatasetRequestModelPolicies policiesRequest =
         new DatasetRequestModelPolicies()
             .stewards(stewards)

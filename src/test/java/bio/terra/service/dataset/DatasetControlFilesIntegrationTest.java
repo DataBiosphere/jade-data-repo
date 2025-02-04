@@ -291,7 +291,7 @@ class DatasetControlFilesIntegrationTest {
     List<String> rowIds = dataRepoFixtures.getRowIds(steward(), dataset, "sample_vcf", 1);
     String rowIdsPath =
         DatasetIntegrationTest.writeListToScratch(
-            testConfiguration.ingestbucket(), "softDel", rowIds);
+            testConfiguration.getIngestbucket(), "softDel", rowIds);
 
     List<DataDeletionTableModel> dataDeletionTableModels =
         List.of(DatasetIntegrationTest.deletionTableFile("sample_vcf", rowIdsPath));
@@ -330,7 +330,7 @@ class DatasetControlFilesIntegrationTest {
     List<String> rowIds = dataRepoFixtures.getRowIds(steward(), dataset, "sample_vcf", 1);
     String rowIdsPath =
         DatasetIntegrationTest.writeListToScratch(
-            testConfiguration.ingestbucket(), "softDel", rowIds);
+            testConfiguration.getIngestbucket(), "softDel", rowIds);
 
     List<DataDeletionTableModel> dataDeletionTableModels =
         List.of(DatasetIntegrationTest.deletionTableFile("sample_vcf", rowIdsPath));

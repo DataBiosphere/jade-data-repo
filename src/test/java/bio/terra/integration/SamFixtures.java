@@ -160,8 +160,8 @@ public class SamFixtures {
 
   private HttpHeaders getHeaders(TestConfiguration.User user) {
     HttpHeaders copy = new HttpHeaders(headers);
-    copy.setBearerAuth(authService.getAuthToken(user.email()));
-    copy.set("From", user.email());
+    copy.setBearerAuth(authService.getAuthToken(user.getEmail()));
+    copy.set("From", user.getEmail());
     return copy;
   }
 }

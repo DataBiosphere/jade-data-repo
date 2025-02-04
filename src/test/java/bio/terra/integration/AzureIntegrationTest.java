@@ -188,11 +188,11 @@ class AzureIntegrationTest {
             null);
     azureBlobIOTestUtility =
         new AzureBlobIOTestUtility(
-            azureResourceConfiguration.getAppToken(testConfig.targetTenantId()),
-            testConfig.sourceStorageAccountName(),
+            azureResourceConfiguration.getAppToken(testConfig.getTargetTenantId()),
+            testConfig.getSourceStorageAccountName(),
             null,
             retryOptions);
-    gcsBlobIOTestUtility = new GcsBlobIOTestUtility(testConfig.ingestbucket(), null);
+    gcsBlobIOTestUtility = new GcsBlobIOTestUtility(testConfig.getIngestbucket(), null);
     snapshotIds = new ArrayList<>();
     snapshotAccessRequestIds = new ArrayList<>();
     storageAccounts = new TreeSet<>();
@@ -440,7 +440,7 @@ class AzureIntegrationTest {
         jsonLoader.loadObject("omop/release-snapshot-request.json", SnapshotRequestModel.class);
     requestSnapshotRelease.getContents().get(0).datasetName(summaryModel.getName());
     requestSnapshotRelease.setPolicies(
-        new SnapshotRequestModelPolicies().addAggregateDataReadersItem(researcher.email()));
+        new SnapshotRequestModelPolicies().addAggregateDataReadersItem(researcher.getEmail()));
 
     SnapshotSummaryModel snapshotSummaryAll =
         dataRepoFixtures.createSnapshotWithRequest(
@@ -1934,12 +1934,12 @@ class AzureIntegrationTest {
   private String getSourceStorageAccountPrimarySharedKey() {
     AzureResourceManager client =
         azureResourceConfiguration.getClient(
-            testConfig.targetTenantId(), testConfig.targetSubscriptionId());
+            testConfig.getTargetTenantId(), testConfig.getTargetSubscriptionId());
 
     return client
         .storageAccounts()
         .getByResourceGroup(
-            testConfig.targetResourceGroupName(), testConfig.sourceStorageAccountName())
+            testConfig.getTargetResourceGroupName(), testConfig.getSourceStorageAccountName())
         .getKeys()
         .iterator()
         .next()
@@ -1950,23 +1950,26 @@ class AzureIntegrationTest {
     logger.info("Deleting log analytic workspace {}", storageAccountName);
 
     LogAnalyticsManager clientLaw =
-        azureResourceConfiguration.getLogAnalyticsManagerClient(testConfig.targetSubscriptionId());
-    clientLaw.workspaces().delete(testConfig.targetManagedResourceGroupName(), storageAccountName);
+        azureResourceConfiguration.getLogAnalyticsManagerClient(
+            testConfig.getTargetSubscriptionId());
+    clientLaw
+        .workspaces()
+        .delete(testConfig.getTargetManagedResourceGroupName(), storageAccountName);
 
     logger.info("Deleting storage account {}", storageAccountName);
     AzureResourceManager clientSa =
-        azureResourceConfiguration.getClient(testConfig.targetSubscriptionId());
+        azureResourceConfiguration.getClient(testConfig.getTargetSubscriptionId());
     clientSa
         .storageAccounts()
-        .deleteByResourceGroup(testConfig.targetManagedResourceGroupName(), storageAccountName);
+        .deleteByResourceGroup(testConfig.getTargetManagedResourceGroupName(), storageAccountName);
   }
 
   private void verifyCloudResourceRegions(String storageAccountName, AzureRegion expectedRegion) {
     StorageAccount storageAccount =
         azureResourceConfiguration
-            .getClient(testConfig.targetSubscriptionId())
+            .getClient(testConfig.getTargetSubscriptionId())
             .storageAccounts()
-            .getByResourceGroup(testConfig.targetManagedResourceGroupName(), storageAccountName);
+            .getByResourceGroup(testConfig.getTargetManagedResourceGroupName(), storageAccountName);
     assertThat(
         "storage account region is correct",
         storageAccount.region().name(),
@@ -1974,9 +1977,9 @@ class AzureIntegrationTest {
 
     Workspace logAnalyticsWorkspace =
         azureResourceConfiguration
-            .getLogAnalyticsManagerClient(testConfig.targetSubscriptionId())
+            .getLogAnalyticsManagerClient(testConfig.getTargetSubscriptionId())
             .workspaces()
-            .getByResourceGroup(testConfig.targetManagedResourceGroupName(), storageAccountName);
+            .getByResourceGroup(testConfig.getTargetManagedResourceGroupName(), storageAccountName);
     assertThat(
         "log analytics workspace region is correct",
         logAnalyticsWorkspace.region().name(),
@@ -1988,7 +1991,7 @@ class AzureIntegrationTest {
     assertThat(
         "Signed url contains user",
         blobUrlParts.getCommonSasQueryParameters().getContentDisposition(),
-        equalTo(user.email()));
+        equalTo(user.getEmail()));
     assertThat(
         "Signed url only contains expected permissions",
         blobUrlParts.getCommonSasQueryParameters().getPermissions(),

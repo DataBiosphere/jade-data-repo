@@ -327,13 +327,13 @@ class DatasetIntegrationTest {
     // then the check will need two parts, as below:
     // check job launched successfully, check job result is failure with unauthorized
     //            DataRepoResponse<JobModel> jobResp1 = dataRepoFixtures.deleteDatasetLaunch(
-    //                reader, summaryModel.getId());
+    //                reader(), summaryModel.getId());
     //            assertTrue("dataset delete launch succeeded",
     // jobResp1.getStatusCode().is2xxSuccessful());
     //            assertTrue("dataset delete launch response is present",
     // jobResp1.getResponseObject().isPresent());
     //            DataRepoResponse<ErrorModel> deleteResp1 = dataRepoClient.waitForResponse(
-    //                reader, jobResp1, ErrorModel.class);
+    //                reader(), jobResp1, ErrorModel.class);
     //            assertThat("Reader is not authorized to delete datasets",
     //                deleteResp1.getStatusCode(),
     //                equalTo(HttpStatus.UNAUTHORIZED));
@@ -346,15 +346,15 @@ class DatasetIntegrationTest {
         deleteResp2.getStatusCode(),
         equalTo(HttpStatus.FORBIDDEN));
 
-    // same comment as above for the reader delete
+    // same comment as above for the reader() delete
     //            DataRepoResponse<JobModel> jobResp2 = dataRepoFixtures.deleteDatasetLaunch(
-    //                custodian, summaryModel.getId());
+    //                custodian(), summaryModel.getId());
     //            assertTrue("dataset delete launch succeeded",
     // jobResp2.getStatusCode().is2xxSuccessful());
     //            assertTrue("dataset delete launch response is present",
     // jobResp2.getResponseObject().isPresent());
     //            DataRepoResponse<ErrorModel> deleteResp2 = dataRepoClient.waitForResponse(
-    //                custodian, jobResp2, ErrorModel.class);
+    //                custodian(), jobResp2, ErrorModel.class);
     //            assertThat("Custodian is not authorized to delete datasets",
     //                deleteResp2.getStatusCode(),
     //                equalTo(HttpStatus.UNAUTHORIZED));

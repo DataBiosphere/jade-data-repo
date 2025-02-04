@@ -6,7 +6,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.category.Integration;
-import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
@@ -40,41 +40,46 @@ class IngestSnapshotIntegrationTest {
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private Users users;
 
-  private TestConfiguration.User custodian;
-  private TestConfiguration.User steward;
+  private Users.TestUsers testUsers;
   private DatasetSummaryModel datasetSummaryModel;
   private UUID datasetId;
   private UUID profileId;
   private final List<UUID> createdSnapshotIds = new ArrayList<>();
 
+  private User steward() {
+    return testUsers.steward();
+  }
+
+  private User custodian() {
+    return testUsers.custodian();
+  }
+
   @BeforeEach
   public void setup() throws Exception {
-    custodian = users.custodian();
-    steward = users.steward();
-
-    profileId = dataRepoFixtures.createBillingProfile(steward).getId();
+    testUsers = users.testUsers();
+    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     dataRepoFixtures.addPolicyMember(
-        steward, profileId, IamRole.USER, custodian.email(), IamResourceType.SPEND_PROFILE);
+        steward(), profileId, IamRole.USER, custodian().email(), IamResourceType.SPEND_PROFILE);
 
     datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward, profileId, "ingest-test-dataset.json");
+        dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
     datasetId = datasetSummaryModel.getId();
     dataRepoFixtures.addDatasetPolicyMember(
-        steward, datasetId, IamRole.CUSTODIAN, custodian.email());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().email());
   }
 
   @AfterEach
   public void teardown() throws Exception {
     for (UUID snapshotId : createdSnapshotIds) {
-      dataRepoFixtures.deleteSnapshotLog(custodian, snapshotId);
+      dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotId);
     }
 
     if (datasetId != null) {
-      dataRepoFixtures.deleteDatasetLog(steward, datasetId);
+      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
     }
 
     if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward, profileId);
+      dataRepoFixtures.deleteProfileLog(steward(), profileId);
     }
   }
 
@@ -84,24 +89,24 @@ class IngestSnapshotIntegrationTest {
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
     IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
     assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
 
     ingestRequest =
         dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
-    ingestResponse = dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
+    ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
     assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
 
     ingestRequest = dataRepoFixtures.buildSimpleIngest("file", "ingest-test/ingest-test-file.json");
-    ingestResponse = dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
+    ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
     assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
 
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshot(
-            custodian, datasetSummaryModel.getName(), profileId, "ingest-test-snapshot.json");
+            custodian(), datasetSummaryModel.getName(), profileId, "ingest-test-snapshot.json");
 
     SnapshotModel snapshot =
-        dataRepoFixtures.getSnapshot(custodian, snapshotSummary.getId(), List.of());
+        dataRepoFixtures.getSnapshot(custodian(), snapshotSummary.getId(), List.of());
 
     Map<String, TableModel> tableMap =
         snapshot.getTables().stream()

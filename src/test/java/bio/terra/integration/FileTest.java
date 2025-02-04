@@ -87,9 +87,9 @@ class FileTest {
   private final ThreadLocal<Users.TestUsers> testUsers =
       ThreadLocal.withInitial(() -> users.testUsers());
   private final ObjectMapper objectMapper;
-  private final ThreadLocal<UUID> datasetId = new ThreadLocal<>();
-  private final ThreadLocal<UUID> snapshotId = new ThreadLocal<>();
-  private final ThreadLocal<UUID> profileId = new ThreadLocal<>();
+  private final ThreadLocal<UUID> tlDatasetId = new ThreadLocal<>();
+  private final ThreadLocal<UUID> tlSnapshotId = new ThreadLocal<>();
+  private final ThreadLocal<UUID> tlProfileId = new ThreadLocal<>();
   private final ThreadLocal<BlobId> controlFileId = new ThreadLocal<>();
 
   private User steward() {
@@ -118,14 +118,14 @@ class FileTest {
 
   @AfterEach
   public void tearDown() throws Exception {
-    if (snapshotId.get() != null) {
-      dataRepoFixtures.deleteSnapshot(custodian(), snapshotId.get());
+    if (tlSnapshotId.get() != null) {
+      dataRepoFixtures.deleteSnapshot(custodian(), tlSnapshotId.get());
     }
-    if (datasetId.get() != null) {
-      dataRepoFixtures.deleteDataset(steward(), datasetId.get());
+    if (tlDatasetId.get() != null) {
+      dataRepoFixtures.deleteDataset(steward(), tlDatasetId.get());
     }
-    if (profileId.get() != null) {
-      dataRepoFixtures.deleteProfile(steward(), profileId.get());
+    if (tlProfileId.get() != null) {
+      dataRepoFixtures.deleteProfile(steward(), tlProfileId.get());
     }
     if (controlFileId.get() != null) {
       storage.delete(controlFileId.get());
@@ -138,6 +138,8 @@ class FileTest {
   @Disabled("long running test")
   @Test
   void longFileLoadTest() throws Exception {
+    var profileId = tlProfileId.get();
+    var datasetId = tlDatasetId.get();
     // TODO: want this to run about 5 minutes on 2 DRmanager instances. The speed of loads is when
     // they are
     //  not local is about 2.5GB/minutes. With a fixed size of 1GB, each instance should do 2.5
@@ -151,12 +153,11 @@ class FileTest {
 
     BulkLoadArrayRequestModel arrayLoad =
         new BulkLoadArrayRequestModel()
-            .profileId(profileId.get())
+            .profileId(profileId)
             .loadTag(loadTag)
             .maxFailedFileLoads(filesToLoad); // do not stop if there is a failure.
 
-    logger.info(
-        "longFileLoadTest loading {} files into dataset id {}", filesToLoad, datasetId.get());
+    logger.info("longFileLoadTest loading {} files into dataset id {}", filesToLoad, datasetId);
 
     for (int i = 0; i < filesToLoad; i++) {
       String tailPath = String.format("/fileloadscaletest/file1GB-%02d.txt", i);
@@ -169,7 +170,7 @@ class FileTest {
     }
 
     BulkLoadArrayResultModel result =
-        dataRepoFixtures.bulkLoadArray(steward(), datasetId.get(), arrayLoad);
+        dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad);
     BulkLoadResultModel loadSummary = result.getLoadSummary();
     logger.info("Total files    : {}", loadSummary.getTotalFiles());
     logger.info("Succeeded files: {}", loadSummary.getSucceededFiles());
@@ -244,12 +245,14 @@ class FileTest {
   void bulkFileLoadTestSelfHostedPredictableIdMoveSourceFiles() throws Exception {
     // Run through basic ingest
     String loadTag = bulkFileLoadTest(true, true, true);
+    var profileId = tlProfileId.get();
+    var datasetId = tlDatasetId.get();
     String originalSourcePath = "gs://jade-testdata-uswestregion/fileloadprofiletest/1KBfile.txt";
     String newSourcePath = "gs://jade-testdata-uswestregion/fileloadprofiletest/1KBfile.moved.txt";
 
     // Get the list of ingested files
     BulkLoadHistoryModelList loadHistory =
-        dataRepoFixtures.getLoadHistory(steward(), datasetId.get(), loadTag, 0, NUM_FILES * 2);
+        dataRepoFixtures.getLoadHistory(steward(), datasetId, loadTag, 0, NUM_FILES * 2);
 
     assertThat(
         "the right amount of files are in the load history table",
@@ -282,14 +285,14 @@ class FileTest {
 
     BulkLoadArrayRequestModel bulkLoad =
         new BulkLoadArrayRequestModel()
-            .profileId(profileId.get())
+            .profileId(profileId)
             .loadTag(loadTag)
             .bulkMode(true)
             .loadArray(reloadArray)
             .maxFailedFileLoads(reloadArray.size());
 
     BulkLoadArrayResultModel bulkLoadArrayResultModel =
-        dataRepoFixtures.bulkLoadArray(steward(), datasetId.get(), bulkLoad);
+        dataRepoFixtures.bulkLoadArray(steward(), datasetId, bulkLoad);
     assertThat(
         "the right number of files were loaded",
         bulkLoadArrayResultModel.getLoadSummary().getSucceededFiles(),
@@ -297,15 +300,13 @@ class FileTest {
 
     // iterate over the moved files and ensure that their source is the new path
     for (var file : reloadArray) {
-      FileModel dsFile =
-          dataRepoFixtures.getFileByName(steward(), datasetId.get(), file.getTargetPath());
+      FileModel dsFile = dataRepoFixtures.getFileByName(steward(), datasetId, file.getTargetPath());
       assertThat(
           "source file was moved", dsFile.getFileDetail().getAccessUrl(), equalTo(newSourcePath));
     }
     // verify that one of the files that WASN'T re-ingest still points to the original source file
     FileModel dsFile =
-        dataRepoFixtures.getFileByName(
-            steward(), datasetId.get(), notReIngestedFile.getTargetPath());
+        dataRepoFixtures.getFileByName(steward(), datasetId, notReIngestedFile.getTargetPath());
     assertThat(
         "source file was not moved",
         dsFile.getFileDetail().getAccessUrl(),
@@ -326,6 +327,8 @@ class FileTest {
       int maxFailedFileLoads)
       throws Exception {
     initialize(selfHosted, predictableFileIds);
+    var profileId = tlProfileId.get();
+    var datasetId = tlDatasetId.get();
 
     String loadTag = Names.randomizeName("longtest");
     BulkLoadResultModel loadSummary = null;
@@ -333,7 +336,7 @@ class FileTest {
     if (arrayIngestMode) {
       BulkLoadArrayRequestModel arrayLoad =
           new BulkLoadArrayRequestModel()
-              .profileId(profileId.get())
+              .profileId(profileId)
               .loadTag(loadTag)
               .bulkMode(true)
               .maxFailedFileLoads(maxFailedFileLoads);
@@ -359,13 +362,13 @@ class FileTest {
 
       if (maxFailedFileLoads < filesToFail) {
         ErrorModel errorModel =
-            dataRepoFixtures.bulkLoadArrayFailure(steward(), datasetId.get(), arrayLoad);
+            dataRepoFixtures.bulkLoadArrayFailure(steward(), datasetId, arrayLoad);
         assertThat(
             errorModel.getMessage(),
             containsString("More than " + maxFailedFileLoads + " file(s) failed to ingest"));
       } else {
         BulkLoadArrayResultModel result =
-            dataRepoFixtures.bulkLoadArray(steward(), datasetId.get(), arrayLoad);
+            dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad);
         loadSummary = result.getLoadSummary();
       }
     } else {
@@ -374,7 +377,7 @@ class FileTest {
               .formatted(Instant.now().toEpochMilli());
       BulkLoadRequestModel bulkLoad =
           new BulkLoadRequestModel()
-              .profileId(profileId.get())
+              .profileId(profileId)
               .loadTag(loadTag)
               .bulkMode(true)
               .maxFailedFileLoads(maxFailedFileLoads)
@@ -407,13 +410,12 @@ class FileTest {
 
       start = Instant.now().toEpochMilli();
       if (maxFailedFileLoads < filesToFail) {
-        ErrorModel errorModel =
-            dataRepoFixtures.bulkLoadFailure(steward(), datasetId.get(), bulkLoad);
+        ErrorModel errorModel = dataRepoFixtures.bulkLoadFailure(steward(), datasetId, bulkLoad);
         assertThat(
             errorModel.getMessage(),
             containsString("More than " + maxFailedFileLoads + " file(s) failed to ingest"));
       } else {
-        loadSummary = dataRepoFixtures.bulkLoad(steward(), datasetId.get(), bulkLoad);
+        loadSummary = dataRepoFixtures.bulkLoad(steward(), datasetId, bulkLoad);
       }
     }
     logger.info("Ingest took {} milliseconds", Instant.now().toEpochMilli() - start);
@@ -437,14 +439,15 @@ class FileTest {
   @Test
   void fileParallelFailedLoadTest() throws Exception {
     initialize(false, false);
+    var profileId = tlProfileId.get();
+    var datasetId = tlDatasetId.get();
     List<DataRepoResponse<JobModel>> responseList = new ArrayList<>();
     String gsPath = "gs://" + testConfiguration.ingestbucket() + "/nonexistentfile";
     String filePath = "/foo" + UUID.randomUUID() + "/bar";
 
     for (int i = 0; i < 20; i++) {
       DataRepoResponse<JobModel> launchResp =
-          dataRepoFixtures.ingestFileLaunch(
-              steward(), datasetId.get(), profileId.get(), gsPath, filePath + i);
+          dataRepoFixtures.ingestFileLaunch(steward(), datasetId, profileId, gsPath, filePath + i);
       responseList.add(launchResp);
     }
 
@@ -470,16 +473,14 @@ class FileTest {
   @Test
   void fileUnauthorizedPermissionsTest() throws Exception {
     initialize(false, false);
+    var profileId = tlProfileId.get();
+    var datasetId = tlDatasetId.get();
     String gsPath = "gs://" + testConfiguration.ingestbucket();
     String filePath = "/foo/bar";
 
     FileModel fileModel =
         dataRepoFixtures.ingestFile(
-            steward(),
-            datasetId.get(),
-            profileId.get(),
-            gsPath + "/files/File Design Notes.pdf",
-            filePath);
+            steward(), datasetId, profileId, gsPath + "/files/File Design Notes.pdf", filePath);
     String fileId = fileModel.getFileId();
 
     String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileId);
@@ -494,16 +495,16 @@ class FileTest {
 
     IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", targetPath);
     IngestResponseModel ingestResponseModel =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId.get(), request);
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
 
     assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
 
     // validates success
-    dataRepoFixtures.getFileById(steward(), datasetId.get(), fileId);
-    dataRepoFixtures.getFileById(custodian(), datasetId.get(), fileId);
+    dataRepoFixtures.getFileById(steward(), datasetId, fileId);
+    dataRepoFixtures.getFileById(custodian(), datasetId, fileId);
 
     DataRepoResponse<FileModel> readerResp =
-        dataRepoFixtures.getFileByIdRaw(reader(), datasetId.get(), fileId);
+        dataRepoFixtures.getFileByIdRaw(reader(), datasetId, fileId);
     assertThat(
         "Reader is not authorized to get a file from a dataset",
         readerResp.getStatusCode(),
@@ -511,51 +512,52 @@ class FileTest {
 
     // get file by id
     DataRepoResponse<FileModel> discovererResp =
-        dataRepoFixtures.getFileByIdRaw(discoverer(), datasetId.get(), fileId);
+        dataRepoFixtures.getFileByIdRaw(discoverer(), datasetId, fileId);
     assertThat(
         "Discoverer is not authorized to get a file from a dataset",
         discovererResp.getStatusCode(),
         equalTo(HttpStatus.FORBIDDEN));
 
     // get file by name validates success
-    dataRepoFixtures.getFileByName(steward(), datasetId.get(), filePath);
-    dataRepoFixtures.getFileByName(custodian(), datasetId.get(), filePath);
+    dataRepoFixtures.getFileByName(steward(), datasetId, filePath);
+    dataRepoFixtures.getFileByName(custodian(), datasetId, filePath);
 
-    readerResp = dataRepoFixtures.getFileByNameRaw(reader(), datasetId.get(), filePath);
+    readerResp = dataRepoFixtures.getFileByNameRaw(reader(), datasetId, filePath);
     assertThat(
         "Reader is not authorized to get a file from a dataset",
         readerResp.getStatusCode(),
         equalTo(HttpStatus.FORBIDDEN));
 
-    discovererResp = dataRepoFixtures.getFileByNameRaw(discoverer(), datasetId.get(), filePath);
+    discovererResp = dataRepoFixtures.getFileByNameRaw(discoverer(), datasetId, filePath);
     assertThat(
         "Discoverer is not authorized to get file",
         discovererResp.getStatusCode(),
         equalTo(HttpStatus.FORBIDDEN));
 
     // delete
-    DataRepoResponse<JobModel> job =
-        dataRepoFixtures.deleteFileLaunch(reader(), datasetId.get(), fileId);
+    DataRepoResponse<JobModel> job = dataRepoFixtures.deleteFileLaunch(reader(), datasetId, fileId);
     assertThat(
         "Reader is not authorized to delete file",
         job.getStatusCode(),
         equalTo(HttpStatus.FORBIDDEN));
 
     // validates success
-    dataRepoFixtures.deleteFile(custodian(), datasetId.get(), fileId);
+    dataRepoFixtures.deleteFile(custodian(), datasetId, fileId);
   }
 
   @Test
   void fileUncommonNameTest() throws Exception {
     var datasetSummaryModel = initialize(false, false);
+    var profileId = tlProfileId.get();
+    var datasetId = tlDatasetId.get();
     String gsPath = "gs://" + testConfiguration.ingestbucket();
     String filePath = "/foo/bar";
 
     FileModel fileModel =
         dataRepoFixtures.ingestFile(
             steward(),
-            datasetId.get(),
-            profileId.get(),
+            datasetId,
+            profileId,
             gsPath + "/files/file with space and #hash%percent+plus.txt",
             filePath);
     String fileId = fileModel.getFileId();
@@ -576,7 +578,7 @@ class FileTest {
 
     IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", targetPath);
     IngestResponseModel ingestResponseModel =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId.get(), request);
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
 
     assertThat(
         "right number of rows were  ingested",
@@ -586,11 +588,9 @@ class FileTest {
     // Create a snapshot exposing the one row and grant read access to our reader.
     SnapshotSummaryModel snapshotSummaryModel =
         dataRepoFixtures.createSnapshot(
-            custodian(),
-            datasetSummaryModel.getName(),
-            profileId.get(),
-            "file-acl-test-snapshot.json");
-    snapshotId.set(snapshotSummaryModel.getId());
+            custodian(), datasetSummaryModel.getName(), profileId, "file-acl-test-snapshot.json");
+    var snapshotId = snapshotSummaryModel.getId();
+    tlSnapshotId.set(snapshotId);
 
     /*
      * WARNING: if making any changes to this test make sure to notify the #dsp-batch channel! Describe the change
@@ -599,7 +599,7 @@ class FileTest {
     // Use DRS API to look up the file by DRS ID
     String drsObjectId =
         DrsId.builder()
-            .snapshotId(snapshotId.get().toString())
+            .snapshotId(snapshotId.toString())
             .fsObjectId(fileId)
             .build()
             .toDrsObjectId();
@@ -620,17 +620,19 @@ class FileTest {
   @Test
   void fileIngestAccessTest() throws Exception {
     initialize(false, false);
+    var profileId = tlProfileId.get();
+    var datasetId = tlDatasetId.get();
     String gsPath = "gs://" + testConfiguration.ingestbucket();
     String filePath = "/foo/bar";
     String gsFilePath = gsPath + "/files/file with space and #hash%percent+plus.txt";
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId.get(), IamRole.CUSTODIAN, reader().email());
+        steward(), datasetId, IamRole.CUSTODIAN, reader().email());
     dataRepoFixtures.addPolicyMember(
-        steward(), profileId.get(), IamRole.USER, reader().email(), IamResourceType.SPEND_PROFILE);
+        steward(), profileId, IamRole.USER, reader().email(), IamResourceType.SPEND_PROFILE);
     DataRepoResponse<JobModel> ingestJob =
         dataRepoFixtures.ingestFileLaunch(
             // note: reader's proxy group should not have access to the source bucket
-            reader(), datasetId.get(), profileId.get(), gsFilePath, filePath);
+            reader(), datasetId, profileId, gsFilePath, filePath);
     DataRepoResponse<FileModel> error =
         dataRepoClient.waitForResponse(steward(), ingestJob, new TypeReference<>() {});
 
@@ -643,22 +645,20 @@ class FileTest {
     // To be safe, make sure that ingest works for a steward
     dataRepoFixtures.ingestFile(
         // note: steward's proxy group should have access to the source bucket
-        steward(), datasetId.get(), profileId.get(), gsFilePath, filePath);
+        steward(), datasetId, profileId, gsFilePath, filePath);
   }
 
   @Test
   void fileIngestBadTargetPathTest() throws Exception {
     initialize(false, false);
+    var profileId = tlProfileId.get();
+    var datasetId = tlDatasetId.get();
     String gsPath = "gs://" + testConfiguration.ingestbucket();
     String filePath = "foo/bar";
 
     DataRepoResponse<JobModel> job =
         dataRepoFixtures.ingestFileLaunch(
-            steward(),
-            datasetId.get(),
-            profileId.get(),
-            gsPath + "/files/File Design Notes.pdf",
-            filePath);
+            steward(), datasetId, profileId, gsPath + "/files/File Design Notes.pdf", filePath);
 
     DataRepoResponse<FileModel> result =
         dataRepoClient.waitForResponse(steward(), job, new TypeReference<>() {});
@@ -672,18 +672,15 @@ class FileTest {
 
   private DatasetSummaryModel initialize(boolean selfHosted, boolean predictableFileIds)
       throws Exception {
-    profileId.set(dataRepoFixtures.createBillingProfile(steward()).getId());
+    var profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+    tlProfileId.set(profileId);
     dataRepoFixtures.addPolicyMember(
-        steward(),
-        profileId.get(),
-        IamRole.USER,
-        custodian().email(),
-        IamResourceType.SPEND_PROFILE);
+        steward(), profileId, IamRole.USER, custodian().email(), IamResourceType.SPEND_PROFILE);
 
     DataRepoResponse<JobModel> datasetCreateJob =
         dataRepoFixtures.createDatasetRaw(
             steward(),
-            profileId.get(),
+            profileId,
             "file-acl-test-dataset.json",
             CloudPlatform.GCP,
             false,
@@ -694,10 +691,11 @@ class FileTest {
             null);
 
     var datasetSummaryModel = dataRepoFixtures.waitForDatasetCreate(steward(), datasetCreateJob);
-    datasetId.set(datasetSummaryModel.getId());
-    logger.info("created dataset {}", datasetId.get());
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
+    logger.info("created dataset {}", datasetId);
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId.get(), IamRole.CUSTODIAN, custodian().email());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().email());
     return datasetSummaryModel;
   }
 }

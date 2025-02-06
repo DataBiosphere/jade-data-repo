@@ -3,12 +3,12 @@ package bio.terra.service.dataset;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.UsersBase;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.DatasetModel;
@@ -18,9 +18,9 @@ import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -28,6 +28,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -38,37 +40,44 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class DatasetSoftDeletesTest extends UsersBase {
+@Execution(ExecutionMode.CONCURRENT)
+class DatasetSoftDeletesTest {
 
   @Autowired private JsonLoader jsonLoader;
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private TestConfiguration testConfiguration;
+  @Autowired private Users users;
 
-  private UUID datasetId;
-  private UUID profileId;
-  private List<UUID> snapshotIds;
+  private final ThreadLocal<TestConfiguration.User> steward =
+      ThreadLocal.withInitial(() -> users.steward());
+  private final ThreadLocal<UUID> tlDatasetId = new ThreadLocal<>();
+  private final ThreadLocal<UUID> tlProfileId = new ThreadLocal<>();
+  private final ThreadLocal<List<UUID>> snapshotIds = ThreadLocal.withInitial(ArrayList::new);
 
-  @Override
+  private TestConfiguration.User steward() {
+    return steward.get();
+  }
+
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
     dataRepoFixtures.resetConfig(steward());
-    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
-    snapshotIds = new LinkedList<>();
+    tlProfileId.set(dataRepoFixtures.createBillingProfile(steward()).getId());
     ingestDataset();
   }
 
   @AfterEach
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward());
-    for (UUID snapshotId : snapshotIds) {
+    for (UUID snapshotId : snapshotIds.get()) {
       dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
     }
 
+    var datasetId = tlDatasetId.get();
     if (datasetId != null) {
       dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
     }
 
+    var profileId = tlProfileId.get();
     if (profileId != null) {
       dataRepoFixtures.deleteProfileLog(steward(), profileId);
     }
@@ -76,6 +85,7 @@ class DatasetSoftDeletesTest extends UsersBase {
 
   @Test
   void testSoftDeleteHappyPath() throws Exception {
+    var datasetId = tlDatasetId.get();
     // get row ids
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
     List<String> participantRowIds =
@@ -108,6 +118,7 @@ class DatasetSoftDeletesTest extends UsersBase {
 
   @Test
   void testSoftDeleteJsonArrayHappyPath() throws Exception {
+    var datasetId = tlDatasetId.get();
     // get row ids
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
     List<UUID> participantRowIds =
@@ -139,6 +150,7 @@ class DatasetSoftDeletesTest extends UsersBase {
 
   @Test
   void wildcardSoftDelete() throws Exception {
+    var datasetId = tlDatasetId.get();
     String pathPrefix = "softDelWildcard" + UUID.randomUUID();
 
     // get 5 row ids, we'll write them out to 5 separate files
@@ -167,6 +179,8 @@ class DatasetSoftDeletesTest extends UsersBase {
 
   @Test
   void testSoftDeleteNotInFullView() throws Exception {
+    var datasetId = tlDatasetId.get();
+    var profileId = tlProfileId.get();
     // get row ids
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
     List<String> participantRowIds =
@@ -181,7 +195,7 @@ class DatasetSoftDeletesTest extends UsersBase {
     SnapshotSummaryModel snapshotSummaryAll =
         dataRepoFixtures.createSnapshotWithRequest(
             steward(), dataset.getName(), profileId, requestModelAll);
-    snapshotIds.add(snapshotSummaryAll.getId());
+    snapshotIds.get().add(snapshotSummaryAll.getId());
     SnapshotModel snapshotAll =
         dataRepoFixtures.getSnapshot(steward(), snapshotSummaryAll.getId(), null);
     dataRepoFixtures.assertSnapshotTableCount(steward(), snapshotAll, "participant", 5);
@@ -218,7 +232,7 @@ class DatasetSoftDeletesTest extends UsersBase {
     SnapshotSummaryModel snapshotSummaryLess =
         dataRepoFixtures.createSnapshotWithRequest(
             steward(), dataset.getName(), profileId, requestModelLess);
-    snapshotIds.add(snapshotSummaryLess.getId());
+    snapshotIds.get().add(snapshotSummaryLess.getId());
 
     SnapshotModel snapshotLess =
         dataRepoFixtures.getSnapshot(steward(), snapshotSummaryLess.getId(), null);
@@ -233,9 +247,11 @@ class DatasetSoftDeletesTest extends UsersBase {
   }
 
   private void ingestDataset() throws Exception {
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
-    datasetId = datasetSummaryModel.getId();
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");

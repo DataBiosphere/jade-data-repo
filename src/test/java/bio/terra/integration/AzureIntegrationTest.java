@@ -20,6 +20,7 @@ import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.common.CollectionType;
 import bio.terra.common.TestUtils;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.configuration.TestConfiguration.User;
@@ -141,7 +142,7 @@ import org.springframework.util.ResourceUtils;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class AzureIntegrationTest extends UsersBase {
+class AzureIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(AzureIntegrationTest.class);
 
   private static final String OMOP_DATASET_NAME = "it_dataset_omop";
@@ -153,6 +154,7 @@ class AzureIntegrationTest extends UsersBase {
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired private JsonLoader jsonLoader;
+  @Autowired private Users users;
 
   private User steward;
   private User admin;
@@ -169,14 +171,12 @@ class AzureIntegrationTest extends UsersBase {
   private GcsBlobIOTestUtility gcsBlobIOTestUtility;
   private Set<String> storageAccounts;
 
-  @Override
   @BeforeEach
   public void setup() throws Exception {
-    setup(false);
     // Voldemort is required by this test since the application is deployed with his user authz'ed
-    steward = steward("voldemort");
-    admin = admin("hermione");
-    researcher = reader("harry");
+    steward = users.steward("voldemort");
+    admin = users.admin("hermione");
+    researcher = users.reader("harry");
     dataRepoFixtures.resetConfig(steward);
     profileId = dataRepoFixtures.createAzureBillingProfile(steward).getId();
     RequestRetryOptions retryOptions =
@@ -959,7 +959,7 @@ class AzureIntegrationTest extends UsersBase {
                     .addTables(
                         List.of(
                             DatasetFixtures.tableModel("new_table", List.of("new_table_column")))));
-    DatasetModel response = dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
+    DatasetModel response = dataRepoFixtures.updateSchema(steward, datasetId, updateModel);
     assertThat(
         "The new table is in the update response",
         response.getSchema().getTables().stream()
@@ -1700,7 +1700,7 @@ class AzureIntegrationTest extends UsersBase {
 
     assertThat(
         "No files yet loaded doesn't result in an NPE",
-        noFilesIngestResponse.getErrorObject().get().getMessage(),
+        noFilesIngestResponse.getErrorObject().orElseThrow().getMessage(),
         equalTo("Invalid file ids found during ingest (2 returned in details)"));
 
     String loadTag = UUID.randomUUID().toString();
@@ -2015,8 +2015,7 @@ class AzureIntegrationTest extends UsersBase {
     }
   }
 
-  private String recordStorageAccount(
-      TestConfiguration.User user, CollectionType collectionType, UUID collectionId)
+  private String recordStorageAccount(User user, CollectionType collectionType, UUID collectionId)
       throws Exception {
     String storageAccountName = null;
     switch (collectionType) {

@@ -5,7 +5,9 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
@@ -34,19 +36,28 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class IngestSnapshotIntegrationTest extends UsersBase {
+class IngestSnapshotIntegrationTest {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
+  @Autowired private Users users;
 
+  private Users.TestUsers testUsers;
   private DatasetSummaryModel datasetSummaryModel;
   private UUID datasetId;
   private UUID profileId;
   private final List<UUID> createdSnapshotIds = new ArrayList<>();
 
-  @Override
+  private User steward() {
+    return testUsers.steward();
+  }
+
+  private User custodian() {
+    return testUsers.custodian();
+  }
+
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
+    testUsers = users.testUsers();
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     dataRepoFixtures.addPolicyMember(
         steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
@@ -74,7 +85,7 @@ class IngestSnapshotIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void ingestBuildSnapshot() throws Exception {
+  void ingestBuildSnapshot() throws Exception {
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");

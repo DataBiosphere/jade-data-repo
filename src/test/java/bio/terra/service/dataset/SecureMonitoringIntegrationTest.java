@@ -3,12 +3,13 @@ package bio.terra.service.dataset;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.UsersBase;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
@@ -21,9 +22,11 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.api.services.cloudresourcemanager.model.ResourceId;
+import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -39,21 +42,26 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class SecureMonitoringIntegrationTest extends UsersBase {
+class SecureMonitoringIntegrationTest {
 
+  @Autowired private Users users;
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private JsonLoader jsonLoader;
   @Autowired private GoogleResourceManagerService resourceManagerService;
   @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
 
+  private Users.TestUsers testUsers;
   private UUID datasetId;
   private UUID snapshotId;
   private UUID profileId;
 
-  @Override
+  private TestConfiguration.User steward() {
+    return testUsers.steward();
+  }
+
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
+    testUsers = users.testUsers();
     dataRepoFixtures.resetConfig(steward());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     datasetId = null;
@@ -104,14 +112,17 @@ class SecureMonitoringIntegrationTest extends UsersBase {
     requestModel.getContents().get(0).setDatasetName(datasetName);
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshotWithRequest(steward(), datasetName, profileId, requestModel);
-    TimeUnit.SECONDS.sleep(10);
     snapshotId = snapshotSummary.getId();
 
     assertThat(
         "Snapshot summary denotes secure monitoring enabled",
         snapshotSummary.isSecureMonitoringEnabled());
 
-    SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotId, List.of());
+    SnapshotModel snapshot =
+        Awaitility.waitAtMost(Duration.ofSeconds(10))
+            .until(
+                () -> dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null),
+                Objects::nonNull);
 
     assertThat(
         "Snapshot model denotes secure monitoring enabled",

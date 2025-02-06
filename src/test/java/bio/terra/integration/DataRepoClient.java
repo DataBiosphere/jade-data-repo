@@ -38,8 +38,11 @@ public class DataRepoClient {
   @Autowired private AuthService authService;
 
   private static final Logger logger = LoggerFactory.getLogger(DataRepoClient.class);
+
   private final RestTemplate restTemplate;
-  private final HttpHeaders headers;
+  // HttpHeaders is not thread safe so we create a new copy for each thread.
+  private final ThreadLocal<HttpHeaders> headers =
+      ThreadLocal.withInitial(DataRepoClient::createHeaders);
 
   public DataRepoClient() {
     restTemplate =
@@ -49,10 +52,13 @@ public class DataRepoClient {
             .build();
     restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
     restTemplate.setErrorHandler(new DataRepoClientErrorHandler());
+  }
 
-    headers = new HttpHeaders();
+  private static HttpHeaders createHeaders() {
+    var headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
     headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+    return headers;
   }
 
   // -- RepositoryController Client --
@@ -298,13 +304,13 @@ public class DataRepoClient {
   }
 
   private HttpHeaders getHeaders(TestConfiguration.User user) {
-    HttpHeaders copy = new HttpHeaders(headers);
+    HttpHeaders copy = new HttpHeaders(headers.get());
     copy.setBearerAuth(authService.getAuthToken(user.getEmail()));
     return copy;
   }
 
   private HttpHeaders getHeadersForPet(TestConfiguration.User user) {
-    HttpHeaders copy = new HttpHeaders(headers);
+    HttpHeaders copy = new HttpHeaders(headers.get());
     copy.setBearerAuth(authService.getPetAccountAuthToken(user.getEmail()));
     return copy;
   }

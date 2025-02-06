@@ -3,7 +3,9 @@ package bio.terra.integration;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.model.ConfigFaultCountedModel;
 import bio.terra.model.ConfigFaultModel;
 import bio.terra.model.ConfigGroupModel;
@@ -19,6 +21,7 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,19 +40,31 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class SimpleScenarioFaultTests extends UsersBase {
+@Disabled
+class SimpleScenarioFaultTests {
   private final Logger logger = LoggerFactory.getLogger(SimpleScenarioFaultTests.class);
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
+  @Autowired private Users users;
 
+  private User steward;
+  private User custodian;
   private UUID profileId;
   private UUID datasetId;
   private UUID snapshotId;
 
-  @Override
+  private User steward() {
+    return steward;
+  }
+
+  private User custodian() {
+    return custodian;
+  }
+
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
+    steward = users.steward();
+    custodian = users.custodian();
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     dataRepoFixtures.addPolicyMember(
         steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);

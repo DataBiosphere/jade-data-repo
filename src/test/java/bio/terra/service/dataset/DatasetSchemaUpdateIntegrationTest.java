@@ -2,11 +2,12 @@ package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.UsersBase;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
@@ -33,16 +34,22 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class DatasetSchemaUpdateIntegrationTest extends UsersBase {
+class DatasetSchemaUpdateIntegrationTest {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
+  @Autowired private Users users;
+
+  private Users.TestUsers testUsers;
   private UUID profileId;
   private UUID datasetId;
 
-  @Override
+  private User steward() {
+    return testUsers.steward();
+  }
+
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
+    testUsers = users.testUsers();
     dataRepoFixtures.resetConfig(steward());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     DatasetSummaryModel datasetSummaryModel =

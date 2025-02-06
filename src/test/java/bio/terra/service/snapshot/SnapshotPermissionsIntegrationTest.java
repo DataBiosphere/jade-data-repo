@@ -6,14 +6,15 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 
 import bio.terra.common.auth.AuthService;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
@@ -50,7 +51,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class SnapshotPermissionsIntegrationTest extends UsersBase {
+class SnapshotPermissionsIntegrationTest {
 
   private static final Logger logger =
       LoggerFactory.getLogger(SnapshotPermissionsIntegrationTest.class);
@@ -59,17 +60,26 @@ class SnapshotPermissionsIntegrationTest extends UsersBase {
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private DataRepoClient dataRepoClient;
   @Autowired private AuthService authService;
+  @Autowired private Users users;
 
+  private Users.TestUsers testUsers;
   private String stewardToken;
   private UUID profileId;
   private UUID datasetId;
   private DatasetSummaryModel datasetSummaryModel;
   private final List<UUID> createdSnapshotIds = new ArrayList<>();
 
-  @Override
+  private User steward() {
+    return testUsers.steward();
+  }
+
+  private User custodian() {
+    return testUsers.custodian();
+  }
+
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
+    testUsers = users.testUsers();
     stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     dataRepoFixtures.addPolicyMember(

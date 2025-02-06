@@ -15,12 +15,13 @@ import static org.hamcrest.Matchers.startsWith;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.TestUtils;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.UsersBase;
 import bio.terra.model.AssetModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DataDeletionGcsFileModel;
@@ -71,7 +72,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class DatasetIntegrationTest extends UsersBase {
+class DatasetIntegrationTest {
   private static final String OMOP_DATASET_NAME = "it_dataset_omop";
   private static final String OMOP_DATASET_DESC =
       "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom";
@@ -80,14 +81,31 @@ class DatasetIntegrationTest extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private JsonLoader jsonLoader;
+  @Autowired private Users users;
 
+  private Users.TestUsers testUsers;
   private UUID datasetId;
   private UUID profileId;
 
-  @Override
+  private User steward() {
+    return testUsers.steward();
+  }
+
+  private User custodian() {
+    return testUsers.custodian();
+  }
+
+  private User reader() {
+    return testUsers.reader();
+  }
+
+  private User admin() {
+    return testUsers.admin();
+  }
+
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
+    testUsers = users.testUsers();
     dataRepoFixtures.resetConfig(steward());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     datasetId = null;

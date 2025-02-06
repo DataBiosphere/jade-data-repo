@@ -12,11 +12,12 @@ import static org.hamcrest.Matchers.not;
 import static org.springframework.test.util.AssertionErrors.assertFalse;
 
 import bio.terra.common.PdaoConstant;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -30,17 +31,20 @@ import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
-import java.util.ArrayList;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,37 +56,59 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class SnapshotIntegrationTest extends UsersBase {
+@Execution(ExecutionMode.CONCURRENT)
+class SnapshotIntegrationTest {
   @Autowired private JsonLoader jsonLoader;
-
   @Autowired private DataRepoFixtures dataRepoFixtures;
+  @Autowired private Users users;
 
   private static final Logger logger = LoggerFactory.getLogger(SnapshotIntegrationTest.class);
-  private UUID profileId;
-  private UUID datasetId;
-  private final List<UUID> createdSnapshotIds = new ArrayList<>();
-  String participantTableName;
-  int participantTableRowCount;
 
-  @Override
+  private final ThreadLocal<Users.TestUsers> testUsers =
+      ThreadLocal.withInitial(() -> users.testUsers());
+  private final ThreadLocal<UUID> tlProfileId = new ThreadLocal<>();
+  private final ThreadLocal<UUID> tlDatasetId = new ThreadLocal<>();
+  private final ThreadLocal<UUID> createdSnapshotId = new ThreadLocal<>();
+  final String participantTableName = "participant";
+  final int participantTableRowCount = 5;
+
+  private User steward() {
+    return testUsers.get().steward();
+  }
+
+  private User custodian() {
+    return testUsers.get().custodian();
+  }
+
+  private User reader() {
+    return testUsers.get().reader();
+  }
+
+  private User admin() {
+    return testUsers.get().admin();
+  }
+
+  private User discoverer() {
+    return testUsers.get().discoverer();
+  }
+
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
-    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+    var profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+    tlProfileId.set(profileId);
     dataRepoFixtures.addPolicyMember(
         steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
 
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
-    datasetId = datasetSummaryModel.getId();
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
     dataRepoFixtures.addDatasetPolicyMember(
         steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
 
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
-    participantTableName = "participant";
-    participantTableRowCount = 5;
     dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
     request = dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
     dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
@@ -90,27 +116,28 @@ class SnapshotIntegrationTest extends UsersBase {
 
   @AfterEach
   public void tearDown() throws Exception {
-    createdSnapshotIds.forEach(
-        snapshot -> {
-          try {
-            dataRepoFixtures.deleteSnapshot(steward(), snapshot);
-          } catch (Exception ex) {
-            logger.warn("cleanup failed when deleting snapshot " + snapshot);
-            ex.printStackTrace();
-          }
-        });
-
-    if (datasetId != null) {
-      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+    var snapshot = createdSnapshotId.get();
+    if (snapshot != null) {
+      try {
+        dataRepoFixtures.deleteSnapshot(steward(), snapshot);
+      } catch (Exception | AssertionError ex) {
+        logger.warn("cleanup failed when deleting snapshot " + snapshot, ex);
+      }
     }
 
-    if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward(), profileId);
+    if (tlDatasetId.get() != null) {
+      dataRepoFixtures.deleteDatasetLog(steward(), tlDatasetId.get());
+    }
+
+    if (tlProfileId.get() != null) {
+      dataRepoFixtures.deleteProfileLog(steward(), tlProfileId.get());
     }
   }
 
   @Test
   void snapshotRowIdsHappyPathTest() throws Exception {
+    var profileId = tlProfileId.get();
+    var datasetId = tlDatasetId.get();
     // fetch rowIds from the ingested dataset by querying the participant table
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
     String participantTable = "participant";
@@ -142,9 +169,12 @@ class SnapshotIntegrationTest extends UsersBase {
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshotWithRequest(
             steward(), dataset.getName(), profileId, requestModel);
-    TimeUnit.SECONDS.sleep(10);
-    createdSnapshotIds.add(snapshotSummary.getId());
-    SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
+    createdSnapshotId.set(snapshotSummary.getId());
+    SnapshotModel snapshot =
+        Awaitility.waitAtMost(Duration.ofSeconds(10))
+            .until(
+                () -> dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null),
+                Objects::nonNull);
     assertThat("new snapshot has been created", snapshot.getName(), is(requestModel.getName()));
     assertThat(
         "new snapshot has the correct number of tables",
@@ -177,20 +207,27 @@ class SnapshotIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void snapshotByQueryHappyPathTest() throws Exception {
+  void snapshotByQueryHappyPathTest() throws Exception {
+    var profileId = tlProfileId.get();
+    var datasetId = tlDatasetId.get();
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
     SnapshotRequestModel requestModel = snapshotByQueryRequestModel(dataset);
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshotWithRequest(
             steward(), dataset.getName(), profileId, requestModel);
-    TimeUnit.SECONDS.sleep(10);
-    createdSnapshotIds.add(snapshotSummary.getId());
-    SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
+    createdSnapshotId.set(snapshotSummary.getId());
+    SnapshotModel snapshot =
+        Awaitility.waitAtMost(Duration.ofSeconds(10))
+            .until(
+                () -> dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null),
+                Objects::nonNull);
     assertThat("new snapshot has been created", snapshot.getName(), is(requestModel.getName()));
   }
 
   @Test
-  public void snapshotByAssetHappyPathTest() throws Exception {
+  void snapshotByAssetHappyPathTest() throws Exception {
+    var profileId = tlProfileId.get();
+    var datasetId = tlDatasetId.get();
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
     String datasetName = dataset.getName();
     SnapshotRequestModel requestModel =
@@ -200,32 +237,42 @@ class SnapshotIntegrationTest extends UsersBase {
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshotWithRequest(
             steward(), dataset.getName(), profileId, requestModel);
-    TimeUnit.SECONDS.sleep(10);
-    createdSnapshotIds.add(snapshotSummary.getId());
-    SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
+    createdSnapshotId.set(snapshotSummary.getId());
+    SnapshotModel snapshot =
+        Awaitility.waitAtMost(Duration.ofSeconds(10))
+            .until(
+                () -> dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null),
+                Objects::nonNull);
     assertThat("new snapshot has been created", snapshot.getName(), is(requestModel.getName()));
   }
 
   @Test
-  public void deleteAssetWithSnapshotTest() throws Exception {
+  void deleteAssetWithSnapshotTest() throws Exception {
+    var profileId = tlProfileId.get();
+    var datasetId = tlDatasetId.get();
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
     SnapshotRequestModel requestModel = snapshotByQueryRequestModel(dataset);
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshotWithRequest(
             steward(), dataset.getName(), profileId, requestModel);
-    TimeUnit.SECONDS.sleep(10);
+    Awaitility.waitAtMost(Duration.ofSeconds(10))
+        .until(
+            () -> dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null) != null);
     ErrorModel errorModel =
-        dataRepoFixtures.deleteDatasetAssetExpectFailure(steward(), datasetId, "sample_centric");
+        dataRepoFixtures.deleteDatasetAssetExpectFailure(
+            steward(), dataset.getId(), "sample_centric");
     assertThat(
         "Error deleting asset",
         errorModel.getMessage(),
         containsString("The asset is being used by snapshots: " + snapshotSummary.getId()));
     dataRepoFixtures.deleteSnapshot(steward(), snapshotSummary.getId());
-    dataRepoFixtures.deleteDatasetAsset(steward(), datasetId, "sample_centric");
+    dataRepoFixtures.deleteDatasetAsset(steward(), dataset.getId(), "sample_centric");
   }
 
   @Test
-  public void retrieveRowCountAndSnapshotByFullViewTest() throws Exception {
+  void retrieveRowCountAndSnapshotByFullViewTest() throws Exception {
+    var profileId = tlProfileId.get();
+    var datasetId = tlDatasetId.get();
     // DATASET
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
     String datasetName = dataset.getName();
@@ -290,9 +337,12 @@ class SnapshotIntegrationTest extends UsersBase {
     requestModel.getContents().get(0).setDatasetName(datasetName);
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshotWithRequest(steward(), datasetName, profileId, requestModel);
-    TimeUnit.SECONDS.sleep(10);
-    createdSnapshotIds.add(snapshotSummary.getId());
-    SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
+    createdSnapshotId.set(snapshotSummary.getId());
+    SnapshotModel snapshot =
+        Awaitility.waitAtMost(Duration.ofSeconds(10))
+            .until(
+                () -> dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null),
+                Objects::nonNull);
     assertThat("new snapshot has been created", snapshot.getName(), is(requestModel.getName()));
     assertThat("the relationship comes through", snapshot.getRelationships(), hasSize(1));
 
@@ -352,7 +402,9 @@ class SnapshotIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void snapshotByFullViewAndPetServiceAccountHappyPathTest() throws Exception {
+  void snapshotByFullViewAndPetServiceAccountHappyPathTest() throws Exception {
+    var profileId = tlProfileId.get();
+    var datasetId = tlDatasetId.get();
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
     String datasetName = dataset.getName();
     SnapshotRequestModel requestModel =
@@ -362,9 +414,12 @@ class SnapshotIntegrationTest extends UsersBase {
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshotWithRequest(
             steward(), datasetName, profileId, requestModel, true, true);
-    TimeUnit.SECONDS.sleep(10);
-    createdSnapshotIds.add(snapshotSummary.getId());
-    SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
+    createdSnapshotId.set(snapshotSummary.getId());
+    SnapshotModel snapshot =
+        Awaitility.waitAtMost(Duration.ofSeconds(10))
+            .until(
+                () -> dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null),
+                Objects::nonNull);
     assertThat("new snapshot has been created", snapshot.getName(), is(requestModel.getName()));
     assertThat("the relationship comes through", snapshot.getRelationships(), hasSize(1));
   }
@@ -391,7 +446,9 @@ class SnapshotIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testCreateSnapshotWithPolicies() throws Exception {
+  void testCreateSnapshotWithPolicies() throws Exception {
+    var profileId = tlProfileId.get();
+    var datasetId = tlDatasetId.get();
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
     String datasetName = dataset.getName();
     SnapshotRequestModel requestModel =
@@ -412,9 +469,11 @@ class SnapshotIntegrationTest extends UsersBase {
 
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshotWithRequest(steward(), datasetName, profileId, requestModel);
-    TimeUnit.SECONDS.sleep(10);
     UUID snapshotId = snapshotSummary.getId();
-    createdSnapshotIds.add(snapshotId);
+    createdSnapshotId.set(snapshotId);
+    Awaitility.waitAtMost(Duration.ofSeconds(10))
+        .until(
+            () -> dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null) != null);
 
     Map<String, List<String>> rolesToPolicies =
         dataRepoFixtures.retrieveSnapshotPolicies(steward(), snapshotId).getPolicies().stream()

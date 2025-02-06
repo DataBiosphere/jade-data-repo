@@ -4,12 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import bio.terra.common.GcsUtils;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.UsersBase;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
@@ -44,20 +45,37 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class JobPermissionTest extends UsersBase {
+class JobPermissionTest {
   private static final Logger logger = LoggerFactory.getLogger(JobPermissionTest.class);
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private GcsUtils gcsUtils;
   @Autowired private DataRepoClient dataRepoClient;
+  @Autowired private Users users;
 
+  private Users.TestUsers testUsers;
   private UUID datasetId;
   private UUID profileId;
 
-  @Override
+  private User steward() {
+    return testUsers.steward();
+  }
+
+  private User admin() {
+    return testUsers.admin();
+  }
+
+  private User custodian() {
+    return testUsers.custodian();
+  }
+
+  private User reader() {
+    return testUsers.reader();
+  }
+
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
+    testUsers = users.testUsers();
     dataRepoFixtures.resetConfig(steward());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     dataRepoFixtures.addPolicyMemberRaw(

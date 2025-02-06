@@ -4,11 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.auth.AuthService;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.UsersBase;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -36,13 +37,15 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class SamRetryIntegrationTest extends UsersBase {
+class SamRetryIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(SamRetryIntegrationTest.class);
   @Autowired private AuthService authService;
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private IamProviderInterface iam;
   @Autowired private SamConfiguration samConfig;
+  @Autowired private Users users;
 
+  private TestConfiguration.User steward;
   private UUID fakeDatasetId;
   private AuthenticatedUserRequest userRequest;
   private GoogleApi samGoogleApi;
@@ -54,16 +57,15 @@ class SamRetryIntegrationTest extends UsersBase {
     return apiClient.setBasePath(samConfig.basePath());
   }
 
-  @Override
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
-    String stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
-    dataRepoFixtures.resetConfig(steward());
+    steward = users.steward();
+    String stewardToken = authService.getDirectAccessAuthToken(steward.getEmail());
+    dataRepoFixtures.resetConfig(steward);
     userRequest =
         AuthenticatedUserRequest.builder()
             .setSubjectId("SamIntegration")
-            .setEmail(steward().getEmail())
+            .setEmail(steward.getEmail())
             .setToken(stewardToken)
             .build();
     fakeDatasetId = UUID.randomUUID();
@@ -72,7 +74,7 @@ class SamRetryIntegrationTest extends UsersBase {
 
   @AfterEach
   public void teardown() throws Exception {
-    dataRepoFixtures.resetConfig(steward());
+    dataRepoFixtures.resetConfig(steward);
 
     iam.deleteDatasetResource(userRequest, fakeDatasetId);
   }

@@ -18,11 +18,12 @@ import static org.junit.Assert.assertThrows;
 import bio.terra.common.GcsUtils;
 import bio.terra.common.ParquetUtils;
 import bio.terra.common.auth.AuthService;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
@@ -71,24 +72,37 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class SnapshotExportIntegrationTest extends UsersBase {
+class SnapshotExportIntegrationTest {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private GcsUtils gcsUtils;
   @Autowired private AuthService authService;
   @Autowired private ObjectMapper objectMapper;
+  @Autowired private Users users;
 
   private static final Logger logger = LoggerFactory.getLogger(SnapshotExportIntegrationTest.class);
+  private Users.TestUsers testUsers;
   private String stewardToken;
   private String readerToken;
   private UUID profileId;
   private final List<UUID> createdDatasetsIds = new ArrayList<>();
   private final List<UUID> createdSnapshotIds = new ArrayList<>();
 
-  @Override
+  private User steward() {
+    return testUsers.steward();
+  }
+
+  private User custodian() {
+    return testUsers.custodian();
+  }
+
+  private User reader() {
+    return testUsers.reader();
+  }
+
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
+    testUsers = users.testUsers();
     stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();

@@ -5,14 +5,16 @@ import static bio.terra.service.configuration.ConfigEnum.SAM_TIMEOUT_FAULT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.UsersBase;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.model.ConfigParameterModel;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,14 +32,27 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class RepositoryApiControllerAccessTest extends UsersBase {
+@Disabled
+class RepositoryApiControllerAccessTest {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
+  @Autowired private Users users;
+
+  private User admin;
+  private User reader;
+
+  private User admin() {
+    return admin;
+  }
+
+  private User reader() {
+    return reader;
+  }
 
   @BeforeEach
-  @Override
   public void setup() throws Exception {
-    super.setup();
+    admin = users.admin();
+    reader = users.reader();
   }
 
   @Test

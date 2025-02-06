@@ -15,12 +15,13 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.IntegrationTestConfiguration;
-import bio.terra.integration.UsersBase;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessMethod.TypeEnum;
 import bio.terra.model.DRSAccessURL;
@@ -78,7 +79,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
-class DrsTest extends UsersBase {
+class DrsTest {
 
   private static final Logger logger = LoggerFactory.getLogger(DrsTest.class);
 
@@ -94,7 +95,9 @@ class DrsTest extends UsersBase {
   @Autowired private EncodeFixture encodeFixture;
   @Autowired private AuthService authService;
   @Autowired private IamProviderInterface iamService;
+  @Autowired private Users users;
 
+  private Users.TestUsers testUsers;
   private DatasetModel datasetModel;
   private SnapshotModel snapshotModel;
   private UUID profileId;
@@ -102,10 +105,25 @@ class DrsTest extends UsersBase {
   private Map<IamRole, String> datasetIamRoles;
   private Map<IamRole, String> snapshotIamRoles;
 
-  @Override
+  private User steward() {
+    return testUsers.steward();
+  }
+
+  private User custodian() {
+    return testUsers.custodian();
+  }
+
+  private User reader() {
+    return testUsers.reader();
+  }
+
+  private User discoverer() {
+    return testUsers.discoverer();
+  }
+
   @BeforeEach
   public void setup() throws Exception {
-    super.setup();
+    testUsers = users.testUsers();
     String custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
     String stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     EncodeFixture.SetupResult setupResult =

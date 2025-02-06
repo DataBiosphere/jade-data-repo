@@ -25,6 +25,7 @@ import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.TransactionSystemException;
 
 public class CreateDatasetGetOrCreateBucketStep implements Step {
   private static final Logger logger =
@@ -79,8 +80,8 @@ public class CreateDatasetGetOrCreateBucketStep implements Step {
               googleProjectResource.getServiceAccount());
 
       workingMap.put(FileMapKeys.BUCKET_INFO, bucketForFile);
-    } catch (BucketLockException blEx) {
-      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, blEx);
+    } catch (BucketLockException | TransactionSystemException e) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
     } catch (GoogleResourceNamingException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }

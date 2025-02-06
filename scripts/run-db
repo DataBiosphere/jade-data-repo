@@ -4,7 +4,7 @@
 usage() {
   cat <<-'EOF'
 usage: run-db [--clean-db] [-h|--help] COMMAND
-[--clean-db]       clean the database
+[--clean-db]       clean the database (only with `stop` or `start`)
 [-h|--help]        print this help text
 COMMAND is one of:
 - start            start a local database server
@@ -34,8 +34,6 @@ while getopts hc-: OPT; do  # allow -h and -- "with arg"
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
-    OPTARG="${OPTARG#"$OPT"}"   # extract long option argument (may be empty)
-    OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi
   case "$OPT" in
     c | clean-db ) clean_db=true ;;
@@ -53,7 +51,7 @@ COMMAND=$1
 remove_database() {
   if [ "$clean_db" = "true" ]; then
     log_info "erasing existing database state"
-    rm -r "$TMP_DIR"/postgres-data
+    rm -r "$ROOT_DIR"/build/tmp/postgres-data
   fi
 }
 

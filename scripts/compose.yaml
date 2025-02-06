@@ -20,6 +20,7 @@ services:
       - GOOGLE_SA_CERT
       - RBS_POOLID
       - RBS_INSTANCEURL
+      - TDR_LOG_APPENDER
     ports:
       - "8080:8080"
     volumes:

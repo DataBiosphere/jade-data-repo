@@ -9,7 +9,6 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosFlightUtils;
 import bio.terra.stairway.FlightContext;
@@ -23,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 public class SnapshotAuthzIamStep implements Step {
   private final IamService sam;
-  private final SnapshotService snapshotService;
   private final SnapshotRequestModel snapshotRequestModel;
   private final AuthenticatedUserRequest userReq;
   private final UUID snapshotId;
@@ -31,12 +29,10 @@ public class SnapshotAuthzIamStep implements Step {
 
   public SnapshotAuthzIamStep(
       IamService sam,
-      SnapshotService snapshotService,
       SnapshotRequestModel snapshotRequestModel,
       AuthenticatedUserRequest userReq,
       UUID snapshotId) {
     this.sam = sam;
-    this.snapshotService = snapshotService;
     this.snapshotRequestModel = snapshotRequestModel;
     this.userReq = userReq;
     this.snapshotId = snapshotId;
@@ -57,8 +53,12 @@ public class SnapshotAuthzIamStep implements Step {
           workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, String.class);
       derivedPolicies.addReadersItem(snapshotFirecloudGroupEmail);
     }
+    UUID parentDataset =
+        context
+            .getInputParameters()
+            .get(SnapshotWorkingMapKeys.SNAPSHOT_PARENT_DATASET_ID, UUID.class);
     Map<IamRole, String> policies =
-        sam.createSnapshotResource(userReq, snapshotId, derivedPolicies);
+        sam.createSnapshotResource(userReq, snapshotId, parentDataset, derivedPolicies);
     workingMap.put(SnapshotWorkingMapKeys.POLICY_MAP, policies);
     return StepResult.getStepResultSuccess();
   }
@@ -71,7 +71,7 @@ public class SnapshotAuthzIamStep implements Step {
       // when SAM deletes the ACL. How 'bout that!
     } catch (UnauthorizedException ex) {
       // suppress exception
-      logger.error("NEEDS CLEANUP: delete sam resource for snapshot " + snapshotId.toString());
+      logger.error("NEEDS CLEANUP: delete sam resource for snapshot {}", snapshotId);
       logger.warn(ex.getMessage());
     } catch (NotFoundException ex) {
       // suppress exception

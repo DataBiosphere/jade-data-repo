@@ -142,7 +142,8 @@ public class ConnectedOperations {
     datasetPolicies.put(IamRole.STEWARD, "jadeteam@broadinstitute.org");
     datasetPolicies.put(IamRole.SNAPSHOT_CREATOR, "jadeteam@broadinstitute.org");
 
-    when(samService.createSnapshotResource(any(), any(), any())).thenReturn(snapshotPolicies);
+    when(samService.createSnapshotResource(any(), any(), any(), any()))
+        .thenReturn(snapshotPolicies);
     when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
     when(samService.createDatasetResource(any(), any(), any())).thenReturn(datasetPolicies);
     when(samService.listActions(any(), eq(IamResourceType.DATASET), any()))

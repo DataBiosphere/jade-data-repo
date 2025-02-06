@@ -263,25 +263,36 @@ public class SamIam implements IamProviderInterface {
 
   @Override
   public Map<IamRole, String> createSnapshotResource(
-      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies)
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId,
+      UUID parent,
+      SnapshotRequestModelPolicies policies)
       throws InterruptedException {
     SamRetry.retry(
-        configurationService, () -> createSnapshotResourceInnerV2(userReq, snapshotId, policies));
+        configurationService,
+        () -> createSnapshotResourceInnerV2(userReq, snapshotId, parent, policies));
     return SamRetry.retry(
         configurationService, () -> syncSnapshotResourcePoliciesInner(userReq, snapshotId));
   }
 
   private void createSnapshotResourceInnerV2(
-      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies)
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId,
+      UUID parent,
+      SnapshotRequestModelPolicies policies)
       throws ApiException {
     ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
-    CreateResourceRequestV2 req = createSnapshotResourceRequest(userReq, snapshotId, policies);
+    CreateResourceRequestV2 req =
+        createSnapshotResourceRequest(userReq, snapshotId, parent, policies);
     samResourceApi.createResourceV2(IamResourceType.DATASNAPSHOT.toString(), req);
   }
 
   @VisibleForTesting
   CreateResourceRequestV2 createSnapshotResourceRequest(
-      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies) {
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId,
+      UUID parent,
+      SnapshotRequestModelPolicies policies) {
     policies = Optional.ofNullable(policies).orElse(new SnapshotRequestModelPolicies());
     UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     CreateResourceRequestV2 req = new CreateResourceRequestV2().resourceId(snapshotId.toString());
@@ -306,7 +317,15 @@ public class SamIam implements IamProviderInterface {
         createAccessPolicy(IamRole.AGGREGATE_DATA_READER, policies.getAggregateDataReaders()));
 
     req.authDomain(List.of());
-    logger.debug("SAM request: " + req);
+
+    if (parent != null) {
+      req.setParent(
+          new FullyQualifiedResourceId()
+              .resourceTypeName(IamResourceType.DATASET.toString())
+              .resourceId(parent.toString()));
+    }
+
+    logger.debug("SAM request: {}", req);
     return req;
   }
 

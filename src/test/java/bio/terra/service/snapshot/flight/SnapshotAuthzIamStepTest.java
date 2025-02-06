@@ -56,11 +56,15 @@ class SnapshotAuthzIamStepTest {
 
   private SnapshotAuthzIamStep step;
   private FlightMap workingMap;
+  private FlightMap inputMap;
   private SnapshotRequestModel snapshotRequestModel;
 
   @BeforeEach
   void setup() {
     workingMap = new FlightMap();
+    when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    inputMap = new FlightMap();
+    when(flightContext.getInputParameters()).thenReturn(inputMap);
     snapshotRequestModel = new SnapshotRequestModel();
     // Set mode to something other than byRequestId
     snapshotRequestModel.addContentsItem(
@@ -71,16 +75,16 @@ class SnapshotAuthzIamStepTest {
 
   @Test
   void testDoAndUndoStep() throws InterruptedException {
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    step =
-        new SnapshotAuthzIamStep(
-            iamService, snapshotService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
+    UUID datasetId = UUID.randomUUID();
+    inputMap.put(SnapshotWorkingMapKeys.SNAPSHOT_PARENT_DATASET_ID, datasetId);
+    step = new SnapshotAuthzIamStep(iamService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
 
     ArgumentCaptor<SnapshotRequestModelPolicies> argument =
         ArgumentCaptor.forClass(SnapshotRequestModelPolicies.class);
-    verify(iamService).createSnapshotResource(eq(TEST_USER), eq(SNAPSHOT_ID), argument.capture());
+    verify(iamService)
+        .createSnapshotResource(eq(TEST_USER), eq(SNAPSHOT_ID), eq(datasetId), argument.capture());
     List<String> readers = argument.getValue().getReaders();
     assertFalse(readers.contains(DUOS_FIRECLOUD_GROUP.getFirecloudGroupEmail()));
 
@@ -92,18 +96,16 @@ class SnapshotAuthzIamStepTest {
   @Test
   void testDoAndUndoStepWithDUOS() throws InterruptedException {
     workingMap.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, DUOS_FIRECLOUD_GROUP);
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
 
     snapshotRequestModel.duosId(DUOS_ID);
-    step =
-        new SnapshotAuthzIamStep(
-            iamService, snapshotService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
+    step = new SnapshotAuthzIamStep(iamService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
 
     ArgumentCaptor<SnapshotRequestModelPolicies> argument =
         ArgumentCaptor.forClass(SnapshotRequestModelPolicies.class);
-    verify(iamService).createSnapshotResource(eq(TEST_USER), eq(SNAPSHOT_ID), argument.capture());
+    verify(iamService)
+        .createSnapshotResource(eq(TEST_USER), eq(SNAPSHOT_ID), eq(null), argument.capture());
     List<String> readers = argument.getValue().getReaders();
     assertTrue(readers.contains(DUOS_FIRECLOUD_GROUP.getFirecloudGroupEmail()));
 
@@ -116,17 +118,14 @@ class SnapshotAuthzIamStepTest {
   void testDoAndUndoWithSnapshotFirecloudGroup() throws InterruptedException {
     workingMap.put(
         SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, SNAPSHOT_FIRECLOUD_GROUP_EMAIL);
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
     overrideSnapshotRequestMode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID);
     var expectedPolicies =
         new SnapshotRequestModelPolicies().addReadersItem(SNAPSHOT_FIRECLOUD_GROUP_EMAIL);
     Map<IamRole, String> expectedPoliciesMap = new HashMap<>();
     expectedPoliciesMap.put(IamRole.READER, SNAPSHOT_FIRECLOUD_GROUP_EMAIL);
-    when(iamService.createSnapshotResource(TEST_USER, SNAPSHOT_ID, expectedPolicies))
+    when(iamService.createSnapshotResource(TEST_USER, SNAPSHOT_ID, null, expectedPolicies))
         .thenReturn(expectedPoliciesMap);
-    step =
-        new SnapshotAuthzIamStep(
-            iamService, snapshotService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
+    step = new SnapshotAuthzIamStep(iamService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     Map<IamRole, String> workingMapPolicies =

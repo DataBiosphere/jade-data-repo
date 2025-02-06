@@ -285,12 +285,17 @@ public class IamService {
    *
    * @param userReq authenticated user
    * @param snapshotId id of the snapshot
+   * @param parentDataset id of the snapshot's parent dataset
    * @param policies user emails to add as snapshot policy members
    * @return Map of policy group emails for the snapshot policies
    */
   public Map<IamRole, String> createSnapshotResource(
-      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies) {
-    return callProvider(() -> iamProvider.createSnapshotResource(userReq, snapshotId, policies));
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId,
+      UUID parentDataset,
+      SnapshotRequestModelPolicies policies) {
+    return callProvider(
+        () -> iamProvider.createSnapshotResource(userReq, snapshotId, parentDataset, policies));
   }
 
   /**

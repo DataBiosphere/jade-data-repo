@@ -4,7 +4,10 @@ import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_ACCESS_F
 
 import bio.terra.common.FlightUtils;
 import bio.terra.common.exception.PdaoException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -29,16 +32,22 @@ public class SnapshotAuthzTabularAclStep implements Step {
   private final SnapshotService snapshotService;
   private final ConfigurationService configService;
   private final UUID snapshotId;
+  private final AuthenticatedUserRequest userReq;
+  private final IamService iamService;
 
   public SnapshotAuthzTabularAclStep(
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotService snapshotService,
       ConfigurationService configService,
-      UUID snapshotId) {
+      UUID snapshotId,
+      AuthenticatedUserRequest userReq,
+      IamService iamService) {
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotService = snapshotService;
     this.configService = configService;
     this.snapshotId = snapshotId;
+    this.userReq = userReq;
+    this.iamService = iamService;
   }
 
   @Override
@@ -52,6 +61,16 @@ public class SnapshotAuthzTabularAclStep implements Step {
     List<String> emails = new ArrayList<>();
     emails.add(policies.get(IamRole.STEWARD));
     emails.add(policies.get(IamRole.READER));
+
+    UUID parentDatasetId =
+        context
+            .getInputParameters()
+            .get(SnapshotWorkingMapKeys.SNAPSHOT_PARENT_DATASET_ID, UUID.class);
+    if (parentDatasetId != null) {
+      var datasetPolicyMap =
+          iamService.retrievePolicyEmails(userReq, IamResourceType.DATASET, parentDatasetId);
+      emails.add(datasetPolicyMap.get(IamRole.CUSTODIAN));
+    }
 
     try {
       if (configService.testInsertFault(SNAPSHOT_GRANT_ACCESS_FAULT)) {

@@ -230,10 +230,10 @@ class SamIamTest {
     final UUID snapshotId = UUID.randomUUID();
 
     CreateResourceRequestV2 reqNullPolicies =
-        samIam.createSnapshotResourceRequest(TEST_USER, snapshotId, null);
+        samIam.createSnapshotResourceRequest(TEST_USER, snapshotId, null, null);
     CreateResourceRequestV2 reqEmptyPolicies =
         samIam.createSnapshotResourceRequest(
-            TEST_USER, snapshotId, new SnapshotRequestModelPolicies());
+            TEST_USER, snapshotId, null, new SnapshotRequestModelPolicies());
 
     for (CreateResourceRequestV2 req : List.of(reqNullPolicies, reqEmptyPolicies)) {
       assertThat(req.getResourceId(), is(snapshotId.toString()));
@@ -287,7 +287,7 @@ class SamIamTest {
             .addReadersItem(readerEmail)
             .addDiscoverersItem(discovererEmail);
     CreateResourceRequestV2 req =
-        samIam.createSnapshotResourceRequest(TEST_USER, snapshotId, policySpecs);
+        samIam.createSnapshotResourceRequest(TEST_USER, snapshotId, null, policySpecs);
 
     assertThat(req.getResourceId(), is(snapshotId.toString()));
 
@@ -563,7 +563,7 @@ class SamIamTest {
       }
 
       assertThat(
-          samIam.createSnapshotResource(TEST_USER, snapshotId, null),
+          samIam.createSnapshotResource(TEST_USER, snapshotId, null, null),
           is(
               syncedPolicies.stream()
                   .collect(Collectors.toMap(p -> p, p -> "policygroup-" + p + "@firecloud.org"))));

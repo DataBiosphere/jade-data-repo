@@ -2,10 +2,10 @@ package bio.terra.service.snapshot.flight.create;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
@@ -14,15 +14,18 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
+import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.BigQueryException;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -36,22 +39,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-class SnapshotAuthzBqJobUserStepTest {
+class SnapshotAuthzTabularAclStepTest {
+  @Mock private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   @Mock private SnapshotService snapshotService;
-  @Mock private ResourceService resourceService;
+  @Mock private ConfigurationService configService;
   @Mock private IamService iamService;
   @Mock private FlightContext flightContext;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
-  private static final String SNAPSHOT_NAME = "snapshotName";
-  private static final String GOOGLE_PROJECT_ID = "google project id";
-  private static final Snapshot SNAPSHOT =
-      new Snapshot()
-          .projectResource(new GoogleProjectResource().googleProjectId(GOOGLE_PROJECT_ID));
+  private static final Snapshot SNAPSHOT = new Snapshot().id(UUID.randomUUID());
   private static final Dataset SOURCE_DATASET = new Dataset().id(UUID.randomUUID());
 
-  private SnapshotAuthzBqJobUserStep step;
+  private SnapshotAuthzTabularAclStep step;
   private FlightMap inputMap;
 
   @BeforeEach
@@ -65,19 +65,24 @@ class SnapshotAuthzBqJobUserStepTest {
     policyMap.put(IamRole.STEWARD, "steward");
     policyMap.put(IamRole.READER, "reader");
     workingMap.put(SnapshotWorkingMapKeys.POLICY_MAP, policyMap);
-    when(snapshotService.retrieveByName(SNAPSHOT_NAME)).thenReturn(SNAPSHOT);
+
+    when(snapshotService.retrieve(SNAPSHOT.getId())).thenReturn(SNAPSHOT);
 
     step =
-        new SnapshotAuthzBqJobUserStep(
-            snapshotService, resourceService, iamService, TEST_USER, SNAPSHOT_NAME, SOURCE_DATASET);
+        new SnapshotAuthzTabularAclStep(
+            bigQuerySnapshotPdao,
+            snapshotService,
+            configService,
+            iamService,
+            SNAPSHOT.getId(),
+            TEST_USER,
+            SOURCE_DATASET);
   }
 
   @Test
   void doStep() throws Exception {
-    assertThat(step.doStep(flightContext), is(StepResult.getStepResultSuccess()));
-    verify(resourceService).grantPoliciesBqJobUser(GOOGLE_PROJECT_ID, List.of("steward"));
-    verify(resourceService).grantPoliciesBqJobUser(GOOGLE_PROJECT_ID, List.of("reader"));
-    verifyNoMoreInteractions(resourceService);
+    step.doStep(flightContext);
+    verify(bigQuerySnapshotPdao).grantReadAccessToSnapshot(SNAPSHOT, List.of("steward", "reader"));
     verifyNoInteractions(iamService);
   }
 
@@ -88,15 +93,27 @@ class SnapshotAuthzBqJobUserStepTest {
             TEST_USER, IamResourceType.DATASET, SOURCE_DATASET.getId()))
         .thenReturn(Map.of(IamRole.CUSTODIAN, "custodian"));
     assertThat(step.doStep(flightContext), is(StepResult.getStepResultSuccess()));
-    verify(resourceService).grantPoliciesBqJobUser(GOOGLE_PROJECT_ID, List.of("steward"));
-    verify(resourceService).grantPoliciesBqJobUser(GOOGLE_PROJECT_ID, List.of("reader"));
-    verify(resourceService).grantPoliciesBqJobUser(GOOGLE_PROJECT_ID, List.of("custodian"));
+    verify(bigQuerySnapshotPdao)
+        .grantReadAccessToSnapshot(SNAPSHOT, List.of("steward", "reader", "custodian"));
+  }
+
+  @Test
+  void doStepDatabaseRetry() throws Exception {
+    doThrow(
+            new BigQueryException(
+                500,
+                "IAM setPolicy",
+                new BigQueryError("invalid", "fake", "IAM setPolicy fake failure")))
+        .when(bigQuerySnapshotPdao)
+        .grantReadAccessToSnapshot(SNAPSHOT, List.of("steward", "reader"));
+    assertThat(
+        step.doStep(flightContext).getStepStatus(), is(StepStatus.STEP_RESULT_FAILURE_RETRY));
   }
 
   @Test
   void undoStep() {
     reset(snapshotService, flightContext);
     assertThat(step.undoStep(flightContext), is(StepResult.getStepResultSuccess()));
-    verifyNoInteractions(snapshotService, resourceService, iamService, flightContext);
+    verifyNoInteractions(snapshotService, bigQuerySnapshotPdao, iamService, flightContext);
   }
 }

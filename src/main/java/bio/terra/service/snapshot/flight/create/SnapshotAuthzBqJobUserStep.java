@@ -70,7 +70,7 @@ public class SnapshotAuthzBqJobUserStep implements Step {
   }
 
   @Override
-  public StepResult undoStep(FlightContext context) throws InterruptedException {
+  public StepResult undoStep(FlightContext context) {
     return StepResult.getStepResultSuccess();
   }
 }

@@ -81,7 +81,7 @@ class SnapshotAuthzTabularAclStepTest {
 
   @Test
   void doStep() throws Exception {
-    step.doStep(flightContext);
+    assertThat(step.doStep(flightContext), is(StepResult.getStepResultSuccess()));
     verify(bigQuerySnapshotPdao).grantReadAccessToSnapshot(SNAPSHOT, List.of("steward", "reader"));
     verifyNoInteractions(iamService);
   }

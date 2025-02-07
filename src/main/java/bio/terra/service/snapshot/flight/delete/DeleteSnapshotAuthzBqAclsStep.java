@@ -10,7 +10,7 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -46,11 +46,19 @@ public class DeleteSnapshotAuthzBqAclsStep implements Step {
     Map<IamRole, String> policyEmails =
         sam.retrievePolicyEmails(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
 
-    // Remove the custodian's access to make queries in this project.
+    // If the dataset custodian inherited permissions, remove them now.
+    var datasetPolicyEmails =
+        sam.retrievePolicyEmails(
+            userReq, IamResourceType.DATASET, snapshot.getSourceDataset().getId());
+
+    // Remove access added by SnapshotAuthzBqJobUserStep.
     // The underlying service provides retries so we do not need to retry this operation
     resourceService.revokePoliciesBqJobUser(
         snapshot.getProjectResource().getGoogleProjectId(),
-        Arrays.asList(policyEmails.get(IamRole.STEWARD), policyEmails.get(IamRole.READER)));
+        List.of(
+            policyEmails.get(IamRole.STEWARD),
+            policyEmails.get(IamRole.READER),
+            datasetPolicyEmails.get(IamRole.CUSTODIAN)));
 
     return StepResult.getStepResultSuccess();
   }

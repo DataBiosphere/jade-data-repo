@@ -13,6 +13,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.core.type.TypeReference;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -49,10 +50,8 @@ public class SnapshotAuthzBqJobUserStep implements Step {
         snapshotService.retrieveByName(snapshotName).getProjectResource().getGoogleProjectId();
 
     // Allow the steward and reader to make queries in this project.
-    // The underlying service provides retries so we do not need to retry this operation
-    resourceService.grantPoliciesBqJobUser(
-        googleProjectId, List.of(policyMap.get(IamRole.STEWARD)));
-    resourceService.grantPoliciesBqJobUser(googleProjectId, List.of(policyMap.get(IamRole.READER)));
+    List<String> policyEmails =
+        new ArrayList<>(List.of(policyMap.get(IamRole.STEWARD), policyMap.get(IamRole.READER)));
 
     Boolean inheritEnabled =
         context
@@ -62,9 +61,10 @@ public class SnapshotAuthzBqJobUserStep implements Step {
       var datasetPolicyMap =
           sam.retrievePolicyEmails(request, IamResourceType.DATASET, sourceDataset.getId());
       // Allow the custodian to make queries in this project.
-      resourceService.grantPoliciesBqJobUser(
-          googleProjectId, List.of(datasetPolicyMap.get(IamRole.CUSTODIAN)));
+      policyEmails.add(datasetPolicyMap.get(IamRole.CUSTODIAN));
     }
+    // The underlying service provides retries so we do not need to retry this operation
+    resourceService.grantPoliciesBqJobUser(googleProjectId, policyEmails);
 
     return StepResult.getStepResultSuccess();
   }

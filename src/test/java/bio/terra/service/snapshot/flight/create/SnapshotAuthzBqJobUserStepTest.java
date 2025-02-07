@@ -1,9 +1,12 @@
 package bio.terra.service.snapshot.flight.create;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -23,6 +26,7 @@ import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -51,11 +55,12 @@ class SnapshotAuthzBqJobUserStepTest {
           .projectResource(new GoogleProjectResource().googleProjectId(GOOGLE_PROJECT_ID));
   private static final Dataset SOURCE_DATASET = new Dataset().id(UUID.randomUUID());
 
+  private final List<String> addedEmails = new ArrayList<>();
   private SnapshotAuthzBqJobUserStep step;
   private FlightMap inputMap;
 
   @BeforeEach
-  void beforeEach() {
+  void beforeEach() throws Exception {
     FlightMap workingMap = new FlightMap();
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     inputMap = new FlightMap();
@@ -67,6 +72,15 @@ class SnapshotAuthzBqJobUserStepTest {
     workingMap.put(SnapshotWorkingMapKeys.POLICY_MAP, policyMap);
     when(snapshotService.retrieveByName(SNAPSHOT_NAME)).thenReturn(SNAPSHOT);
 
+    doAnswer(
+            invocation -> {
+              List<String> emails = invocation.getArgument(1);
+              addedEmails.addAll(emails);
+              return null;
+            })
+        .when(resourceService)
+        .grantPoliciesBqJobUser(eq(GOOGLE_PROJECT_ID), anyList());
+
     step =
         new SnapshotAuthzBqJobUserStep(
             snapshotService, resourceService, iamService, TEST_USER, SNAPSHOT_NAME, SOURCE_DATASET);
@@ -75,8 +89,7 @@ class SnapshotAuthzBqJobUserStepTest {
   @Test
   void doStep() throws Exception {
     assertThat(step.doStep(flightContext), is(StepResult.getStepResultSuccess()));
-    verify(resourceService).grantPoliciesBqJobUser(GOOGLE_PROJECT_ID, List.of("steward"));
-    verify(resourceService).grantPoliciesBqJobUser(GOOGLE_PROJECT_ID, List.of("reader"));
+    assertThat(addedEmails, containsInAnyOrder("steward", "reader"));
     verifyNoMoreInteractions(resourceService);
     verifyNoInteractions(iamService);
   }
@@ -88,14 +101,12 @@ class SnapshotAuthzBqJobUserStepTest {
             TEST_USER, IamResourceType.DATASET, SOURCE_DATASET.getId()))
         .thenReturn(Map.of(IamRole.CUSTODIAN, "custodian"));
     assertThat(step.doStep(flightContext), is(StepResult.getStepResultSuccess()));
-    verify(resourceService).grantPoliciesBqJobUser(GOOGLE_PROJECT_ID, List.of("steward"));
-    verify(resourceService).grantPoliciesBqJobUser(GOOGLE_PROJECT_ID, List.of("reader"));
-    verify(resourceService).grantPoliciesBqJobUser(GOOGLE_PROJECT_ID, List.of("custodian"));
+    assertThat(addedEmails, containsInAnyOrder("steward", "reader", "custodian"));
   }
 
   @Test
   void undoStep() {
-    reset(snapshotService, flightContext);
+    reset(snapshotService, flightContext, resourceService);
     assertThat(step.undoStep(flightContext), is(StepResult.getStepResultSuccess()));
     verifyNoInteractions(snapshotService, resourceService, iamService, flightContext);
   }

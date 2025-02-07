@@ -64,8 +64,6 @@ public class SnapshotAuthzBqJobUserStep implements Step {
       var datasetPolicyMap =
           sam.retrievePolicyEmails(request, IamResourceType.DATASET, sourceDataset.getId());
       // Allow the custodian to make queries in this project.
-      // FIXME: Is this necessary? The dataset custodian should already BQ job access to the
-      // snapshot's project.
       resourceService.grantPoliciesBqJobUser(
           snapshot.getProjectResource().getGoogleProjectId(),
           List.of(datasetPolicyMap.get(IamRole.CUSTODIAN)));

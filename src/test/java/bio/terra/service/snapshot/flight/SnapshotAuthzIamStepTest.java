@@ -19,7 +19,6 @@ import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.create.SnapshotAuthzIamStep;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -28,7 +27,7 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -44,7 +43,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @Tag(Unit.TAG)
 class SnapshotAuthzIamStepTest {
   @Mock private IamService iamService;
-  @Mock private SnapshotService snapshotService;
   @Mock private FlightContext flightContext;
 
   private static final AuthenticatedUserRequest TEST_USER =
@@ -127,7 +125,7 @@ class SnapshotAuthzIamStepTest {
     overrideSnapshotRequestMode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID);
     var expectedPolicies =
         new SnapshotRequestModelPolicies().addReadersItem(SNAPSHOT_FIRECLOUD_GROUP_EMAIL);
-    Map<IamRole, String> expectedPoliciesMap = new HashMap<>();
+    Map<IamRole, String> expectedPoliciesMap = new EnumMap<>(IamRole.class);
     expectedPoliciesMap.put(IamRole.READER, SNAPSHOT_FIRECLOUD_GROUP_EMAIL);
     when(iamService.createSnapshotResource(TEST_USER, SNAPSHOT_ID, null, expectedPolicies))
         .thenReturn(expectedPoliciesMap);

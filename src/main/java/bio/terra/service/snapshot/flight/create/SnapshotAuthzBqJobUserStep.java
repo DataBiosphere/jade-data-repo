@@ -6,7 +6,6 @@ import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -46,15 +45,14 @@ public class SnapshotAuthzBqJobUserStep implements Step {
     Map<IamRole, String> policyMap =
         workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, new TypeReference<>() {});
 
-    Snapshot snapshot = snapshotService.retrieveByName(snapshotName);
+    String googleProjectId =
+        snapshotService.retrieveByName(snapshotName).getProjectResource().getGoogleProjectId();
 
     // Allow the steward and reader to make queries in this project.
     // The underlying service provides retries so we do not need to retry this operation
     resourceService.grantPoliciesBqJobUser(
-        snapshot.getProjectResource().getGoogleProjectId(),
-        List.of(policyMap.get(IamRole.STEWARD)));
-    resourceService.grantPoliciesBqJobUser(
-        snapshot.getProjectResource().getGoogleProjectId(), List.of(policyMap.get(IamRole.READER)));
+        googleProjectId, List.of(policyMap.get(IamRole.STEWARD)));
+    resourceService.grantPoliciesBqJobUser(googleProjectId, List.of(policyMap.get(IamRole.READER)));
 
     Boolean inheritEnabled =
         context
@@ -65,8 +63,7 @@ public class SnapshotAuthzBqJobUserStep implements Step {
           sam.retrievePolicyEmails(request, IamResourceType.DATASET, sourceDataset.getId());
       // Allow the custodian to make queries in this project.
       resourceService.grantPoliciesBqJobUser(
-          snapshot.getProjectResource().getGoogleProjectId(),
-          List.of(datasetPolicyMap.get(IamRole.CUSTODIAN)));
+          googleProjectId, List.of(datasetPolicyMap.get(IamRole.CUSTODIAN)));
     }
 
     return StepResult.getStepResultSuccess();

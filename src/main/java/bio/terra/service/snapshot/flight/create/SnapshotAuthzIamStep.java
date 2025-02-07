@@ -9,6 +9,7 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosFlightUtils;
 import bio.terra.stairway.FlightContext;
@@ -25,17 +26,20 @@ public class SnapshotAuthzIamStep implements Step {
   private final SnapshotRequestModel snapshotRequestModel;
   private final AuthenticatedUserRequest userReq;
   private final UUID snapshotId;
+  private final Dataset sourceDataset;
   private static final Logger logger = LoggerFactory.getLogger(SnapshotAuthzIamStep.class);
 
   public SnapshotAuthzIamStep(
       IamService sam,
       SnapshotRequestModel snapshotRequestModel,
       AuthenticatedUserRequest userReq,
-      UUID snapshotId) {
+      UUID snapshotId,
+      Dataset sourceDataset) {
     this.sam = sam;
     this.snapshotRequestModel = snapshotRequestModel;
     this.userReq = userReq;
     this.snapshotId = snapshotId;
+    this.sourceDataset = sourceDataset;
   }
 
   @Override
@@ -53,12 +57,18 @@ public class SnapshotAuthzIamStep implements Step {
           workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, String.class);
       derivedPolicies.addReadersItem(snapshotFirecloudGroupEmail);
     }
-    UUID parentDataset =
+    final UUID parentDatasetId;
+    Boolean inheritEnabled =
         context
             .getInputParameters()
-            .get(SnapshotWorkingMapKeys.SNAPSHOT_PARENT_DATASET_ID, UUID.class);
+            .get(SnapshotWorkingMapKeys.SNAPSHOT_INHERIT_STEWARD_ENABLED, Boolean.class);
+    if (inheritEnabled != null && inheritEnabled) {
+      parentDatasetId = sourceDataset.getId();
+    } else {
+      parentDatasetId = null;
+    }
     Map<IamRole, String> policies =
-        sam.createSnapshotResource(userReq, snapshotId, parentDataset, derivedPolicies);
+        sam.createSnapshotResource(userReq, snapshotId, parentDatasetId, derivedPolicies);
     workingMap.put(SnapshotWorkingMapKeys.POLICY_MAP, policies);
     return StepResult.getStepResultSuccess();
   }

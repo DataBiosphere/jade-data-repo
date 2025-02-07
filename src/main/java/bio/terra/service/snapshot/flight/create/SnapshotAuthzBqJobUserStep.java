@@ -4,6 +4,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -15,7 +16,6 @@ import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public class SnapshotAuthzBqJobUserStep implements Step {
   private final SnapshotService snapshotService;
@@ -23,18 +23,21 @@ public class SnapshotAuthzBqJobUserStep implements Step {
   private final IamService sam;
   private final AuthenticatedUserRequest request;
   private final String snapshotName;
+  private final Dataset sourceDataset;
 
   public SnapshotAuthzBqJobUserStep(
       SnapshotService snapshotService,
       ResourceService resourceService,
       IamService sam,
       AuthenticatedUserRequest request,
-      String snapshotName) {
+      String snapshotName,
+      Dataset sourceDataset) {
     this.snapshotService = snapshotService;
     this.resourceService = resourceService;
     this.sam = sam;
     this.request = request;
     this.snapshotName = snapshotName;
+    this.sourceDataset = sourceDataset;
   }
 
   @Override
@@ -53,11 +56,13 @@ public class SnapshotAuthzBqJobUserStep implements Step {
     resourceService.grantPoliciesBqJobUser(
         snapshot.getProjectResource().getGoogleProjectId(), List.of(policyMap.get(IamRole.READER)));
 
-    UUID parentDatasetId =
-        workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_PARENT_DATASET_ID, UUID.class);
-    if (parentDatasetId != null) {
+    Boolean inheritEnabled =
+        context
+            .getInputParameters()
+            .get(SnapshotWorkingMapKeys.SNAPSHOT_INHERIT_STEWARD_ENABLED, Boolean.class);
+    if (inheritEnabled != null && inheritEnabled) {
       var datasetPolicyMap =
-          sam.retrievePolicyEmails(request, IamResourceType.DATASET, parentDatasetId);
+          sam.retrievePolicyEmails(request, IamResourceType.DATASET, sourceDataset.getId());
       // Allow the custodian to make queries in this project.
       // FIXME: Is this necessary? The dataset custodian should already BQ job access to the
       // snapshot's project.

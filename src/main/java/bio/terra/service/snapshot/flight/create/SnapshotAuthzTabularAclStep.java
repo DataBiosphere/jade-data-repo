@@ -9,6 +9,7 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -31,23 +32,26 @@ public class SnapshotAuthzTabularAclStep implements Step {
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotService snapshotService;
   private final ConfigurationService configService;
+  private final IamService iamService;
   private final UUID snapshotId;
   private final AuthenticatedUserRequest userReq;
-  private final IamService iamService;
+  private final Dataset sourceDataset;
 
   public SnapshotAuthzTabularAclStep(
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotService snapshotService,
       ConfigurationService configService,
+      IamService iamService,
       UUID snapshotId,
       AuthenticatedUserRequest userReq,
-      IamService iamService) {
+      Dataset sourceDataset) {
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotService = snapshotService;
     this.configService = configService;
     this.snapshotId = snapshotId;
     this.userReq = userReq;
     this.iamService = iamService;
+    this.sourceDataset = sourceDataset;
   }
 
   @Override
@@ -62,13 +66,13 @@ public class SnapshotAuthzTabularAclStep implements Step {
     emails.add(policies.get(IamRole.STEWARD));
     emails.add(policies.get(IamRole.READER));
 
-    UUID parentDatasetId =
+    Boolean inheritEnabled =
         context
             .getInputParameters()
-            .get(SnapshotWorkingMapKeys.SNAPSHOT_PARENT_DATASET_ID, UUID.class);
-    if (parentDatasetId != null) {
+            .get(SnapshotWorkingMapKeys.SNAPSHOT_INHERIT_STEWARD_ENABLED, Boolean.class);
+    if (inheritEnabled != null && inheritEnabled) {
       var datasetPolicyMap =
-          iamService.retrievePolicyEmails(userReq, IamResourceType.DATASET, parentDatasetId);
+          iamService.retrievePolicyEmails(userReq, IamResourceType.DATASET, sourceDataset.getId());
       emails.add(datasetPolicyMap.get(IamRole.CUSTODIAN));
     }
 

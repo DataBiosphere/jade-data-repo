@@ -10,6 +10,8 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -71,6 +73,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -567,6 +570,33 @@ class SamIamTest {
           is(
               syncedPolicies.stream()
                   .collect(Collectors.toMap(p -> p, p -> "policygroup-" + p + "@firecloud.org"))));
+    }
+
+    @Test
+    void testCreateSnapshotWithParent() throws Exception {
+      mockSamGoogleApi();
+      final String userSubjectId = "userid";
+      final String userEmail = "a@a.com";
+      mockUserInfo(userSubjectId, userEmail);
+
+      UUID snapshotId = UUID.randomUUID();
+      UUID parentId = UUID.randomUUID();
+
+      when(samGoogleApi.syncPolicy(
+              eq(IamResourceType.DATASNAPSHOT.getSamResourceName()),
+              eq(snapshotId.toString()),
+              any(),
+              any()))
+          .thenReturn(Map.of("key", List.of()));
+
+      samIam.createSnapshotResource(TEST_USER, snapshotId, parentId, null);
+      var argument = ArgumentCaptor.forClass(CreateResourceRequestV2.class);
+      verify(samResourceApi)
+          .createResourceV2(eq(IamResourceType.DATASNAPSHOT.toString()), argument.capture());
+      assertThat(argument.getValue().getParent().getResourceId(), is(parentId.toString()));
+      assertThat(
+          argument.getValue().getParent().getResourceTypeName(),
+          is(IamResourceType.DATASET.toString()));
     }
 
     @Test

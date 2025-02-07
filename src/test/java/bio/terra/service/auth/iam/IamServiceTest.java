@@ -189,6 +189,15 @@ class IamServiceTest {
   }
 
   @Test
+  void createSnapshotResource() throws Exception {
+    UUID snapshotId = UUID.randomUUID();
+    UUID parentId = UUID.randomUUID();
+    SnapshotRequestModelPolicies policies = new SnapshotRequestModelPolicies();
+    iamService.createSnapshotResource(TEST_USER, snapshotId, parentId, policies);
+    verify(iamProvider).createSnapshotResource(TEST_USER, snapshotId, parentId, policies);
+  }
+
+  @Test
   void testDeriveSnapshotPolicies() {
     assertThat(
         "Request without policies or readers returns new policy object",

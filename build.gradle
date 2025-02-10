@@ -50,7 +50,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '2.224.0-SNAPSHOT'
+    version '2.226.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -171,7 +171,7 @@ dependencies {
     implementation 'com.google.cloud:google-cloud-storage'
     implementation 'com.google.cloud:google-cloud-firestore'
     implementation 'com.google.cloud:google-cloud-pubsub'
-    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:5.10.0'
+    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:6.0.0'
     implementation 'com.google.http-client:google-http-client'
 
     implementation 'org.apache.commons:commons-compress:1.27.1' // For srcclr, jib plugin conflict

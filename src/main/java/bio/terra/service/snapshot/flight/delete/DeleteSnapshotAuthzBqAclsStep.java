@@ -13,6 +13,7 @@ import bio.terra.stairway.StepResult;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,22 +44,27 @@ public class DeleteSnapshotAuthzBqAclsStep implements Step {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
     // These policy emails should not change since the snapshot is locked by the flight
-    Map<IamRole, String> policyEmails =
-        sam.retrievePolicyEmails(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
+    List<String> policyEmails =
+        sam
+            .retrievePolicyEmails(userReq, IamResourceType.DATASNAPSHOT, snapshotId)
+            .entrySet()
+            .stream()
+            .filter(entry -> entry.getKey() == IamRole.STEWARD || entry.getKey() == IamRole.READER)
+            .map(Map.Entry::getValue)
+            .collect(Collectors.toList());
 
     // If the dataset custodian inherited permissions, remove them now.
     var datasetPolicyEmails =
         sam.retrievePolicyEmails(
             userReq, IamResourceType.DATASET, snapshot.getSourceDataset().getId());
+    if (datasetPolicyEmails.containsKey(IamRole.CUSTODIAN)) {
+      policyEmails.add(datasetPolicyEmails.get(IamRole.CUSTODIAN));
+    }
 
     // Remove access added by SnapshotAuthzBqJobUserStep.
     // The underlying service provides retries so we do not need to retry this operation
     resourceService.revokePoliciesBqJobUser(
-        snapshot.getProjectResource().getGoogleProjectId(),
-        List.of(
-            policyEmails.get(IamRole.STEWARD),
-            policyEmails.get(IamRole.READER),
-            datasetPolicyEmails.get(IamRole.CUSTODIAN)));
+        snapshot.getProjectResource().getGoogleProjectId(), policyEmails);
 
     return StepResult.getStepResultSuccess();
   }

@@ -1,7 +1,10 @@
 package bio.terra.service.snapshot.flight.delete;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -21,10 +24,15 @@ import bio.terra.stairway.StepResult;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -49,25 +57,35 @@ class DeleteSnapshotAuthzBqAclsStepTest {
 
   @BeforeEach
   void beforeEach() {
+    when(snapshotService.retrieve(SNAPSHOT.getId())).thenReturn(SNAPSHOT);
+    when(sam.retrievePolicyEmails(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT.getId()))
+        .thenReturn(Map.of(IamRole.STEWARD, "steward", IamRole.READER, "reader"));
     step =
         new DeleteSnapshotAuthzBqAclsStep(
             sam, resourceService, snapshotService, SNAPSHOT.getId(), TEST_USER);
   }
 
-  @Test
-  void doStep() throws Exception {
-    when(snapshotService.retrieve(SNAPSHOT.getId())).thenReturn(SNAPSHOT);
-    when(sam.retrievePolicyEmails(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT.getId()))
-        .thenReturn(Map.of(IamRole.STEWARD, "steward", IamRole.READER, "reader"));
+  private static Stream<Arguments> doStep() {
+    return Stream.of(
+        Arguments.of(
+            Map.of(IamRole.CUSTODIAN, "custodian"), List.of("steward", "reader", "custodian")),
+        Arguments.of(Map.of(), List.of("steward", "reader")));
+  }
+
+  @MethodSource
+  @ParameterizedTest
+  void doStep(Map<IamRole, String> custodianPolicy, List<String> expectedEmails) throws Exception {
     when(sam.retrievePolicyEmails(TEST_USER, IamResourceType.DATASET, DATASET.getId()))
-        .thenReturn(Map.of(IamRole.CUSTODIAN, "custodian"));
+        .thenReturn(custodianPolicy);
     assertThat(step.doStep(null), is(StepResult.getStepResultSuccess()));
-    verify(resourceService)
-        .revokePoliciesBqJobUser(GOOGLE_PROJECT_ID, List.of("steward", "reader", "custodian"));
+    ArgumentCaptor<List<String>> argument = ArgumentCaptor.captor();
+    verify(resourceService).revokePoliciesBqJobUser(eq(GOOGLE_PROJECT_ID), argument.capture());
+    assertThat(argument.getValue(), containsInAnyOrder(expectedEmails.toArray()));
   }
 
   @Test
   void undoStep() {
+    reset(snapshotService, sam);
     assertThat(step.undoStep(null), is(StepResult.getStepResultSuccess()));
   }
 }

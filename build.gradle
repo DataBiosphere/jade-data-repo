@@ -30,7 +30,7 @@ plugins {
     // This is set back to 3.4.2 because of: https://github.com/GoogleContainerTools/jib/issues/4265
     id 'com.google.cloud.tools.jib' version '3.4.2'
     id 'org.liquibase.gradle' version '3.0.1'
-    id 'org.gradle.test-retry' version '1.6.1'
+    id 'org.gradle.test-retry' version '1.6.2'
     id 'antlr'
     id 'org.hidetake.swagger.generator' version '2.19.2'
     id 'org.springframework.boot' version '3.4.2'
@@ -164,7 +164,7 @@ dependencies {
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
 
-    implementation platform('com.google.cloud:libraries-bom:26.53.0')
+    implementation platform('com.google.cloud:libraries-bom:26.54.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
     implementation 'com.google.cloud:google-cloud-bigquery'
@@ -208,7 +208,7 @@ dependencies {
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.241'
     implementation 'bio.terra:terra-policy-client:1.0.17-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'
-    implementation 'bio.terra:externalcreds-client-resttemplate:1.60.0-SNAPSHOT'
+    implementation 'bio.terra:externalcreds-client-resttemplate:1.65.0-SNAPSHOT'
 
     implementation 'org.glassfish.jersey.inject:jersey-hk2'
 
@@ -222,7 +222,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     // Azure related dependencies
-    implementation 'com.azure:azure-identity:1.15.0'
+    implementation 'com.azure:azure-identity:1.15.1'
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.47.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'

@@ -170,10 +170,11 @@ class SnapshotIntegrationTest {
         dataRepoFixtures.createSnapshotWithRequest(
             steward(), dataset.getName(), profileId, requestModel);
     createdSnapshotId.set(snapshotSummary.getId());
+    User steward = steward();
     SnapshotModel snapshot =
         Awaitility.waitAtMost(Duration.ofSeconds(10))
             .until(
-                () -> dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null),
+                () -> dataRepoFixtures.getSnapshot(steward, snapshotSummary.getId(), null),
                 Objects::nonNull);
     assertThat("new snapshot has been created", snapshot.getName(), is(requestModel.getName()));
     assertThat(
@@ -216,10 +217,11 @@ class SnapshotIntegrationTest {
         dataRepoFixtures.createSnapshotWithRequest(
             steward(), dataset.getName(), profileId, requestModel);
     createdSnapshotId.set(snapshotSummary.getId());
+    User steward = steward();
     SnapshotModel snapshot =
         Awaitility.waitAtMost(Duration.ofSeconds(10))
             .until(
-                () -> dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null),
+                () -> dataRepoFixtures.getSnapshot(steward, snapshotSummary.getId(), null),
                 Objects::nonNull);
     assertThat("new snapshot has been created", snapshot.getName(), is(requestModel.getName()));
   }
@@ -238,10 +240,11 @@ class SnapshotIntegrationTest {
         dataRepoFixtures.createSnapshotWithRequest(
             steward(), dataset.getName(), profileId, requestModel);
     createdSnapshotId.set(snapshotSummary.getId());
+    User steward = steward();
     SnapshotModel snapshot =
         Awaitility.waitAtMost(Duration.ofSeconds(10))
             .until(
-                () -> dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null),
+                () -> dataRepoFixtures.getSnapshot(steward, snapshotSummary.getId(), null),
                 Objects::nonNull);
     assertThat("new snapshot has been created", snapshot.getName(), is(requestModel.getName()));
   }
@@ -255,9 +258,9 @@ class SnapshotIntegrationTest {
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshotWithRequest(
             steward(), dataset.getName(), profileId, requestModel);
+    User steward = steward();
     Awaitility.waitAtMost(Duration.ofSeconds(10))
-        .until(
-            () -> dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null) != null);
+        .until(() -> dataRepoFixtures.getSnapshot(steward, snapshotSummary.getId(), null) != null);
     ErrorModel errorModel =
         dataRepoFixtures.deleteDatasetAssetExpectFailure(
             steward(), dataset.getId(), "sample_centric");
@@ -338,10 +341,11 @@ class SnapshotIntegrationTest {
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshotWithRequest(steward(), datasetName, profileId, requestModel);
     createdSnapshotId.set(snapshotSummary.getId());
+    User steward = steward();
     SnapshotModel snapshot =
         Awaitility.waitAtMost(Duration.ofSeconds(10))
             .until(
-                () -> dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null),
+                () -> dataRepoFixtures.getSnapshot(steward, snapshotSummary.getId(), null),
                 Objects::nonNull);
     assertThat("new snapshot has been created", snapshot.getName(), is(requestModel.getName()));
     assertThat("the relationship comes through", snapshot.getRelationships(), hasSize(1));
@@ -415,10 +419,11 @@ class SnapshotIntegrationTest {
         dataRepoFixtures.createSnapshotWithRequest(
             steward(), datasetName, profileId, requestModel, true, true);
     createdSnapshotId.set(snapshotSummary.getId());
+    User steward = steward();
     SnapshotModel snapshot =
         Awaitility.waitAtMost(Duration.ofSeconds(10))
             .until(
-                () -> dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null),
+                () -> dataRepoFixtures.getSnapshot(steward, snapshotSummary.getId(), null),
                 Objects::nonNull);
     assertThat("new snapshot has been created", snapshot.getName(), is(requestModel.getName()));
     assertThat("the relationship comes through", snapshot.getRelationships(), hasSize(1));
@@ -471,9 +476,9 @@ class SnapshotIntegrationTest {
         dataRepoFixtures.createSnapshotWithRequest(steward(), datasetName, profileId, requestModel);
     UUID snapshotId = snapshotSummary.getId();
     createdSnapshotId.set(snapshotId);
+    User steward = steward();
     Awaitility.waitAtMost(Duration.ofSeconds(10))
-        .until(
-            () -> dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null) != null);
+        .until(() -> dataRepoFixtures.getSnapshot(steward, snapshotSummary.getId(), null) != null);
 
     Map<String, List<String>> rolesToPolicies =
         dataRepoFixtures.retrieveSnapshotPolicies(steward(), snapshotId).getPolicies().stream()

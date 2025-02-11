@@ -36,7 +36,7 @@ public final class MetadataDataAccessUtils {
 
   // Increasing the default SAS token expiration time to 60 minutes only for Azure
   // to allow for larger file downloads; This should not apply to TDR on GCP
-  //private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofMinutes(15);
+  // private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofMinutes(15);
   private static final Duration AZURE_SAS_TOKEN_EXPIRATION = Duration.ofMinutes(60);
   private static final String BIGQUERY_DATASET_LINK =
       "https://console.cloud.google.com/bigquery?project=<project>&"

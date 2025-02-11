@@ -265,12 +265,12 @@ public class SamIam implements IamProviderInterface {
   public Map<IamRole, String> createSnapshotResource(
       AuthenticatedUserRequest userReq,
       UUID snapshotId,
-      UUID parentId,
+      UUID parentDatasetId,
       SnapshotRequestModelPolicies policies)
       throws InterruptedException {
     SamRetry.retry(
         configurationService,
-        () -> createSnapshotResourceInnerV2(userReq, snapshotId, parentId, policies));
+        () -> createSnapshotResourceInnerV2(userReq, snapshotId, parentDatasetId, policies));
     return SamRetry.retry(
         configurationService, () -> syncSnapshotResourcePoliciesInner(userReq, snapshotId));
   }
@@ -278,12 +278,12 @@ public class SamIam implements IamProviderInterface {
   private void createSnapshotResourceInnerV2(
       AuthenticatedUserRequest userReq,
       UUID snapshotId,
-      UUID parentId,
+      UUID parentDatasetId,
       SnapshotRequestModelPolicies policies)
       throws ApiException {
     ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     CreateResourceRequestV2 req =
-        createSnapshotResourceRequest(userReq, snapshotId, parentId, policies);
+        createSnapshotResourceRequest(userReq, snapshotId, parentDatasetId, policies);
     samResourceApi.createResourceV2(IamResourceType.DATASNAPSHOT.toString(), req);
   }
 
@@ -291,7 +291,7 @@ public class SamIam implements IamProviderInterface {
   CreateResourceRequestV2 createSnapshotResourceRequest(
       AuthenticatedUserRequest userReq,
       UUID snapshotId,
-      UUID parentId,
+      UUID parentDatasetId,
       SnapshotRequestModelPolicies policies) {
     policies = Optional.ofNullable(policies).orElse(new SnapshotRequestModelPolicies());
     UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
@@ -318,11 +318,11 @@ public class SamIam implements IamProviderInterface {
 
     req.authDomain(List.of());
 
-    if (parentId != null) {
+    if (parentDatasetId != null) {
       req.setParent(
           new FullyQualifiedResourceId()
               .resourceTypeName(IamResourceType.DATASET.toString())
-              .resourceId(parentId.toString()));
+              .resourceId(parentDatasetId.toString()));
     }
 
     logger.debug("SAM request: {}", req);

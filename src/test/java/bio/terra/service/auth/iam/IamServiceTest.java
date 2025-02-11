@@ -191,10 +191,10 @@ class IamServiceTest {
   @Test
   void createSnapshotResource() throws Exception {
     UUID snapshotId = UUID.randomUUID();
-    UUID parentId = UUID.randomUUID();
+    UUID parentDatasetId = UUID.randomUUID();
     SnapshotRequestModelPolicies policies = new SnapshotRequestModelPolicies();
-    iamService.createSnapshotResource(TEST_USER, snapshotId, parentId, policies);
-    verify(iamProvider).createSnapshotResource(TEST_USER, snapshotId, parentId, policies);
+    iamService.createSnapshotResource(TEST_USER, snapshotId, parentDatasetId, policies);
+    verify(iamProvider).createSnapshotResource(TEST_USER, snapshotId, parentDatasetId, policies);
   }
 
   @Test

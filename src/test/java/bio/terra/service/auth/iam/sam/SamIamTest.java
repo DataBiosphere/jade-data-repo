@@ -580,7 +580,7 @@ class SamIamTest {
       mockUserInfo(userSubjectId, userEmail);
 
       UUID snapshotId = UUID.randomUUID();
-      UUID parentId = UUID.randomUUID();
+      UUID parentDatasetId = UUID.randomUUID();
 
       when(samGoogleApi.syncPolicy(
               eq(IamResourceType.DATASNAPSHOT.getSamResourceName()),
@@ -589,11 +589,11 @@ class SamIamTest {
               any()))
           .thenReturn(Map.of("key", List.of()));
 
-      samIam.createSnapshotResource(TEST_USER, snapshotId, parentId, null);
+      samIam.createSnapshotResource(TEST_USER, snapshotId, parentDatasetId, null);
       var argument = ArgumentCaptor.forClass(CreateResourceRequestV2.class);
       verify(samResourceApi)
           .createResourceV2(eq(IamResourceType.DATASNAPSHOT.toString()), argument.capture());
-      assertThat(argument.getValue().getParent().getResourceId(), is(parentId.toString()));
+      assertThat(argument.getValue().getParent().getResourceId(), is(parentDatasetId.toString()));
       assertThat(
           argument.getValue().getParent().getResourceTypeName(),
           is(IamResourceType.DATASET.toString()));

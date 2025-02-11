@@ -284,6 +284,7 @@ public class SamIam implements IamProviderInterface {
     ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     CreateResourceRequestV2 req =
         createSnapshotResourceRequest(userReq, snapshotId, parentDatasetId, policies);
+    logger.warn("Creating snapshot resource: {}", req);
     samResourceApi.createResourceV2(IamResourceType.DATASNAPSHOT.toString(), req);
   }
 

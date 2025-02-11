@@ -64,6 +64,7 @@ public class SnapshotAuthzIamStep implements Step {
             .get(SnapshotWorkingMapKeys.SNAPSHOT_INHERIT_STEWARD_ENABLED, Boolean.class);
     if (inheritEnabled != null && inheritEnabled) {
       parentDatasetId = sourceDataset.getId();
+      logger.warn("Inheriting steward from dataset {}", parentDatasetId);
     } else {
       parentDatasetId = null;
     }

@@ -85,6 +85,7 @@ import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotPreviewException;
+import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshot.flight.authDomain.SnapshotAddDataAccessControlsFlight;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
@@ -245,6 +246,7 @@ public class SnapshotService {
         .addParameter(CommonMapKeys.CREATED_AT, Instant.now().toEpochMilli())
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), dataset.getId())
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId.toString())
+        .addParameter(SnapshotWorkingMapKeys.SNAPSHOT_INHERIT_STEWARD_ENABLED, true)
         .submit();
   }
 

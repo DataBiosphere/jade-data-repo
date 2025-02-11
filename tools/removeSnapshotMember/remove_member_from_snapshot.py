@@ -1,9 +1,6 @@
 import argparse
 import json
-import os
 import subprocess
-import time
-import uuid
 
 from data_repo_client import (
     Configuration,
@@ -25,12 +22,7 @@ class Clients:
         )
         config.access_token = token_output.stdout.decode("UTF-8").strip()
         self.api_client = ApiClient(configuration=config)
-
-        self.profiles_api = ProfilesApi(api_client=self.api_client)
-        self.datasets_api = DatasetsApi(api_client=self.api_client)
         self.snapshots_api = SnapshotsApi(api_client=self.api_client)
-        self.jobs_api = JobsApi(api_client=self.api_client)
-        self.snapshot_request_api = SnapshotAccessRequestApi(api_client=self.api_client)
 
 
 def main():
@@ -58,15 +50,20 @@ def main():
         snapshot_ids = removal_request["snapshotIds"]
 
         print(f"Removing {email} as {role} from {len(snapshot_ids)} snapshots")
+        success_count = 0
+        failure_count = 0
         for snapshot_id in snapshot_ids:
-            print(f"Removing from {snapshot_id}")
-            result = clients.snapshots_api.delete_snapshot_policy_member(snapshot_id, role, email)
-            print(result)
-            print(f"Done: Removed from {snapshot_id}")
-
-
-
-
+            try:
+                clients.snapshots_api.delete_snapshot_policy_member(snapshot_id, role,
+                                                                    email)
+                success_count += 1
+            except Exception as e:
+                print(
+                    f"Error: Could not remove {email} from {snapshot_id}; Exception: {e}")
+                failure_count += 1
+                continue
+        print(
+            f"DONE. Successfully removed {success_count} members from {len(snapshot_ids)} snapshots. {failure_count} failed.")
 
 
 if __name__ == "__main__":

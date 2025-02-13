@@ -280,7 +280,7 @@ public class SamIam implements IamProviderInterface {
       UUID snapshotId,
       UUID parentDatasetId,
       SnapshotRequestModelPolicies policies)
-      throws ApiException {
+      throws ApiException, InterruptedException {
     ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     CreateResourceRequestV2 req =
         createSnapshotResourceRequest(userReq, snapshotId, parentDatasetId, policies);
@@ -293,7 +293,8 @@ public class SamIam implements IamProviderInterface {
       AuthenticatedUserRequest userReq,
       UUID snapshotId,
       UUID parentDatasetId,
-      SnapshotRequestModelPolicies policies) {
+      SnapshotRequestModelPolicies policies)
+      throws InterruptedException {
     policies = Optional.ofNullable(policies).orElse(new SnapshotRequestModelPolicies());
     UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     CreateResourceRequestV2 req = new CreateResourceRequestV2().resourceId(snapshotId.toString());
@@ -302,7 +303,15 @@ public class SamIam implements IamProviderInterface {
         IamRole.ADMIN.toString(), createAccessPolicy(IamRole.ADMIN, getAdminEmailList()));
 
     List<String> stewards = new ArrayList<>();
-    stewards.add(userStatusInfo.getUserEmail());
+    String parentCustodianEmail = null;
+    if (parentDatasetId != null) {
+      parentCustodianEmail =
+          retrievePolicyEmails(userReq, IamResourceType.DATASET, parentDatasetId)
+              .get(IamRole.CUSTODIAN);
+    }
+    if (!userStatusInfo.getUserEmail().equals(parentCustodianEmail)) {
+      stewards.add(userStatusInfo.getUserEmail());
+    }
     stewards.addAll(ListUtils.emptyIfNull(policies.getStewards()));
     req.putPoliciesItem(IamRole.STEWARD.toString(), createAccessPolicy(IamRole.STEWARD, stewards));
 

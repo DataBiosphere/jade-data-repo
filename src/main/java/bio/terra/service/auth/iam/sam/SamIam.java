@@ -305,14 +305,16 @@ public class SamIam implements IamProviderInterface {
     List<String> stewards = new ArrayList<>();
     String parentCustodianEmail = null;
     if (parentDatasetId != null) {
-      parentCustodianEmail =
-          retrievePolicyEmails(userReq, IamResourceType.DATASET, parentDatasetId)
-              .get(IamRole.CUSTODIAN);
+      Map<IamRole, String> roles = retrievePolicyEmails(userReq, IamResourceType.DATASET, parentDatasetId);
+      parentCustodianEmail = roles.get(IamRole.CUSTODIAN);
+      logger.warn("Parent custodian roles: {}", roles);
     }
     if (!userStatusInfo.getUserEmail().equals(parentCustodianEmail)) {
       stewards.add(userStatusInfo.getUserEmail());
     }
+    logger.warn("Stewards 1: {}", stewards);
     stewards.addAll(ListUtils.emptyIfNull(policies.getStewards()));
+    logger.warn("Stewards 2: {}", stewards);
     req.putPoliciesItem(IamRole.STEWARD.toString(), createAccessPolicy(IamRole.STEWARD, stewards));
 
     req.putPoliciesItem(

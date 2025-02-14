@@ -304,7 +304,8 @@ public class SamIam implements IamProviderInterface {
     if (parentDatasetId == null
         || !retrieveUserRoles(userReq, IamResourceType.DATASET, parentDatasetId)
             .contains(IamRole.CUSTODIAN.toString())) {
-      // Only add the current user as a steward if they are not a custodian of the parent dataset.
+      // Add the current user as a steward if there is no parent dataset, or they are not
+      // a custodian of the parent.
       stewards.add(getUserInfoAndVerify(userReq).getUserEmail());
     }
     stewards.addAll(ListUtils.emptyIfNull(policies.getStewards()));

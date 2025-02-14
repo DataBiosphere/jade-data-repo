@@ -26,4 +26,5 @@ public final class SnapshotWorkingMapKeys extends ProjectCreatingFlightKeys {
   public static final String SNAPSHOT_FIRECLOUD_GROUP_EMAIL = "snapshotFirecloudGroupEmail";
   public static final String SNAPSHOT_DATA_ACCESS_CONTROL_GROUPS =
       "snapshotDataAccessControlGroups";
+  public static final String SNAPSHOT_INHERIT_STEWARD_ENABLED = "snapshotInheritStewardEnabled";
 }

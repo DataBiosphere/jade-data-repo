@@ -125,11 +125,15 @@ public interface IamProviderInterface {
    *
    * @param userReq authenticated user
    * @param snapshotId id of the snapshot
+   * @param parentDatasetId id of the parent dataset of the snapshot
    * @param policies user emails to add as snapshot policy members
    * @return Map of policy group emails for the snapshot policies
    */
   Map<IamRole, String> createSnapshotResource(
-      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies)
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId,
+      UUID parentDatasetId,
+      SnapshotRequestModelPolicies policies)
       throws InterruptedException;
 
   /**

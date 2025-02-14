@@ -10,6 +10,8 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -71,6 +73,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -222,7 +225,7 @@ class SamIamTest {
   }
 
   @Test
-  void testCreateSnapshotResourceRequestWithoutPolicySpecifications() throws ApiException {
+  void testCreateSnapshotResourceRequestWithoutPolicySpecifications() throws Exception {
     final String userSubjectId = "userid";
     final String userEmail = "a@a.com";
     mockUserInfo(userSubjectId, userEmail);
@@ -230,10 +233,10 @@ class SamIamTest {
     final UUID snapshotId = UUID.randomUUID();
 
     CreateResourceRequestV2 reqNullPolicies =
-        samIam.createSnapshotResourceRequest(TEST_USER, snapshotId, null);
+        samIam.createSnapshotResourceRequest(TEST_USER, snapshotId, null, null);
     CreateResourceRequestV2 reqEmptyPolicies =
         samIam.createSnapshotResourceRequest(
-            TEST_USER, snapshotId, new SnapshotRequestModelPolicies());
+            TEST_USER, snapshotId, null, new SnapshotRequestModelPolicies());
 
     for (CreateResourceRequestV2 req : List.of(reqNullPolicies, reqEmptyPolicies)) {
       assertThat(req.getResourceId(), is(snapshotId.toString()));
@@ -269,7 +272,7 @@ class SamIamTest {
   }
 
   @Test
-  void testCreateSnapshotResourceRequestWithPolicySpecifications() throws ApiException {
+  void testCreateSnapshotResourceRequestWithPolicySpecifications() throws Exception {
     final String userSubjectId = "userid";
     final String userEmail = "a@a.com";
     mockUserInfo(userSubjectId, userEmail);
@@ -287,7 +290,7 @@ class SamIamTest {
             .addReadersItem(readerEmail)
             .addDiscoverersItem(discovererEmail);
     CreateResourceRequestV2 req =
-        samIam.createSnapshotResourceRequest(TEST_USER, snapshotId, policySpecs);
+        samIam.createSnapshotResourceRequest(TEST_USER, snapshotId, null, policySpecs);
 
     assertThat(req.getResourceId(), is(snapshotId.toString()));
 
@@ -563,10 +566,41 @@ class SamIamTest {
       }
 
       assertThat(
-          samIam.createSnapshotResource(TEST_USER, snapshotId, null),
+          samIam.createSnapshotResource(TEST_USER, snapshotId, null, null),
           is(
               syncedPolicies.stream()
                   .collect(Collectors.toMap(p -> p, p -> "policygroup-" + p + "@firecloud.org"))));
+    }
+
+    @Test
+    void testCreateSnapshotWithParent() throws Exception {
+      mockSamGoogleApi();
+
+      UUID snapshotId = UUID.randomUUID();
+      UUID parentDatasetId = UUID.randomUUID();
+
+      when(samGoogleApi.syncPolicy(
+              eq(IamResourceType.DATASNAPSHOT.getSamResourceName()),
+              eq(snapshotId.toString()),
+              any(),
+              any()))
+          .thenReturn(Map.of("key", List.of()));
+      when(samResourceApi.resourceRolesV2(
+              IamResourceType.DATASET.toString(), parentDatasetId.toString()))
+          .thenReturn(List.of(IamRole.CUSTODIAN.toString()));
+
+      samIam.createSnapshotResource(TEST_USER, snapshotId, parentDatasetId, null);
+      var argument = ArgumentCaptor.forClass(CreateResourceRequestV2.class);
+      verify(samResourceApi)
+          .createResourceV2(eq(IamResourceType.DATASNAPSHOT.toString()), argument.capture());
+      CreateResourceRequestV2 request = argument.getValue();
+      assertThat(request.getParent().getResourceId(), is(parentDatasetId.toString()));
+      assertThat(request.getParent().getResourceTypeName(), is(IamResourceType.DATASET.toString()));
+      assertThat(request.getResourceId(), is(snapshotId.toString()));
+      var policies = request.getPolicies();
+      assertThat(policies.get(IamRole.STEWARD.toString()).getMemberEmails(), empty());
+      assertThat(
+          policies.get(IamRole.ADMIN.toString()).getMemberEmails(), is(List.of(ADMIN_EMAIL)));
     }
 
     @Test

@@ -312,7 +312,7 @@ public class SnapshotCreateFlight extends Flight {
 
     // Create the IAM resource and readers for the snapshot
     // The IAM code contains retries, so we don't make a retry rule here.
-    addStep(new SnapshotAuthzIamStep(iamClient, snapshotService, snapshotReq, userReq, snapshotId));
+    addStep(new SnapshotAuthzIamStep(iamClient, snapshotReq, userReq, snapshotId, sourceDataset));
 
     // Now that the snapshot exists in Sam, we can add data access control groups to the snapshot
     addStep(new CreateSnapshotSetDataAccessGroupsStep(snapshotReq.getDataAccessControlGroups()));
@@ -350,7 +350,13 @@ public class SnapshotCreateFlight extends Flight {
       // Apply the IAM readers to the BQ dataset
       addStep(
           new SnapshotAuthzTabularAclStep(
-              bigQuerySnapshotPdao, snapshotService, configService, snapshotId),
+              bigQuerySnapshotPdao,
+              snapshotService,
+              configService,
+              iamService,
+              snapshotId,
+              userReq,
+              sourceDataset),
           pdaoAclRetryRule);
 
       // Apply the IAM readers to the GCS files
@@ -361,7 +367,9 @@ public class SnapshotCreateFlight extends Flight {
             pdaoAclRetryRule);
       }
 
-      addStep(new SnapshotAuthzBqJobUserStep(snapshotService, resourceService, snapshotName));
+      addStep(
+          new SnapshotAuthzBqJobUserStep(
+              snapshotService, resourceService, iamService, userReq, snapshotName, sourceDataset));
       addStep(
           new SnapshotAuthzServiceAccountConsumerStep(
               snapshotService, resourceService, snapshotName, tdrServiceAccountEmail));

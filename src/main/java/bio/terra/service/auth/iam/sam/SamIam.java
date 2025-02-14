@@ -263,34 +263,51 @@ public class SamIam implements IamProviderInterface {
 
   @Override
   public Map<IamRole, String> createSnapshotResource(
-      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies)
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId,
+      UUID parentDatasetId,
+      SnapshotRequestModelPolicies policies)
       throws InterruptedException {
     SamRetry.retry(
-        configurationService, () -> createSnapshotResourceInnerV2(userReq, snapshotId, policies));
+        configurationService,
+        () -> createSnapshotResourceInnerV2(userReq, snapshotId, parentDatasetId, policies));
     return SamRetry.retry(
         configurationService, () -> syncSnapshotResourcePoliciesInner(userReq, snapshotId));
   }
 
   private void createSnapshotResourceInnerV2(
-      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies)
-      throws ApiException {
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId,
+      UUID parentDatasetId,
+      SnapshotRequestModelPolicies policies)
+      throws ApiException, InterruptedException {
     ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
-    CreateResourceRequestV2 req = createSnapshotResourceRequest(userReq, snapshotId, policies);
+    CreateResourceRequestV2 req =
+        createSnapshotResourceRequest(userReq, snapshotId, parentDatasetId, policies);
     samResourceApi.createResourceV2(IamResourceType.DATASNAPSHOT.toString(), req);
   }
 
   @VisibleForTesting
   CreateResourceRequestV2 createSnapshotResourceRequest(
-      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies) {
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId,
+      UUID parentDatasetId,
+      SnapshotRequestModelPolicies policies)
+      throws InterruptedException {
     policies = Optional.ofNullable(policies).orElse(new SnapshotRequestModelPolicies());
-    UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     CreateResourceRequestV2 req = new CreateResourceRequestV2().resourceId(snapshotId.toString());
 
     req.putPoliciesItem(
         IamRole.ADMIN.toString(), createAccessPolicy(IamRole.ADMIN, getAdminEmailList()));
 
     List<String> stewards = new ArrayList<>();
-    stewards.add(userStatusInfo.getUserEmail());
+    if (parentDatasetId == null
+        || !retrieveUserRoles(userReq, IamResourceType.DATASET, parentDatasetId)
+            .contains(IamRole.CUSTODIAN.toString())) {
+      // Add the current user as a steward if there is no parent dataset, or they are not
+      // a custodian of the parent.
+      stewards.add(getUserInfoAndVerify(userReq).getUserEmail());
+    }
     stewards.addAll(ListUtils.emptyIfNull(policies.getStewards()));
     req.putPoliciesItem(IamRole.STEWARD.toString(), createAccessPolicy(IamRole.STEWARD, stewards));
 
@@ -306,7 +323,15 @@ public class SamIam implements IamProviderInterface {
         createAccessPolicy(IamRole.AGGREGATE_DATA_READER, policies.getAggregateDataReaders()));
 
     req.authDomain(List.of());
-    logger.debug("SAM request: " + req);
+
+    if (parentDatasetId != null) {
+      req.setParent(
+          new FullyQualifiedResourceId()
+              .resourceTypeName(IamResourceType.DATASET.toString())
+              .resourceId(parentDatasetId.toString()));
+    }
+
+    logger.debug("SAM request: {}", req);
     return req;
   }
 

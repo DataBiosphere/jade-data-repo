@@ -301,12 +301,11 @@ public class SamIam implements IamProviderInterface {
         IamRole.ADMIN.toString(), createAccessPolicy(IamRole.ADMIN, getAdminEmailList()));
 
     List<String> stewards = new ArrayList<>();
-    if (parentDatasetId != null) {
-      List<String> roles = retrieveUserRoles(userReq, IamResourceType.DATASET, parentDatasetId);
-      if (!roles.contains(IamRole.CUSTODIAN.toString())) {
-        // Only add the current user as a steward if they are not a custodian of the parent dataset.
-        stewards.add(getUserInfoAndVerify(userReq).getUserEmail());
-      }
+    if (parentDatasetId == null
+        || !retrieveUserRoles(userReq, IamResourceType.DATASET, parentDatasetId)
+            .contains(IamRole.CUSTODIAN.toString())) {
+      // Only add the current user as a steward if they are not a custodian of the parent dataset.
+      stewards.add(getUserInfoAndVerify(userReq).getUserEmail());
     }
     stewards.addAll(ListUtils.emptyIfNull(policies.getStewards()));
     req.putPoliciesItem(IamRole.STEWARD.toString(), createAccessPolicy(IamRole.STEWARD, stewards));

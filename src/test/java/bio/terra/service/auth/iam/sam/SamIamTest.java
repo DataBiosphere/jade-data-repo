@@ -575,9 +575,6 @@ class SamIamTest {
     @Test
     void testCreateSnapshotWithParent() throws Exception {
       mockSamGoogleApi();
-      final String userSubjectId = "userid";
-      final String userEmail = "a@a.com";
-      mockUserInfo(userSubjectId, userEmail);
 
       UUID snapshotId = UUID.randomUUID();
       UUID parentDatasetId = UUID.randomUUID();
@@ -588,15 +585,22 @@ class SamIamTest {
               any(),
               any()))
           .thenReturn(Map.of("key", List.of()));
+      when(samResourceApi.resourceRolesV2(
+              IamResourceType.DATASET.toString(), parentDatasetId.toString()))
+          .thenReturn(List.of(IamRole.CUSTODIAN.toString()));
 
       samIam.createSnapshotResource(TEST_USER, snapshotId, parentDatasetId, null);
       var argument = ArgumentCaptor.forClass(CreateResourceRequestV2.class);
       verify(samResourceApi)
           .createResourceV2(eq(IamResourceType.DATASNAPSHOT.toString()), argument.capture());
-      assertThat(argument.getValue().getParent().getResourceId(), is(parentDatasetId.toString()));
+      CreateResourceRequestV2 request = argument.getValue();
+      assertThat(request.getParent().getResourceId(), is(parentDatasetId.toString()));
+      assertThat(request.getParent().getResourceTypeName(), is(IamResourceType.DATASET.toString()));
+      assertThat(request.getResourceId(), is(snapshotId.toString()));
+      var policies = request.getPolicies();
+      assertThat(policies.get(IamRole.STEWARD.toString()).getMemberEmails(), empty());
       assertThat(
-          argument.getValue().getParent().getResourceTypeName(),
-          is(IamResourceType.DATASET.toString()));
+          policies.get(IamRole.ADMIN.toString()).getMemberEmails(), is(List.of(ADMIN_EMAIL)));
     }
 
     @Test

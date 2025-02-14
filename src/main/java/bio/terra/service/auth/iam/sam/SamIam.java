@@ -296,25 +296,20 @@ public class SamIam implements IamProviderInterface {
       SnapshotRequestModelPolicies policies)
       throws InterruptedException {
     policies = Optional.ofNullable(policies).orElse(new SnapshotRequestModelPolicies());
-    UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     CreateResourceRequestV2 req = new CreateResourceRequestV2().resourceId(snapshotId.toString());
 
     req.putPoliciesItem(
         IamRole.ADMIN.toString(), createAccessPolicy(IamRole.ADMIN, getAdminEmailList()));
 
     List<String> stewards = new ArrayList<>();
-    String parentCustodianEmail = null;
     if (parentDatasetId != null) {
-      Map<IamRole, String> roles = retrievePolicyEmails(userReq, IamResourceType.DATASET, parentDatasetId);
-      parentCustodianEmail = roles.get(IamRole.CUSTODIAN);
-      logger.warn("Parent custodian roles: {}", roles);
+      List<String> roles = retrieveUserRoles(userReq, IamResourceType.DATASET, parentDatasetId);
+      if (!roles.contains(IamRole.CUSTODIAN.toString())) {
+        // Only add the current user as a steward if they are not a custodian of the parent dataset.
+        stewards.add(getUserInfoAndVerify(userReq).getUserEmail());
+      }
     }
-    if (!userStatusInfo.getUserEmail().equals(parentCustodianEmail)) {
-      stewards.add(userStatusInfo.getUserEmail());
-    }
-    logger.warn("Stewards 1: {}", stewards);
     stewards.addAll(ListUtils.emptyIfNull(policies.getStewards()));
-    logger.warn("Stewards 2: {}", stewards);
     req.putPoliciesItem(IamRole.STEWARD.toString(), createAccessPolicy(IamRole.STEWARD, stewards));
 
     req.putPoliciesItem(

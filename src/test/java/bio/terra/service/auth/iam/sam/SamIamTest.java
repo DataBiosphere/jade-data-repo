@@ -225,7 +225,7 @@ class SamIamTest {
   }
 
   @Test
-  void testCreateSnapshotResourceRequestWithoutPolicySpecifications() throws ApiException {
+  void testCreateSnapshotResourceRequestWithoutPolicySpecifications() throws Exception {
     final String userSubjectId = "userid";
     final String userEmail = "a@a.com";
     mockUserInfo(userSubjectId, userEmail);
@@ -272,7 +272,7 @@ class SamIamTest {
   }
 
   @Test
-  void testCreateSnapshotResourceRequestWithPolicySpecifications() throws ApiException {
+  void testCreateSnapshotResourceRequestWithPolicySpecifications() throws Exception {
     final String userSubjectId = "userid";
     final String userEmail = "a@a.com";
     mockUserInfo(userSubjectId, userEmail);

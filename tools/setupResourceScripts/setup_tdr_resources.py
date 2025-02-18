@@ -71,9 +71,7 @@ def dataset_ingest_array(clients, dataset_id, dataset_to_upload):
             }
             print(f"Ingesting data into {dataset_to_upload['name']}/{table}")
             jobs.append(
-                clients.datasets_api.ingest_dataset(
-                    dataset_id, ingest=ingest_request
-                ),
+                clients.datasets_api.ingest_dataset(dataset_id, ingest=ingest_request),
             )
     wait_for_jobs(clients, jobs)
 
@@ -107,9 +105,9 @@ def create_billing_profile(
         )
 
         if azure_managed_app_name:
-            billing_profile_request[
-                "applicationDeploymentName"
-            ] = azure_managed_app_name
+            billing_profile_request["applicationDeploymentName"] = (
+                azure_managed_app_name
+            )
             print(
                 f"Checking if billing profile with managed app name {azure_managed_app_name} already exists"
             )
@@ -152,8 +150,9 @@ def create_ingest_request(table, upload_prefix, format):
         "csv_skip_leading_rows": 1,
         "format": format,
         "path": f"{upload_prefix}/{table}.{format}",
-        "table": table
+        "table": table,
     }
+
 
 def dataset_ingest(clients, dataset_id, dataset_to_upload, format):
     jobs = []
@@ -289,16 +288,23 @@ def find_dataset_by_name(name):
     return find_dataset
 
 
+def delete_dataset_snapshots(clients, dataset_id):
+    snapshots = clients.snapshots_api.enumerate_snapshots(dataset_ids=[dataset_id])
+    for snapshot in snapshots.items:
+        print(f"Deleting snapshot {snapshot.name}")
+        wait_for_job(clients, clients.snapshots_api.delete_snapshot(snapshot.id))
+
+
 def delete_dataset_if_exists(name, clients):
     print(f"Checking if dataset {name} exists")
     datasets = clients.datasets_api.enumerate_datasets()
     filtered_datasets = list(filter(find_dataset_by_name(name), datasets.items))
     if len(filtered_datasets) > 0:
-        print(f"Found dataset {name} with ID {filtered_datasets[0].id}")
-        wait_for_job(
-            clients, clients.datasets_api.delete_dataset(filtered_datasets[0].id)
-        )
-        print(f"Deleted dataset {filtered_datasets[0].id}")
+        dataset_id = filtered_datasets[0].id
+        print(f"Found dataset {name} with ID {dataset_id}")
+        delete_dataset_snapshots(clients, dataset_id)
+        wait_for_job(clients, clients.datasets_api.delete_dataset(dataset_id))
+        print(f"Deleted dataset {dataset_id}")
 
 
 def add_snapshot_builder_settings(

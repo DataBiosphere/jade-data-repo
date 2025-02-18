@@ -113,10 +113,12 @@ class DatasetDaoTest {
     return datasetId;
   }
 
-  private UUID createDataset(String datasetFile) throws Exception {
-    DatasetRequestModel datasetRequest =
-        jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
+  private UUID createDataset(DatasetRequestModel datasetRequest) throws Exception {
     return createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID(), null);
+  }
+
+  private UUID createDataset(String datasetFile) throws Exception {
+    return createDataset(jsonLoader.loadObject(datasetFile, DatasetRequestModel.class));
   }
 
   @BeforeEach
@@ -1115,7 +1117,7 @@ class DatasetDaoTest {
     tags2.addAll(List.of("duplicate", "yet another tag"));
     DatasetRequestModel request2WithTags =
         jsonLoader.loadObject("dataset-create-test.json", DatasetRequestModel.class).tags(tags2);
-    createDataset(request2WithTags, request2WithTags.getName() + UUID.randomUUID(), null);
+    createDataset(request2WithTags);
 
     assertThat(
         "Get tags without restriction returns all tags and counts",
@@ -1250,5 +1252,18 @@ class DatasetDaoTest {
     Dataset lockedDataset = datasetDao.retrieve(datasetId);
     var datasetSharedLocks = ResourceLocksUtils.getSharedLock(lockedDataset.getResourceLocks());
     assertThat("Correct shared lock is returned", datasetSharedLocks, contains(flightId));
+  }
+
+  @Test
+  void createDatasetInherit() throws Exception {
+    var datasetRequest = jsonLoader.loadObject("dataset-minimal.json", DatasetRequestModel.class);
+    var datasetId = createDataset(datasetRequest);
+    var dataset = datasetDao.retrieve(datasetId);
+    assertThat("Inherit steward defaults to false", not(dataset.isInheritSteward()));
+
+    datasetRequest.setInheritSteward(true);
+    datasetId = createDataset(datasetRequest);
+    dataset = datasetDao.retrieve(datasetId);
+    assertThat("Inherit steward is set", dataset.isInheritSteward());
   }
 }

@@ -37,6 +37,7 @@ public class DatasetSummary {
   private boolean predictableFileIds;
   private List<String> tags;
   private ResourceLocks resourceLocks;
+  private boolean inheritSteward;
 
   public UUID getId() {
     return id;
@@ -253,6 +254,15 @@ public class DatasetSummary {
     return this;
   }
 
+  public boolean isInheritSteward() {
+    return inheritSteward;
+  }
+
+  public DatasetSummary inheritSteward(boolean inheritSteward) {
+    this.inheritSteward = inheritSteward;
+    return this;
+  }
+
   public DatasetSummaryModel toModel() {
     return new DatasetSummaryModel()
         .id(getId())
@@ -269,7 +279,8 @@ public class DatasetSummary {
         .selfHosted(isSelfHosted())
         .predictableFileIds(hasPredictableFileIds())
         .tags(getTags())
-        .resourceLocks(getResourceLocks());
+        .resourceLocks(getResourceLocks())
+        .inheritSteward(inheritSteward);
   }
 
   List<StorageResourceModel> toStorageResourceModel() {

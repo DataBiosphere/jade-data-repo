@@ -19,6 +19,7 @@ import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.snapshot.flight.create.SnapshotAuthzIamStep;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -56,15 +57,12 @@ class SnapshotAuthzIamStepTest {
 
   private SnapshotAuthzIamStep step;
   private FlightMap workingMap;
-  private FlightMap inputMap;
   private SnapshotRequestModel snapshotRequestModel;
 
   @BeforeEach
   void setup() {
     workingMap = new FlightMap();
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    inputMap = new FlightMap();
-    when(flightContext.getInputParameters()).thenReturn(inputMap);
     snapshotRequestModel = new SnapshotRequestModel();
     // Set mode to something other than byRequestId
     snapshotRequestModel.addContentsItem(
@@ -75,10 +73,11 @@ class SnapshotAuthzIamStepTest {
 
   @Test
   void testDoAndUndoStep() throws InterruptedException {
-    inputMap.put(SnapshotWorkingMapKeys.SNAPSHOT_INHERIT_STEWARD_ENABLED, true);
+    var sourceDataset =
+        new Dataset(new DatasetSummary().inheritSteward(true)).id(UUID.randomUUID());
     step =
         new SnapshotAuthzIamStep(
-            iamService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID, SOURCE_DATASET);
+            iamService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID, sourceDataset);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
 
@@ -86,7 +85,7 @@ class SnapshotAuthzIamStepTest {
         ArgumentCaptor.forClass(SnapshotRequestModelPolicies.class);
     verify(iamService)
         .createSnapshotResource(
-            eq(TEST_USER), eq(SNAPSHOT_ID), eq(SOURCE_DATASET.getId()), argument.capture());
+            eq(TEST_USER), eq(SNAPSHOT_ID), eq(sourceDataset.getId()), argument.capture());
     List<String> readers = argument.getValue().getReaders();
     assertFalse(readers.contains(DUOS_FIRECLOUD_GROUP.getFirecloudGroupEmail()));
 

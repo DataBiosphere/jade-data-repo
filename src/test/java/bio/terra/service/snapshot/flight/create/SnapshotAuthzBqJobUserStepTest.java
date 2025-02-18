@@ -18,6 +18,7 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
@@ -53,18 +54,14 @@ class SnapshotAuthzBqJobUserStepTest {
   private static final Snapshot SNAPSHOT =
       new Snapshot()
           .projectResource(new GoogleProjectResource().googleProjectId(GOOGLE_PROJECT_ID));
-  private static final Dataset SOURCE_DATASET = new Dataset().id(UUID.randomUUID());
 
   private final List<String> addedEmails = new ArrayList<>();
   private SnapshotAuthzBqJobUserStep step;
-  private FlightMap inputMap;
 
   @BeforeEach
   void beforeEach() throws Exception {
     FlightMap workingMap = new FlightMap();
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    inputMap = new FlightMap();
-    when(flightContext.getInputParameters()).thenReturn(inputMap);
 
     var policyMap = new EnumMap<>(IamRole.class);
     policyMap.put(IamRole.STEWARD, "steward");
@@ -80,14 +77,13 @@ class SnapshotAuthzBqJobUserStepTest {
             })
         .when(resourceService)
         .grantPoliciesBqJobUser(eq(GOOGLE_PROJECT_ID), anyList());
-
-    step =
-        new SnapshotAuthzBqJobUserStep(
-            snapshotService, resourceService, iamService, TEST_USER, SNAPSHOT_NAME, SOURCE_DATASET);
   }
 
   @Test
   void doStep() throws Exception {
+    step =
+        new SnapshotAuthzBqJobUserStep(
+            snapshotService, resourceService, iamService, TEST_USER, SNAPSHOT_NAME, new Dataset());
     assertThat(step.doStep(flightContext), is(StepResult.getStepResultSuccess()));
     assertThat(addedEmails, containsInAnyOrder("steward", "reader"));
     verifyNoMoreInteractions(resourceService);
@@ -96,9 +92,12 @@ class SnapshotAuthzBqJobUserStepTest {
 
   @Test
   void doStepInheritEnabled() throws Exception {
-    inputMap.put(SnapshotWorkingMapKeys.SNAPSHOT_INHERIT_STEWARD_ENABLED, true);
-    when(iamService.retrievePolicyEmails(
-            TEST_USER, IamResourceType.DATASET, SOURCE_DATASET.getId()))
+    var sourceDataset =
+        new Dataset(new DatasetSummary().inheritSteward(true)).id(UUID.randomUUID());
+    step =
+        new SnapshotAuthzBqJobUserStep(
+            snapshotService, resourceService, iamService, TEST_USER, SNAPSHOT_NAME, sourceDataset);
+    when(iamService.retrievePolicyEmails(TEST_USER, IamResourceType.DATASET, sourceDataset.getId()))
         .thenReturn(Map.of(IamRole.CUSTODIAN, "custodian"));
     assertThat(step.doStep(flightContext), is(StepResult.getStepResultSuccess()));
     assertThat(addedEmails, containsInAnyOrder("steward", "reader", "custodian"));
@@ -107,6 +106,9 @@ class SnapshotAuthzBqJobUserStepTest {
   @Test
   void undoStep() {
     reset(snapshotService, flightContext, resourceService);
+    step =
+        new SnapshotAuthzBqJobUserStep(
+            snapshotService, resourceService, iamService, TEST_USER, SNAPSHOT_NAME, new Dataset());
     assertThat(step.undoStep(flightContext), is(StepResult.getStepResultSuccess()));
     verifyNoInteractions(snapshotService, resourceService, iamService, flightContext);
   }

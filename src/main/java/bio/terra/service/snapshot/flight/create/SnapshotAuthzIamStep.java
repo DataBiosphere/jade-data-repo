@@ -58,11 +58,7 @@ public class SnapshotAuthzIamStep implements Step {
       derivedPolicies.addReadersItem(snapshotFirecloudGroupEmail);
     }
     final UUID parentDatasetId;
-    Boolean inheritEnabled =
-        context
-            .getInputParameters()
-            .get(SnapshotWorkingMapKeys.SNAPSHOT_INHERIT_STEWARD_ENABLED, Boolean.class);
-    if (inheritEnabled != null && inheritEnabled) {
+    if (sourceDataset.isInheritSteward()) {
       parentDatasetId = sourceDataset.getId();
     } else {
       parentDatasetId = null;

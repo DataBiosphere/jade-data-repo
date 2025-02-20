@@ -11,6 +11,8 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -22,9 +24,11 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.common.fixtures.Names;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetPatchRequestModel;
+import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.ErrorModel;
@@ -93,7 +97,6 @@ class SnapshotConnectedTest {
   private String snapshotOriginalName;
   private BillingProfileModel billingProfile;
   private final Storage storage = StorageOptions.getDefaultInstance().getService();
-  private DatasetSummaryModel datasetSummary;
 
   private static final String CONSENT_CODE = "c99";
   private static final String PHS_ID = "phs123456";
@@ -113,7 +116,10 @@ class SnapshotConnectedTest {
     configService.reset();
     billingProfile =
         connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
-    datasetSummary =
+  }
+
+  DatasetSummaryModel createTestDataset() throws Exception {
+    var datasetSummary =
         SnapshotConnectedTestUtils.createTestDataset(
             connectedOperations, billingProfile, "snapshot-test-dataset.json");
     SnapshotConnectedTestUtils.loadCsvData(
@@ -124,6 +130,7 @@ class SnapshotConnectedTest {
         datasetSummary.getId(),
         "thetable",
         "snapshot-test-dataset-data-row-ids.csv");
+    return datasetSummary;
   }
 
   @AfterEach
@@ -153,23 +160,28 @@ class SnapshotConnectedTest {
             datasetArraySummary.getDefaultProfileId());
     MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "");
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
+
+    // Verify that the parent id wasn't set on snapshot creation.
+    verify(samService).createSnapshotResource(any(), eq(summaryModel.getId()), eq(null), any());
+
     SnapshotConnectedTestUtils.getTestSnapshot(
         mvc, objectMapper, summaryModel.getId(), snapshotRequest, datasetArraySummary);
 
-    BigQueryProject bigQuerySnaphsotProject =
+    BigQueryProject bigQuerySnapshotProject =
         TestUtils.bigQueryProjectForSnapshotName(snapshotDao, summaryModel.getName());
     long snapshotParticipants =
         SnapshotConnectedTestUtils.queryForCount(
-            summaryModel.getName(), "participant", bigQuerySnaphsotProject);
+            summaryModel.getName(), "participant", bigQuerySnapshotProject);
     assertThat("dataset participants loaded properly", snapshotParticipants, equalTo(2L));
     long snapshotSamples =
         SnapshotConnectedTestUtils.queryForCount(
-            summaryModel.getName(), "sample", bigQuerySnaphsotProject);
+            summaryModel.getName(), "sample", bigQuerySnapshotProject);
     assertThat("dataset samples loaded properly", snapshotSamples, equalTo(3L));
   }
 
   @Test
   void testEnumeration() throws Exception {
+    var datasetSummary = createTestDataset();
     datasetDao.patch(
         datasetSummary.getId(), new DatasetPatchRequestModel().phsId(PHS_ID), TEST_USER);
 
@@ -270,6 +282,7 @@ class SnapshotConnectedTest {
 
   @Test
   void testBadData() throws Exception {
+    var datasetSummary = createTestDataset();
     SnapshotRequestModel badDataRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
             jsonLoader,
@@ -284,6 +297,7 @@ class SnapshotConnectedTest {
 
   @Test
   void testDuplicateName() throws Exception {
+    var datasetSummary = createTestDataset();
     // create a snapshot
     SnapshotRequestModel snapshotRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
@@ -330,17 +344,7 @@ class SnapshotConnectedTest {
   @Test
   void testDeleteRecreateSnapshot() throws Exception {
     // create a dataset and load some tabular data
-    DatasetSummaryModel datasetSummary =
-        SnapshotConnectedTestUtils.createTestDataset(
-            connectedOperations, billingProfile, "snapshot-test-dataset.json");
-    SnapshotConnectedTestUtils.loadCsvData(
-        connectedOperations,
-        jsonLoader,
-        storage,
-        testConfig.getIngestbucket(),
-        datasetSummary.getId(),
-        "thetable",
-        "snapshot-test-dataset-data-row-ids.csv");
+    DatasetSummaryModel datasetSummary = createTestDataset();
 
     // create a snapshot
     SnapshotRequestModel snapshotRequest =
@@ -381,17 +385,7 @@ class SnapshotConnectedTest {
   @Test
   void testProjectDeleteAfterSnapshotDelete() throws Exception {
     // create a dataset and load some tabular data
-    DatasetSummaryModel datasetSummary =
-        SnapshotConnectedTestUtils.createTestDataset(
-            connectedOperations, billingProfile, "snapshot-test-dataset.json");
-    SnapshotConnectedTestUtils.loadCsvData(
-        connectedOperations,
-        jsonLoader,
-        storage,
-        testConfig.getIngestbucket(),
-        datasetSummary.getId(),
-        "thetable",
-        "snapshot-test-dataset-data-row-ids.csv");
+    DatasetSummaryModel datasetSummary = createTestDataset();
 
     // create a snapshot
     SnapshotRequestModel snapshotRequest =
@@ -425,6 +419,50 @@ class SnapshotConnectedTest {
     assertThat(
         googleResourceManagerService.getProject(googleProjectId).getLifecycleState(),
         is(LifecycleState.DELETE_REQUESTED.toString()));
+  }
+
+  @Test
+  void createSnapshotInheritSteward() throws Exception {
+    // create a dataset and load some tabular data
+    DatasetRequestModel datasetRequest =
+        jsonLoader.loadObject("snapshot-test-dataset.json", DatasetRequestModel.class);
+    datasetRequest
+        .name(Names.randomizeName(datasetRequest.getName()))
+        .defaultProfileId(billingProfile.getId())
+        .cloudPlatform(billingProfile.getCloudPlatform())
+        .inheritSteward(true);
+
+    DatasetSummaryModel datasetSummary = connectedOperations.createDataset(datasetRequest);
+
+    SnapshotConnectedTestUtils.loadCsvData(
+        connectedOperations,
+        jsonLoader,
+        storage,
+        testConfig.getIngestbucket(),
+        datasetSummary.getId(),
+        "thetable",
+        "snapshot-test-dataset-data-row-ids.csv");
+
+    // create a snapshot
+    SnapshotRequestModel snapshotRequest =
+        SnapshotConnectedTestUtils.makeSnapshotTestRequest(
+            jsonLoader,
+            datasetSummary,
+            "snapshot-test-snapshot.json",
+            datasetSummary.getDefaultProfileId());
+
+    MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
+    SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
+
+    // fetch the snapshot and confirm the metadata matches the request
+    SnapshotModel snapshotModel =
+        SnapshotConnectedTestUtils.getTestSnapshot(
+            mvc, objectMapper, summaryModel.getId(), snapshotRequest, datasetSummary);
+
+    // Verify that the parent id is the dataset id set on snapshot creation.
+    verify(samService)
+        .createSnapshotResource(
+            any(), eq(snapshotModel.getId()), eq(datasetSummary.getId()), any());
   }
 
   private DatasetSummaryModel setupArrayStructDataset() throws Exception {

@@ -2,7 +2,6 @@ package bio.terra.service.tabulardata.google;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
-import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -346,8 +345,7 @@ public class BigQueryPdaoTest {
     void waitForCompletion(Dataset dataset) throws Exception {
       MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
       connectedOperations.checkIngestTableResponse(response);
-      connectedOperations.checkTableRowCount(
-          dataset, source.tableName, PDAO_PREFIX, source.expectedRowCount());
+      connectedOperations.checkTableRowCount(dataset, source.tableName, source.expectedRowCount());
     }
   }
 
@@ -595,19 +593,18 @@ public class BigQueryPdaoTest {
       String participantTableName = "participant";
       connectedOperations.ingestTableSuccess(
           datasetId, ingestRequest.table(participantTableName).path(gsPath(participantBlob)));
-      connectedOperations.checkTableRowCount(dataset, participantTableName, PDAO_PREFIX, 5);
-      connectedOperations.checkDataModel(
-          dataset, List.of("id", "age"), PDAO_PREFIX, participantTableName, 5);
+      connectedOperations.checkTableRowCount(dataset, participantTableName, 5);
+      connectedOperations.checkDataModel(dataset, List.of("id", "age"), participantTableName, 5);
       // sample table
       String sampleTableName = "sample";
       connectedOperations.ingestTableSuccess(
           datasetId, ingestRequest.table(sampleTableName).path(gsPath(sampleBlob)));
-      connectedOperations.checkTableRowCount(dataset, sampleTableName, PDAO_PREFIX, 7);
+      connectedOperations.checkTableRowCount(dataset, sampleTableName, 7);
       // file table
       String fileTableName = "file";
       connectedOperations.ingestTableSuccess(
           datasetId, ingestRequest.table(fileTableName).path(gsPath(fileBlob)));
-      connectedOperations.checkTableRowCount(dataset, fileTableName, PDAO_PREFIX, 1);
+      connectedOperations.checkTableRowCount(dataset, fileTableName, 1);
 
       // Create a full-view snapshot!
       DatasetSummaryModel datasetSummary = dataset.getDatasetSummary().toModel();
@@ -615,11 +612,10 @@ public class BigQueryPdaoTest {
           connectedOperations.createSnapshot(
               datasetSummary, "snapshot-fullviews-test-snapshot.json", "");
       Snapshot snapshot = snapshotService.retrieve(snapshotSummary.getId());
-      connectedOperations.checkTableRowCount(snapshot, participantTableName, "", 5);
-      connectedOperations.checkDataModel(
-          snapshot, List.of("id", "age"), "", participantTableName, 5);
-      connectedOperations.checkTableRowCount(snapshot, sampleTableName, "", 7);
-      connectedOperations.checkTableRowCount(snapshot, fileTableName, "", 1);
+      connectedOperations.checkTableRowCount(snapshot, participantTableName, 5);
+      connectedOperations.checkDataModel(snapshot, List.of("id", "age"), participantTableName, 5);
+      connectedOperations.checkTableRowCount(snapshot, sampleTableName, 7);
+      connectedOperations.checkTableRowCount(snapshot, fileTableName, 1);
 
       BigQueryProject bigQuerySnapshotProject =
           TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());

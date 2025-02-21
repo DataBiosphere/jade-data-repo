@@ -68,7 +68,7 @@ class DatasetBucketDaoTest {
   private String bucketName;
 
   @BeforeEach
-  public void setup() throws IOException {
+  void setup() throws IOException {
     BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
     billingProfile = profileDao.createBillingProfile(profileRequest, "testUser");
     billingProfileIds.add(billingProfile.getId());
@@ -86,7 +86,7 @@ class DatasetBucketDaoTest {
   }
 
   @AfterEach
-  public void teardown() {
+  void teardown() {
 
     datasetIdsToBucketResourceIds.forEach(
         (id, bucketResourceId) -> {
@@ -171,22 +171,22 @@ class DatasetBucketDaoTest {
     datasetBucketDao.createDatasetBucketLink(datasetId, ingestBucketResourceId);
     datasetIdsToBucketResourceIds.put(datasetId, ingestBucketResourceId);
 
-    List<UUID> projectResourceIds_after =
+    List<UUID> projectResourceIdsAfter =
         datasetBucketDao.getProjectResourceIdsForBucketPerDataset(datasetId);
     assertEquals(
         2,
-        projectResourceIds_after.size(),
+        projectResourceIdsAfter.size(),
         "Should return both projects for both billing profiles for dataset 1");
 
     // Get project given a new dataset
-    Dataset dataset_second =
+    Dataset datasetSecond =
         daoOperations.createDataset(
             billingProfile2.getId(), ingestProjectId, DaoOperations.DATASET_MINIMAL);
-    datasetIds.add(dataset_second.getId());
+    datasetIds.add(datasetSecond.getId());
     createBucketDbEntry(projectResource);
     assertNull(
         datasetBucketDao.getProjectResourceForBucket(
-            dataset_second.getId(), billingProfile.getId()),
+            datasetSecond.getId(), billingProfile.getId()),
         "Should NOT retrieve existing project");
   }
 
@@ -322,22 +322,21 @@ class DatasetBucketDaoTest {
     assertFalse(retrievedBucket.getAutoclassEnabled(), "Correct autoclass setting is returned");
   }
 
-  @Test(expected = Exception.class)
-  public void testRetrieveBucketByIdException() {
+  @Test
+  void testRetrieveBucketByIdException() {
     UUID bucketId = UUID.randomUUID();
     // this should fail -> no bucket with this id
-    resourceDao.retrieveBucketById(bucketId);
-  }
-
-  @Test(expected = Exception.class)
-  public void testRetrieveBucketByNameException() {
-    bucketName = "bucketDoesNotExist";
-    // this should fail -> no bucket with this name
-    resourceDao.retrieveBucketByName(bucketName);
+    assertThrows(Exception.class, () -> resourceDao.retrieveBucketById(bucketId));
   }
 
   @Test
-  public void testGetAndUpdateBucketAutoclassByName() {
+  void testRetrieveBucketByNameException() {
+    // this should fail -> no bucket with this name
+    assertThrows(Exception.class, () -> resourceDao.retrieveBucketByName("bucketDoesNotExist"));
+  }
+
+  @Test
+  void testGetAndUpdateBucketAutoclassByName() {
     bucketName = "bucket";
     GoogleProjectResource resource = dataset.getProjectResource();
     String flightId = UUID.randomUUID().toString();
@@ -350,17 +349,17 @@ class DatasetBucketDaoTest {
     datasetBucketDao.createDatasetBucketLink(dataset.getId(), bucketResource0.getResourceId());
 
     GoogleBucketResource bucketResource1 = resourceDao.retrieveBucketByName(bucketName);
-    assertFalse("Autoclass should be disabled", bucketResource1.getAutoclassEnabled());
+    assertFalse(bucketResource1.getAutoclassEnabled(), "Autoclass should be disabled");
     assertEquals(
-        "Autoclass setting should be the same",
         bucketResource0.getAutoclassEnabled(),
-        bucketResource1.getAutoclassEnabled());
+        bucketResource1.getAutoclassEnabled(),
+        "Autoclass setting should be the same");
 
     int rows = resourceDao.updateBucketAutoclassByName(bucketName, true);
-    assertEquals("One row should be updated", 1, rows);
+    assertEquals(1, rows, "One row should be updated");
 
     GoogleBucketResource bucketResource2 = resourceDao.retrieveBucketByName(bucketName);
-    assertTrue("Autoclass should be enabled", bucketResource2.getAutoclassEnabled());
+    assertTrue(bucketResource2.getAutoclassEnabled(), "Autoclass should be enabled");
   }
 
   private UUID createBucketDbEntry(GoogleProjectResource projectResource2) {

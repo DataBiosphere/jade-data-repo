@@ -79,8 +79,9 @@ import org.skyscreamer.jsonassert.JSONAssert;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -111,8 +112,6 @@ class DatasetServiceTest {
 
   @Autowired private GoogleResourceDao resourceDao;
 
-  @Autowired private NamedParameterJdbcTemplate jdbcTemplate;
-
   @MockitoBean private ResourceService resourceService;
   @MockitoBean private GcsPdao gcsPdao;
   @MockitoBean private AzureContainerPdao azureContainerPdao;
@@ -126,7 +125,6 @@ class DatasetServiceTest {
 
   private BillingProfileModel billingProfile;
   private UUID projectId;
-  private ArrayList<String> flightIdsList;
   private ArrayList<UUID> datasetIdList;
 
   private UUID createDataset(DatasetRequestModel datasetRequest, String newName)
@@ -145,12 +143,11 @@ class DatasetServiceTest {
     return datasetId;
   }
 
-  private UUID createDataset(String datasetFile) throws IOException, SQLException {
+  private UUID createDataset(String datasetFile) throws IOException {
     return createDataset(datasetFile, CloudPlatform.AZURE);
   }
 
-  private UUID createDataset(String datasetFile, CloudPlatform platform)
-      throws IOException, SQLException {
+  private UUID createDataset(String datasetFile, CloudPlatform platform) throws IOException {
     DatasetRequestModel datasetRequest =
         jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
     datasetRequest.setCloudPlatform(platform);
@@ -169,7 +166,6 @@ class DatasetServiceTest {
 
     // Setup mock sam service
     connectedOperations.stubOutSamCalls(samService);
-    flightIdsList = new ArrayList<>();
     datasetIdList = new ArrayList<>();
   }
 
@@ -183,12 +179,12 @@ class DatasetServiceTest {
   }
 
   @Test
-  void datasetOmopTest() throws IOException, SQLException {
+  void datasetOmopTest() throws IOException {
     assertNotNull(createDataset("omop/it-dataset-omop.json"));
   }
 
   @Test
-  void datasetDeleteTest() throws IOException, SQLException {
+  void datasetDeleteTest() throws IOException {
     UUID datasetId = createDataset("dataset-create-test.json");
     assertThat("dataset delete signals success", datasetDao.delete(datasetId));
     assertThrows(DatasetNotFoundException.class, () -> datasetDao.retrieve(datasetId));
@@ -219,7 +215,6 @@ class DatasetServiceTest {
     // add asset to dataset
     String jobId =
         datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel, testUser);
-    flightIdsList.add(jobId);
 
     TestUtils.eventualExpect(
         5,
@@ -281,7 +276,6 @@ class DatasetServiceTest {
     // add first asset to the dataset
     String jobId1 =
         datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel1, testUser);
-    flightIdsList.add(jobId1);
 
     boolean assetAdd1 =
         TestUtils.eventualExpect(
@@ -309,7 +303,6 @@ class DatasetServiceTest {
     // add second asset to dataset, this should fail because it has the same name as the first
     String jobId2 =
         datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel2, testUser);
-    flightIdsList.add(jobId2);
 
     boolean assetAdd2 =
         TestUtils.eventualExpect(
@@ -360,7 +353,6 @@ class DatasetServiceTest {
     // add first asset to the dataset
     String jobId1 =
         datasetService.addDatasetAssetSpecifications(datasetId1.toString(), assetModel, testUser);
-    flightIdsList.add(jobId1);
 
     boolean assetAdd1 =
         TestUtils.eventualExpect(
@@ -388,7 +380,6 @@ class DatasetServiceTest {
     // add asset tp second dataset
     String jobId2 =
         datasetService.addDatasetAssetSpecifications(datasetId2.toString(), assetModel, testUser);
-    flightIdsList.add(jobId2);
 
     boolean assetAdd2 =
         TestUtils.eventualExpect(
@@ -441,7 +432,6 @@ class DatasetServiceTest {
     // add asset to dataset
     String jobId =
         datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel, testUser);
-    flightIdsList.add(jobId);
 
     TestUtils.eventualExpect(
         5,
@@ -495,7 +485,6 @@ class DatasetServiceTest {
     // remove asset from dataset
     String jobId =
         datasetService.removeDatasetAssetSpecifications(datasetId.toString(), assetName, testUser);
-    flightIdsList.add(jobId);
 
     TestUtils.eventualExpect(
         5,
@@ -516,7 +505,7 @@ class DatasetServiceTest {
   }
 
   @Test
-  void retrieveDatasetDefault() throws SQLException, IOException {
+  void retrieveDatasetDefault() throws IOException {
     UUID datasetId = createDataset("dataset-create-test.json");
     Dataset dataset = datasetDao.retrieve(datasetId);
     assertThat(

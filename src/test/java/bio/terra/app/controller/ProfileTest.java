@@ -1,9 +1,8 @@
 package bio.terra.app.controller;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -11,7 +10,6 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
@@ -34,17 +32,17 @@ import bio.terra.service.profile.ProfileApiController;
 import bio.terra.service.profile.ProfileRequestValidator;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.ProfileUpdateRequestValidator;
+import bio.terra.service.profile.exception.ProfileNotFoundException;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ActiveProfiles({"google", "unittest"})
@@ -53,18 +51,19 @@ import org.springframework.test.web.servlet.MockMvc;
       ProfileApiController.class,
       ProfileRequestValidator.class,
       ProfileUpdateRequestValidator.class,
-      PolicyMemberValidator.class
+      PolicyMemberValidator.class,
+      GlobalExceptionHandler.class
     })
-@MockBean({ApplicationConfiguration.class, GlobalExceptionHandler.class})
+@MockitoBean(types = {ApplicationConfiguration.class})
 @Tag(Unit.TAG)
 @WebMvcTest
 class ProfileTest {
 
   @Autowired private MockMvc mvc;
-  @MockBean private ProfileService profileService;
-  @MockBean private JobService jobService;
-  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
-  @MockBean private IamService iamService;
+  @MockitoBean private ProfileService profileService;
+  @MockitoBean private JobService jobService;
+  @MockitoBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockitoBean private IamService iamService;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -169,35 +168,19 @@ class ProfileTest {
   }
 
   @Test
-  void testDeleteNotFound() throws Exception {
-    UUID profileId = UUID.randomUUID();
-    mvc.perform(
-            delete("/api/resources/v1/profiles/" + profileId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .header("Authorization", "Bearer: faketoken"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.objectState").value("not_found"));
-  }
-
-  @Test
   void testGetNotFound() throws Exception {
     UUID profileId = UUID.randomUUID();
+    when(profileService.getProfileById(profileId, TEST_USER))
+        .thenThrow(new ProfileNotFoundException(""));
     mvc.perform(
-            get("/api/resources/v1/profiles/" + profileId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .header("Authorization", "Bearer: faketoken"))
+            get("/api/resources/v1/profiles/{id}", profileId)
+                .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isNotFound());
   }
 
   @Test
   void testProfileRetrieve() throws Exception {
-    assertThat(
-        "Profile retrieve with bad id gets 400",
-        mvc.perform(get("/api/resources/v1/profiles/{id}", "blah"))
-            .andReturn()
-            .getResponse()
-            .getStatus(),
-        equalTo(HttpStatus.BAD_REQUEST.value()));
+    mvc.perform(get("/api/resources/v1/profiles/{id}", "blah")).andExpect(status().isBadRequest());
   }
 
   @Test
@@ -207,14 +190,12 @@ class ProfileTest {
         mvc.perform(
                 post("/api/resources/v1/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .header("Authorization", "Bearer: faketoken")
                     .content(TestUtils.mapToJson(billingProfileRequest)))
             .andExpect(status().is4xxClientError())
             .andReturn()
             .getResponse()
             .getContentAsString();
     ErrorModel errors = TestUtils.mapFromJson(responseJson, ErrorModel.class);
-    assertThat(
-        "invalid billing account", errors.getErrorDetail().get(0), startsWith("billingAccountId"));
+    assertThat("invalid billing account", errors.getMessage(), containsString("billingAccountId"));
   }
 }

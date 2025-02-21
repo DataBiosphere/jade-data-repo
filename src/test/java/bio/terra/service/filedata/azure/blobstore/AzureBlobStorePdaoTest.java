@@ -67,6 +67,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -124,7 +126,7 @@ class AzureBlobStorePdaoTest {
   @MockitoBean(name = AzureResourceConfiguration.TABLE_THREADPOOL_NAME)
   private AsyncTaskExecutor asyncTaskExecutor;
 
-  @Autowired private AzureBlobStorePdao dao;
+  @MockitoSpyBean private AzureBlobStorePdao dao;
 
   @MockitoBean
   @Qualifier("synapseJdbcTemplate")
@@ -134,9 +136,7 @@ class AzureBlobStorePdaoTest {
   private Dataset dataset;
 
   @BeforeEach
-  public void setUp() {
-    dao = spy(dao);
-
+  void setUp() {
     TokenCredential targetCredential = mock(TokenCredential.class);
     fileLoadModel =
         new FileLoadModel()

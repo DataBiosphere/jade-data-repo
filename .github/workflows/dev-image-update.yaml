@@ -93,14 +93,30 @@ jobs:
       source_gcr_url: 'gcr.io/broad-jade-dev/jade-data-repo'
       target_gcr_url: 'gcr.io/datarepo-public-gcr/jade-data-repo'
 
+  get-branch-name:
+    runs-on: ubuntu-latest
+    needs:
+      - bump_version
+    outputs:
+      branch-name: ${{ steps.determine-branch-name.outputs.branch-name }}
+    steps:
+      - name: Determine branch name
+        id: determine-branch-name
+        run: |
+          echo "Branch name: ${GITHUB_HEAD_REF}"
+          echo "branch-name=${GITHUB_HEAD_REF}" >> $GITHUB_OUTPUT
+        shell: bash
+
   tag-image-with-branch-name:
+    if: github.ref_name != github.event.repository.default_branch
     needs:
       - bump_version
       - build_container_and_publish
+      - get-branch-name
     uses: ./.github/workflows/cherry-pick-image.yaml
     secrets: inherit
     with:
-      gcr_tag: ${{ github.ref_name }}
+      gcr_tag: ${{ needs.get-branch-name.outputs.branch-name }}
       source_gcr_url: 'gcr.io/broad-jade-dev/jade-data-repo'
       target_gcr_url: 'gcr.io/broad-jade-dev/jade-data-repo'
 

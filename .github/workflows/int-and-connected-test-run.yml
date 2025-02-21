@@ -145,3 +145,41 @@ jobs:
           name: integration-test-api-logs
           path: local-api-output.log
           retention-days: 7
+  git_hash:
+    name: Extract git hash
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.config.outputs.GIT_HASH }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Get the latest git hash
+        id: config
+        run: |
+          GIT_HASH=$(git rev-parse --short HEAD)
+          echo "GIT_HASH=${GIT_HASH}" >> $GITHUB_OUTPUT
+          echo "Latest git hash in branch is ${GIT_HASH}"
+  report-to-sherlock:
+    # only runs on pull requests and reports the appVersion even if tests fail
+    if: github.event_name == 'pull_request'
+    uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
+    needs: [git_hash]
+    with:
+      new-version: ${{ needs.git_hash.outputs.version }}
+      chart-name: 'datarepo'
+    permissions:
+      contents: read
+      id-token: write
+  report-workflow:
+    if: github.ref_name == github.event.repository.default_branch
+    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
+    # dependency is not required but makes the action run page more readable
+    needs: git_hash
+    with:
+      relates-to-chart-releases: 'datarepo-dev'
+      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+    permissions:
+      id-token: write

@@ -92,6 +92,17 @@ jobs:
       source_gcr_url: 'gcr.io/broad-jade-dev/jade-data-repo'
       target_gcr_url: 'gcr.io/datarepo-public-gcr/jade-data-repo'
 
+  tag-image-with-branch-name:
+    needs:
+      - bump_version
+      - build_container_and_publish
+    uses: ./.github/workflows/cherry-pick-image.yaml
+    secrets: inherit
+    with:
+      gcr_tag: ${{ github.ref_name }}
+      source_gcr_url: 'gcr.io/broad-jade-dev/jade-data-repo'
+      target_gcr_url: 'gcr.io/broad-jade-dev/jade-data-repo'
+
   report-to-sherlock:
     name: Report App Version to DevOps
     uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main

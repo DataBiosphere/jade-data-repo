@@ -29,31 +29,13 @@ jobs:
     # broadbot is only used for automated commits, like version bumps
     # We don't want to trigger a version bump/deploy to dev for those
     if: ${{ !contains( github.event.sender.login, 'broadbot') }}
-    steps:
-      # - name: Checkout jade-data-repo
-      #   uses: actions/checkout@v3
-      #   with:
-      #     ref: develop
-      #     token: ${{ secrets.BROADBOT_TOKEN }}
-      # - name: "Bump the tag to a new version"
-      #   id: bumperstep
-      #   uses: broadinstitute/datarepo-actions/actions/main@0.74.0
-      #   with:
-      #     actions_subcommand: 'bumper'
-      #     sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
-      #     version_file_path: build.gradle
-      #     version_variable_name: version
-      #     # Sets the author of the version bump commit to broadbot. This is used in our skip job logic.
-      #     GITHUB_TOKEN: ${{ secrets.BROADBOT_TOKEN }}
-      # Version bump.
-      - name: Bump the tag to a new version
-        id: tag
-        uses: ./.github/workflows/tag.yml
-        with:
-          # The 'ref' parameter ensures that the provider version is postfixed with the HEAD commit of the PR branch,
-          # facilitating cross-referencing of a pact between Sherlock and GitHub.
-          ref: ${{ github.head_ref || '' }}
-          release-branches: ${{ github.event.repository.default_branch }}
+    uses: ./.github/workflows/tag.yml
+    with:
+      # The 'ref' parameter ensures that the provider version is postfixed with the HEAD commit of the PR branch,
+      # facilitating cross-referencing of a pact between Sherlock and GitHub.
+      ref: ${{ github.head_ref || '' }}
+      release-branches: ${{ github.event.repository.default_branch }}
+    secrets: inherit
 
   # build_client_and_publish:
   #   runs-on: ubuntu-latest

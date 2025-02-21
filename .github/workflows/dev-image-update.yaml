@@ -48,7 +48,6 @@ jobs:
           # facilitating cross-referencing of a pact between Sherlock and GitHub.
           ref: ${{ github.head_ref || '' }}
           release-branches: ${{ github.event.repository.default_branch }}
-        secrets: inherit
 
   # build_client_and_publish:
   #   runs-on: ubuntu-latest

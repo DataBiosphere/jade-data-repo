@@ -123,7 +123,7 @@ jobs:
       target_gcr_tag: ${{ needs.bump_version.outputs.tag }}
 
   report-to-sherlock:
-    name: Report App Version to DevOps
+    name: Report App Version to Sherlock
     uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
     needs:
       - bump_version
@@ -136,6 +136,7 @@ jobs:
       id-token: write
 
   report-workflow:
+    name: Report workflow status on dev release
     if: github.ref_name == github.event.repository.default_branch
     uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
     # dependency is not required but makes the action run page more readable

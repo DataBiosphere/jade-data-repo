@@ -82,7 +82,9 @@ jobs:
           GCR_TAG: ${{ needs.bump_version.outputs.tag }}
 
   cherry_pick_image_to_production_gcr:
-    needs: [bump_version, build_container_and_publish]
+    needs:
+      - bump_version
+      - build_container_and_publish
     uses: ./.github/workflows/cherry-pick-image.yaml
     secrets: inherit
     with:
@@ -93,7 +95,9 @@ jobs:
   report-to-sherlock:
     name: Report App Version to DevOps
     uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
-    needs: [bump_version]
+    needs:
+      - bump_version
+      - build_container_and_publish
     with:
       new-version: ${{ needs.bump_version.outputs.tag }}
       chart-name: datarepo
@@ -103,6 +107,7 @@ jobs:
 
   set-app-version-in-dev:
     uses: broadinstitute/sherlock/.github/workflows/client-set-environment-app-version.yaml@main
+    if: github.ref_name == github.event.repository.default_branch
     needs:
       - report-to-sherlock
     with:

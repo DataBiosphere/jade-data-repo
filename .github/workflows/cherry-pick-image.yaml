@@ -60,4 +60,4 @@ jobs:
           SOURCE_GCR_URL: ${{ inputs.source_gcr_url }}
           SOURCE_GCR_TAG: ${{ inputs.source_gcr_tag }}
           TARGET_GCR_URL: ${{ inputs.target_gcr_url }}
-          TARGET_GCR_TAG: ${{ inputs.source_gcr_tag }}
+          TARGET_GCR_TAG: ${{ inputs.target_gcr_tag }}

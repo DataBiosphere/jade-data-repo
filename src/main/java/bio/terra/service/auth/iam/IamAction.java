@@ -16,6 +16,7 @@ public enum IamAction {
   ALTER_POLICIES,
   UPDATE_PASSPORT_IDENTIFIER,
   UPDATE_AUTH_DOMAIN,
+  ADMIN_READ_SUMMARY_INFORMATION,
   // datarepo (admin-only actions)
   LIST_JOBS,
   DELETE_JOBS,
@@ -47,6 +48,7 @@ public enum IamAction {
   // billing profiles
   UPDATE_BILLING_ACCOUNT,
   LINK,
+  READ_SPEND_REPORT,
   // journal
   VIEW_JOURNAL,
   // lock/unlock resources

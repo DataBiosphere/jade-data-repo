@@ -188,7 +188,8 @@ public class GoogleProjectService {
               + " with a different profile "
               + billingProfile.getId());
     } catch (GoogleResourceNotFoundException e) {
-      logger.info("no project resource found for projectId: {}", googleProjectId);
+      logger.info(
+          "no project resource found for projectId: {}, initializing one instead", googleProjectId);
     }
 
     // Otherwise this project needs to be initialized

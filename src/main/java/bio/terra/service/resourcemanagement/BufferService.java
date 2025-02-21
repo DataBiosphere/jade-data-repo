@@ -38,6 +38,7 @@ public class BufferService {
   private final ResourceBufferServiceConfiguration bufferServiceConfiguration;
   private final GoogleResourceConfiguration googleConfig;
   private final GoogleResourceManagerService googleResourceManagerService;
+
   /** Clients should be shared among requests to reduce latency and save memory * */
   private final Client sharedHttpClient;
 

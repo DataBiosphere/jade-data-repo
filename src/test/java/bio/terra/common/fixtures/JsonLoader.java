@@ -6,22 +6,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
-import org.apache.curator.shaded.com.google.common.base.Charsets;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class JsonLoader {
-  private ClassLoader classLoader;
-  private ObjectMapper objectMapper;
+  private final ClassLoader classLoader;
+  private final ObjectMapper objectMapper;
 
   @Autowired
   public JsonLoader(ObjectMapper objectMapper) {
-    this.classLoader = getClass().getClassLoader();
+    classLoader = getClass().getClassLoader();
     this.objectMapper = objectMapper;
   }
 
@@ -30,7 +30,7 @@ public class JsonLoader {
       if (stream == null) {
         throw new FileNotFoundException(resourcePath);
       }
-      return IOUtils.toString(stream, Charsets.UTF_8);
+      return IOUtils.toString(stream, StandardCharsets.UTF_8);
     }
   }
 
@@ -50,7 +50,7 @@ public class JsonLoader {
       final String resourcePath, final TypeReference<T> innerObjectTypeReference)
       throws IOException {
     return Arrays.stream(loadJson(resourcePath).split("\n"))
-        .map(json -> this.loadJson(json, innerObjectTypeReference))
+        .map(json -> loadJson(json, innerObjectTypeReference))
         .collect(Collectors.toList());
   }
 

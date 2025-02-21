@@ -88,7 +88,8 @@ public final class DatasetJsonConversion {
                 .selfHosted(datasetRequest.isExperimentalSelfHosted())
                 .properties(datasetRequest.getProperties())
                 .predictableFileIds(datasetRequest.isExperimentalPredictableFileIds())
-                .tags(TagUtils.sanitizeTags(datasetRequest.getTags())))
+                .tags(TagUtils.sanitizeTags(datasetRequest.getTags()))
+                .inheritSteward(datasetRequest.isInheritSteward()))
         .tables(new ArrayList<>(tablesMap.values()))
         .relationships(new ArrayList<>(relationshipsMap.values()))
         .assetSpecifications(assetSpecifications);
@@ -109,7 +110,8 @@ public final class DatasetJsonConversion {
             .selfHosted(dataset.isSelfHosted())
             .predictableFileIds(dataset.hasPredictableFileIds())
             .tags(dataset.getTags())
-            .resourceLocks(dataset.getResourceLocks());
+            .resourceLocks(dataset.getResourceLocks())
+            .inheritSteward(dataset.isInheritSteward());
 
     if (include.contains(DatasetRequestAccessIncludeModel.NONE)) {
       return datasetModel;
@@ -332,11 +334,12 @@ public final class DatasetJsonConversion {
 
   private static List<AssetRelationship> processAssetRelationships(
       List<String> assetRelationshipNames, Map<String, Relationship> relationships) {
-    return Collections.unmodifiableList(
-        relationships.entrySet().stream()
-            .filter(map -> assetRelationshipNames.contains(map.getKey()))
-            .map(entry -> new AssetRelationship().datasetRelationship(entry.getValue()))
-            .collect(Collectors.toList()));
+    return assetRelationshipNames.stream()
+        .filter(relationships::containsKey)
+        .map(
+            relationshipName ->
+                new AssetRelationship().datasetRelationship(relationships.get(relationshipName)))
+        .toList();
   }
 
   public static AssetModel assetModelFromAssetSpecification(AssetSpecification spec) {

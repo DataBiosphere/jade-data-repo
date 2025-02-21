@@ -243,6 +243,7 @@ public class GcsPdao implements CloudFileReader {
       writeStreamToCloudFile(path, stream, projectId);
     }
   }
+
   /**
    * Write a {@link Stream} to a GCS file separated by newlines
    *
@@ -452,7 +453,7 @@ public class GcsPdao implements CloudFileReader {
           String.format(
               "File at %s was not found or does not exist", GcsUriUtils.getGsPathFromBlob(from)));
     }
-    fromBlob.copyTo(to, Blob.BlobSourceOption.userProject(projectId));
+    fromBlob.copyTo(to, Blob.BlobSourceOption.userProject(projectId)).getResult();
   }
 
   private boolean isInvalidUserProjectException(StorageException ex) {

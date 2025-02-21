@@ -74,7 +74,17 @@ public class TableFileDaoTest {
   @Test
   void testBatchRetrieveFileMetadata() {
     FireStoreDirectoryEntry fsDirectoryEntry = new FireStoreDirectoryEntry().fileId(FILE_ID);
-    List<FireStoreDirectoryEntry> directoryEntries = List.of(fsDirectoryEntry);
+
+    // test that invalid fileId is ignored and excluded from the results of
+    // batchRetrieveFileMetadata
+    var invalidFileId = UUID.randomUUID().toString();
+    FireStoreDirectoryEntry fsDirectoryEntry_notValid =
+        new FireStoreDirectoryEntry().fileId(invalidFileId);
+    when(tableClient.getEntity(PARTITION_KEY, invalidFileId))
+        .thenThrow(TableServiceException.class);
+
+    List<FireStoreDirectoryEntry> directoryEntries =
+        List.of(fsDirectoryEntry, fsDirectoryEntry_notValid);
     List<FireStoreFile> expectedFiles = List.of(FireStoreFile.fromTableEntity(entity));
     List<FireStoreFile> files =
         dao.batchRetrieveFileMetadata(tableServiceClient, DATASET_ID, directoryEntries);

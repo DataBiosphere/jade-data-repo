@@ -67,7 +67,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
@@ -97,11 +96,11 @@ class SnapshotDaoTest {
 
   @Autowired private DaoOperations daoOperations;
 
-  @MockBean private DuosClient duosClient;
+  @MockitoBean private DuosClient duosClient;
 
-  @MockBean private DuosService duosService;
+  @MockitoBean private DuosService duosService;
 
-  @MockBean private IamService iamService;
+  @MockitoBean private IamService iamService;
 
   private Dataset dataset;
   private UUID datasetId;
@@ -120,7 +119,7 @@ class SnapshotDaoTest {
   void setup() throws Exception {
     dataset = daoOperations.createDataset("snapshot-test-dataset-with-multi-columns.json");
     datasetId = dataset.getId();
-    projectId = dataset.getProjectResource().getId();
+    projectId = dataset.getProjectResourceId();
     profileId = dataset.getDefaultProfileId();
 
     snapshotRequest =
@@ -154,7 +153,7 @@ class SnapshotDaoTest {
   }
 
   private Snapshot createSnapshot(SnapshotRequestModel request) {
-    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(request, projectId);
+    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(request, dataset);
     return insertAndRetrieveSnapshot(snapshot);
   }
 
@@ -175,7 +174,7 @@ class SnapshotDaoTest {
   void happyInOutTest() {
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
 
-    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(snapshotRequest, projectId);
+    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(snapshotRequest, dataset);
     Snapshot fromDb = insertAndRetrieveSnapshot(snapshot);
     assertThat("snapshot name set correctly", fromDb.getName(), equalTo(snapshot.getName()));
 
@@ -791,7 +790,7 @@ class SnapshotDaoTest {
         """
             {"projectName":"project", "authors": ["harry", "ron", "hermionie"]}""";
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID()).properties(properties);
-    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(snapshotRequest, projectId);
+    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(snapshotRequest, dataset);
     Snapshot fromDB = insertAndRetrieveSnapshot(snapshot);
     assertThat(
         "snapshot properties set correctly",

@@ -5,6 +5,7 @@ import bio.terra.app.configuration.EcmConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.externalcreds.api.PassportApi;
 import bio.terra.externalcreds.client.ApiClient;
+import bio.terra.externalcreds.model.PassportProvider;
 import bio.terra.externalcreds.model.RASv1Dot1VisaCriterion;
 import bio.terra.externalcreds.model.ValidatePassportRequest;
 import bio.terra.externalcreds.model.ValidatePassportResult;
@@ -37,7 +38,6 @@ public class EcmService {
   private final ObjectMapper objectMapper;
   private final OidcApiService oidcApiService;
 
-  private static final String RAS_PROVIDER = "ras";
   @VisibleForTesting public static final String GA4GH_PASSPORT_V1_CLAIM = "ga4gh_passport_v1";
   private static final String RAS_DBGAP_PERMISSIONS_CLAIM = "ras_dbgap_permissions";
   private static final String RAS_CRITERIA_TYPE = "RASv1Dot1VisaCriterion";
@@ -98,7 +98,7 @@ public class EcmService {
    */
   public String getRasProviderPassport(AuthenticatedUserRequest userReq) {
     try {
-      return oidcApiService.getOidcApi(userReq).getProviderPassport(RAS_PROVIDER);
+      return oidcApiService.getOidcApi(userReq).getProviderPassport(PassportProvider.RAS);
     } catch (HttpClientErrorException ex) {
       if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
         return null;

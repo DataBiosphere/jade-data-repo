@@ -1928,6 +1928,31 @@
                         "datatype": "date"
                     }
                 ]
+            },
+            {
+                "name": "sample",
+                "columns": [
+                  {"name":  "collaborator_participant_id", "datatype": "int64"},
+                  {"name":  "collaborator_sample_id", "datatype": "string"},
+                  {"name":  "bge_single_sample_vcf_index_path", "datatype": "fileref"},
+                  {"name":  "bge_single_sample_vcf_md5_path", "datatype": "fileref"},
+                  {"name":  "bge_single_sample_vcf_path", "datatype": "fileref"},
+                  {"name":  "contamination_rate", "datatype": "float"},
+                  {"name":  "exome_gvcf_index_path", "datatype": "string"},
+                  {"name":  "exome_gvcf_md5_path", "datatype": "string"},
+                  {"name":  "exome_gvcf_path", "datatype": "string"},
+                  {"name":  "genome_crai_path", "datatype": "string"},
+                  {"name":  "genome_cram_md5_path", "datatype": "string"},
+                  {"name":  "genome_cram_path", "datatype": "string"},
+                  {"name":  "mapped_percentage", "datatype": "float"},
+                  {"name":  "mean_off_target_coverage", "datatype": "float"},
+                  {"name":  "mean_target_coverage", "datatype": "float"},
+                  {"name":  "percent_target_bases_at_10x", "datatype": "float"},
+                  {"name":  "percent_wgs_bases_at_1x", "datatype": "float"},
+                  {"name":  "reblocked_gvcf", "datatype": "string"},
+                  {"name":  "reblocked_gvcf_index", "datatype": "string"},
+                  {"name":  "total_bases", "datatype":  "int64"}
+                ]
             }
         ],
         "relationships": [
@@ -2394,14 +2419,25 @@
                 }
             },
             {
+              "name": "fpk_person_visit",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "visit_occurrence",
+                "column": "person_id"
+              }
+            },
+            {
                 "name": "fpk_visit_person",
                 "from": {
-                    "table": "person",
+                    "table": "visit_occurrence",
                     "column": "person_id"
                 },
                 "to": {
-                    "table": "visit_occurrence",
-                    "column": "person_id"
+                  "table": "person",
+                  "column": "person_id"
                 }
             },
             {
@@ -2592,6 +2628,17 @@
                 }
             },
             {
+              "name": "fpk_person_procedure",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "procedure_occurrence",
+                "column": "person_id"
+              }
+            },
+            {
                 "name": "fpk_procedure_person",
                 "from": {
                     "table": "procedure_occurrence",
@@ -2678,6 +2725,17 @@
                     "table": "concept",
                     "column": "concept_id"
                 }
+            },
+            {
+              "name": "fpk_person_drug",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "drug_exposure",
+                "column": "person_id"
+              }
             },
             {
                 "name": "fpk_drug_person",
@@ -2768,6 +2826,17 @@
                 }
             },
             {
+              "name": "fpk_person_device",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "device_exposure",
+                "column": "person_id"
+              }
+            },
+            {
                 "name": "fpk_device_person",
                 "from": {
                     "table": "device_exposure",
@@ -2843,6 +2912,17 @@
                     "table": "concept",
                     "column": "concept_id"
                 }
+            },
+            {
+              "name": "fpk_person_condition",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "condition_occurrence",
+                "column": "person_id"
+              }
             },
             {
                 "name": "fpk_condition_person",
@@ -2931,6 +3011,17 @@
                     "table": "concept",
                     "column": "concept_id"
                 }
+            },
+            {
+              "name": "fpk_person_measurement",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "measurement",
+                "column": "person_id"
+              }
             },
             {
                 "name": "fpk_measurement_person",
@@ -3173,6 +3264,17 @@
                     "table": "concept",
                     "column": "concept_id"
                 }
+            },
+            {
+              "name": "fpk_person_observation",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "observation",
+                "column": "person_id"
+              }
             },
             {
                 "name": "fpk_observation_person",
@@ -3834,17 +3936,28 @@
                     "column": "person_id"
                 }
             },
-          {
-            "name": "fpk_condition_era_concept",
-            "from": {
-              "table": "condition_era",
-              "column": "condition_concept_id"
-            },
-            "to": {
-              "table": "concept",
-              "column": "concept_id"
+            {
+                "name": "fpk_condition_era_concept",
+                "from": {
+                  "table": "condition_era",
+                  "column": "condition_concept_id"
+                },
+                "to": {
+                  "table": "concept",
+                  "column": "concept_id"
+                }
+          },
+            {
+                "name": "fpk_person_sample",
+                "from": {
+                  "table": "person",
+                  "column": "person_id"
+                },
+                "to": {
+                  "table": "sample",
+                  "column": "collaborator_participant_id"
+                }
             }
-          }
         ],
         "assets": [
           {

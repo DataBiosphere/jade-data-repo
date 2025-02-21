@@ -63,11 +63,28 @@ public final class IngestUtils {
 
   private IngestUtils() {}
 
-  public static Dataset getDataset(FlightContext context, DatasetService datasetService) {
+  /**
+   * @param context with {@link JobMapKeys#DATASET_ID} provided as an input parameter.
+   * @return the dataset ID from the input parameter map
+   */
+  public static UUID getDatasetId(FlightContext context) {
     FlightMap inputParameters = context.getInputParameters();
-    UUID datasetId =
-        UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
-    return datasetService.retrieve(datasetId);
+    String key = JobMapKeys.DATASET_ID.getKeyName();
+    UUID datasetId = inputParameters.get(key, UUID.class);
+    if (datasetId == null) {
+      throw new IllegalStateException(
+          "Expected flight to be called with %s as input parameter".formatted(key));
+    }
+    return datasetId;
+  }
+
+  /**
+   * @param context with {@link JobMapKeys#DATASET_ID} provided as an input parameter.
+   * @return the existing Dataset object populated only as necessary to facilitate data ingestion
+   *     (i.e. without relationships or assets which are constructed via costly database calls).
+   */
+  public static Dataset getDataset(FlightContext context, DatasetService datasetService) {
+    return datasetService.retrieveForIngest(getDatasetId(context));
   }
 
   public static IngestRequestModel getIngestRequestModel(FlightContext context) {

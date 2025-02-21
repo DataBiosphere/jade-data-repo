@@ -8,6 +8,7 @@ import bio.terra.policy.client.ApiException;
 import bio.terra.policy.model.TpsComponent;
 import bio.terra.policy.model.TpsObjectType;
 import bio.terra.policy.model.TpsPaoCreateRequest;
+import bio.terra.policy.model.TpsPaoGetResult;
 import bio.terra.policy.model.TpsPaoUpdateRequest;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
@@ -20,6 +21,7 @@ import bio.terra.service.policy.exception.PolicyServiceDuplicateException;
 import bio.terra.service.policy.exception.PolicyServiceNotFoundException;
 import com.google.common.annotations.VisibleForTesting;
 import jakarta.annotation.Nullable;
+import java.util.List;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
@@ -44,16 +46,26 @@ public class PolicyService {
 
   // -- Policy Attribute Object Interface --
 
-  public static TpsPolicyInput getGroupConstraintPolicyInput(String groupName) {
-    TpsPolicyPair policyPair = new TpsPolicyPair().key(GROUP_CONSTRAINT_KEY_NAME).value(groupName);
-    return new TpsPolicyInput()
-        .namespace(POLICY_NAMESPACE)
-        .name(GROUP_CONSTRAINT_POLICY_NAME)
-        .addAdditionalDataItem(policyPair);
+  public static TpsPolicyInput getGroupConstraintPolicyInput(List<String> groupNames) {
+    var input = new TpsPolicyInput().namespace(POLICY_NAMESPACE).name(GROUP_CONSTRAINT_POLICY_NAME);
+    groupNames.forEach(
+        groupName ->
+            input.addAdditionalDataItem(
+                new TpsPolicyPair().key(GROUP_CONSTRAINT_KEY_NAME).value(groupName)));
+    return input;
   }
 
   public static TpsPolicyInput getProtectedDataPolicyInput() {
     return new TpsPolicyInput().namespace(POLICY_NAMESPACE).name(PROTECTED_DATA_POLICY_NAME);
+  }
+
+  public TpsPaoGetResult getPao(UUID resourceId) {
+    TpsApi tpsApi = policyApiService.getPolicyApi();
+    try {
+      return tpsApi.getPao(resourceId, false);
+    } catch (ApiException e) {
+      throw convertApiException(e);
+    }
   }
 
   public void createSnapshotPao(UUID snapshotId, @Nullable TpsPolicyInputs policyInputs) {
@@ -119,10 +131,11 @@ public class PolicyService {
   @VisibleForTesting
   static RuntimeException convertApiException(ApiException ex) {
     return switch (ex.getCode()) {
-      case HttpStatus.SC_UNAUTHORIZED -> new PolicyServiceAuthorizationException(
-          "Not authorized to access Terra Policy Service", ex.getCause());
-      case HttpStatus.SC_NOT_FOUND -> new PolicyServiceNotFoundException(
-          "Policy access object not found", ex);
+      case HttpStatus.SC_UNAUTHORIZED ->
+          new PolicyServiceAuthorizationException(
+              "Not authorized to access Terra Policy Service", ex.getCause());
+      case HttpStatus.SC_NOT_FOUND ->
+          new PolicyServiceNotFoundException("Policy access object not found", ex);
       case HttpStatus.SC_BAD_REQUEST -> {
         if (StringUtils.containsIgnoreCase(ex.getMessage(), "duplicate")) {
           // TODO - this special handling may be removed once
@@ -134,8 +147,8 @@ public class PolicyService {
           yield new PolicyServiceApiException(ex);
         }
       }
-      case HttpStatus.SC_CONFLICT -> new PolicyConflictException(
-          "Policy access object already exists", ex);
+      case HttpStatus.SC_CONFLICT ->
+          new PolicyConflictException("Policy access object already exists", ex);
       default -> new PolicyServiceApiException(ex);
     };
   }

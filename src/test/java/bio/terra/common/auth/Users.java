@@ -2,49 +2,38 @@ package bio.terra.common.auth;
 
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.configuration.TestConfiguration.User;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
+@Profile("integrationtest")
 public class Users {
+  private static final Logger logger = LoggerFactory.getLogger(Users.class);
 
-  private Map<String, List<TestConfiguration.User>> usersByRole = new HashMap<>();
-  private Map<String, TestConfiguration.User> userByName = new HashMap<>();
+  private static final String ADMIN_ROLE = "admin";
+  private static final String STEWARD_ROLE = "steward";
+  private static final String CUSTODIAN_ROLE = "custodian";
+  private static final String READER_ROLE = "reader";
+  private static final String DISCOVERER_ROLE = "discoverer";
+
+  private final Map<String, List<User>> usersByRole;
+
+  public record TestUsers(User admin, User steward, User custodian, User reader, User discoverer) {}
 
   @Autowired
   public Users(TestConfiguration testConfig) {
-    buildUsersByRole(testConfig.getUsers());
+    usersByRole = testConfig.getUsers().stream().collect(Collectors.groupingBy(User::getRole));
   }
 
-  private void buildUsersByRole(List<TestConfiguration.User> users) {
-    users.forEach(
-        user -> {
-          String role = user.getRole();
-          List<TestConfiguration.User> newList = new ArrayList<>();
-
-          if (usersByRole.containsKey(role)) newList = usersByRole.get(role);
-          newList.add(user);
-          usersByRole.put(role, newList);
-          userByName.put(user.getName(), user);
-        });
-  }
-
-  public TestConfiguration.User getUserForRole(String role) {
-    return getUserForRole(role, true);
-  }
-
-  public TestConfiguration.User getUserForRole(String role, boolean shuffle) {
-    return getUsersForRole(role, 1, shuffle).get(0);
-  }
-
-  public TestConfiguration.User getUserForRole(String name, String role) {
-    List<User> usersForRole = getUsersForRole(role, -1, false);
+  private User getUserForRole(String name, String role) {
+    var usersForRole = usersByRole.get(role);
     return usersForRole.stream()
         .filter(u -> u.getName().equals(name))
         .findFirst()
@@ -60,24 +49,60 @@ public class Users {
                             .collect(Collectors.joining(", ")))));
   }
 
-  public TestConfiguration.User getUser(String name) {
-    return userByName.get(name);
+  private User getUserForRole(String role) {
+    var users = usersByRole.get(role);
+    return users.get(new Random().nextInt(users.size()));
   }
 
-  public List<TestConfiguration.User> getUsersForRole(String role, int numUsers, boolean shuffle) {
-    if (role == null) {
-      throw new RuntimeException("Role not specified");
-    }
-    List<TestConfiguration.User> usersList = usersByRole.get(role);
-    if (numUsers != -1 && usersList.size() < numUsers) {
-      throw new RuntimeException("not enough users for " + role);
-    }
-    if (shuffle) {
-      Collections.shuffle(usersList);
-    }
-    if (numUsers != -1) {
-      return usersList.subList(0, numUsers);
-    }
-    return usersList;
+  public User admin() {
+    return getUserForRole(ADMIN_ROLE);
+  }
+
+  public User admin(String name) {
+    return getUserForRole(name, ADMIN_ROLE);
+  }
+
+  public User steward() {
+    return getUserForRole(STEWARD_ROLE);
+  }
+
+  public User steward(String name) {
+    return getUserForRole(name, STEWARD_ROLE);
+  }
+
+  public User custodian() {
+    return getUserForRole(CUSTODIAN_ROLE);
+  }
+
+  public User custodian(String name) {
+    return getUserForRole(name, CUSTODIAN_ROLE);
+  }
+
+  public User reader() {
+    return getUserForRole(READER_ROLE);
+  }
+
+  public User reader(String name) {
+    return getUserForRole(name, READER_ROLE);
+  }
+
+  public User discoverer() {
+    return getUserForRole(DISCOVERER_ROLE);
+  }
+
+  public User discoverer(String name) {
+    return getUserForRole(name, DISCOVERER_ROLE);
+  }
+
+  public TestUsers testUsers() {
+    TestUsers testUsers = new TestUsers(admin(), steward(), custodian(), reader(), discoverer());
+    logger.info(
+        "admin: {}; steward: {}; custodian: {}; reader: {}; discoverer: {}",
+        testUsers.admin().getName(),
+        testUsers.steward().getName(),
+        testUsers.custodian().getName(),
+        testUsers.reader().getName(),
+        testUsers.discoverer().getName());
+    return testUsers;
   }
 }

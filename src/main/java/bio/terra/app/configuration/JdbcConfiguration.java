@@ -18,6 +18,7 @@ public class JdbcConfiguration {
   private String username;
   private String password;
   private String changesetFile;
+
   /**
    * Maximum number of database connections in the connection pool; -1 means no limit The goal of
    * these parameters is to prevent waiting for a database connection.

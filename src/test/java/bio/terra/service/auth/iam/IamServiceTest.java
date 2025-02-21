@@ -4,8 +4,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,6 +47,8 @@ class IamServiceTest {
 
   @Mock private ConfigurationService configurationService;
 
+  @Mock private GoogleCredentialsService googleCredentialsService;
+
   private IamService iamService;
 
   @BeforeEach
@@ -57,17 +61,17 @@ class IamServiceTest {
             iamProvider,
             configurationService,
             mock(JournalService.class),
-            mock(GoogleCredentialsService.class));
+            googleCredentialsService);
   }
 
   @Test
   void testRetrieveAuthDomain() throws InterruptedException {
-    when(iamProvider.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, ID))
+    when(iamProvider.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, ID))
         .thenReturn(AUTH_DOMAIN);
 
     List<String> result =
-        iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, ID);
-    verify(iamProvider).retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, ID);
+        iamService.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, ID);
+    verify(iamProvider).retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, ID);
     assertEquals(AUTH_DOMAIN, result);
   }
 
@@ -125,7 +129,7 @@ class IamServiceTest {
     assertThat(
         "Error message reflects cause",
         thrown.getMessage(),
-        containsString("does not have required action: " + action));
+        containsString("does not have required action '%s'".formatted(action)));
   }
 
   @Test
@@ -145,7 +149,7 @@ class IamServiceTest {
     assertThat(
         "Error message reflects cause",
         thrown.getMessage(),
-        containsString("does not have any actions"));
+        containsString("does not hold any actions"));
   }
 
   @Test
@@ -178,6 +182,15 @@ class IamServiceTest {
         "Error details contain missing actions",
         thrown.getCauses(),
         containsInAnyOrder(missingActions.stream().map(IamAction::toString).toArray()));
+  }
+
+  @Test
+  void createSnapshotResource() throws Exception {
+    UUID snapshotId = UUID.randomUUID();
+    UUID parentDatasetId = UUID.randomUUID();
+    SnapshotRequestModelPolicies policies = new SnapshotRequestModelPolicies();
+    iamService.createSnapshotResource(TEST_USER, snapshotId, parentDatasetId, policies);
+    verify(iamProvider).createSnapshotResource(TEST_USER, snapshotId, parentDatasetId, policies);
   }
 
   @Test
@@ -215,5 +228,73 @@ class IamServiceTest {
                 .stewards(policies.getStewards())
                 .readers(expectedReaders)
                 .discoverers(policies.getDiscoverers())));
+  }
+
+  @Test
+  void testVerifyResourceTypeAdminAuthorizedTrue() throws InterruptedException {
+    when(iamProvider.getResourceTypeAdminPermission(
+            TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION))
+        .thenReturn(true);
+    assertDoesNotThrow(
+        () ->
+            iamService.verifyResourceTypeAdminAuthorized(
+                TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION));
+  }
+
+  @Test
+  void testVerifyResourceTypeAdminAuthorizedFalse() throws InterruptedException {
+    when(iamProvider.getResourceTypeAdminPermission(
+            TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION))
+        .thenReturn(false);
+    assertThrows(
+        IamForbiddenException.class,
+        () ->
+            iamService.verifyResourceTypeAdminAuthorized(
+                TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION));
+  }
+
+  @Test
+  void testGetGroup() throws InterruptedException {
+    String groupName = "groupName";
+    String groupEmail = "groupEmail";
+    String accessToken = "accessToken";
+    when(googleCredentialsService.getApplicationDefaultAccessToken(any())).thenReturn(accessToken);
+    when(iamProvider.getGroup(accessToken, groupName)).thenReturn(groupEmail);
+    assertEquals(groupEmail, iamService.getGroup(groupName));
+  }
+
+  @Test
+  void testGetGroupPolicyEmails() throws InterruptedException {
+    String groupName = "groupName";
+    String policyName = IamRole.MEMBER.toString();
+    String accessToken = "accessToken";
+    when(googleCredentialsService.getApplicationDefaultAccessToken(any())).thenReturn(accessToken);
+    when(iamProvider.getGroupPolicyEmails(accessToken, groupName, policyName))
+        .thenReturn(List.of());
+    assertEquals(iamService.getGroupPolicyEmails(groupName, policyName), List.of());
+  }
+
+  @Test
+  void testAddEmailToGroup() throws InterruptedException {
+    String groupName = "groupName";
+    String policyName = IamRole.MEMBER.toString();
+    String email = "user@gmail.com";
+    String accessToken = "accessToken";
+    when(googleCredentialsService.getApplicationDefaultAccessToken(any())).thenReturn(accessToken);
+    when(iamProvider.addGroupPolicyEmail(accessToken, groupName, policyName, email))
+        .thenReturn(List.of(email));
+    assertEquals(iamService.addEmailToGroup(groupName, policyName, email), List.of(email));
+  }
+
+  @Test
+  void testRemoveEmailFromGroup() throws InterruptedException {
+    String groupName = "groupName";
+    String policyName = IamRole.MEMBER.toString();
+    String email = "user@gmail.com";
+    String accessToken = "accessToken";
+    when(googleCredentialsService.getApplicationDefaultAccessToken(any())).thenReturn(accessToken);
+    when(iamProvider.removeGroupPolicyEmail(accessToken, groupName, policyName, email))
+        .thenReturn(List.of());
+    assertEquals(iamService.removeEmailFromGroup(groupName, policyName, email), List.of());
   }
 }

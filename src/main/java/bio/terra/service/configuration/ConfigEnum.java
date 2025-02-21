@@ -53,8 +53,6 @@ public enum ConfigEnum {
   SNAPSHOT_GRANT_ACCESS_FAULT,
   SNAPSHOT_GRANT_FILE_ACCESS_FAULT,
 
-  FIRESTORE_RETRIEVE_FAULT,
-
   CRITICAL_SYSTEM_FAULT,
 
   // Faults to test the fault system

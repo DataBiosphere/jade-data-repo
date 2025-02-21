@@ -47,6 +47,7 @@ import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
@@ -87,10 +88,6 @@ import com.google.cloud.Role;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.cloud.storage.StorageRoles;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -109,21 +106,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.stringtemplate.v4.ST;
 
 @Component
 public class DataRepoFixtures {
 
   private static final Logger logger = LoggerFactory.getLogger(DataRepoFixtures.class);
-
-  private static final String QUERY_TEMPLATE =
-      "resource.type=\"k8s_container\"\n"
-          + "resource.labels.project_id=\"broad-jade-integration\"\n"
-          + "resource.labels.location=\"us-central1\"\n"
-          + "resource.labels.cluster_name=\"integration-master\"\n"
-          + "resource.labels.namespace_name=\"integration-<intNumber>\"\n"
-          + "labels.k8s-pod/component=\"integration-<intNumber>-jade-datarepo-api\"\n"
-          + "<if(hasFlightId)>jsonPayload.flightId=\"<flightId>\"<endif>";
 
   /** Roles which must be held by a dataset's SA to facilitate an ingestion * */
   private static final List<Role> INGEST_ROLES =
@@ -566,8 +553,9 @@ public class DataRepoFixtures {
           case DATASET -> "/api/repository/v1/datasets/";
           case DATASNAPSHOT -> "/api/repository/v1/snapshots/";
           case SPEND_PROFILE -> "/api/resources/v1/profiles/";
-          default -> throw new IllegalArgumentException(
-              "Policy member addition undefined for IamResourceType " + iamResourceType);
+          default ->
+              throw new IllegalArgumentException(
+                  "Policy member addition undefined for IamResourceType " + iamResourceType);
         };
     String path = pathPrefix + resourceId + "/policies/" + role.toString() + "/members";
     return dataRepoClient.post(user, path, TestUtils.mapToJson(req), new TypeReference<>() {});
@@ -603,8 +591,9 @@ public class DataRepoFixtures {
         switch (iamResourceType) {
           case DATASET -> "/api/repository/v1/datasets/";
           case DATASNAPSHOT -> "/api/repository/v1/snapshots/";
-          default -> throw new IllegalArgumentException(
-              "Role fetch undefined for IamResourceType " + iamResourceType);
+          default ->
+              throw new IllegalArgumentException(
+                  "Role fetch undefined for IamResourceType " + iamResourceType);
         };
     String path = pathPrefix + resourceId + "/roles";
 
@@ -627,8 +616,9 @@ public class DataRepoFixtures {
           case DATASET -> "/api/repository/v1/datasets/";
           case DATASNAPSHOT -> "/api/repository/v1/snapshots/";
           case SPEND_PROFILE -> "/api/resources/v1/profiles/";
-          default -> throw new IllegalArgumentException(
-              "Policy fetch undefined for IamResourceType " + iamResourceType);
+          default ->
+              throw new IllegalArgumentException(
+                  "Policy fetch undefined for IamResourceType " + iamResourceType);
         };
     String path = pathPrefix + resourceId + "/policies";
 
@@ -1754,7 +1744,7 @@ public class DataRepoFixtures {
                   }
                 })
             .flatMap(file -> Optional.ofNullable(file).stream())
-            .collect(Collectors.toList());
+            .toList();
 
     var fileIds =
         loadResult.getLoadFileResults().stream()
@@ -1789,12 +1779,8 @@ public class DataRepoFixtures {
               .map(JobModel::getId)
               .orElse(null);
 
-      String addedLink =
-          (testConfig.getIntegrationServerNumber() != null)
-              ? String.format("%nFor more information, see: %s", getStackdriverUrl(jobId))
-              : "no int server number";
       throw new AssertionError(
-          String.format("Error validating %s.  Got response: %s%s", action, response, addedLink));
+          String.format("Error validating %s.  Got response: %s", action, response));
     }
   }
 
@@ -1812,23 +1798,6 @@ public class DataRepoFixtures {
       throw new AssertionError(
           String.format("Error validating %s.  Got response: %s", action, response));
     }
-  }
-
-  private String getStackdriverUrl(final String jobId) {
-    String query =
-        URLEncoder.encode(
-            new ST(QUERY_TEMPLATE)
-                .add("intNumber", testConfig.getIntegrationServerNumber())
-                .add("flightId", jobId)
-                .add("hasFlightId", !StringUtils.isEmpty(jobId))
-                .render(),
-            StandardCharsets.UTF_8);
-    return "https://console.cloud.google.com/logs/query;"
-        + query
-        + ";cursorTimestamp="
-        + Instant.now().minus(Duration.ofSeconds(30)).toString()
-        + "?project="
-        + testConfig.getGoogleProjectId();
   }
 
   // Jobs
@@ -1910,7 +1879,7 @@ public class DataRepoFixtures {
                 + queryParams,
             new TypeReference<>() {});
     assertThat(
-        "search concept job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+        "enumerate concept job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
     assertTrue("concept response is present", response.getResponseObject().isPresent());
     return response.getResponseObject().get();
   }
@@ -1951,9 +1920,9 @@ public class DataRepoFixtures {
   }
 
   public SnapshotAccessRequestResponse createSnapshotAccessRequest(
-      TestConfiguration.User user, UUID snapshotId, String filename) throws Exception {
+      TestConfiguration.User user, UUID sourceSnapshotId, String filename) throws Exception {
     SnapshotAccessRequest request = jsonLoader.loadObject(filename, SnapshotAccessRequest.class);
-    request.sourceSnapshotId(snapshotId);
+    request.sourceSnapshotId(sourceSnapshotId);
 
     DataRepoResponse<SnapshotAccessRequestResponse> response =
         dataRepoClient.post(
@@ -1963,6 +1932,40 @@ public class DataRepoFixtures {
             new TypeReference<>() {});
     assertThat(
         "create Snapshot Access Request job is successful",
+        response.getStatusCode(),
+        equalTo(HttpStatus.OK));
+    assertTrue("Snapshot Access Request is present", response.getResponseObject().isPresent());
+    return response.getResponseObject().get();
+  }
+
+  // Currently, there is no getSnapshotAccessRequest API. So this uses the enumerate endpoint,
+  // and searches through the list to find the specified snapshot access request
+  public SnapshotAccessRequestResponse getSnapshotAccessRequest(
+      TestConfiguration.User user, UUID snapshotRequestId) throws Exception {
+    DataRepoResponse<EnumerateSnapshotAccessRequest> response =
+        dataRepoClient.get(
+            user, "/api/repository/v1/snapshotAccessRequests", new TypeReference<>() {});
+    assertThat(
+        "get Snapshot Access Request job is successful",
+        response.getStatusCode(),
+        equalTo(HttpStatus.OK));
+    assertTrue("Snapshot Access Request is present", response.getResponseObject().isPresent());
+    return response.getResponseObject().get().getItems().stream()
+        .filter(s -> s.getId().equals(snapshotRequestId))
+        .findFirst()
+        .orElseThrow(() -> new Exception("Snapshot Access Request is not present"));
+  }
+
+  public SnapshotAccessRequestResponse approveSnapshotAccessRequest(
+      TestConfiguration.User user, UUID snapshotRequestId) throws Exception {
+    DataRepoResponse<SnapshotAccessRequestResponse> response =
+        dataRepoClient.put(
+            user,
+            "/api/repository/v1/snapshotAccessRequests/" + snapshotRequestId + "/approve",
+            "",
+            new TypeReference<>() {});
+    assertThat(
+        "get Snapshot Access Request job is successful",
         response.getStatusCode(),
         equalTo(HttpStatus.OK));
     assertTrue("Snapshot Access Request is present", response.getResponseObject().isPresent());

@@ -2,11 +2,12 @@ package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.integration.DataRepoFixtures;
-import bio.terra.integration.TestJobWatcher;
-import bio.terra.integration.UsersBase;
+import bio.terra.integration.IntegrationTestConfiguration;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
@@ -18,41 +19,45 @@ import bio.terra.model.TableModel;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 // TODO move me to integration dir
-@RunWith(SpringRunner.class)
-@SpringBootTest
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@AutoConfigureMockMvc
-@Category(Integration.class)
-public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
+@Tag(Integration.TAG)
+class DatasetSchemaUpdateIntegrationTest {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
-  @Rule @Autowired public TestJobWatcher testWatcher;
+  @Autowired private Users users;
+
+  private Users.TestUsers testUsers;
   private UUID profileId;
   private UUID datasetId;
 
-  @Before
-  public void setup() throws Exception {
-    super.setup();
-    dataRepoFixtures.resetConfig(steward());
-    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
-    datasetId = null;
+  private User steward() {
+    return testUsers.steward();
   }
 
-  @After
+  @BeforeEach
+  public void setup() throws Exception {
+    testUsers = users.testUsers();
+    dataRepoFixtures.resetConfig(steward());
+    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+    DatasetSummaryModel datasetSummaryModel =
+        dataRepoFixtures.createDataset(steward(), profileId, "snapshot-test-dataset.json");
+    datasetId = datasetSummaryModel.getId();
+  }
+
+  @AfterEach
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward());
     if (datasetId != null) {
@@ -65,11 +70,7 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testDatasetAddNewTableSuccess() throws Exception {
-    DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "snapshot-test-dataset.json");
-    datasetId = datasetSummaryModel.getId();
-
+  void testDatasetAddNewTableSuccess() throws Exception {
     String newTableName = "new_table";
     String newTableColumnName = "new_table_column";
 
@@ -97,11 +98,7 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testDatasetAddNewColumnSuccess() throws Exception {
-    DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "snapshot-test-dataset.json");
-    datasetId = datasetSummaryModel.getId();
-
+  void testDatasetAddNewColumnSuccess() throws Exception {
     String existingTableName = "thetable";
     String existingTableColumnA = "added_column_a";
     String existingTableColumnB = "added_column_b";
@@ -126,17 +123,13 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
     boolean addedColumns =
         existingTable.get().getColumns().stream()
             .map(ColumnModel::getName)
-            .collect(Collectors.toList())
+            .toList()
             .containsAll(List.of(existingTableColumnA, existingTableColumnB));
     assertThat("The existing table includes the new columns in the update response", addedColumns);
   }
 
   @Test
-  public void testDatasetAddColumnToNewTableSuccess() throws Exception {
-    DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "snapshot-test-dataset.json");
-    datasetId = datasetSummaryModel.getId();
-
+  void testDatasetAddColumnToNewTableSuccess() throws Exception {
     String newTableName = "added_table";
     String newTableColumnName = "added_table_column";
     String anotherNewColumnName = "another_added_table_column";
@@ -162,16 +155,13 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
     boolean columns =
         newTable.get().getColumns().stream()
             .map(ColumnModel::getName)
-            .collect(Collectors.toList())
+            .toList()
             .containsAll(List.of(newTableColumnName, anotherNewColumnName));
     assertThat("The new table includes the new columns in the update response", columns);
   }
 
   @Test
-  public void testDatasetAddNewRelationshipSuccess() throws Exception {
-    DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "snapshot-test-dataset.json");
-    datasetId = datasetSummaryModel.getId();
+  void testDatasetAddNewRelationshipSuccess() throws Exception {
     String relationshipName = "testRelationship";
     RelationshipModel relationshipModel =
         new RelationshipModel()

@@ -513,32 +513,21 @@ public class ResourceService {
   public UUID initializeSnapshotProject(
       BillingProfileModel billingProfile,
       String projectId,
-      List<Dataset> sourceDatasets,
+      Dataset sourceDataset,
       String snapshotName,
       UUID snapshotId)
       throws InterruptedException {
 
     GoogleRegion region =
         (GoogleRegion)
-            sourceDatasets
-                .iterator()
-                .next()
+            sourceDataset
                 .getDatasetSummary()
                 .getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
 
-    String datasetNames =
-        sourceDatasets.stream().map(Dataset::getName).collect(Collectors.joining(","));
-
-    String datasetIds =
-        sourceDatasets.stream()
-            .map(Dataset::getId)
-            .map(UUID::toString)
-            .collect(Collectors.joining(","));
-
     Map<String, String> labels =
         Map.of(
-            "dataset-names", datasetNames,
-            "dataset-ids", datasetIds,
+            "dataset-names", sourceDataset.getName(),
+            "dataset-ids", sourceDataset.getId().toString(),
             "snapshot-name", snapshotName,
             "snapshot-id", snapshotId.toString(),
             "project-usage", "snapshot");

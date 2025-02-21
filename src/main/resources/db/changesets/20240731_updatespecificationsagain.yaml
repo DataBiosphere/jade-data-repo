@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: clear_snapshot_builder_requests_again
+      author: ccai
+      # Reimplementing Sky's update to account for requests made
+      # between their change and my change to openapi
+      changes:
+        - update:
+            tableName: snapshot_request
+            columns:
+              - column:
+                  name: snapshot_specification
+                  value: "{\"cohorts\": [{}], \"outputTables\": [{\"name\": \"Drug\"}]}"

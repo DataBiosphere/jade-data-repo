@@ -8,6 +8,7 @@ import io.opentelemetry.api.OpenTelemetry;
 import java.util.concurrent.TimeUnit;
 import okhttp3.OkHttpClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
+import org.broadinstitute.dsde.workbench.client.sam.api.AdminApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.AzureApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.GroupApi;
@@ -23,6 +24,7 @@ public class SamApiService {
 
   private final SamConfiguration samConfig;
   private final ConfigurationService configurationService;
+
   /** OkHttpClients should be shared among requests to reduce latency and save memory * */
   private final OkHttpClient sharedHttpClient;
 
@@ -47,6 +49,10 @@ public class SamApiService {
 
   public StatusApi statusApi() {
     return new StatusApi(createUnauthApiClient());
+  }
+
+  public AdminApi adminApi(String accessToken) {
+    return new AdminApi(createApiClient(accessToken));
   }
 
   public AzureApi azureApi(String accessToken) {

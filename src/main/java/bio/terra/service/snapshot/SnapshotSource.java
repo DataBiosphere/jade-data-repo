@@ -39,7 +39,7 @@ public class SnapshotSource {
     return assetSpecification;
   }
 
-  public SnapshotSource assetSpecification(AssetSpecification assetSpecification) {
+  public SnapshotSource setAssetSpecification(AssetSpecification assetSpecification) {
     this.assetSpecification = assetSpecification;
     return this;
   }

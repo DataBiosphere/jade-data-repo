@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.unlock;
 
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.common.UnlockResourceCheckLockNameStep;
 import bio.terra.service.dataset.DatasetService;
 import java.util.ArrayList;
@@ -8,18 +9,16 @@ import java.util.UUID;
 
 public class UnlockDatasetCheckLockNameStep extends UnlockResourceCheckLockNameStep {
   private final DatasetService datasetService;
-  private final UUID datasetId;
 
   public UnlockDatasetCheckLockNameStep(
       DatasetService datasetService, UUID datasetId, String lockName) {
-    super(lockName);
+    super(IamResourceType.DATASET, datasetId, lockName);
     this.datasetService = datasetService;
-    this.datasetId = datasetId;
   }
 
   protected List<String> getLocks() {
     var locks = new ArrayList<String>();
-    var lockResource = datasetService.retrieveDatasetSummary(datasetId).getResourceLocks();
+    var lockResource = datasetService.retrieveDatasetSummary(resourceId).getResourceLocks();
     if (lockResource.getExclusive() != null) {
       locks.add(lockResource.getExclusive());
     }
@@ -30,7 +29,7 @@ public class UnlockDatasetCheckLockNameStep extends UnlockResourceCheckLockNameS
   }
 
   protected boolean isSharedLock(String lockName) {
-    var lockResource = datasetService.retrieveDatasetSummary(datasetId).getResourceLocks();
+    var lockResource = datasetService.retrieveDatasetSummary(resourceId).getResourceLocks();
     if (lockResource.getShared() == null) {
       return false;
     }

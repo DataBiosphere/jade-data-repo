@@ -74,7 +74,7 @@ class DatasetIngestFlightTest {
 
   @ParameterizedTest
   @MethodSource
-  void testDatasetIngestValidatesFileAccess(
+  void testDatasetIngestValidationSteps(
       CloudPlatform cloudPlatform, FormatEnum format, boolean bulkMode) {
     when(datasetSummary.getStorageCloudPlatform()).thenReturn(cloudPlatform);
 
@@ -136,9 +136,24 @@ class DatasetIngestFlightTest {
           stepNames,
           hasItems(expectedIndirectFileValidationStep));
     }
+
+    if (CloudPlatformWrapper.of(cloudPlatform).isAzure()) {
+      assertThat(
+          flightDescription
+              + " validates tabular data and file references from scratch table before publishing",
+          stepNames,
+          containsInRelativeOrder(
+              "IngestCreateIngestRequestDataSourceStep",
+              "IngestCreateTargetDataSourceStep",
+              "IngestCreateScratchParquetFilesStep",
+              "IngestValidateScratchTableStep",
+              "IngestValidateScratchTableFilerefsStep",
+              "IngestCreateParquetFilesStep",
+              "IngestCleanAzureStep"));
+    }
   }
 
-  private static Stream<Arguments> testDatasetIngestValidatesFileAccess() {
+  private static Stream<Arguments> testDatasetIngestValidationSteps() {
     List<Arguments> arguments = new ArrayList<>();
     for (var platform : CloudPlatform.values()) {
       for (var format : FormatEnum.values()) {

@@ -8,6 +8,7 @@ import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.GetResourceBufferProjectStep;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -59,7 +60,6 @@ import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
-import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -113,6 +113,15 @@ public class SnapshotCreateFlight extends Flight {
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
     String snapshotName = snapshotReq.getName();
+    SnapshotRequestContentsModel contents = snapshotReq.getContents().get(0);
+    SnapshotRequestContentsModel.ModeEnum mode = contents.getMode();
+
+    // at start of flight, store the flight id in the snapshot request
+    if (mode == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      addStep(
+          new AddFlightIdToSnapshotRequestStep(
+              snapshotRequestDao, contents.getRequestIdSpec().getSnapshotRequestId()));
+    }
 
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
@@ -124,11 +133,8 @@ public class SnapshotCreateFlight extends Flight {
     RetryRule randomBackoffRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
-    // TODO note that with multi-dataset snapshots this will need to change
-    List<Dataset> sourceDatasets =
-        snapshotService.getSourceDatasetsFromSnapshotRequest(snapshotReq);
-    Dataset sourceDataset = sourceDatasets.get(0);
-    UUID datasetId = sourceDataset.getId();
+    UUID datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), UUID.class);
+    Dataset sourceDataset = datasetService.retrieve(datasetId);
     String datasetName = sourceDataset.getName();
 
     var platform =
@@ -156,7 +162,7 @@ public class SnapshotCreateFlight extends Flight {
       // Get or initialize the project where the snapshot resources will be created
       addStep(
           new CreateSnapshotInitializeProjectStep(
-              resourceService, sourceDatasets, snapshotName, snapshotId),
+              resourceService, sourceDataset, snapshotName, snapshotId),
           getDefaultExponentialBackoffRetryRule());
     }
 
@@ -174,7 +180,8 @@ public class SnapshotCreateFlight extends Flight {
 
     // create the snapshot metadata object in postgres and lock it
     addStep(
-        new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq, snapshotId),
+        new CreateSnapshotMetadataStep(
+            snapshotDao, snapshotService, snapshotReq, snapshotId, sourceDataset),
         getDefaultExponentialBackoffRetryRule());
 
     if (platform.isAzure()) {
@@ -198,9 +205,9 @@ public class SnapshotCreateFlight extends Flight {
     }
 
     // Make the big query dataset with views and populate row id filtering tables.
-    // Depending on the type of snapshot, the primary data step will differ:
+    // Depending on the type of snapshot, the primary data step will diff
     // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
-    switch (snapshotReq.getContents().get(0).getMode()) {
+    switch (mode) {
       case BYASSET -> {
         addStep(new CreateSnapshotValidateAssetStep(datasetService, snapshotService, snapshotReq));
         addStep(
@@ -212,18 +219,19 @@ public class SnapshotCreateFlight extends Flight {
                     new CreateSnapshotByAssetParquetFilesAzureStep(
                         azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
       }
-      case BYFULLVIEW -> addStep(
-          platform.choose(
-              () ->
-                  new CreateSnapshotPrimaryDataFullViewGcpStep(
-                      bigQuerySnapshotPdao,
-                      datasetService,
-                      snapshotDao,
-                      snapshotService,
-                      snapshotReq),
-              () ->
-                  new CreateSnapshotByFullViewParquetFilesAzureStep(
-                      azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
+      case BYFULLVIEW ->
+          addStep(
+              platform.choose(
+                  () ->
+                      new CreateSnapshotPrimaryDataFullViewGcpStep(
+                          bigQuerySnapshotPdao,
+                          snapshotDao,
+                          snapshotService,
+                          snapshotReq,
+                          sourceDataset),
+                  () ->
+                      new CreateSnapshotByFullViewParquetFilesAzureStep(
+                          azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
       case BYQUERY -> {
         addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
         addStep(
@@ -235,7 +243,8 @@ public class SnapshotCreateFlight extends Flight {
                         datasetService,
                         snapshotDao,
                         snapshotReq,
-                        userReq),
+                        userReq,
+                        sourceDataset),
                 () ->
                     new CreateSnapshotByQueryParquetFilesAzureStep(
                         azureSynapsePdao,
@@ -244,37 +253,47 @@ public class SnapshotCreateFlight extends Flight {
                         snapshotReq,
                         datasetService,
                         userReq,
+                        snapshotId,
+                        sourceDataset)));
+      }
+      case BYROWID ->
+          addStep(
+              platform.choose(
+                  () ->
+                      new CreateSnapshotPrimaryDataRowIdsStep(
+                          bigQuerySnapshotPdao, snapshotDao, snapshotService, snapshotReq),
+                  () ->
+                      new CreateSnapshotByRowIdParquetFilesAzureStep(
+                          azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
+      case BYREQUESTID -> {
+        addStep(new CreateSnapshotSamGroupNameStep(snapshotId, iamService));
+        addStep(new CreateSnapshotSamGroupStep(iamService));
+        addStep(
+            new CreateSnapshotAddEmailsToSamGroupStep(
+                userReq,
+                iamService,
+                snapshotRequestDao,
+                contents.getRequestIdSpec().getSnapshotRequestId()));
+        addStep(
+            platform.choose(
+                () ->
+                    new CreateSnapshotByRequestIdGcpStep(
+                        snapshotReq,
+                        snapshotService,
+                        snapshotBuilderService,
+                        snapshotDao,
+                        userReq,
+                        bigQuerySnapshotPdao),
+                () ->
+                    new CreateSnapshotByRequestIdAzureStep(
+                        snapshotReq,
+                        snapshotService,
+                        snapshotBuilderService,
+                        snapshotDao,
+                        userReq,
+                        azureSynapsePdao,
                         snapshotId)));
       }
-      case BYROWID -> addStep(
-          platform.choose(
-              () ->
-                  new CreateSnapshotPrimaryDataRowIdsStep(
-                      bigQuerySnapshotPdao, snapshotDao, snapshotService, snapshotReq),
-              () ->
-                  new CreateSnapshotByRowIdParquetFilesAzureStep(
-                      azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
-      case BYREQUESTID -> addStep(
-          platform.choose(
-              () ->
-                  new CreateSnapshotByRequestIdGcpStep(
-                      snapshotReq,
-                      snapshotService,
-                      snapshotBuilderService,
-                      snapshotRequestDao,
-                      snapshotDao,
-                      userReq,
-                      bigQuerySnapshotPdao),
-              () ->
-                  new CreateSnapshotByRequestIdAzureStep(
-                      snapshotReq,
-                      snapshotService,
-                      snapshotBuilderService,
-                      snapshotRequestDao,
-                      snapshotDao,
-                      userReq,
-                      azureSynapsePdao,
-                      snapshotId)));
     }
     if (platform.isAzure()) {
       addStep(
@@ -293,17 +312,16 @@ public class SnapshotCreateFlight extends Flight {
 
     // Create the IAM resource and readers for the snapshot
     // The IAM code contains retries, so we don't make a retry rule here.
-    addStep(new SnapshotAuthzIamStep(iamClient, snapshotService, snapshotReq, userReq, snapshotId));
+    addStep(new SnapshotAuthzIamStep(iamClient, snapshotReq, userReq, snapshotId, sourceDataset));
 
     // Now that the snapshot exists in Sam, we can add data access control groups to the snapshot
-    List<String> dataAccessControlGroups = snapshotReq.getDataAccessControlGroups();
-    if (Objects.nonNull(dataAccessControlGroups) && !dataAccessControlGroups.isEmpty()) {
-      addStep(
-          new CreateSnapshotGroupConstraintPolicyStep(
-              policyService, snapshotId, dataAccessControlGroups));
-      addStep(
-          new AddSnapshotAuthDomainStep(iamService, userReq, snapshotId, dataAccessControlGroups));
-    }
+    addStep(new CreateSnapshotSetDataAccessGroupsStep(snapshotReq.getDataAccessControlGroups()));
+    addStep(
+        new IfDataAccessControlGroupStep(
+            new CreateSnapshotGroupConstraintPolicyStep(policyService, snapshotId)));
+    addStep(
+        new IfDataAccessControlGroupStep(
+            new AddSnapshotAuthDomainStep(iamService, userReq, snapshotId)));
 
     if (platform.isGcp()) {
       // Make the firestore file system for the snapshot
@@ -332,7 +350,13 @@ public class SnapshotCreateFlight extends Flight {
       // Apply the IAM readers to the BQ dataset
       addStep(
           new SnapshotAuthzTabularAclStep(
-              bigQuerySnapshotPdao, snapshotService, configService, snapshotId),
+              bigQuerySnapshotPdao,
+              snapshotService,
+              configService,
+              iamService,
+              snapshotId,
+              userReq,
+              sourceDataset),
           pdaoAclRetryRule);
 
       // Apply the IAM readers to the GCS files
@@ -343,7 +367,9 @@ public class SnapshotCreateFlight extends Flight {
             pdaoAclRetryRule);
       }
 
-      addStep(new SnapshotAuthzBqJobUserStep(snapshotService, resourceService, snapshotName));
+      addStep(
+          new SnapshotAuthzBqJobUserStep(
+              snapshotService, resourceService, iamService, userReq, snapshotName, sourceDataset));
       addStep(
           new SnapshotAuthzServiceAccountConsumerStep(
               snapshotService, resourceService, snapshotName, tdrServiceAccountEmail));
@@ -362,7 +388,8 @@ public class SnapshotCreateFlight extends Flight {
               snapshotService,
               datasetId,
               datasetName,
-              snapshotId));
+              snapshotId),
+          randomBackoffRetry);
 
       addStep(
           new CreateSnapshotStorageTableDependenciesStep(
@@ -413,5 +440,18 @@ public class SnapshotCreateFlight extends Flight {
             datasetId,
             IamResourceType.DATASET,
             "A snapshot was created from this dataset."));
+
+    if (mode == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      UUID snapshotRequestId = contents.getRequestIdSpec().getSnapshotRequestId();
+      // On the snapshot access request, save information about the created snapshot and about
+      // the Sam group that was added as a DAC.
+      addStep(
+          new AddCreatedInfoToSnapshotRequestStep(
+              snapshotRequestDao, snapshotRequestId, snapshotId, tdrServiceAccountEmail));
+      // Notify user that snapshot is ready to use.
+      addStep(
+          new NotifyUserOfSnapshotCreationStep(
+              userReq, snapshotBuilderService, snapshotRequestDao, iamService, snapshotRequestId));
+    }
   }
 }

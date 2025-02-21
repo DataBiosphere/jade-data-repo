@@ -27,6 +27,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserIdInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -141,8 +142,45 @@ public class IamService {
     String userEmail = userReq.getEmail();
     if (!isAuthorized(userReq, iamResourceType, resourceId, action)) {
       throw new IamForbiddenException(
-          "User '" + userEmail + "' does not have required action: " + action);
+          "User '%s' does not have required action '%s' on the %s with ID %s"
+              .formatted(userEmail, action, iamResourceType.getSamResourceName(), resourceId));
     }
+  }
+
+  /**
+   * This is a wrapper method around {@link #isResourceTypeAdminAuthorized(AuthenticatedUserRequest,
+   * IamResourceType, IamAction)} that throws an exception instead of returning false when the user
+   * is NOT authorized to do the action given a resource type.
+   *
+   * @param userReq The AuthenticatedUserRequest
+   * @param iamResourceType The IamResourceType
+   * @param action The IamAction
+   * @throws IamForbiddenException if NOT authorized
+   */
+  public void verifyResourceTypeAdminAuthorized(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action) {
+    String userEmail = userReq.getEmail();
+    if (!isResourceTypeAdminAuthorized(userReq, iamResourceType, action)) {
+      throw new IamForbiddenException(
+          String.format(
+              "User '%s' does not have required action '%s' for resource type %s",
+              userEmail, action, iamResourceType));
+    }
+  }
+
+  /**
+   * Call external API to determine whether a user is authorized to do an admin action on a resource
+   * type.
+   *
+   * @param userReq The AuthenticatedUserRequest
+   * @param iamResourceType The IamResourceType
+   * @param action The IamAction
+   * @return true if authorized, false otherwise
+   */
+  public boolean isResourceTypeAdminAuthorized(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action) {
+    return callProvider(
+        () -> iamProvider.getResourceTypeAdminPermission(userReq, iamResourceType, action));
   }
 
   /**
@@ -157,7 +195,8 @@ public class IamService {
     String userEmail = userReq.getEmail();
     if (!hasAnyActions(userReq, iamResourceType, resourceId)) {
       throw new IamForbiddenException(
-          "User '" + userEmail + "' does not have any actions on the resource");
+          "User '%s' does not hold any actions on the %s with ID %s"
+              .formatted(userEmail, iamResourceType.getSamResourceName(), resourceId));
     }
   }
 
@@ -201,7 +240,8 @@ public class IamService {
 
     if (!unavailableActions.isEmpty()) {
       throw new IamForbiddenException(
-          "User '" + userEmail + "' is missing required actions (returned in details)",
+          "User '%s' is missing required actions on the %s with ID %s (returned in details)"
+              .formatted(userEmail, iamResourceType.getSamResourceName(), resourceId),
           unavailableActions);
     }
   }
@@ -245,12 +285,17 @@ public class IamService {
    *
    * @param userReq authenticated user
    * @param snapshotId id of the snapshot
+   * @param parentDatasetId id of the snapshot's parent dataset
    * @param policies user emails to add as snapshot policy members
    * @return Map of policy group emails for the snapshot policies
    */
   public Map<IamRole, String> createSnapshotResource(
-      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies) {
-    return callProvider(() -> iamProvider.createSnapshotResource(userReq, snapshotId, policies));
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId,
+      UUID parentDatasetId,
+      SnapshotRequestModelPolicies policies) {
+    return callProvider(
+        () -> iamProvider.createSnapshotResource(userReq, snapshotId, parentDatasetId, policies));
   }
 
   /**
@@ -267,6 +312,10 @@ public class IamService {
         () ->
             iamProvider.createSnapshotBuilderRequestResource(
                 userReq, snapshotId, snapshotBuilderRequestId));
+  }
+
+  public void deleteSnapshotBuilderRequest(AuthenticatedUserRequest userReq, UUID requestId) {
+    callProvider(() -> iamProvider.deleteSnapshotBuilderRequestResource(userReq, requestId));
   }
 
   /**
@@ -297,9 +346,10 @@ public class IamService {
   }
 
   // -- auth domain support --
-  public List<String> retrieveAuthDomain(
+  public List<String> retrieveAuthDomains(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId) {
-    return callProvider(() -> iamProvider.retrieveAuthDomain(userReq, iamResourceType, resourceId));
+    return callProvider(
+        () -> iamProvider.retrieveAuthDomains(userReq, iamResourceType, resourceId));
   }
 
   public void patchAuthDomain(
@@ -394,6 +444,14 @@ public class IamService {
 
   // -- managed group support --
 
+  public static String constructSamGroupName(String duosId) {
+    return String.format("%s-users", duosId);
+  }
+
+  public static String constructUniqueSamGroupName(String duosId) {
+    return String.format("%s-%s", constructSamGroupName(duosId), UUID.randomUUID());
+  }
+
   /**
    * @param groupName Firecloud managed group to create as the TDR SA
    * @return the email for the newly created group
@@ -401,6 +459,71 @@ public class IamService {
   public String createGroup(String groupName) {
     String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
     return callProvider(() -> iamProvider.createGroup(tdrSaAccessToken, groupName));
+  }
+
+  /**
+   * @param groupName Firecloud managed group to retrieve as the TDR SA
+   * @return the email for the retrieved group
+   */
+  public String getGroup(String groupName) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(() -> iamProvider.getGroup(tdrSaAccessToken, groupName));
+  }
+
+  /**
+   * @param groupName name of the Sam group
+   * @param policyName name of the Sam group policy
+   * @return list of emails on the group
+   */
+  public List<String> getGroupPolicyEmails(String groupName, String policyName) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(
+        () -> iamProvider.getGroupPolicyEmails(tdrSaAccessToken, groupName, policyName));
+  }
+
+  /**
+   * @param groupName name of the Sam group
+   * @param policyName name of the Sam group policy
+   * @param email the email to add to the group
+   * @return list of emails on the group after adding
+   */
+  public List<String> addEmailToGroup(String groupName, String policyName, String email) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(
+        () -> iamProvider.addGroupPolicyEmail(tdrSaAccessToken, groupName, policyName, email));
+  }
+
+  /**
+   * @param groupName name of the Sam group
+   * @param policyName name of the Sam group policy
+   * @param email the email to remove from the group
+   * @return list of emails on the group after removing
+   */
+  public List<String> removeEmailFromGroup(String groupName, String policyName, String email) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(
+        () -> iamProvider.removeGroupPolicyEmail(tdrSaAccessToken, groupName, policyName, email));
+  }
+
+  /**
+   * Overwrite group membership to include listed emails AND the current user's email
+   *
+   * @param userRequest current authenticated user - we'll use this to pull the requesting user's *
+   *     email and add it to the group
+   * @param groupName Sam/Firecloud managed group
+   * @param policyName name of Sam/Firecloud managed group policy
+   * @param emailAddresses emails which the TDR SA will set as group policy members
+   */
+  public void overwriteGroupPolicyEmailsIncludeRequestingUser(
+      AuthenticatedUserRequest userRequest,
+      String groupName,
+      String policyName,
+      List<String> emailAddresses) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    callProvider(
+        () ->
+            iamProvider.overwriteGroupPolicyEmailsIncludeRequestingUser(
+                tdrSaAccessToken, userRequest, groupName, policyName, emailAddresses));
   }
 
   /**
@@ -441,5 +564,10 @@ public class IamService {
   public String signUrlForBlob(
       AuthenticatedUserRequest userReq, String project, String path, Duration duration) {
     return callProvider(() -> iamProvider.signUrlForBlob(userReq, project, path, duration));
+  }
+
+  public UserIdInfo getUserIds(String userEmail) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(() -> iamProvider.getUserIds(tdrSaAccessToken, userEmail));
   }
 }

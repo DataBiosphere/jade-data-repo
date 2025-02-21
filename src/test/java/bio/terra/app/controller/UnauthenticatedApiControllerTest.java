@@ -18,9 +18,9 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ActiveProfiles({"google", "unittest"})
@@ -30,13 +30,13 @@ import org.springframework.test.web.servlet.MockMvc;
 class UnauthenticatedApiControllerTest {
 
   @Autowired private MockMvc mvc;
-  @MockBean private OauthConfiguration oauthConfig;
-  @MockBean private OpenIDConnectConfiguration openIDConnectConfiguration;
-  @MockBean private JobService jobService;
-  @MockBean private StatusService statusService;
-  @MockBean private TerraConfiguration terraConfiguration;
-  @MockBean private SamConfiguration samConfiguration;
-  @MockBean private DuosConfiguration duosConfiguration;
+  @MockitoBean private OauthConfiguration oauthConfig;
+  @MockitoBean private OpenIDConnectConfiguration openIDConnectConfiguration;
+  @MockitoBean private JobService jobService;
+  @MockitoBean private StatusService statusService;
+  @MockitoBean private TerraConfiguration terraConfiguration;
+  @MockitoBean private SamConfiguration samConfiguration;
+  @MockitoBean private DuosConfiguration duosConfiguration;
 
   private void mockGetStatus(boolean ok) {
     when(statusService.getStatus()).thenReturn(new RepositoryStatusModel().ok(ok));

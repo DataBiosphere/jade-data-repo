@@ -2,12 +2,16 @@ package bio.terra.service.tabulardata.google;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
-import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleRegion;
@@ -45,10 +49,13 @@ import bio.terra.model.TableDataType;
 import bio.terra.model.TransactionModel;
 import bio.terra.model.TransactionModel.StatusEnum;
 import bio.terra.service.auth.iam.IamProviderInterface;
+import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.auth.iam.exception.IamNotFoundException;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
+import bio.terra.service.policy.PolicyService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -82,6 +89,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserIdInfo;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -94,9 +102,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MvcResult;
 import org.stringtemplate.v4.ST;
@@ -124,8 +132,8 @@ public class BigQueryPdaoTest {
   @Autowired private BufferService bufferService;
   @Autowired private SnapshotService snapshotService;
   @Autowired private SnapshotBuilderService snapshotBuilderService;
-
-  @MockBean private IamProviderInterface samService;
+  @Autowired private PolicyService policyService;
+  @MockitoBean private IamProviderInterface samService;
 
   private BillingProfileModel profileModel;
 
@@ -337,13 +345,12 @@ public class BigQueryPdaoTest {
     void waitForCompletion(Dataset dataset) throws Exception {
       MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
       connectedOperations.checkIngestTableResponse(response);
-      connectedOperations.checkTableRowCount(
-          dataset, source.tableName, PDAO_PREFIX, source.expectedRowCount());
+      connectedOperations.checkTableRowCount(dataset, source.tableName, source.expectedRowCount());
     }
   }
 
   private Snapshot stageOmopData() throws Exception {
-    Dataset dataset = readDataset("omop/it-dataset-omop.jsonl");
+    Dataset dataset = readDataset("omop/it-dataset-omop.json");
     connectedOperations.addDataset(dataset.getId());
     bigQueryDatasetPdao.createDataset(dataset);
     // Stage tabular data for ingest.
@@ -372,6 +379,10 @@ public class BigQueryPdaoTest {
     return snapshotBuilderService.createRequest(TEST_USER, request);
   }
 
+  private SnapshotAccessRequestResponse approveSnapshotAccessRequest(UUID snapshotAccessRequestId) {
+    return snapshotBuilderService.approveRequest(snapshotAccessRequestId);
+  }
+
   private SnapshotRequestModel createSnapshotRequestModelByRequestId(UUID snapshotAccessRequestId)
       throws IOException {
     String filename = "omop/snapshot-request-model-by-request-id.json";
@@ -382,16 +393,29 @@ public class BigQueryPdaoTest {
 
   @Test
   public void createSnapshotByRequestId() throws Exception {
+    when(samService.getGroup(any(), any()))
+        .thenThrow(new IamNotFoundException(new Throwable("Group not found")));
+    when(samService.createGroup(any(), any())).thenReturn("group@firecloud.org");
+    when(samService.getUserIds(any(), any()))
+        .thenReturn(new UserIdInfo().userSubjectId("subjectId"));
+
     Snapshot sourceSnapshot = stageOmopData();
-    SnapshotAccessRequestResponse accessRequest =
-        createSnapshotAccessRequest(sourceSnapshot.getId());
+    SnapshotAccessRequestResponse approvedAccessRequest =
+        approveSnapshotAccessRequest(createSnapshotAccessRequest(sourceSnapshot.getId()).getId());
     SnapshotRequestModel requestModel =
-        createSnapshotRequestModelByRequestId(accessRequest.getId());
+        createSnapshotRequestModelByRequestId(approvedAccessRequest.getId());
 
     SnapshotSummaryModel snapshotSummary =
         connectedOperations.createSnapshot(datasetSummaryModel, requestModel, "");
+    var expectedGroupName =
+        IamService.constructSamGroupName(String.valueOf(snapshotSummary.getId()));
+    verify(samService)
+        .patchAuthDomain(any(), any(), eq(snapshotSummary.getId()), eq(List.of(expectedGroupName)));
+    when(samService.retrieveAuthDomains(any(), any(), any()))
+        .thenReturn(List.of(expectedGroupName));
+
     Snapshot snapshot = snapshotService.retrieve(snapshotSummary.getId());
-    assertThat(snapshot.getName(), is(requestModel.getName()));
+    assertThat(snapshot.getName(), is(snapshotService.getSnapshotName(requestModel)));
     assertThat(snapshot.getTables().size(), is(equalTo(3)));
     BigQueryProject bigQuerySnapshotProject =
         TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());
@@ -406,6 +430,26 @@ public class BigQueryPdaoTest {
     List<String> conceptIds =
         queryForIds(snapshot.getName(), "concept", rowId, bigQuerySnapshotProject, rowId);
     assertThat(conceptIds.size(), is(5));
+
+    var policies = snapshotService.retrieveSnapshotPolicies(snapshot.getId(), TEST_USER);
+    assertThat(
+        "Auth domain is set to a Sam group created alongside the snapshot",
+        policies.getAuthDomain(),
+        contains(expectedGroupName));
+
+    var result = policyService.getPao(snapshot.getId());
+    var groupConstraintName =
+        result.getAttributes().getInputs().stream()
+            .filter(i -> i.getName().equals("group-constraint"))
+            .findFirst()
+            .get()
+            .getAdditionalData()
+            .get(0)
+            .getValue();
+    assertThat(
+        "Group constraint is set to the Sam group created alongside the snapshot",
+        groupConstraintName,
+        is(expectedGroupName));
   }
 
   @Test
@@ -417,15 +461,15 @@ public class BigQueryPdaoTest {
     var concept3 =
         new SnapshotBuilderConcept().name("concept3").id(3).count(24).code("13").hasChildren(true);
     getConceptChildrenTest(snapshot, concept1, concept3);
-    searchConceptTest(snapshot, concept1);
+    enumerateConceptTest(snapshot, concept1);
     getConceptHierarchyTest(snapshot, concept1, concept3);
   }
 
-  private void searchConceptTest(Snapshot snapshot, SnapshotBuilderConcept concept1) {
+  private void enumerateConceptTest(Snapshot snapshot, SnapshotBuilderConcept concept1) {
     var enumerateConceptsResult =
         snapshotBuilderService.enumerateConcepts(
             snapshot.getId(), 19, concept1.getName(), TEST_USER);
-    // A concept returned by search concepts always has hasChildren = true, even if it doesn't
+    // A concept returned by enumerate concepts always has hasChildren = true, even if it doesn't
     // have children.
     var concept =
         new SnapshotBuilderConcept()
@@ -549,19 +593,18 @@ public class BigQueryPdaoTest {
       String participantTableName = "participant";
       connectedOperations.ingestTableSuccess(
           datasetId, ingestRequest.table(participantTableName).path(gsPath(participantBlob)));
-      connectedOperations.checkTableRowCount(dataset, participantTableName, PDAO_PREFIX, 5);
-      connectedOperations.checkDataModel(
-          dataset, List.of("id", "age"), PDAO_PREFIX, participantTableName, 5);
+      connectedOperations.checkTableRowCount(dataset, participantTableName, 5);
+      connectedOperations.checkDataModel(dataset, List.of("id", "age"), participantTableName, 5);
       // sample table
       String sampleTableName = "sample";
       connectedOperations.ingestTableSuccess(
           datasetId, ingestRequest.table(sampleTableName).path(gsPath(sampleBlob)));
-      connectedOperations.checkTableRowCount(dataset, sampleTableName, PDAO_PREFIX, 7);
+      connectedOperations.checkTableRowCount(dataset, sampleTableName, 7);
       // file table
       String fileTableName = "file";
       connectedOperations.ingestTableSuccess(
           datasetId, ingestRequest.table(fileTableName).path(gsPath(fileBlob)));
-      connectedOperations.checkTableRowCount(dataset, fileTableName, PDAO_PREFIX, 1);
+      connectedOperations.checkTableRowCount(dataset, fileTableName, 1);
 
       // Create a full-view snapshot!
       DatasetSummaryModel datasetSummary = dataset.getDatasetSummary().toModel();
@@ -569,11 +612,10 @@ public class BigQueryPdaoTest {
           connectedOperations.createSnapshot(
               datasetSummary, "snapshot-fullviews-test-snapshot.json", "");
       Snapshot snapshot = snapshotService.retrieve(snapshotSummary.getId());
-      connectedOperations.checkTableRowCount(snapshot, participantTableName, "", 5);
-      connectedOperations.checkDataModel(
-          snapshot, List.of("id", "age"), "", participantTableName, 5);
-      connectedOperations.checkTableRowCount(snapshot, sampleTableName, "", 7);
-      connectedOperations.checkTableRowCount(snapshot, fileTableName, "", 1);
+      connectedOperations.checkTableRowCount(snapshot, participantTableName, 5);
+      connectedOperations.checkDataModel(snapshot, List.of("id", "age"), participantTableName, 5);
+      connectedOperations.checkTableRowCount(snapshot, sampleTableName, 7);
+      connectedOperations.checkTableRowCount(snapshot, fileTableName, 1);
 
       BigQueryProject bigQuerySnapshotProject =
           TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());

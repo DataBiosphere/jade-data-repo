@@ -15,11 +15,15 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.snapshot.exception.AuthDomainGroupNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotAuthDomainExistsException;
+import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,12 +39,19 @@ class AddSnapshotAuthDomainStepTest {
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();
-  private static final List<String> userGroups = List.of("group1", "group2");
+  private static final List<String> userGroups = new ArrayList<>(List.of("group1", "group2"));
+
+  @BeforeEach
+  void setup() {
+    var flightMap = new FlightMap();
+    flightMap.put(SnapshotWorkingMapKeys.SNAPSHOT_DATA_ACCESS_CONTROL_GROUPS, userGroups);
+    when(flightContext.getWorkingMap()).thenReturn(flightMap);
+  }
 
   @Test
   void testDoAndUndoStepSucceeds() throws InterruptedException {
     AddSnapshotAuthDomainStep step =
-        new AddSnapshotAuthDomainStep(iamService, TEST_USER, SNAPSHOT_ID, userGroups);
+        new AddSnapshotAuthDomainStep(iamService, TEST_USER, SNAPSHOT_ID);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(iamService)
@@ -49,11 +60,11 @@ class AddSnapshotAuthDomainStepTest {
 
   @Test
   void testSnapshotAuthDomainExistsError() throws InterruptedException {
-    when(iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID))
+    when(iamService.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID))
         .thenReturn(userGroups);
 
     AddSnapshotAuthDomainStep step =
-        new AddSnapshotAuthDomainStep(iamService, TEST_USER, SNAPSHOT_ID, userGroups);
+        new AddSnapshotAuthDomainStep(iamService, TEST_USER, SNAPSHOT_ID);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_FAILURE_FATAL));
     assertThat(doResult.getException().get(), instanceOf(SnapshotAuthDomainExistsException.class));
@@ -63,14 +74,14 @@ class AddSnapshotAuthDomainStepTest {
   void testUserGroupNotFoundError() throws InterruptedException {
     AuthDomainGroupNotFoundException ex =
         new AuthDomainGroupNotFoundException("auth domain not found");
-    when(iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID))
+    when(iamService.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID))
         .thenReturn(List.of());
     doThrow(ex)
         .when(iamService)
         .patchAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID, userGroups);
 
     AddSnapshotAuthDomainStep step =
-        new AddSnapshotAuthDomainStep(iamService, TEST_USER, SNAPSHOT_ID, userGroups);
+        new AddSnapshotAuthDomainStep(iamService, TEST_USER, SNAPSHOT_ID);
     assertThrows(AuthDomainGroupNotFoundException.class, () -> step.doStep(flightContext));
   }
 }

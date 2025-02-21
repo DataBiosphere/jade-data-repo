@@ -1400,10 +1400,10 @@ public class AzureSynapsePdao {
     T convert(ResultSet rs) throws SQLException;
   }
 
-  // WARNING: SQL string must be sanitized before calling this method
-  public <T> List<T> runQuery(String sql, Converter<? extends T> converter) {
+  public <T> List<T> runQuery(
+      String query, Map<String, String> paramMap, Converter<? extends T> converter) {
     try {
-      return synapseJdbcTemplate.query(sql, (rs, rowNum) -> converter.convert(rs));
+      return synapseJdbcTemplate.query(query, paramMap, (rs, rowNum) -> converter.convert(rs));
     } catch (DataAccessException ex) {
       logger.warn(QUERY_EMPTY_TABLE_ERROR_MESSAGE, ex);
       return new ArrayList<>();
@@ -1462,16 +1462,16 @@ public class AzureSynapsePdao {
         return switch (column.getType()) {
           case BOOLEAN -> resultSet.getBoolean(column.getName());
           case BYTES -> resultSet.getBytes(column.getName());
-          case DIRREF, FILEREF, STRING, TEXT, DATE, DATETIME, TIMESTAMP -> resultSet.getString(
-              column.getName());
+          case DIRREF, FILEREF, STRING, TEXT, DATE, DATETIME, TIMESTAMP ->
+              resultSet.getString(column.getName());
           case FLOAT -> resultSet.getFloat(column.getName());
           case FLOAT64 -> resultSet.getDouble(column.getName());
           case INTEGER -> resultSet.getInt(column.getName());
           case INT64 -> resultSet.getLong(column.getName());
           case NUMERIC -> resultSet.getFloat(column.getName());
           case TIME -> resultSet.getTime(column.getName());
-          default -> throw new IllegalArgumentException(
-              "Unknown datatype '" + column.getType() + "'");
+          default ->
+              throw new IllegalArgumentException("Unknown datatype '" + column.getType() + "'");
         };
       } catch (SQLException e) {
         throw new PdaoException("Error reading data", e);
@@ -1492,17 +1492,11 @@ public class AzureSynapsePdao {
       TypeReference<?> targetType =
           switch (column.getType()) {
             case BOOLEAN -> new TypeReference<List<Boolean>>() {};
-            case DATE,
-                DATETIME,
-                DIRREF,
-                FILEREF,
-                STRING,
-                TEXT,
-                TIME,
-                TIMESTAMP -> new TypeReference<List<String>>() {};
+            case DATE, DATETIME, DIRREF, FILEREF, STRING, TEXT, TIME, TIMESTAMP ->
+                new TypeReference<List<String>>() {};
             case FLOAT, FLOAT64, INTEGER, INT64, NUMERIC -> new TypeReference<List<Number>>() {};
-            default -> throw new IllegalArgumentException(
-                "Unknown datatype '" + column.getType() + "'");
+            default ->
+                throw new IllegalArgumentException("Unknown datatype '" + column.getType() + "'");
           };
       try {
         return objectMapper.readValue(rawValue, targetType);

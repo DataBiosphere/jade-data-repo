@@ -9,14 +9,15 @@ import static org.junit.Assert.fail;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.OnDemand;
 import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.GcsFixtures;
-import bio.terra.integration.UsersBase;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -63,14 +64,16 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "integrationtest"})
 @Category(OnDemand.class)
-public class AccessTest extends UsersBase {
+public class AccessTest {
   private static final Logger logger = LoggerFactory.getLogger(AccessTest.class);
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;
   @Autowired private IamProviderInterface iamService;
   @Autowired private TestConfiguration testConfiguration;
+  @Autowired private Users users;
 
+  private Users.TestUsers testUsers;
   private String discovererToken;
   private String readerToken;
   private String custodianToken;
@@ -79,10 +82,22 @@ public class AccessTest extends UsersBase {
   private UUID profileId;
   private List<UUID> snapshotIds;
 
+  private User steward() {
+    return testUsers.steward();
+  }
+
+  private User custodian() {
+    return testUsers.custodian();
+  }
+
+  private User reader() {
+    return testUsers.reader();
+  }
+
   @Before
   public void setup() throws Exception {
-    super.setup();
-    discovererToken = authService.getDirectAccessAuthToken(discoverer().getEmail());
+    testUsers = users.testUsers();
+    discovererToken = authService.getDirectAccessAuthToken(testUsers.discoverer().getEmail());
     readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
     custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
@@ -351,7 +366,7 @@ public class AccessTest extends UsersBase {
         custodian(), dataset, dataset.getSchema().getTables().get(1).getName(), 7);
   }
 
-  private boolean canReadBlob(Storage storage, BlobId blobId) throws Exception {
+  private boolean canReadBlob(Storage storage, BlobId blobId) {
     try (ReadChannel reader = storage.reader(blobId)) {
       ByteBuffer bytes = ByteBuffer.allocate(64 * 1024);
       int bytesRead = reader.read(bytes);

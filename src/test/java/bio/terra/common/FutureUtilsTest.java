@@ -141,7 +141,8 @@ class FutureUtilsTest {
   @Test
   void testWaitFor_RuntimeException() {
     final Executor delayedExecutor = CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS);
-    final RuntimeException rootCause = new RuntimeException("Injected error");
+    final String rootCauseMessage = "Injected error";
+    final RuntimeException rootCause = new RuntimeException(rootCauseMessage);
     final List<Future<String>> futures =
         List.of(
             CompletableFuture.completedFuture("Completed successfully"),
@@ -149,7 +150,8 @@ class FutureUtilsTest {
             CompletableFuture.supplyAsync(() -> "Should be cancelled with delay", delayedExecutor));
     assertThatThrownBy(() -> FutureUtils.waitFor(futures))
         .isInstanceOf(ApiException.class)
-        .hasMessage("Error executing thread")
+        .hasMessageStartingWith(rootCause.getClass().getName())
+        .hasMessageEndingWith(rootCauseMessage)
         .hasRootCause(rootCause);
     // Make sure that at least one task after the failure was cancelled
     assertThat(IterableUtils.countMatches(futures, Future::isCancelled)).isPositive();
@@ -170,7 +172,7 @@ class FutureUtilsTest {
   }
 
   @Test
-  void testWaitFor_nulLFiltering() {
+  void testWaitFor_nullFiltering() {
     String expected = "Expected";
     final List<Future<String>> futures =
         List.of(

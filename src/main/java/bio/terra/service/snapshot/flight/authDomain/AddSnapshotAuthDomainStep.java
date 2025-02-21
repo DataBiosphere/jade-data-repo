@@ -7,10 +7,12 @@ import bio.terra.service.auth.iam.exception.IamInternalServerErrorException;
 import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.snapshot.exception.AuthDomainGroupNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotAuthDomainExistsException;
+import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,23 +24,23 @@ public class AddSnapshotAuthDomainStep extends DefaultUndoStep {
   private final AuthenticatedUserRequest userRequest;
   private final UUID snapshotId;
 
-  private final List<String> userGroups;
-
   public AddSnapshotAuthDomainStep(
-      IamService iamService,
-      AuthenticatedUserRequest userRequest,
-      UUID snapshotId,
-      List<String> userGroups) {
+      IamService iamService, AuthenticatedUserRequest userRequest, UUID snapshotId) {
     this.iamService = iamService;
     this.userRequest = userRequest;
     this.snapshotId = snapshotId;
-    this.userGroups = userGroups;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
+    List<String> userGroups =
+        context
+            .getWorkingMap()
+            .get(
+                SnapshotWorkingMapKeys.SNAPSHOT_DATA_ACCESS_CONTROL_GROUPS,
+                new TypeReference<>() {});
     List<String> existingAuthDomain =
-        iamService.retrieveAuthDomain(userRequest, IamResourceType.DATASNAPSHOT, snapshotId);
+        iamService.retrieveAuthDomains(userRequest, IamResourceType.DATASNAPSHOT, snapshotId);
     if (!existingAuthDomain.isEmpty()) {
       return new StepResult(
           StepStatus.STEP_RESULT_FAILURE_FATAL,

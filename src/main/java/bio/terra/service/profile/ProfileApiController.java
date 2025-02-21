@@ -11,6 +11,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.EnumerateBillingProfileModel;
+import bio.terra.model.EnumerateBillingProfileResourcesModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
@@ -20,12 +21,10 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.PolicyMemberValidator;
 import bio.terra.service.job.JobService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -38,7 +37,6 @@ import org.springframework.web.bind.annotation.InitBinder;
 @Api(tags = {"profiles"})
 public class ProfileApiController implements ProfilesApi {
 
-  private final ObjectMapper objectMapper;
   private final HttpServletRequest request;
   private final ProfileService profileService;
   private final ProfileRequestValidator billingProfileRequestValidator;
@@ -52,7 +50,6 @@ public class ProfileApiController implements ProfilesApi {
 
   @Autowired
   public ProfileApiController(
-      ObjectMapper objectMapper,
       HttpServletRequest request,
       ProfileService profileService,
       ProfileRequestValidator billingProfileRequestValidator,
@@ -62,7 +59,6 @@ public class ProfileApiController implements ProfilesApi {
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       IamService iamService,
       ApplicationConfiguration applicationConfiguration) {
-    this.objectMapper = objectMapper;
     this.request = request;
     this.profileService = profileService;
     this.billingProfileRequestValidator = billingProfileRequestValidator;
@@ -72,16 +68,6 @@ public class ProfileApiController implements ProfilesApi {
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.iamService = iamService;
     this.applicationConfiguration = applicationConfiguration;
-  }
-
-  @Override
-  public Optional<ObjectMapper> getObjectMapper() {
-    return Optional.ofNullable(objectMapper);
-  }
-
-  @Override
-  public Optional<HttpServletRequest> getRequest() {
-    return Optional.ofNullable(request);
   }
 
   @InitBinder
@@ -187,5 +173,15 @@ public class ProfileApiController implements ProfilesApi {
     profileService.getProfileByIdNoCheck(UUID.fromString(profileId));
     // Verify permissions
     iamService.verifyAuthorization(userReq, resourceType, resourceId, action);
+  }
+
+  @Override
+  public ResponseEntity<EnumerateBillingProfileResourcesModel> getProfileResources(UUID id) {
+    AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
+    var resources =
+        profileService.getProfileResources(id, user).stream()
+            .map(ProfileOwnedResource::toModel)
+            .toList();
+    return ResponseEntity.ok(new EnumerateBillingProfileResourcesModel().items(resources));
   }
 }

@@ -34,7 +34,10 @@ import org.stringtemplate.v4.ST;
 @Component
 public final class MetadataDataAccessUtils {
 
-  private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofMinutes(15);
+  // Increasing the default SAS token expiration time to 60 minutes only for Azure
+  // to allow for larger file downloads; This should not apply to TDR on GCP
+  // private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofMinutes(15);
+  private static final Duration AZURE_SAS_TOKEN_EXPIRATION = Duration.ofMinutes(60);
   private static final String BIGQUERY_DATASET_LINK =
       "https://console.cloud.google.com/bigquery?project=<project>&"
           + "ws=!<dataset>&d=<dataset>&p=<project>&page=<page>";
@@ -84,6 +87,7 @@ public final class MetadataDataAccessUtils {
       final Snapshot snapshot, final AuthenticatedUserRequest userRequest) {
     return accessInfoFromSnapshot(snapshot, userRequest, null);
   }
+
   /** Generate an {@link AccessInfoModel} from a Snapshot */
   public AccessInfoModel accessInfoFromSnapshot(
       final Snapshot snapshot, final AuthenticatedUserRequest userRequest, String forTable) {
@@ -151,7 +155,7 @@ public final class MetadataDataAccessUtils {
 
     BlobSasTokenOptions blobSasTokenOptions =
         new BlobSasTokenOptions(
-            DEFAULT_SAS_TOKEN_EXPIRATION,
+            AZURE_SAS_TOKEN_EXPIRATION,
             new BlobSasPermission().setReadPermission(true).setListPermission(true),
             userRequest.getEmail());
 

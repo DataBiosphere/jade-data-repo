@@ -5,7 +5,7 @@ The `setup_tdr_resources.py` script can be used to easily create datasets and sn
     * `python3 -m venv c:/path/to/myenv`
     * `source c:/path/to/myenv/bin/activate`
 2. `cd jade-data-repo/tools/setupResourceScripts`
-3. `pip3 install -r requirements.txt`
+3. `pip3 install -r requirements.txt --upgrade`
 4. `gcloud auth login <user>`
 5. `python3 setup_tdr_resources.py --help to see all flags used.`
 
@@ -21,17 +21,11 @@ The script outputs are written to a JSON file in the format:
 ```
 
 ### Set up data repo UI test datasets
-* Run the script against both integration-4 and integration-5 to set up the datasets for the UI tests. You'll need to run it for
-both the azure and gcp datasets. So, a total of 4 runs.
-* Authenticate as the test user that created the azure managed application. Password for account can be found
-on our slack channel.
+* Run the script against dev to set up the datasets for the UI tests. You'll need to run it for both the azure and gcp datasets. So, a total of 2 runs.
+* Authenticate as the test user that created the azure managed application. Password for account can be found on our slack channel.
 * `gcloud auth login dumbledore.admin@test.firecloud.org`
-* integration-4:
-* `python3 setup_tdr_resources.py --host=https://jade-4.datarepo-integration.broadinstitute.org --datasets='datarepo_datasets.json'`
-* `python3 setup_tdr_resources.py --host=https://jade-4.datarepo-integration.broadinstitute.org --datasets='datarepo_azure_datasets.json' --billing_profile_file_name='azure_billing_profile_int.json'`
-* integration-5:
-* `python3 setup_tdr_resources.py --host=https://jade-5.datarepo-integration.broadinstitute.org --datasets='datarepo_datasets.json'`
-* `python3 setup_tdr_resources.py --host=https://jade-5.datarepo-integration.broadinstitute.org --datasets='datarepo_azure_datasets.json' --billing_profile_file_name='azure_billing_profile_int.json'`
+* `python3 setup_tdr_resources.py --host=https://jade.datarepo-dev.broadinstitute.org --datasets='datarepo_datasets.json'`
+* `python3 setup_tdr_resources.py --host=https://jade.datarepo-dev.broadinstitute.org --datasets='datarepo_azure_datasets.json' --billing_profile_file_name='azure_billing_profile_int.json'`
 
 ### Azure OMOP Dataset and Snapshot Builder Settings Setup
 1. Prepare resources for creating a new azure billing profile (alternatively pass in an existing billing profile id with the --azure_profile_id flag)

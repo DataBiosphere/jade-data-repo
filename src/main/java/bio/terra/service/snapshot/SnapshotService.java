@@ -11,6 +11,7 @@ import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.Table;
+import bio.terra.common.ValidationUtils;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -20,6 +21,8 @@ import bio.terra.externalcreds.model.ValidatePassportResult;
 import bio.terra.grammar.Query;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.AddAuthDomainResponseModel;
+import bio.terra.model.AssetModel;
+import bio.terra.model.AssetTableModel;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
@@ -30,7 +33,12 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
+import bio.terra.model.SnapshotAccessRequestStatus;
+import bio.terra.model.SnapshotBuilderDatasetConceptSet;
+import bio.terra.model.SnapshotBuilderOutputTable;
+import bio.terra.model.SnapshotBuilderRootTable;
 import bio.terra.model.SnapshotBuilderSettings;
+import bio.terra.model.SnapshotBuilderTable;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
@@ -86,11 +94,14 @@ import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.snapshot.flight.lock.SnapshotLockFlight;
 import bio.terra.service.snapshot.flight.unlock.SnapshotUnlockFlight;
+import bio.terra.service.snapshotbuilder.SnapshotAccessRequestModel;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
+import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.service.tags.TagUtils;
+import bio.terra.stairway.FlightStatus;
 import com.google.common.annotations.VisibleForTesting;
 import java.text.ParseException;
 import java.time.Instant;
@@ -102,6 +113,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -115,11 +127,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class SnapshotService {
   private static final Logger logger = LoggerFactory.getLogger(SnapshotService.class);
+  private static final int SNAPSHOT_NAME_MAX_LENGTH = 511;
   private final JobService jobService;
   private final DatasetService datasetService;
   private final FireStoreDependencyDao dependencyDao;
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotDao snapshotDao;
+  private final SnapshotRequestDao snapshotRequestDao;
   private final SnapshotTableDao snapshotTableDao;
   private final MetadataDataAccessUtils metadataDataAccessUtils;
   private final IamService iamService;
@@ -129,14 +143,13 @@ public class SnapshotService {
   private final DuosClient duosClient;
   private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
 
-  public static final String ASSET_NAME = "concept_asset";
-
   public SnapshotService(
       JobService jobService,
       DatasetService datasetService,
       FireStoreDependencyDao dependencyDao,
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotDao snapshotDao,
+      SnapshotRequestDao snapshotRequestDao,
       SnapshotTableDao snapshotTableDao,
       MetadataDataAccessUtils metadataDataAccessUtils,
       IamService iamService,
@@ -150,6 +163,7 @@ public class SnapshotService {
     this.dependencyDao = dependencyDao;
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotDao = snapshotDao;
+    this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotTableDao = snapshotTableDao;
     this.metadataDataAccessUtils = metadataDataAccessUtils;
     this.iamService = iamService;
@@ -160,6 +174,35 @@ public class SnapshotService {
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
   }
 
+  public String getSnapshotName(SnapshotRequestModel model) {
+    SnapshotRequestContentsModel contentsModel = model.getContents().get(0);
+    if (contentsModel.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      SnapshotAccessRequestModel snapshotAccessRequestResponse =
+          snapshotRequestDao.getById(contentsModel.getRequestIdSpec().getSnapshotRequestId());
+      String dashesAndSpacesRegex = "[- ]+";
+      String nonAlphaNumericRegex = "\\W";
+
+      // Handle null as empty string.
+      String snapshotAccessRequestName =
+          Optional.ofNullable(snapshotAccessRequestResponse.snapshotName()).orElse("");
+
+      String cleanedId = snapshotAccessRequestResponse.id().toString().replace('-', '_');
+      String cleanedName =
+          StringUtils.truncate(
+              StringUtils.strip(
+                  snapshotAccessRequestName
+                      .replaceAll(dashesAndSpacesRegex, "_")
+                      .replaceAll(nonAlphaNumericRegex, "")
+                      .trim(),
+                  "_"),
+              SNAPSHOT_NAME_MAX_LENGTH - 1 - cleanedId.length());
+      String separator = cleanedName.length() > 0 ? "_" : "";
+
+      return cleanedName + separator + cleanedId;
+    }
+    return model.getName();
+  }
+
   /**
    * Kick-off snapshot creation Pre-condition: the snapshot request has been syntax checked by the
    * validator
@@ -167,9 +210,10 @@ public class SnapshotService {
    * @return jobId (flightId) of the job
    */
   public String createSnapshot(
-      SnapshotRequestModel snapshotRequestModel, AuthenticatedUserRequest userReq) {
-    String sourceDatasetName = snapshotRequestModel.getContents().get(0).getDatasetName();
-    Dataset dataset = datasetService.retrieveByName(sourceDatasetName);
+      SnapshotRequestModel snapshotRequestModel,
+      Dataset dataset,
+      AuthenticatedUserRequest userReq) {
+    snapshotRequestModel.setName(getSnapshotName(snapshotRequestModel));
     if (snapshotRequestModel.getProfileId() == null) {
       snapshotRequestModel.setProfileId(dataset.getDefaultProfileId());
       logger.warn(
@@ -183,19 +227,62 @@ public class SnapshotService {
       // We fetch the DUOS dataset to confirm its existence, but do not need the returned value.
       duosClient.getDataset(duosId, userReq);
     }
+    validateForByRequestIdMode(snapshotRequestModel.getContents().get(0));
 
     UUID snapshotId = UUID.randomUUID();
     String description =
         "Create snapshot %s with ID %s".formatted(snapshotRequestModel.getName(), snapshotId);
+    // In order to avoid having the dataset name be wrong (since this is created off a request
+    // rather than a dataset in particular), we override the dataset name here. This only works
+    // because we don't actually support multiple sources.
+    snapshotRequestModel.setContents(
+        snapshotRequestModel.getContents().stream()
+            .map(model -> model.datasetName(dataset.getName()))
+            .toList());
 
     return jobService
         .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)
         .addParameter(CommonMapKeys.CREATED_AT, Instant.now().toEpochMilli())
-        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
-        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), dataset.getId())
-        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.LINK_SNAPSHOT)
+        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), dataset.getId())
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId.toString())
         .submit();
+  }
+
+  /**
+   * If the snapshot request is byRequestId, verify that the request has been approved and that a
+   * snapshot has not yet been successfully created from the request. Note: If the flightId is
+   * populated but the createdSnapshotId is not, then the previous flight failed and the snapshot
+   * creation should be allowed to continue.
+   *
+   * @param snapshotRequestContents to validate
+   */
+  @VisibleForTesting
+  void validateForByRequestIdMode(SnapshotRequestContentsModel snapshotRequestContents) {
+    if (snapshotRequestContents.getMode() != SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      return;
+    }
+    SnapshotAccessRequestModel snapshotAccessRequest =
+        snapshotRequestDao.getById(
+            snapshotRequestContents.getRequestIdSpec().getSnapshotRequestId());
+    if (snapshotAccessRequest.status() != SnapshotAccessRequestStatus.APPROVED) {
+      throw new ValidationException(
+          "Snapshot request must be approved before creating a snapshot.");
+    }
+    if (snapshotAccessRequest.createdSnapshotId() != null) {
+      throw new ValidationException(
+          "Snapshot with id %s is already created from request with id %s"
+              .formatted(snapshotAccessRequest.createdSnapshotId(), snapshotAccessRequest.id()));
+    }
+    String flightId = snapshotAccessRequest.flightid();
+    if (flightId != null && jobService.unauthRetrieveJobState(flightId) != FlightStatus.ERROR) {
+      throw new ValidationException(
+          "Snapshot Create Flight with id %s is still running".formatted(flightId));
+    }
+    var requesterEmail = snapshotAccessRequest.createdBy();
+    if (requesterEmail == null || !ValidationUtils.isValidEmail(requesterEmail)) {
+      throw new ValidationException(
+          "The createdBy email supplied on the access request is not valid.");
+    }
   }
 
   public void undoCreateSnapshot(String snapshotName) throws InterruptedException {
@@ -540,7 +627,8 @@ public class SnapshotService {
    *
    * @return Snapshot
    */
-  public Snapshot makeSnapshotFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel) {
+  public Snapshot makeSnapshotFromSnapshotRequest(
+      SnapshotRequestModel snapshotRequestModel, Dataset sourceDataset) {
     // Make this early, so we can hook up back links to it
     Snapshot snapshot = new Snapshot();
     List<SnapshotRequestContentsModel> requestContentsList = snapshotRequestModel.getContents();
@@ -550,15 +638,11 @@ public class SnapshotService {
     }
 
     SnapshotRequestContentsModel requestContents = requestContentsList.get(0);
-    Dataset dataset = datasetService.retrieveByName(requestContents.getDatasetName());
-    SnapshotSource snapshotSource = new SnapshotSource().snapshot(snapshot).dataset(dataset);
-    switch (snapshotRequestModel.getContents().get(0).getMode()) {
+    SnapshotSource snapshotSource = new SnapshotSource().snapshot(snapshot).dataset(sourceDataset);
+    switch (requestContents.getMode()) {
       case BYASSET -> {
-        // TODO: When we implement explicit definition of snapshot tables, we will handle that here.
-        // For now, we generate the snapshot tables directly from the asset tables of the one source
-        // allowed in a snapshot.
         AssetSpecification assetSpecification = getAssetSpecificationFromRequest(requestContents);
-        snapshotSource.assetSpecification(assetSpecification);
+        snapshotSource.setAssetSpecification(assetSpecification);
         conjureSnapshotTablesFromAsset(snapshot, snapshotSource);
       }
       case BYFULLVIEW -> conjureSnapshotTablesFromDatasetTables(snapshot, snapshotSource);
@@ -568,15 +652,26 @@ public class SnapshotService {
         String snapshotQuery = queryModel.getQuery();
         Query query = Query.parse(snapshotQuery);
         String datasetName = query.getDatasetName();
-        createSnapshotTablesFromDatasetAsset(datasetName, assetName, snapshotSource, snapshot);
+        Dataset queryDataset = datasetService.retrieveByName(datasetName);
+        AssetSpecification queryAssetSpecification =
+            getAssetByNameFromDataset(queryDataset, assetName);
+        snapshotSource.setAssetSpecification(queryAssetSpecification);
+        conjureSnapshotTablesFromAsset(snapshot, snapshotSource);
       }
       case BYROWID -> {
         SnapshotRequestRowIdModel requestRowIdModel = requestContents.getRowIdSpec();
         conjureSnapshotTablesFromRowIds(requestRowIdModel, snapshot, snapshotSource);
       }
       case BYREQUESTID -> {
-        String datasetName = snapshotRequestModel.getContents().get(0).getDatasetName();
-        createSnapshotTablesFromDatasetAsset(datasetName, ASSET_NAME, snapshotSource, snapshot);
+        UUID accessRequestId = requestContents.getRequestIdSpec().getSnapshotRequestId();
+        SnapshotAccessRequestModel accessRequest = getSnapshotAccessRequestById(accessRequestId);
+
+        AssetSpecification queryAssetSpecification =
+            buildAssetFromSnapshotAccessRequest(sourceDataset, accessRequest);
+        // populate the assetSpecification field so that we can write it to the working map in the
+        // step
+        snapshotSource.setAssetSpecification(queryAssetSpecification);
+        conjureSnapshotTablesFromAsset(snapshot, snapshotSource);
       }
     }
 
@@ -585,7 +680,8 @@ public class SnapshotService {
         .description(snapshotRequestModel.getDescription())
         .snapshotSources(Collections.singletonList(snapshotSource))
         .profileId(snapshotRequestModel.getProfileId())
-        .relationships(createSnapshotRelationships(dataset.getRelationships(), snapshotSource))
+        .relationships(
+            createSnapshotRelationships(sourceDataset.getRelationships(), snapshotSource))
         .creationInformation(requestContents)
         .consentCode(snapshotRequestModel.getConsentCode())
         .properties(snapshotRequestModel.getProperties())
@@ -594,12 +690,76 @@ public class SnapshotService {
         .tags(TagUtils.sanitizeTags(snapshotRequestModel.getTags()));
   }
 
-  private void createSnapshotTablesFromDatasetAsset(
-      String datasetName, String assetName, SnapshotSource snapshotSource, Snapshot snapshot) {
-    Dataset queryDataset = datasetService.retrieveByName(datasetName);
-    AssetSpecification queryAssetSpecification = getAssetByNameFromDataset(queryDataset, assetName);
-    snapshotSource.assetSpecification(queryAssetSpecification);
-    conjureSnapshotTablesFromAsset(snapshot, snapshotSource);
+  public SnapshotAccessRequestModel getSnapshotAccessRequestById(UUID accessRequestId) {
+    return snapshotRequestDao.getById(accessRequestId);
+  }
+
+  public AssetSpecification buildAssetFromSnapshotAccessRequest(
+      Dataset dataset, SnapshotAccessRequestModel snapshotAccessRequest) {
+    SnapshotBuilderSettings settings =
+        snapshotBuilderSettingsDao.getBySnapshotId(snapshotAccessRequest.sourceSnapshotId());
+    // build asset model from snapshot request
+    SnapshotBuilderRootTable rootTable = settings.getRootTable();
+    AssetModel assetModel =
+        new AssetModel()
+            .name("snapshot-by-request-asset")
+            .rootTable(rootTable.getDatasetTableName())
+            .rootColumn(rootTable.getRootColumn());
+
+    // Add root table, leave columns empty to return all columns
+    assetModel.addTablesItem(new AssetTableModel().name(rootTable.getDatasetTableName()));
+
+    // Build asset tables and columns based on the concept sets included in the snapshot request
+    List<SnapshotBuilderTable> tables = pullTables(snapshotAccessRequest, settings);
+    tables.forEach(
+        table -> {
+          assetModel.addTablesItem(
+              new AssetTableModel().name(table.getDatasetTableName()).columns(table.getColumns()));
+          // First add all person <-> occurrence relationships
+          if (table.getPrimaryTableRelationship() != null) {
+            assetModel.addFollowItem(table.getPrimaryTableRelationship());
+          }
+        });
+
+    // Second, add all occurrence <-> concept relationships
+    tables.forEach(
+        table -> {
+          if (table.getSecondaryTableRelationships() != null) {
+            table.getSecondaryTableRelationships().forEach(assetModel::addFollowItem);
+          }
+        });
+
+    // Add dictionary table, leave columns empty to return all columns
+    assetModel.addTablesItem(
+        new AssetTableModel().name(settings.getDictionaryTable().getDatasetTableName()));
+
+    // Make sure we just built a valid asset model
+    dataset.validateDatasetAssetSpecification(assetModel);
+
+    // convert the asset model to an asset specification
+    return dataset.getNewAssetSpec(assetModel).followStrictDirection(true);
+  }
+
+  @VisibleForTesting
+  List<SnapshotBuilderTable> pullTables(
+      SnapshotAccessRequestModel snapshotAccessRequest, SnapshotBuilderSettings settings) {
+    List<String> includedTableNames =
+        snapshotAccessRequest.snapshotSpecification().getOutputTables().stream()
+            .map(SnapshotBuilderOutputTable::getName)
+            .toList();
+
+    List<SnapshotBuilderDatasetConceptSet> allTables = settings.getDatasetConceptSets();
+
+    Set<String> missing = new HashSet<>(includedTableNames);
+    allTables.stream().map(SnapshotBuilderDatasetConceptSet::getName).forEach(missing::remove);
+    if (!missing.isEmpty()) {
+      throw new IllegalArgumentException("Unknown value set names: " + missing);
+    }
+
+    return allTables.stream()
+        .filter((table) -> includedTableNames.contains(table.getName()))
+        .map(SnapshotBuilderDatasetConceptSet::getTable)
+        .toList();
   }
 
   public static AssetSpecification getAssetByNameFromDataset(Dataset dataset, String assetName) {
@@ -611,18 +771,15 @@ public class SnapshotService {
                     "This dataset does not have an asset specification with name: " + assetName));
   }
 
-  public List<UUID> getSourceDatasetIdsFromSnapshotRequest(
-      SnapshotRequestModel snapshotRequestModel) {
-    return getSourceDatasetsFromSnapshotRequest(snapshotRequestModel).stream()
-        .map(Dataset::getId)
-        .collect(Collectors.toList());
-  }
-
-  public List<Dataset> getSourceDatasetsFromSnapshotRequest(
-      SnapshotRequestModel snapshotRequestModel) {
-    return snapshotRequestModel.getContents().stream()
-        .map(c -> datasetService.retrieveByName(c.getDatasetName()))
-        .collect(Collectors.toList());
+  public Dataset getSourceDatasetFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel) {
+    SnapshotRequestContentsModel contents = snapshotRequestModel.getContents().get(0);
+    return contents.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID
+        ? retrieve(
+                snapshotRequestDao
+                    .getById(contents.getRequestIdSpec().getSnapshotRequestId())
+                    .sourceSnapshotId())
+            .getSourceDataset()
+        : datasetService.retrieveByName(contents.getDatasetName());
   }
 
   public AddAuthDomainResponseModel addSnapshotDataAccessControls(
@@ -636,6 +793,10 @@ public class SnapshotService {
         .submitAndWait(AddAuthDomainResponseModel.class);
   }
 
+  public List<String> retrieveAuthDomains(UUID snapshotId, AuthenticatedUserRequest userReq) {
+    return iamService.retrieveAuthDomains(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
+  }
+
   /**
    * @param snapshotId snapshot UUID
    * @param userReq authenticated user
@@ -647,7 +808,7 @@ public class SnapshotService {
     List<SamPolicyModel> samPolicyModels =
         iamService.retrievePolicies(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
     List<String> authDomain =
-        iamService.retrieveAuthDomain(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
+        iamService.retrieveAuthDomains(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
     List<WorkspacePolicyModel> accessibleWorkspaces = new ArrayList<>();
     List<InaccessibleWorkspacePolicyModel> inaccessibleWorkspaces = new ArrayList<>();
 

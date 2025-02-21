@@ -6,6 +6,7 @@ import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.ControllerUtils;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.ValidationUtils;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.SnapshotsApi;
@@ -39,8 +40,8 @@ import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.AssetModelValidator;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
@@ -122,32 +123,21 @@ public class SnapshotsApiController implements SnapshotsApi {
     return authenticatedUserRequestFactory.from(request);
   }
 
-  // -- snapshot --
-  private List<UUID> getUnauthorizedSources(
-      List<UUID> snapshotSourceDatasetIds, AuthenticatedUserRequest userReq) {
-    return snapshotSourceDatasetIds.stream()
-        .filter(
-            sourceId ->
-                !iamService.isAuthorized(
-                    userReq, IamResourceType.DATASET, sourceId.toString(), IamAction.LINK_SNAPSHOT))
-        .collect(Collectors.toList());
-  }
-
   @Override
   public ResponseEntity<JobModel> createSnapshot(
       @Valid @RequestBody SnapshotRequestModel snapshotRequestModel) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    List<UUID> snapshotSourceDatasetIds =
-        snapshotService.getSourceDatasetIdsFromSnapshotRequest(snapshotRequestModel);
-    // TODO: auth should be put into flight
-    List<UUID> unauthorized = getUnauthorizedSources(snapshotSourceDatasetIds, userReq);
-    if (unauthorized.isEmpty()) {
-      String jobId = snapshotService.createSnapshot(snapshotRequestModel, userReq);
-      // we can retrieve the job we just created
-      return jobToResponse(jobService.retrieveJob(jobId, userReq));
+
+    if (snapshotRequestModel.getContents().size() > 1) {
+      throw new BadRequestException("Snapshot request must contain at most one source.");
     }
-    throw new IamForbiddenException(
-        "User is not authorized to create snapshots for these datasets " + unauthorized);
+
+    Dataset dataset = snapshotService.getSourceDatasetFromSnapshotRequest(snapshotRequestModel);
+    iamService.verifyAuthorization(
+        userReq, IamResourceType.DATASET, dataset.getId().toString(), IamAction.LINK_SNAPSHOT);
+    String jobId = snapshotService.createSnapshot(snapshotRequestModel, dataset, userReq);
+    // we can retrieve the job we just created
+    return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
   @Override

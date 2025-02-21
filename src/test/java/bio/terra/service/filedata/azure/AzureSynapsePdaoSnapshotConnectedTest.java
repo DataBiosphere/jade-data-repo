@@ -27,6 +27,7 @@ import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetRelationship;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
@@ -55,8 +56,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
@@ -90,7 +91,7 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
   @Autowired AzureBlobStorePdao azureBlobStorePdao;
   @Autowired ConnectedOperations connectedOperations;
   @Autowired DatasetService datasetService;
-  @MockBean private IamProviderInterface samService;
+  @MockitoBean private IamProviderInterface samService;
   @Autowired SynapseUtils synapseUtils;
   @Autowired SnapshotDao snapshotDao;
   @Autowired JsonLoader jsonLoader;
@@ -273,7 +274,8 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             new SnapshotRequestModel(),
             datasetService,
             TEST_USER,
-            snapshotId);
+            snapshotId,
+            new Dataset());
     createSnapshotPrimaryDataQueryAzureStep.validateRootTable(query, assetSpecification);
 
     SynapseVisitor synapseVisitor = new SynapseVisitor(datasetMap, sourceDatasetDataSourceName);

@@ -12,7 +12,7 @@ import bio.terra.stairway.exception.RetryException;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.CannotSerializeTransactionException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.transaction.TransactionSystemException;
 
 public class CountSnapshotTableRowsStep implements Step {
@@ -39,8 +39,8 @@ public class CountSnapshotTableRowsStep implements Step {
     Map<String, Long> tableRowCounts = bigQuerySnapshotPdao.getSnapshotTableRowCounts(snapshot);
     try {
       snapshotDao.updateSnapshotTableRowCounts(snapshot, tableRowCounts);
-    } catch (CannotSerializeTransactionException | TransactionSystemException ex) {
-      logger.error("Could not serialize the transaction. Retrying.", ex);
+    } catch (TransientDataAccessException | TransactionSystemException ex) {
+      logger.error("Transaction failed due to a transient error. Retrying.", ex);
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
     }
     return StepResult.getStepResultSuccess();

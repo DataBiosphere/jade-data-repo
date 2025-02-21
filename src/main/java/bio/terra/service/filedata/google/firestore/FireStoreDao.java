@@ -436,7 +436,8 @@ public class FireStoreDao {
     List<FireStoreFile> files =
         fileDao.batchRetrieveFileMetadata(
             datasetFirestore, dataset.getId().toString(), directoryEntries);
-    return FileMetadataUtils.toFileModel(directoryEntries, files, container.getId().toString());
+    return FileMetadataUtils.toFileModel(
+        directoryEntries, files, container.getId().toString(), true);
   }
 
   /**
@@ -672,6 +673,7 @@ public class FireStoreDao {
         fileDao.retrieveFileMetadata(
             datasetFirestore, fireStoreDirectoryEntry.getDatasetId(), fileId);
     if (fireStoreFile == null) {
+      logger.info("fileId not found in dataset: {}", fileId);
       return null;
     }
 

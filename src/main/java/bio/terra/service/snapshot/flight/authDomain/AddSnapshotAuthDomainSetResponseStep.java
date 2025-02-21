@@ -28,7 +28,7 @@ public class AddSnapshotAuthDomainSetResponseStep extends DefaultUndoStep {
   @Override
   public StepResult doStep(FlightContext context) {
     List<String> authDomain =
-        iamService.retrieveAuthDomain(userRequest, IamResourceType.DATASNAPSHOT, snapshotId);
+        iamService.retrieveAuthDomains(userRequest, IamResourceType.DATASNAPSHOT, snapshotId);
     AddAuthDomainResponseModel response = new AddAuthDomainResponseModel().authDomain(authDomain);
     FlightUtils.setResponse(context, response, HttpStatus.OK);
     return StepResult.getStepResultSuccess();

@@ -12,9 +12,12 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.TransientDataAccessException;
+import org.springframework.transaction.TransactionSystemException;
 
 public class CreateDatasetGetOrCreateStorageAccountStep implements Step {
   private static Logger logger =
@@ -40,11 +43,16 @@ public class CreateDatasetGetOrCreateStorageAccountStep implements Step {
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
 
-    AzureStorageAccountResource storageAccount =
-        resourceService.getOrCreateDatasetStorageAccount(
-            DatasetJsonConversion.datasetRequestToDataset(datasetRequestModel, datasetId),
-            profileModel,
-            context.getFlightId());
+    AzureStorageAccountResource storageAccount;
+    try {
+      storageAccount =
+          resourceService.getOrCreateDatasetStorageAccount(
+              DatasetJsonConversion.datasetRequestToDataset(datasetRequestModel, datasetId),
+              profileModel,
+              context.getFlightId());
+    } catch (TransientDataAccessException | TransactionSystemException e) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
+    }
 
     logger.info("Enabling Azure storage account logging");
     // Log files will reside in the storage account's $logs container

@@ -66,8 +66,11 @@ public final class BQTestUtils {
 
   private static Answer<TableResult> mockAnswer(Schema schema, List<Map<String, String>> results) {
     return a ->
-        new TableResult(
-            schema, results.size(), new PageImpl<>(null, null, convertValues(results, schema)));
+        TableResult.newBuilder()
+            .setSchema(schema)
+            .setTotalRows((long) results.size())
+            .setPageNoSchema(new PageImpl<>(null, null, convertValues(results, schema)))
+            .build();
   }
 
   private static List<FieldValueList> convertValues(

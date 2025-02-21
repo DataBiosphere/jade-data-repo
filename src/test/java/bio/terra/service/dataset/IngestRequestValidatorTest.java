@@ -20,6 +20,7 @@ import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.auth.iam.IamService;
@@ -35,11 +36,11 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -56,16 +57,16 @@ import org.springframework.test.web.servlet.MvcResult;
 class IngestRequestValidatorTest {
 
   @Autowired private MockMvc mvc;
-  @MockBean private JobService jobService;
-  @MockBean private DatasetService datasetService;
-  @MockBean private IamService iamService;
-  @MockBean private FileService fileService;
-  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
-  @MockBean private SnapshotBuilderService snapshotBuilderService;
-  @MockBean private DataDeletionRequestValidator dataDeletionRequestValidator;
-  @MockBean private AssetModelValidator assetModelValidator;
-  @MockBean private DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
-  @MockBean private DatasetRequestValidator datasetRequestValidator;
+  @MockitoBean private JobService jobService;
+  @MockitoBean private DatasetService datasetService;
+  @MockitoBean private IamService iamService;
+  @MockitoBean private FileService fileService;
+  @MockitoBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockitoBean private SnapshotBuilderService snapshotBuilderService;
+  @MockitoBean private DataDeletionRequestValidator dataDeletionRequestValidator;
+  @MockitoBean private AssetModelValidator assetModelValidator;
+  @MockitoBean private DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
+  @MockitoBean private DatasetRequestValidator datasetRequestValidator;
 
   private ErrorModel expectBadPostRequest(String url, String content) throws Exception {
     MvcResult result =
@@ -89,11 +90,9 @@ class IngestRequestValidatorTest {
 
   @Test
   void testAzureIngestRequestParameters() throws Exception {
-    Dataset dataset = mock(Dataset.class);
-    DatasetSummary datasetSummary = mock(DatasetSummary.class);
-    when(datasetSummary.getStorageCloudPlatform()).thenReturn(CloudPlatform.AZURE);
-    when(dataset.getDatasetSummary()).thenReturn(datasetSummary);
-    when(datasetService.retrieve(any())).thenReturn(dataset);
+    DatasetSummaryModel datasetSummary = mock(DatasetSummaryModel.class);
+    when(datasetSummary.getCloudPlatform()).thenReturn(CloudPlatform.AZURE);
+    when(datasetService.retrieveDatasetSummary(any())).thenReturn(datasetSummary);
 
     var nullIngest =
         new IngestRequestModel()

@@ -79,8 +79,6 @@ import org.skyscreamer.jsonassert.JSONAssert;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -103,9 +101,9 @@ class DatasetServiceTest {
 
   @Autowired private DatasetService datasetService;
 
-  @SpyBean private JobService jobService;
+  @MockitoSpyBean private JobService jobService;
 
-  @MockBean private IamProviderInterface samService;
+  @MockitoBean private IamProviderInterface samService;
 
   @Autowired private ConnectedOperations connectedOperations;
 
@@ -115,13 +113,13 @@ class DatasetServiceTest {
 
   @Autowired private NamedParameterJdbcTemplate jdbcTemplate;
 
-  @MockBean private ResourceService resourceService;
-  @MockBean private GcsPdao gcsPdao;
-  @MockBean private AzureContainerPdao azureContainerPdao;
-  @MockBean private AzureBlobStorePdao azureBlobStorePdao;
-  @MockBean private AzureMonitoringService azureMonitoringService;
-  @MockBean private MetadataDataAccessUtils metadataDataAccessUtils;
-  @MockBean private AzureSynapsePdao azureSynapsePdao;
+  @MockitoBean private ResourceService resourceService;
+  @MockitoBean private GcsPdao gcsPdao;
+  @MockitoBean private AzureContainerPdao azureContainerPdao;
+  @MockitoBean private AzureBlobStorePdao azureBlobStorePdao;
+  @MockitoBean private AzureMonitoringService azureMonitoringService;
+  @MockitoBean private MetadataDataAccessUtils metadataDataAccessUtils;
+  @MockitoBean private AzureSynapsePdao azureSynapsePdao;
 
   @Captor private ArgumentCaptor<List<String>> listCaptor;
   @Captor private ArgumentCaptor<IngestRequestModel> requestCaptor;
@@ -186,7 +184,7 @@ class DatasetServiceTest {
 
   @Test
   void datasetOmopTest() throws IOException, SQLException {
-    assertNotNull(createDataset("omop/it-dataset-omop.jsonl"));
+    assertNotNull(createDataset("omop/it-dataset-omop.json"));
   }
 
   @Test

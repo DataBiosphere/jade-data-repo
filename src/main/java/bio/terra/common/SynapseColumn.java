@@ -91,15 +91,15 @@ public class SynapseColumn extends Column {
       case INTEGER -> "numeric(10, 0)";
       case INT64 -> "numeric(19, 0)";
       case NUMERIC -> "real";
-        // DIRREF and FILEREF store a UUID on ingest
-        // But, are translated to DRS URI on Snapshot Creation
-        // Note that the Synapse CSV parser does not support varchars larger than 8000 bytes
+      // DIRREF and FILEREF store a UUID on ingest
+      // But, are translated to DRS URI on Snapshot Creation
+      // Note that the Synapse CSV parser does not support varchars larger than 8000 bytes
       case DIRREF, FILEREF, TEXT, STRING -> "varchar(%s)".formatted(isForCsv ? "8000" : "max");
       case TIME -> "time";
-        // Data of type RECORD contains table-like that can be nested or repeated
-        // It's provided in JSON format, making it hard to parse from inside a CSV/JSON ingest
-      case RECORD -> throw new NotSupportedException(
-          "RECORD type is not yet supported for synapse");
+      // Data of type RECORD contains table-like that can be nested or repeated
+      // It's provided in JSON format, making it hard to parse from inside a CSV/JSON ingest
+      case RECORD ->
+          throw new NotSupportedException("RECORD type is not yet supported for synapse");
     };
   }
 

@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.broadinstitute.dsde.workbench.client.sam.model.ManagedResourceGroupCoordinates;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserIdInfo;
 
 /**
  * This is the interface to IAM used in the main body of the repository code. Right now, the only
@@ -124,11 +125,15 @@ public interface IamProviderInterface {
    *
    * @param userReq authenticated user
    * @param snapshotId id of the snapshot
+   * @param parentDatasetId id of the parent dataset of the snapshot
    * @param policies user emails to add as snapshot policy members
    * @return Map of policy group emails for the snapshot policies
    */
   Map<IamRole, String> createSnapshotResource(
-      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies)
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId,
+      UUID parentDatasetId,
+      SnapshotRequestModelPolicies policies)
       throws InterruptedException;
 
   /**
@@ -142,6 +147,9 @@ public interface IamProviderInterface {
   Map<IamRole, List<String>> createSnapshotBuilderRequestResource(
       AuthenticatedUserRequest userReq, UUID snapshotId, UUID snapshotBuilderRequestId)
       throws InterruptedException;
+
+  void deleteSnapshotBuilderRequestResource(
+      AuthenticatedUserRequest userReq, UUID snapshotBuilderRequestId) throws InterruptedException;
 
   // -- billing profile resource support --
 
@@ -164,7 +172,7 @@ public interface IamProviderInterface {
       throws InterruptedException;
 
   // -- auth domain support --
-  List<String> retrieveAuthDomain(
+  List<String> retrieveAuthDomains(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws InterruptedException;
 
@@ -250,6 +258,70 @@ public interface IamProviderInterface {
   String createGroup(String accessToken, String groupName) throws InterruptedException;
 
   /**
+   * @param accessToken valid oauth token for the account retrieving the group
+   * @param groupName name of Firecloud managed group to retrieve
+   * @return the group's email address
+   */
+  String getGroup(String accessToken, String groupName) throws InterruptedException;
+
+  /**
+   * List the members of a Sam group
+   *
+   * @param accessToken valid oauth token for the account getting the group
+   * @param groupName name of the Sam group to get
+   * @param policyName name of the Sam policy
+   * @return the list of emails in the group
+   * @throws InterruptedException
+   */
+  List<String> getGroupPolicyEmails(String accessToken, String groupName, String policyName)
+      throws InterruptedException;
+
+  /**
+   * Add a member to a Sam group
+   *
+   * @param accessToken valid oauth token for the account adding to the group
+   * @param groupName name of the Sam group being added to
+   * @param policyName name of the Sam policy
+   * @param memberEmail the email to be added to the group
+   * @return the list of emails in the group after adding the member
+   * @throws InterruptedException
+   */
+  List<String> addGroupPolicyEmail(
+      String accessToken, String groupName, String policyName, String memberEmail)
+      throws InterruptedException;
+
+  /**
+   * Remove a member from a Sam group
+   *
+   * @param accessToken valid oauth token for the account removing from the group
+   * @param groupName name of the Sam group being removed from
+   * @param policyName name of the Sam policy
+   * @param memberEmail the email to be removed from the group
+   * @return the list of emails in the group after removing the member
+   * @throws InterruptedException
+   */
+  List<String> removeGroupPolicyEmail(
+      String accessToken, String groupName, String policyName, String memberEmail)
+      throws InterruptedException;
+
+  /**
+   * @param accessToken valid oauth token for the account modifying the group policy members
+   * @param userRequest information about the requesting user - we'll use this to pull the user's
+   *     email and add it to the group
+   * @param groupName name of Sam/Firecloud managed group
+   * @param policyName name of Sam/Firecloud managed group policy
+   * @param emailAddresses user emails which will overwrite group policy contents. This list will
+   *     also include the current authenticated user.
+   */
+  void overwriteGroupPolicyEmailsIncludeRequestingUser(
+      String accessToken,
+      AuthenticatedUserRequest userRequest,
+      String groupName,
+      String policyName,
+      List<String> emailAddresses)
+      throws InterruptedException;
+
+  /**
    * @param accessToken valid oauth token for the account modifying the group policy members
    * @param groupName name of Firecloud managed group
    * @param policyName name of Firecloud managed group policy
@@ -294,4 +366,17 @@ public interface IamProviderInterface {
       String billingProfileId,
       ManagedResourceGroupCoordinates managedResourceGroupCoordinates)
       throws InterruptedException;
+
+  /**
+   * @param userReq The AuthenticatedUserRequest
+   * @param iamResourceType The IamResourceType
+   * @param action The IamAction
+   * @return boolean value if the user is authorized to perform the action on the resource type
+   * @throws InterruptedException throws if sam retry fails due to interruption
+   */
+  boolean getResourceTypeAdminPermission(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action)
+      throws InterruptedException;
+
+  UserIdInfo getUserIds(String accessToken, String userEmail) throws InterruptedException;
 }

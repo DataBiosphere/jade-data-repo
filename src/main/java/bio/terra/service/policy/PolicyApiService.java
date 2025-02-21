@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class PolicyApiService {
   private final PolicyServiceConfiguration policyServiceConfiguration;
+
   /** Clients should be shared among requests to reduce latency and save memory * */
   private final Client sharedHttpClient;
 

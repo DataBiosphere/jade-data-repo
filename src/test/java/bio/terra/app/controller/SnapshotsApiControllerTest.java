@@ -37,7 +37,6 @@ import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
-import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -50,6 +49,7 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.AssetModelValidator;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
@@ -69,10 +69,10 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -84,15 +84,15 @@ class SnapshotsApiControllerTest {
 
   @Autowired private MockMvc mvc;
 
-  @MockBean private JobService jobService;
-  @MockBean private SnapshotRequestValidator snapshotRequestValidator;
-  @MockBean private SnapshotService snapshotService;
-  @MockBean private IamService iamService;
-  @MockBean private IngestRequestValidator ingestRequestValidator;
-  @MockBean private FileService fileService;
-  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
-  @MockBean private AssetModelValidator assetModelValidator;
-  @MockBean private SnapshotBuilderService snapshotBuilderService;
+  @MockitoBean private JobService jobService;
+  @MockitoBean private SnapshotRequestValidator snapshotRequestValidator;
+  @MockitoBean private SnapshotService snapshotService;
+  @MockitoBean private IamService iamService;
+  @MockitoBean private IngestRequestValidator ingestRequestValidator;
+  @MockitoBean private FileService fileService;
+  @MockitoBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockitoBean private AssetModelValidator assetModelValidator;
+  @MockitoBean private SnapshotBuilderService snapshotBuilderService;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -301,16 +301,14 @@ class SnapshotsApiControllerTest {
   @Test
   void createSnapshot() throws Exception {
     mockValidators();
-
-    when(snapshotService.getSourceDatasetIdsFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
-        .thenReturn(List.of(DATASET_ID));
+    Dataset dataset = new Dataset().id(DATASET_ID);
+    when(snapshotService.getSourceDatasetFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
+        .thenReturn(dataset);
 
     IamAction iamAction = IamAction.LINK_SNAPSHOT;
-    when(iamService.isAuthorized(
-            TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction))
-        .thenReturn(true);
 
-    when(snapshotService.createSnapshot(SNAPSHOT_REQUEST_MODEL, TEST_USER)).thenReturn(JOB_ID);
+    when(snapshotService.createSnapshot(SNAPSHOT_REQUEST_MODEL, dataset, TEST_USER))
+        .thenReturn(JOB_ID);
     when(jobService.retrieveJob(JOB_ID, TEST_USER)).thenReturn(JOB_MODEL);
 
     String actualJson =
@@ -323,32 +321,28 @@ class SnapshotsApiControllerTest {
             .getResponse()
             .getContentAsString();
     JobModel actual = TestUtils.mapFromJson(actualJson, JobModel.class);
-    assertThat("Job model is returned", actual, equalTo(JOB_MODEL));
-
     verify(iamService)
-        .isAuthorized(TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction);
+        .verifyAuthorization(TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction);
+    assertThat("Job model is returned", actual, equalTo(JOB_MODEL));
   }
 
   @Test
   void createSnapshot_forbidden() throws Exception {
     mockValidators();
-
-    when(snapshotService.getSourceDatasetIdsFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
-        .thenReturn(List.of(DATASET_ID));
+    Dataset dataset = new Dataset().id(DATASET_ID);
+    when(snapshotService.getSourceDatasetFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
+        .thenReturn(dataset);
 
     IamAction iamAction = IamAction.LINK_SNAPSHOT;
-    when(iamService.isAuthorized(
-            TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction))
-        .thenReturn(false);
+    doThrow(IamForbiddenException.class)
+        .when(iamService)
+        .verifyAuthorization(TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction);
 
     mvc.perform(
             post(SNAPSHOTS_ENDPOINT)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtils.mapToJson(SNAPSHOT_REQUEST_MODEL)))
         .andExpect(status().isForbidden());
-
-    verify(iamService)
-        .isAuthorized(TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction);
   }
 
   @Test
@@ -502,7 +496,7 @@ class SnapshotsApiControllerTest {
   @Test
   void updateSnapshotSnapshotBuilderSettings() throws Exception {
     mockValidators();
-    var snapshotBuilderSettings = new SnapshotBuilderSettings();
+    var snapshotBuilderSettings = SnapshotBuilderTestData.SETTINGS;
     mvc.perform(
             put(SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, SNAPSHOT_ID)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -521,7 +515,7 @@ class SnapshotsApiControllerTest {
     mvc.perform(
             put(SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, SNAPSHOT_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{}"))
+                .content(TestUtils.mapToJson(SnapshotBuilderTestData.SETTINGS)))
         .andExpect(status().isForbidden());
 
     verifyAuthorizationCall(iamAction);
@@ -589,18 +583,18 @@ class SnapshotsApiControllerTest {
 
   @ParameterizedTest
   @MethodSource
-  void testEnumerateConcepts(String searchText) throws Exception {
+  void testEnumerateConcepts(String filterText) throws Exception {
     SnapshotBuilderConceptsResponse expected = makeGetConceptChildrenResponse();
 
     var domainId = 1234;
 
-    when(snapshotBuilderService.enumerateConcepts(SNAPSHOT_ID, domainId, searchText, TEST_USER))
+    when(snapshotBuilderService.enumerateConcepts(SNAPSHOT_ID, domainId, filterText, TEST_USER))
         .thenReturn(expected);
     String actualJson =
         mvc.perform(
                 get(ENUMERATE_CONCEPTS_ENDPOINT, SNAPSHOT_ID)
                     .queryParam("domainId", String.valueOf(domainId))
-                    .queryParam("filterText", searchText))
+                    .queryParam("filterText", filterText))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()

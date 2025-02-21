@@ -1,5 +1,7 @@
 package bio.terra.integration;
 
+import static bio.terra.service.auth.iam.sam.SamIam.convertSamExToDataRepoEx;
+
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.configuration.TestConfiguration;
@@ -113,6 +115,17 @@ public class SamFixtures {
       return samResourcesApi.getAuthDomainV2(resourceType, resourceId);
     } catch (ApiException e) {
       throw new RuntimeException("Error retrieving Data Access Controls: %s", e);
+    }
+  }
+
+  public String getGroup(TestConfiguration.User user, String groupName) {
+    try {
+      HttpHeaders authedHeader = getHeaders(user);
+      String accessToken = getAccessToken(authedHeader);
+      GroupApi samGroupApi = new GroupApi(getApiClient(accessToken));
+      return samGroupApi.getGroup(groupName);
+    } catch (ApiException e) {
+      throw convertSamExToDataRepoEx(e);
     }
   }
 

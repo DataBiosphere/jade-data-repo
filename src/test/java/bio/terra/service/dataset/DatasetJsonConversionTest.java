@@ -20,7 +20,6 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
-import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
@@ -153,7 +152,6 @@ class DatasetJsonConversionTest {
                                 .rootTable(DATASET_TABLE_NAME)
                                 .rootColumn(DATASET_COLUMN_NAME)
                                 .follow(Collections.emptyList()))))
-            .snapshotBuilderSettings(new SnapshotBuilderSettings())
             .dataProject(DATASET_DATA_PROJECT);
   }
 
@@ -167,7 +165,7 @@ class DatasetJsonConversionTest {
                 DatasetRequestAccessIncludeModel.PROFILE,
                 DatasetRequestAccessIncludeModel.DATA_PROJECT),
             testUser),
-        equalTo(datasetModel.snapshotBuilderSettings(null)));
+        equalTo(datasetModel));
   }
 
   @Test
@@ -178,12 +176,7 @@ class DatasetJsonConversionTest {
             List.of(
                 DatasetRequestAccessIncludeModel.NONE, DatasetRequestAccessIncludeModel.PROFILE),
             testUser),
-        equalTo(
-            datasetModel
-                .dataProject(null)
-                .defaultProfileId(null)
-                .schema(null)
-                .snapshotBuilderSettings(null)));
+        equalTo(datasetModel.dataProject(null).defaultProfileId(null).schema(null)));
   }
 
   @Test
@@ -197,7 +190,6 @@ class DatasetJsonConversionTest {
                 .dataProject(null)
                 .defaultProfileId(null)
                 .schema(null)
-                .snapshotBuilderSettings(null)
                 .accessInformation(
                     new AccessInfoModel()
                         .bigQuery(

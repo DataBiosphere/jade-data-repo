@@ -80,7 +80,8 @@ public class DatasetDao implements TaggableResourceDao {
   private static final String summaryQueryColumns =
       " dataset.id, dataset.name, description, default_profile_id, project_resource_id, "
           + "dataset.application_resource_id, secure_monitoring, phs_id, self_hosted, "
-          + "properties, created_date, predictable_file_ids, tags, flightid, sharedlock,";
+          + "properties, created_date, predictable_file_ids, tags, flightid, sharedlock, "
+          + "inherit_steward, ";
 
   private static final String summaryCloudPlatformQuery =
       "(SELECT pr.google_project_id "
@@ -327,11 +328,11 @@ public class DatasetDao implements TaggableResourceDao {
       if (numRowsUpdated == 0 && lockType.lockAttempted()) {
         // this method checks if the dataset exists
         // if it does not exist, then the method throws a DatasetNotFoundException
-        // we don't need the result (dataset summary) here, just the existence check,
-        // so ignore the return value.
-        retrieveSummaryById(datasetId);
+        // if it does exist, get any locks that exist because this is helpful info for a user
+        DatasetSummary summary = retrieveSummaryById(datasetId);
 
-        throw new DatasetLockException("Failed to lock the dataset", lockType.getErrorDetails());
+        throw new DatasetLockException(
+            "Failed to lock the dataset", lockType.getErrorDetails(summary.getResourceLocks()));
       }
     } catch (DatasetNotFoundException notFound) {
       logger.error(
@@ -406,10 +407,10 @@ public class DatasetDao implements TaggableResourceDao {
         INSERT INTO dataset
         (name, default_profile_id, id, project_resource_id, application_resource_id, flightid,
          description, secure_monitoring, phs_id, self_hosted, properties, sharedlock,
-         predictable_file_ids, tags)
+         predictable_file_ids, tags, inherit_steward)
         VALUES (:name, :default_profile_id, :id, :project_resource_id, :application_resource_id,
          :flightid, :description, :secure_monitoring, :phs_id, :self_hosted,
-         cast(:properties as jsonb), ARRAY[]::TEXT[], :predictable_file_ids, :tags)
+         cast(:properties as jsonb), ARRAY[]::TEXT[], :predictable_file_ids, :tags, :inherit_steward)
        """;
 
     Array tags;
@@ -433,7 +434,8 @@ public class DatasetDao implements TaggableResourceDao {
             .addValue(
                 "properties", DaoUtils.propertiesToString(objectMapper, dataset.getProperties()))
             .addValue("predictable_file_ids", dataset.hasPredictableFileIds())
-            .addValue("tags", tags);
+            .addValue("tags", tags)
+            .addValue("inherit_steward", dataset.getDatasetSummary().isInheritSteward());
 
     DaoKeyHolder keyHolder = new DaoKeyHolder();
     try {
@@ -483,6 +485,11 @@ public class DatasetDao implements TaggableResourceDao {
     return rowsAffected > 0;
   }
 
+  public Dataset retrieve(UUID id, boolean retrieveRelationship, boolean retrieveAsset) {
+    DatasetSummary summary = retrieveSummaryById(id);
+    return retrieveWorker(summary, retrieveRelationship, retrieveAsset);
+  }
+
   public Dataset retrieve(UUID id) {
     DatasetSummary summary = retrieveSummaryById(id);
     return retrieveWorker(summary);
@@ -494,14 +501,25 @@ public class DatasetDao implements TaggableResourceDao {
   }
 
   private Dataset retrieveWorker(DatasetSummary summary) {
+    return retrieveWorker(summary, true, true);
+  }
+
+  private Dataset retrieveWorker(
+      DatasetSummary summary, boolean retrieveRelationship, boolean retrieveAsset) {
     Dataset dataset = null;
     try {
       if (summary != null) {
         summary.storage(storageResourceDao.getStorageResourcesByDatasetId(summary.getId()));
         dataset = new Dataset(summary);
         dataset.tables(tableDao.retrieveTables(dataset.getId()));
-        relationshipDao.retrieve(dataset);
-        assetDao.retrieve(dataset);
+        if (retrieveRelationship) {
+          // This query is costly and should only be run when necessary.
+          relationshipDao.retrieve(dataset);
+        }
+        if (retrieveAsset) {
+          // This query is costly and should only be run when necessary.
+          assetDao.retrieve(dataset);
+        }
         // Retrieve the project and application deployment resource associated with the dataset
         // This is a bit sketchy filling in the object via a dao in another package.
         // It seemed like the cleanest thing to me at the time.
@@ -701,7 +719,8 @@ public class DatasetDao implements TaggableResourceDao {
           .properties(properties)
           .tags(DaoUtils.getStringList(rs, "tags"))
           .resourceLocks(
-              new ResourceLocks().exclusive(rs.getString("flightid")).shared(sharedLocks));
+              new ResourceLocks().exclusive(rs.getString("flightid")).shared(sharedLocks))
+          .inheritSteward(rs.getBoolean("inherit_steward"));
     }
   }
 

@@ -90,7 +90,7 @@ class SamRetry {
   }
 
   private void handleApiException(ApiException ex) {
-    ErrorReportException rex = SamIam.convertSAMExToDataRepoEx(ex);
+    ErrorReportException rex = SamIam.convertSamExToDataRepoEx(ex);
     if (!(rex instanceof IamInternalServerErrorException)) {
       throw rex;
     }

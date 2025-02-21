@@ -55,7 +55,6 @@ class CreateSnapshotByRequestIdGcpStepTest {
                 snapshotReq,
                 snapshotService,
                 snapshotBuilderService,
-                snapshotRequestDao,
                 snapshotDao,
                 TEST_USER,
                 bigQuerySnapshotPdao));
@@ -84,8 +83,8 @@ class CreateSnapshotByRequestIdGcpStepTest {
             flightContext,
             snapshot,
             snapshotReq,
+            snapshotService,
             snapshotBuilderService,
-            snapshotRequestDao,
             snapshotDao,
             TEST_USER);
     StepResult result = createSnapshotByRequestIdGcpStep.doStep(flightContext);

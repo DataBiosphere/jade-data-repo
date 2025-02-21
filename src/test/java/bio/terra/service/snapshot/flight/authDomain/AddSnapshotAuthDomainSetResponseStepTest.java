@@ -42,13 +42,13 @@ class AddSnapshotAuthDomainSetResponseStepTest {
   void testDoAndUndoStepSucceeds() {
     AddSnapshotAuthDomainSetResponseStep step =
         new AddSnapshotAuthDomainSetResponseStep(iamService, TEST_USER, SNAPSHOT_ID);
-    when(iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID))
+    when(iamService.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID))
         .thenReturn(userGroups);
     when(flightContext.getWorkingMap()).thenReturn(new FlightMap());
 
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(iamService).retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID);
+    verify(iamService).retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID);
 
     FlightMap workingMap = flightContext.getWorkingMap();
     assertEquals(

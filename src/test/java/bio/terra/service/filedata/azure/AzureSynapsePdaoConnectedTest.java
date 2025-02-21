@@ -52,8 +52,8 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
@@ -147,7 +147,7 @@ public class AzureSynapsePdaoConnectedTest {
   @Autowired AzureBlobStorePdao azureBlobStorePdao;
   @Autowired ConnectedOperations connectedOperations;
   @Autowired DatasetService datasetService;
-  @MockBean private IamProviderInterface samService;
+  @MockitoBean private IamProviderInterface samService;
   @Autowired SynapseUtils synapseUtils;
   @Autowired SnapshotDao snapshotDao;
   @Autowired JsonLoader jsonLoader;

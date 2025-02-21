@@ -386,6 +386,10 @@ public class Dataset implements FSContainerInterface, LogPrintable {
     return datasetSummary.getResourceLocks();
   }
 
+  public boolean isInheritSteward() {
+    return datasetSummary.isInheritSteward();
+  }
+
   @Override
   public String toLogString() {
     return String.format("%s (%s)", this.getName(), this.getId());

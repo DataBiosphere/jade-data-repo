@@ -12,13 +12,13 @@ import static org.hamcrest.Matchers.not;
 import bio.terra.common.GcsUtils;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
-import bio.terra.integration.SamFixtures;
-import bio.terra.integration.TestJobWatcher;
-import bio.terra.integration.UsersBase;
+import bio.terra.integration.IntegrationTestConfiguration;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
@@ -38,7 +38,6 @@ import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.common.gcs.GcsUriUtils;
-import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -49,105 +48,104 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 // TODO move me to integration dir
-@RunWith(SpringRunner.class)
-@SpringBootTest
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@AutoConfigureMockMvc
-@Category(Integration.class)
-public class SelfHostedDatasetIntegrationTest extends UsersBase {
-  private static Logger logger = LoggerFactory.getLogger(SelfHostedDatasetIntegrationTest.class);
-
+@Tag(Integration.TAG)
+@Execution(ExecutionMode.CONCURRENT)
+class SelfHostedDatasetIntegrationTest {
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private DataRepoClient dataRepoClient;
   @Autowired private AuthService authService;
   @Autowired private GcsUtils gcsUtils;
-  @Autowired private SamFixtures samFixtures;
-  @Autowired private GoogleResourceManagerService resourceManagerService;
-
-  @Rule @Autowired public TestJobWatcher testWatcher;
+  @Autowired private Users users;
 
   // Disabling check while we debug failing tests.
   // See https://broadworkbench.atlassian.net/browse/DR-2858
-  private static final Boolean SHOULD_ASSERT_HTTPS_ACCESSIBILITY = false;
+  private static final boolean SHOULD_ASSERT_HTTPS_ACCESSIBILITY = false;
 
-  private String stewardToken;
-  private UUID datasetId;
-  private UUID snapshotId;
-  private String snapshotProject;
-  private UUID profileId;
-  private List<String> uploadedFiles;
-  private String ingestBucket;
+  private final ThreadLocal<TestConfiguration.User> tlSteward =
+      ThreadLocal.withInitial(() -> users.steward());
+  private final ThreadLocal<String> stewardToken = new ThreadLocal<>();
+  private final ThreadLocal<UUID> tlDatasetId = new ThreadLocal<>();
+  private final ThreadLocal<UUID> tlSnapshotId = new ThreadLocal<>();
+  private final ThreadLocal<UUID> tlProfileId = new ThreadLocal<>();
+  private final ThreadLocal<List<String>> uploadedFiles = ThreadLocal.withInitial(ArrayList::new);
+  private final ThreadLocal<String> tlIngestBucket = new ThreadLocal<>();
 
-  @Before
-  public void setup() throws Exception {
-    super.setup();
-    stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
-    dataRepoFixtures.resetConfig(steward());
-    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
-    uploadedFiles = new ArrayList<>();
+  private TestConfiguration.User steward() {
+    return tlSteward.get();
   }
 
-  @After
+  @BeforeEach
+  public void setup() throws Exception {
+    stewardToken.set(authService.getDirectAccessAuthToken(steward().getEmail()));
+    dataRepoFixtures.resetConfig(steward());
+    tlProfileId.set(dataRepoFixtures.createBillingProfile(steward()).getId());
+  }
+
+  @AfterEach
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward());
 
-    if (snapshotId != null) {
-      dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
+    if (tlSnapshotId.get() != null) {
+      dataRepoFixtures.deleteSnapshotLog(steward(), tlSnapshotId.get());
     }
 
-    if (datasetId != null) {
-      dataRepoFixtures.deleteDataset(steward(), datasetId, ingestBucket);
+    if (tlDatasetId.get() != null) {
+      dataRepoFixtures.deleteDataset(steward(), tlDatasetId.get(), tlIngestBucket.get());
     }
 
-    if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward(), profileId);
+    if (tlProfileId.get() != null) {
+      dataRepoFixtures.deleteProfileLog(steward(), tlProfileId.get());
     }
 
-    for (var path : uploadedFiles) {
+    for (var path : uploadedFiles.get()) {
       gcsUtils.deleteTestFile(path);
     }
   }
 
   @Test
-  public void testSelfHostedDatasetLifecycle() throws Exception {
-    ingestBucket = "jade-testdata-useastregion";
+  void testSelfHostedDatasetLifecycle() throws Exception {
+    tlIngestBucket.set("jade-testdata-useastregion");
     testSelfHostedDatasetLifecycle(false);
   }
 
   @Test
-  public void testSelfHostedDatasetWithDedicatedSALifecycle() throws Exception {
-    ingestBucket = "jade_testbucket_no_jade_sa";
+  void testSelfHostedDatasetWithDedicatedSALifecycle() throws Exception {
+    tlIngestBucket.set("jade_testbucket_no_jade_sa");
     testSelfHostedDatasetLifecycle(true);
   }
 
   @Test
-  public void testSelfHostedDatasetRequesterPaysLifecycle() throws Exception {
-    ingestBucket = "jade_testbucket_requester_pays";
+  void testSelfHostedDatasetRequesterPaysLifecycle() throws Exception {
+    tlIngestBucket.set("jade_testbucket_requester_pays");
     testSelfHostedDatasetLifecycle(true);
   }
 
   private void testSelfHostedDatasetLifecycle(boolean dedicatedServiceAccount) throws Exception {
+    var ingestBucket = tlIngestBucket.get();
+    var profileId = tlProfileId.get();
     gcsUtils.fileExists(wgsVcfPath(ingestBucket));
 
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createSelfHostedDataset(
             steward(), profileId, "dataset-ingest-combined-array.json", dedicatedServiceAccount);
-    datasetId = datasetSummaryModel.getId();
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
 
     assertThat(
         "the dataset is marked as self-hosted", datasetSummaryModel.isSelfHosted(), is(true));
@@ -213,11 +211,13 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
             "WGS_VCF_INDEX_FILE_ID",
                 targetPathToFileId.get("/vcfs/downsampled/wgs/NA12878_PLUMBING.g.vcf.gz.tbi"));
 
-    Stream<String> lines =
-        Files.lines(
+    List<String> lines =
+        Files.readAllLines(
                 Paths.get(ClassLoader.getSystemResource("self-hosted-dataset-ingest.json").toURI()))
+            .stream()
             .map(line -> replaceVars(line, fileReplaceMap))
-            .map(line -> replaceVars(line, Map.of("INGEST_BUCKET", ingestBucket)));
+            .map(line -> replaceVars(line, Map.of("INGEST_BUCKET", ingestBucket)))
+            .toList();
 
     // Ingest metadata + 1 combined ingest file
     String ingestPath =
@@ -225,7 +225,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
             ingestBucket,
             String.format("selfHostedDatasetTest/%s/self-hosted-ingest-control.json", datasetId),
             lines);
-    uploadedFiles.add(ingestPath);
+    uploadedFiles.get().add(ingestPath);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -263,8 +263,8 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
     SnapshotSummaryModel snapshot =
         dataRepoFixtures.createSnapshot(
             steward(), dataset.getName(), profileId, "dataset-ingest-combined-array-snapshot.json");
-    snapshotId = snapshot.getId();
-    snapshotProject = snapshot.getDataProject();
+    final var snapshotId = snapshot.getId();
+    tlSnapshotId.set(snapshotId);
 
     assertThat(
         "a snapshot created from a self-hosted dataset says its self-hosted too",
@@ -286,10 +286,10 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
 
     for (DRSObject drsObject : collect) {
       TestUtils.validateDrsAccessMethods(
-          drsObject.getAccessMethods(), stewardToken, SHOULD_ASSERT_HTTPS_ACCESSIBILITY);
+          drsObject.getAccessMethods(), stewardToken.get(), SHOULD_ASSERT_HTTPS_ACCESSIBILITY);
       DRSAccessMethod gsAccessMethod =
           drsObject.getAccessMethods().stream()
-              .filter(accessMethod -> accessMethod.getType().equals(DRSAccessMethod.TypeEnum.GS))
+              .filter(accessMethod -> accessMethod.getType() == DRSAccessMethod.TypeEnum.GS)
               .findFirst()
               .orElseThrow();
       assertThat(
@@ -331,7 +331,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
         containsString("Cannot export GS Paths for self-hosted snapshots"));
 
     dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
-    snapshotId = null;
+    tlSnapshotId.remove();
 
     Map<String, List<String>> rowToDelete =
         sampleVcfResults.stream()
@@ -361,7 +361,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
         is(true));
 
     dataRepoFixtures.deleteDataset(steward(), datasetId, ingestBucket);
-    datasetId = null;
+    tlDatasetId.remove();
 
     boolean fileExistsAfterDatasetDelete = gcsUtils.fileExists(exomeVcfPath(ingestBucket));
     assertThat(

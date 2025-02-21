@@ -5,7 +5,9 @@ import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.BulkLoadResultModel;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.FSFileInfo;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -31,13 +33,13 @@ public class LoadService {
     this.loadDao = loadDao;
   }
 
-  public UUID lockLoad(String loadTag, String flightId) throws InterruptedException {
-    Load load = loadDao.lockLoad(loadTag, flightId);
-    return load.getId();
+  public UUID lockLoad(LoadLockKey loadLockKey, String flightId) {
+    LoadLock loadLock = loadDao.lockLoad(loadLockKey, flightId);
+    return loadLock.id();
   }
 
-  public void unlockLoad(String loadTag, String flightId) {
-    loadDao.unlockLoad(loadTag, flightId);
+  public void unlockLoad(LoadLockKey loadLockKey, String flightId) {
+    loadDao.unlockLoad(loadLockKey, flightId);
   }
 
   public void populateFiles(UUID loadId, List<BulkLoadFileModel> loadFileModelList) {
@@ -69,15 +71,31 @@ public class LoadService {
     return inputTag;
   }
 
-  public String getLoadTag(FlightContext context) {
+  /**
+   * @param context Flight context with the following:
+   *     <ul>
+   *       <li>{@link LoadMapKeys#LOAD_TAG} in the input parameters or working map
+   *       <li>{@link JobMapKeys#DATASET_ID} in the input parameters
+   *     </ul>
+   *
+   * @return a {@link LoadLockKey} constructed from the flight's context, which this flight will
+   *     attempt to lock while loading files.
+   * @throws LoadLockFailureException if no load tag can be found in the flight context
+   */
+  public LoadLockKey getLoadLockKey(FlightContext context) throws LoadLockFailureException {
+    return new LoadLockKey(getLoadTag(context), IngestUtils.getDatasetId(context));
+  }
+
+  private String getLoadTag(FlightContext context) throws LoadLockFailureException {
     FlightMap inputParameters = context.getInputParameters();
-    String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
+    String key = LoadMapKeys.LOAD_TAG;
+    String loadTag = inputParameters.get(key, String.class);
     if (StringUtils.isEmpty(loadTag)) {
       FlightMap workingMap = context.getWorkingMap();
-      loadTag = workingMap.get(LoadMapKeys.LOAD_TAG, String.class);
+      loadTag = workingMap.get(key, String.class);
       if (StringUtils.isEmpty(loadTag)) {
         throw new LoadLockFailureException(
-            "Expected LOAD_TAG in working map or inputs, but did not find it");
+            "Expected %s in working map or inputs, but did not find it".formatted(key));
       }
     }
     return loadTag;
@@ -125,6 +143,7 @@ public class LoadService {
       List<BulkLoadHistoryModel> backingList, int chunkSize) {
     return new LoadHistoryIterator(backingList, chunkSize);
   }
+
   /**
    * A convenience class wrapping the getting of load history table rows in an Iterator. The
    * Iterator's elements are a list of BulkLoadHistoryModel chunk of the full results retrieved from

@@ -25,8 +25,8 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final ApplicationConfiguration applicationConfiguration;
   private final UserMetricsConfiguration metricsConfig;
+  private final UserLoggingMetrics userLoggingMetrics;
   private final ExecutorService metricsPerformanceThreadpool;
-  private final UserLoggingMetrics eventProperties;
 
   @Autowired
   public UserMetricsInterceptor(
@@ -34,14 +34,14 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       ApplicationConfiguration applicationConfiguration,
       UserMetricsConfiguration metricsConfig,
-      UserLoggingMetrics eventProperties,
+      UserLoggingMetrics userLoggingMetrics,
       @Qualifier("metricsReportingThreadpool") ExecutorService metricsPerformanceThreadpool) {
     this.bardClient = bardClient;
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.applicationConfiguration = applicationConfiguration;
     this.metricsConfig = metricsConfig;
+    this.userLoggingMetrics = userLoggingMetrics;
     this.metricsPerformanceThreadpool = metricsPerformanceThreadpool;
-    this.eventProperties = eventProperties;
   }
 
   @Override
@@ -61,14 +61,13 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
     if (StringUtils.isEmpty(metricsConfig.bardBasePath()) || ignoreEventForPath(path)) {
       return;
     }
-
-    HashMap<String, Object> properties =
-        new HashMap<>(
-            Map.of(
-                BardEventProperties.METHOD_FIELD_NAME, method,
-                BardEventProperties.PATH_FIELD_NAME, path));
-    eventProperties.setAll(properties);
-    HashMap<String, Object> bardEventProperties = eventProperties.get();
+    Map<String, Object> properties = new HashMap<>(userLoggingMetrics.get());
+    properties.putAll(
+        Map.of(
+            BardEventProperties.METHOD_FIELD_NAME, method,
+            BardEventProperties.PATH_FIELD_NAME, path));
+    addToPropertiesIfPresentInHeader(
+        request, properties, "X-Transaction-Id", BardEventProperties.TRANSACTION_ID_FIELD_NAME);
 
     // Spawn a thread so that sending the metric doesn't slow down the initial request
     metricsPerformanceThreadpool.submit(
@@ -77,7 +76,7 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
                 userRequest,
                 new BardEvent(
                     API_EVENT_NAME,
-                    bardEventProperties,
+                    properties,
                     metricsConfig.appId(),
                     applicationConfiguration.getDnsName())));
   }
@@ -85,5 +84,26 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
   /** Should we actually ignore sending a tracking event for this path */
   private boolean ignoreEventForPath(String path) {
     return metricsConfig.ignorePaths().stream().anyMatch(p -> FilenameUtils.wildcardMatch(path, p));
+  }
+
+  /**
+   * If a given header is present in the request and has a value, add it to the properties map to be
+   * tracked in Bard
+   *
+   * @param request The request being logged
+   * @param properties The properties map that will be sent to Bard for tracking
+   * @param headerName The name of the header to examine
+   * @param propertyName The name of the map key to use when adding the header value to the
+   *     properties map
+   */
+  private void addToPropertiesIfPresentInHeader(
+      HttpServletRequest request,
+      Map<String, Object> properties,
+      String headerName,
+      String propertyName) {
+    var headerValue = request.getHeader(headerName);
+    if (headerValue != null) {
+      properties.put(propertyName, headerValue);
+    }
   }
 }

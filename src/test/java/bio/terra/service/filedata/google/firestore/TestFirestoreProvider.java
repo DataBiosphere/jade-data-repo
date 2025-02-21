@@ -7,9 +7,9 @@ public final class TestFirestoreProvider {
 
   private TestFirestoreProvider() {}
 
-  public static Firestore getFirestore() {
+  public static Firestore getFirestore(String googleProjectId) {
     return FirestoreOptions.getDefaultInstance().toBuilder()
-        .setProjectId(System.getenv("GOOGLE_CLOUD_DATA_PROJECT"))
+        .setProjectId(googleProjectId)
         .build()
         .getService();
   }

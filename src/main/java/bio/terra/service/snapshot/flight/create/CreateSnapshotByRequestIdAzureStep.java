@@ -11,7 +11,6 @@ import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
-import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -27,7 +26,6 @@ public class CreateSnapshotByRequestIdAzureStep extends CreateSnapshotParquetFil
     implements CreateSnapshotByRequestIdInterface, Step {
   private final SnapshotRequestModel snapshotReq;
   private final SnapshotBuilderService snapshotBuilderService;
-  private final SnapshotRequestDao snapshotRequestDao;
   private final SnapshotDao snapshotDao;
   private final AuthenticatedUserRequest userReq;
   String sourceDatasetDataSourceName;
@@ -37,7 +35,6 @@ public class CreateSnapshotByRequestIdAzureStep extends CreateSnapshotParquetFil
       SnapshotRequestModel snapshotReq,
       SnapshotService snapshotService,
       SnapshotBuilderService snapshotBuilderService,
-      SnapshotRequestDao snapshotRequestDao,
       SnapshotDao snapshotDao,
       AuthenticatedUserRequest userReq,
       AzureSynapsePdao azureSynapsePdao,
@@ -45,7 +42,6 @@ public class CreateSnapshotByRequestIdAzureStep extends CreateSnapshotParquetFil
     super(azureSynapsePdao, snapshotService, snapshotId);
     this.snapshotReq = snapshotReq;
     this.snapshotBuilderService = snapshotBuilderService;
-    this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotDao = snapshotDao;
     this.userReq = userReq;
   }
@@ -85,8 +81,8 @@ public class CreateSnapshotByRequestIdAzureStep extends CreateSnapshotParquetFil
         context,
         snapshot,
         snapshotReq,
+        snapshotService,
         snapshotBuilderService,
-        snapshotRequestDao,
         snapshotDao,
         userReq);
   }

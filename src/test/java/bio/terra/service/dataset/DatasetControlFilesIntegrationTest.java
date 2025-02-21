@@ -7,15 +7,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 
-import bio.terra.common.auth.AuthService;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
-import bio.terra.integration.SamFixtures;
-import bio.terra.integration.TestJobWatcher;
-import bio.terra.integration.UsersBase;
+import bio.terra.integration.IntegrationTestConfiguration;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.DatasetModel;
@@ -23,69 +22,72 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
-import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 // TODO move me to integration dir
-@RunWith(SpringRunner.class)
-@SpringBootTest
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@AutoConfigureMockMvc
-@Category(Integration.class)
-public class DatasetControlFilesIntegrationTest extends UsersBase {
+@Tag(Integration.TAG)
+@Execution(ExecutionMode.CONCURRENT)
+class DatasetControlFilesIntegrationTest {
 
-  @Autowired private AuthService authService;
   @Autowired private DataRepoFixtures dataRepoFixtures;
-  @Autowired private SamFixtures samFixtures;
   @Autowired private JsonLoader jsonLoader;
   @Autowired private TestConfiguration testConfiguration;
-  @Autowired private GoogleResourceManagerService resourceManagerService;
-  @Rule @Autowired public TestJobWatcher testWatcher;
+  @Autowired private Users users;
 
-  private UUID datasetId;
-  private UUID profileId;
-  private String ingestBucket;
+  private final ThreadLocal<Users.TestUsers> testUsers =
+      ThreadLocal.withInitial(() -> users.testUsers());
+  private final ThreadLocal<UUID> tlDatasetId = new ThreadLocal<>();
+  private final ThreadLocal<UUID> tlProfileId = new ThreadLocal<>();
+  private final ThreadLocal<String> tlIngestBucket = new ThreadLocal<>();
 
-  @Before
-  public void setup() throws Exception {
-    super.setup();
-    dataRepoFixtures.resetConfig(steward());
-    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+  private User steward() {
+    return testUsers.get().steward();
   }
 
-  @After
+  @BeforeEach
+  public void setup() throws Exception {
+    dataRepoFixtures.resetConfig(steward());
+    tlProfileId.set(dataRepoFixtures.createBillingProfile(steward()).getId());
+  }
+
+  @AfterEach
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward());
 
-    if (datasetId != null) {
-      dataRepoFixtures.deleteDataset(steward(), datasetId, ingestBucket);
+    if (tlDatasetId.get() != null) {
+      dataRepoFixtures.deleteDataset(steward(), tlDatasetId.get(), tlIngestBucket.get());
     }
 
-    if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward(), profileId);
+    if (tlProfileId.get() != null) {
+      dataRepoFixtures.deleteProfileLog(steward(), tlProfileId.get());
     }
   }
 
   @Test
-  public void testCombinedMetadataDataIngest() throws Exception {
+  void testCombinedMetadataDataIngest() throws Exception {
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
-    datasetId = datasetSummaryModel.getId();
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
 
     // Initial uses bulk mode
     IngestRequestModel ingestRequest =
@@ -161,10 +163,12 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testMaxBadRecords() throws Exception {
+  void testMaxBadRecords() throws Exception {
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
-    datasetId = datasetSummaryModel.getId();
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -203,10 +207,12 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testSourcePathAuth() throws Exception {
+  void testSourcePathAuth() throws Exception {
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
-    datasetId = datasetSummaryModel.getId();
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -235,10 +241,12 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testDirectIngestSourcePathAuth() throws Exception {
+  void testDirectIngestSourcePathAuth() throws Exception {
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
-    datasetId = datasetSummaryModel.getId();
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
     Map<String, Object> data =
         jsonLoader.loadObject("test-direct-ingest-auth.json", new TypeReference<>() {});
     IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("sample_vcf", List.of(data));
@@ -259,10 +267,12 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testCopyingOfControlFiles() throws Exception {
+  void testCopyingOfControlFiles() throws Exception {
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
-    datasetId = datasetSummaryModel.getId();
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -295,11 +305,13 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testCopyingOfControlFilesMultiRegion() throws Exception {
+  void testCopyingOfControlFilesMultiRegion() throws Exception {
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(
             steward(), profileId, "dataset-ingest-combined-array-us.json");
-    datasetId = datasetSummaryModel.getId();
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -332,11 +344,13 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testInvalidControlFile() throws Exception {
+  void testInvalidControlFile() throws Exception {
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(
             steward(), profileId, "dataset-ingest-combined-array-us.json");
-    datasetId = datasetSummaryModel.getId();
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -359,10 +373,12 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void interactionsFromRequesterPaysBucket() throws Exception {
+  void interactionsFromRequesterPaysBucket() throws Exception {
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
-    datasetId = datasetSummaryModel.getId();
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -407,13 +423,16 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void interactionsWithPerDatasetServiceAccount() throws Exception {
-    ingestBucket = "jade_testbucket_no_jade_sa";
+  void interactionsWithPerDatasetServiceAccount() throws Exception {
+    var ingestBucket = "jade_testbucket_no_jade_sa";
+    tlIngestBucket.set(ingestBucket);
+    var profileId = tlProfileId.get();
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDatasetWithOwnServiceAccount(
             steward(), profileId, "dataset-ingest-combined-array.json");
 
-    datasetId = datasetSummaryModel.getId();
+    var datasetId = datasetSummaryModel.getId();
+    tlDatasetId.set(datasetId);
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
 
     IngestRequestModel ingestRequest =

@@ -58,6 +58,7 @@ import org.broadinstitute.dsde.workbench.client.sam.model.RequesterPaysSignedUrl
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SyncReportEntry;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserIdInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -262,34 +263,51 @@ public class SamIam implements IamProviderInterface {
 
   @Override
   public Map<IamRole, String> createSnapshotResource(
-      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies)
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId,
+      UUID parentDatasetId,
+      SnapshotRequestModelPolicies policies)
       throws InterruptedException {
     SamRetry.retry(
-        configurationService, () -> createSnapshotResourceInnerV2(userReq, snapshotId, policies));
+        configurationService,
+        () -> createSnapshotResourceInnerV2(userReq, snapshotId, parentDatasetId, policies));
     return SamRetry.retry(
         configurationService, () -> syncSnapshotResourcePoliciesInner(userReq, snapshotId));
   }
 
   private void createSnapshotResourceInnerV2(
-      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies)
-      throws ApiException {
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId,
+      UUID parentDatasetId,
+      SnapshotRequestModelPolicies policies)
+      throws ApiException, InterruptedException {
     ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
-    CreateResourceRequestV2 req = createSnapshotResourceRequest(userReq, snapshotId, policies);
+    CreateResourceRequestV2 req =
+        createSnapshotResourceRequest(userReq, snapshotId, parentDatasetId, policies);
     samResourceApi.createResourceV2(IamResourceType.DATASNAPSHOT.toString(), req);
   }
 
   @VisibleForTesting
   CreateResourceRequestV2 createSnapshotResourceRequest(
-      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies) {
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId,
+      UUID parentDatasetId,
+      SnapshotRequestModelPolicies policies)
+      throws InterruptedException {
     policies = Optional.ofNullable(policies).orElse(new SnapshotRequestModelPolicies());
-    UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     CreateResourceRequestV2 req = new CreateResourceRequestV2().resourceId(snapshotId.toString());
 
     req.putPoliciesItem(
         IamRole.ADMIN.toString(), createAccessPolicy(IamRole.ADMIN, getAdminEmailList()));
 
     List<String> stewards = new ArrayList<>();
-    stewards.add(userStatusInfo.getUserEmail());
+    if (parentDatasetId == null
+        || !retrieveUserRoles(userReq, IamResourceType.DATASET, parentDatasetId)
+            .contains(IamRole.CUSTODIAN.toString())) {
+      // Add the current user as a steward if there is no parent dataset, or they are not
+      // a custodian of the parent.
+      stewards.add(getUserInfoAndVerify(userReq).getUserEmail());
+    }
     stewards.addAll(ListUtils.emptyIfNull(policies.getStewards()));
     req.putPoliciesItem(IamRole.STEWARD.toString(), createAccessPolicy(IamRole.STEWARD, stewards));
 
@@ -305,7 +323,15 @@ public class SamIam implements IamProviderInterface {
         createAccessPolicy(IamRole.AGGREGATE_DATA_READER, policies.getAggregateDataReaders()));
 
     req.authDomain(List.of());
-    logger.debug("SAM request: " + req);
+
+    if (parentDatasetId != null) {
+      req.setParent(
+          new FullyQualifiedResourceId()
+              .resourceTypeName(IamResourceType.DATASET.toString())
+              .resourceId(parentDatasetId.toString()));
+    }
+
+    logger.debug("SAM request: {}", req);
     return req;
   }
 
@@ -331,6 +357,13 @@ public class SamIam implements IamProviderInterface {
             createSnapshotBuilderRequestResourceInner(
                 userReq, snapshotId, snapshotBuilderRequestId, initialRoles));
     return initialRoles;
+  }
+
+  @Override
+  public void deleteSnapshotBuilderRequestResource(
+      AuthenticatedUserRequest userReq, UUID snapshotBuilderRequestId) throws InterruptedException {
+    deleteResource(
+        userReq, IamResourceType.SNAPSHOT_BUILDER_REQUEST, snapshotBuilderRequestId.toString());
   }
 
   private void createSnapshotBuilderRequestResourceInner(
@@ -426,7 +459,7 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
-  public List<String> retrieveAuthDomain(
+  public List<String> retrieveAuthDomains(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws InterruptedException {
     return SamRetry.retry(
@@ -626,7 +659,7 @@ public class SamIam implements IamProviderInterface {
           .userEmail(samInfo.getUserEmail())
           .enabled(samInfo.getEnabled());
     } catch (ApiException ex) {
-      throw convertSAMExToDataRepoEx(ex);
+      throw convertSamExToDataRepoEx(ex);
     }
   }
 
@@ -692,8 +725,71 @@ public class SamIam implements IamProviderInterface {
     samApiService.groupApi(accessToken).postGroup(groupName, null);
   }
 
+  @Override
+  public String getGroup(String accessToken, String groupName) throws InterruptedException {
+    return SamRetry.retry(configurationService, () -> getGroupEmail(accessToken, groupName));
+  }
+
   private String getGroupEmail(String accessToken, String groupName) throws ApiException {
     return samApiService.groupApi(accessToken).getGroup(groupName);
+  }
+
+  @Override
+  public List<String> getGroupPolicyEmails(String accessToken, String groupName, String policyName)
+      throws InterruptedException {
+    return SamRetry.retry(
+        configurationService, () -> getGroupPolicyEmailsInner(accessToken, groupName, policyName));
+  }
+
+  private List<String> getGroupPolicyEmailsInner(
+      String accessToken, String groupName, String policyName) throws ApiException {
+    return samApiService.groupApi(accessToken).getGroupPolicyEmails(groupName, policyName);
+  }
+
+  @Override
+  public List<String> addGroupPolicyEmail(
+      String accessToken, String groupName, String policyName, String memberEmail)
+      throws InterruptedException {
+    SamRetry.retry(
+        configurationService,
+        () -> addGroupPolicyEmailInner(accessToken, groupName, policyName, memberEmail));
+    return getGroupPolicyEmails(accessToken, groupName, policyName);
+  }
+
+  private void addGroupPolicyEmailInner(
+      String accessToken, String groupName, String policyName, String memberEmail)
+      throws ApiException {
+    samApiService.groupApi(accessToken).addEmailToGroup(groupName, policyName, memberEmail, null);
+  }
+
+  @Override
+  public List<String> removeGroupPolicyEmail(
+      String accessToken, String groupName, String policyName, String memberEmail)
+      throws InterruptedException {
+    SamRetry.retry(
+        configurationService,
+        () -> removeGroupPolicyEmailInner(accessToken, groupName, policyName, memberEmail));
+    return getGroupPolicyEmails(accessToken, groupName, policyName);
+  }
+
+  private void removeGroupPolicyEmailInner(
+      String accessToken, String groupName, String policyName, String memberEmail)
+      throws ApiException {
+    samApiService.groupApi(accessToken).removeEmailFromGroup(groupName, policyName, memberEmail);
+  }
+
+  @Override
+  public void overwriteGroupPolicyEmailsIncludeRequestingUser(
+      String accessToken,
+      AuthenticatedUserRequest userReq,
+      String groupName,
+      String policyName,
+      List<String> emailAddresses)
+      throws InterruptedException {
+    List<String> emails = new ArrayList<>(emailAddresses);
+    UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
+    emails.add(userStatusInfo.getUserEmail());
+    overwriteGroupPolicyEmails(accessToken, groupName, policyName, emails);
   }
 
   @Override
@@ -775,6 +871,23 @@ public class SamIam implements IamProviderInterface {
         .createManagedResourceGroup(billingProfileId, managedResourceGroupCoordinates);
   }
 
+  @Override
+  public boolean getResourceTypeAdminPermission(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action)
+      throws InterruptedException {
+    return SamRetry.retry(
+        configurationService,
+        () -> getResourceTypeAdminPermissionInner(userReq, iamResourceType, action));
+  }
+
+  private boolean getResourceTypeAdminPermissionInner(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action)
+      throws ApiException {
+    return samApiService
+        .adminApi(userReq.getToken())
+        .resourceTypeAdminPermission(iamResourceType.getSamResourceName(), action.toString());
+  }
+
   private UserStatusInfo getUserInfoAndVerify(AuthenticatedUserRequest userReq) {
     UserStatusInfo userStatusInfo = getUserInfo(userReq);
     if (!userStatusInfo.isEnabled()) {
@@ -795,6 +908,15 @@ public class SamIam implements IamProviderInterface {
       membership.memberEmails(emails);
     }
     return membership;
+  }
+
+  @Override
+  public UserIdInfo getUserIds(String accessToken, String userEmail) throws InterruptedException {
+    return SamRetry.retry(configurationService, () -> getUserIdsInner(accessToken, userEmail));
+  }
+
+  private UserIdInfo getUserIdsInner(String accessToken, String userEmail) throws ApiException {
+    return samApiService.usersApi(accessToken).getUserIds(userEmail);
   }
 
   /**
@@ -818,48 +940,30 @@ public class SamIam implements IamProviderInterface {
    * Converts a SAM-specific ApiException to a DataRepo-specific common exception, based on the HTTP
    * status code.
    */
-  public static ErrorReportException convertSAMExToDataRepoEx(final ApiException samEx) {
-    logger.warn("SAM client exception code: {}", samEx.getCode());
-    logger.warn("SAM client exception message: {}", samEx.getMessage());
-    logger.warn("SAM client exception details: {}", samEx.getResponseBody());
+  public static ErrorReportException convertSamExToDataRepoEx(final ApiException samEx) {
+    logger.warn("Sam client exception code: {}", samEx.getCode());
+    logger.warn("Sam client exception message: {}", samEx.getMessage());
+    logger.warn("Sam client exception details: {}", samEx.getResponseBody());
 
     // Sometimes the sam message is buried several levels down inside of the error report object.
-    String message = null;
+    String message;
     try {
       ErrorReport errorReport = objectMapper.readValue(samEx.getResponseBody(), ErrorReport.class);
       message = extractErrorMessage(errorReport);
     } catch (JsonProcessingException | IllegalArgumentException ex) {
-      message = Objects.requireNonNullElse(samEx.getMessage(), "SAM client exception");
+      message = Objects.requireNonNullElse(samEx.getMessage(), "Sam client exception");
     }
 
-    switch (samEx.getCode()) {
-      case HttpStatusCodes.STATUS_CODE_BAD_REQUEST:
-        {
-          return new IamBadRequestException(message, samEx);
-        }
-      case HttpStatusCodes.STATUS_CODE_UNAUTHORIZED:
-        {
-          return new IamUnauthorizedException(message, samEx);
-        }
-      case HttpStatusCodes.STATUS_CODE_FORBIDDEN:
-        {
-          return new IamForbiddenException(message, samEx);
-        }
-      case HttpStatusCodes.STATUS_CODE_NOT_FOUND:
-        {
-          return new IamNotFoundException(message, samEx);
-        }
-      case HttpStatusCodes.STATUS_CODE_CONFLICT:
-        {
-          return new IamConflictException(message, samEx);
-        }
-        // SAM does not use a 501 NOT_IMPLEMENTED status code, so that case is skipped here
-        // A 401 error will only occur when OpenDJ is down and should be raised as a 500 error
-      default:
-        {
-          return new IamInternalServerErrorException(message, samEx);
-        }
-    }
+    return switch (samEx.getCode()) {
+      case HttpStatusCodes.STATUS_CODE_BAD_REQUEST -> new IamBadRequestException(message, samEx);
+      case HttpStatusCodes.STATUS_CODE_UNAUTHORIZED -> new IamUnauthorizedException(message, samEx);
+      case HttpStatusCodes.STATUS_CODE_FORBIDDEN -> new IamForbiddenException(message, samEx);
+      case HttpStatusCodes.STATUS_CODE_NOT_FOUND -> new IamNotFoundException(message, samEx);
+      case HttpStatusCodes.STATUS_CODE_CONFLICT -> new IamConflictException(message, samEx);
+      // SAM does not use a 501 NOT_IMPLEMENTED status code, so that case is skipped here
+      // A 401 error will only occur when OpenDJ is down and should be raised as a 500 error
+      default -> new IamInternalServerErrorException(message, samEx);
+    };
   }
 
   @VisibleForTesting

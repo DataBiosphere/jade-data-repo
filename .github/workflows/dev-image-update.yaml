@@ -1,4 +1,4 @@
-name: Update devs api image
+name: Build, tag, and publish
 env:
   # This must be defined for the bash redirection
   GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
@@ -60,7 +60,7 @@ jobs:
       - bump_version
     steps:
       - name: Checkout jade-data-repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           # ref: ${{ needs.bump_version.outputs.tag }}
           persist-credentials: false
@@ -98,7 +98,6 @@ jobs:
   tag-image-with-branch-name:
     if: github.ref_name != github.event.repository.default_branch
     needs:
-      - bump_version
       - build_container_and_publish
       - get-branch-name
     uses: ./.github/workflows/cherry-pick-image.yaml
@@ -112,7 +111,6 @@ jobs:
   cherry_pick_image_to_production_gcr:
     if: github.ref_name == github.event.repository.default_branch
     needs:
-      - bump_version
       - build_container_and_publish
     uses: ./.github/workflows/cherry-pick-image.yaml
     secrets: inherit
@@ -126,13 +124,25 @@ jobs:
     name: Report App Version to DevOps
     uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
     needs:
-      - bump_version
       - build_container_and_publish
     with:
       new-version: ${{ needs.bump_version.outputs.tag }}
       chart-name: datarepo
     permissions:
       contents: read
+      id-token: write
+
+  report-workflow:
+    if: github.ref_name == github.event.repository.default_branch
+    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
+    # dependency is not required but makes the action run page more readable
+    needs:
+      - build_container_and_publish
+    with:
+      relates-to-chart-releases: 'datarepo-dev'
+      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+    permissions:
       id-token: write
 
   set-app-version-in-dev:

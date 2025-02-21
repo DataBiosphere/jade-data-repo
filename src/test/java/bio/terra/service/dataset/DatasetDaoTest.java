@@ -164,7 +164,7 @@ class DatasetDaoTest {
   }
 
   @Test
-  public void enumerateTest() throws Exception {
+  void enumerateTest() throws Exception {
     UUID datasetId1 = createDataset("dataset-minimal.json");
     Dataset dataset1 = datasetDao.retrieve(datasetId1);
     UUID datasetId2 = createDataset("ingest-test-dataset-east.json");
@@ -416,17 +416,17 @@ class DatasetDaoTest {
   }
 
   @Test
-  public void datasetTest() throws Exception {
+  void datasetTest() throws Exception {
     datasetTest(true, true);
   }
 
   @Test
-  public void datasetTest_noRelationships() throws Exception {
+  void datasetTest_noRelationships() throws Exception {
     datasetTest(false, true);
   }
 
   @Test
-  public void datasetTest_noAssets() throws Exception {
+  void datasetTest_noAssets() throws Exception {
     datasetTest(true, false);
   }
 
@@ -488,7 +488,7 @@ class DatasetDaoTest {
   }
 
   @Test
-  public void datasetRegionFirestoreFallbackTest() throws Exception {
+  void datasetRegionFirestoreFallbackTest() throws Exception {
     DatasetRequestModel request =
         jsonLoader.loadObject("dataset-create-test.json", DatasetRequestModel.class).region("US");
     String expectedName = request.getName() + UUID.randomUUID();
@@ -497,8 +497,7 @@ class DatasetDaoTest {
     Dataset fromDB = datasetDao.retrieve(datasetId);
 
     for (GoogleCloudResource resource : GoogleCloudResource.values()) {
-      CloudRegion region =
-          (GoogleRegion) fromDB.getDatasetSummary().getStorageResourceRegion(resource);
+      CloudRegion region = fromDB.getDatasetSummary().getStorageResourceRegion(resource);
       GoogleRegion expectedRegion =
           (resource == GoogleCloudResource.BIGQUERY) ? GoogleRegion.US : GoogleRegion.US_EAST4;
       assertThat(
@@ -509,7 +508,7 @@ class DatasetDaoTest {
   }
 
   @Test
-  public void partitionTest() throws Exception {
+  void partitionTest() throws Exception {
     UUID datasetId = createDataset("ingest-test-partitioned-dataset.json");
     Dataset fromDB = datasetDao.retrieve(datasetId);
     DatasetTable participants =
@@ -532,7 +531,7 @@ class DatasetDaoTest {
   }
 
   @Test
-  public void primaryKeyTest() throws Exception {
+  void primaryKeyTest() throws Exception {
     UUID datasetId = createDataset("dataset-primary-key.json");
     Dataset fromDB = datasetDao.retrieve(datasetId);
     DatasetTable variants =
@@ -647,7 +646,7 @@ class DatasetDaoTest {
     assertNull(getExclusiveLock(datasetId), "no exclusive lock after step 2");
     sharedLocks = Arrays.asList(datasetDao.getSharedLocks(datasetId));
     assertThat("two shared locks after step 2", sharedLocks, hasSize(2));
-    assertThat("flightid2 has shared lock after step 2", sharedLocks.contains(sharedLock2));
+    assertThat("flightid2 has shared lock after step 2", sharedLocks, contains(sharedLock2));
 
     // 3. try to take out an exclusive lock
     // confirm that it fails with a DatasetLockException

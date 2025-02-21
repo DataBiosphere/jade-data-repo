@@ -98,6 +98,7 @@ jobs:
   tag-image-with-branch-name:
     if: github.ref_name != github.event.repository.default_branch
     needs:
+      - bump_version
       - build_container_and_publish
       - get-branch-name
     uses: ./.github/workflows/cherry-pick-image.yaml
@@ -111,6 +112,7 @@ jobs:
   cherry_pick_image_to_production_gcr:
     if: github.ref_name == github.event.repository.default_branch
     needs:
+      - bump_version
       - build_container_and_publish
     uses: ./.github/workflows/cherry-pick-image.yaml
     secrets: inherit
@@ -124,6 +126,7 @@ jobs:
     name: Report App Version to DevOps
     uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
     needs:
+      - bump_version
       - build_container_and_publish
     with:
       new-version: ${{ needs.bump_version.outputs.tag }}
@@ -149,6 +152,7 @@ jobs:
     uses: broadinstitute/sherlock/.github/workflows/client-set-environment-app-version.yaml@main
     if: github.ref_name == github.event.repository.default_branch
     needs:
+      - bump_version
       - report-to-sherlock
     with:
       new-version: ${{ needs.bump_version.outputs.tag }}

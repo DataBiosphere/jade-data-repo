@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -646,7 +647,7 @@ class DatasetDaoTest {
     assertNull(getExclusiveLock(datasetId), "no exclusive lock after step 2");
     sharedLocks = Arrays.asList(datasetDao.getSharedLocks(datasetId));
     assertThat("two shared locks after step 2", sharedLocks, hasSize(2));
-    assertThat("flightid2 has shared lock after step 2", sharedLocks, contains(sharedLock2));
+    assertThat("flightid2 has shared lock after step 2", sharedLocks, hasItem(sharedLock2));
 
     // 3. try to take out an exclusive lock
     // confirm that it fails with a DatasetLockException

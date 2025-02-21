@@ -82,6 +82,7 @@ jobs:
           GCR_TAG: ${{ needs.bump_version.outputs.tag }}
 
   cherry_pick_image_to_production_gcr:
+    if: github.ref_name == github.event.repository.default_branch
     needs:
       - bump_version
       - build_container_and_publish
@@ -93,7 +94,6 @@ jobs:
       target_gcr_url: 'gcr.io/datarepo-public-gcr/jade-data-repo'
 
   tag-image-with-branch-name:
-    if: github.ref_name == github.event.repository.default_branch
     needs:
       - bump_version
       - build_container_and_publish

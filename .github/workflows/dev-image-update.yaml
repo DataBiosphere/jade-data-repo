@@ -81,18 +81,6 @@ jobs:
         env:
           GCR_TAG: ${{ needs.bump_version.outputs.tag }}
 
-  cherry_pick_image_to_production_gcr:
-    if: github.ref_name == github.event.repository.default_branch
-    needs:
-      - bump_version
-      - build_container_and_publish
-    uses: ./.github/workflows/cherry-pick-image.yaml
-    secrets: inherit
-    with:
-      gcr_tag: ${{ needs.bump_version.outputs.tag }}
-      source_gcr_url: 'gcr.io/broad-jade-dev/jade-data-repo'
-      target_gcr_url: 'gcr.io/datarepo-public-gcr/jade-data-repo'
-
   get-branch-name:
     runs-on: ubuntu-latest
     needs:
@@ -116,9 +104,23 @@ jobs:
     uses: ./.github/workflows/cherry-pick-image.yaml
     secrets: inherit
     with:
-      gcr_tag: ${{ needs.get-branch-name.outputs.branch-name }}
       source_gcr_url: 'gcr.io/broad-jade-dev/jade-data-repo'
+      source_gcr_tag: ${{ needs.bump_version.outputs.tag }}
       target_gcr_url: 'gcr.io/broad-jade-dev/jade-data-repo'
+      target_gcr_tag: ${{ needs.get-branch-name.outputs.branch-name }}
+
+  cherry_pick_image_to_production_gcr:
+    if: github.ref_name == github.event.repository.default_branch
+    needs:
+      - bump_version
+      - build_container_and_publish
+    uses: ./.github/workflows/cherry-pick-image.yaml
+    secrets: inherit
+    with:
+      source_gcr_url: 'gcr.io/broad-jade-dev/jade-data-repo'
+      source_gcr_tag: ${{ needs.bump_version.outputs.tag }}
+      target_gcr_url: 'gcr.io/datarepo-public-gcr/jade-data-repo'
+      target_gcr_tag: ${{ needs.bump_version.outputs.tag }}
 
   report-to-sherlock:
     name: Report App Version to DevOps

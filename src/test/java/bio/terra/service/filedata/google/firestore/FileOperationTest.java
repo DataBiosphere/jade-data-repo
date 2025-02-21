@@ -205,7 +205,7 @@ public class FileOperationTest {
     FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
     connectedOperations.retryAcquireLockIngestFileSuccess(
-        ConnectedOperations.RetryType.lock,
+        ConnectedOperations.RetryType.LOCK,
         true,
         true,
         ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT,
@@ -220,7 +220,7 @@ public class FileOperationTest {
     FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
     connectedOperations.retryAcquireLockIngestFileSuccess(
-        ConnectedOperations.RetryType.unlock,
+        ConnectedOperations.RetryType.UNLOCK,
         true,
         true,
         ConfigEnum.FILE_INGEST_UNLOCK_RETRY_FAULT,
@@ -239,7 +239,7 @@ public class FileOperationTest {
     FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
     connectedOperations.retryAcquireLockIngestFileSuccess(
-        ConnectedOperations.RetryType.lock,
+        ConnectedOperations.RetryType.LOCK,
         false,
         false,
         ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT,
@@ -256,7 +256,7 @@ public class FileOperationTest {
     FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
     connectedOperations.retryAcquireLockIngestFileSuccess(
-        ConnectedOperations.RetryType.unlock,
+        ConnectedOperations.RetryType.UNLOCK,
         false,
         true,
         ConfigEnum.FILE_INGEST_UNLOCK_FATAL_FAULT,
@@ -272,7 +272,7 @@ public class FileOperationTest {
     FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
     connectedOperations.retryAcquireLockIngestFileSuccess(
-        ConnectedOperations.RetryType.lock,
+        ConnectedOperations.RetryType.LOCK,
         false,
         true,
         ConfigEnum.FILE_INGEST_LOCK_FATAL_FAULT,

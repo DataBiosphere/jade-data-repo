@@ -16,6 +16,7 @@ import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -49,17 +50,13 @@ class SnapshotAuthzTabularAclStepTest {
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
   private static final Snapshot SNAPSHOT = new Snapshot().id(UUID.randomUUID());
-  private static final Dataset SOURCE_DATASET = new Dataset().id(UUID.randomUUID());
 
   private SnapshotAuthzTabularAclStep step;
-  private FlightMap inputMap;
 
   @BeforeEach
   void beforeEach() {
     FlightMap workingMap = new FlightMap();
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    inputMap = new FlightMap();
-    when(flightContext.getInputParameters()).thenReturn(inputMap);
 
     var policyMap = new EnumMap<>(IamRole.class);
     policyMap.put(IamRole.STEWARD, "steward");
@@ -67,7 +64,6 @@ class SnapshotAuthzTabularAclStepTest {
     workingMap.put(SnapshotWorkingMapKeys.POLICY_MAP, policyMap);
 
     when(snapshotService.retrieve(SNAPSHOT.getId())).thenReturn(SNAPSHOT);
-
     step =
         new SnapshotAuthzTabularAclStep(
             bigQuerySnapshotPdao,
@@ -76,7 +72,7 @@ class SnapshotAuthzTabularAclStepTest {
             iamService,
             SNAPSHOT.getId(),
             TEST_USER,
-            SOURCE_DATASET);
+            new Dataset());
   }
 
   @Test
@@ -88,9 +84,18 @@ class SnapshotAuthzTabularAclStepTest {
 
   @Test
   void doStepInheritEnabled() throws Exception {
-    inputMap.put(SnapshotWorkingMapKeys.SNAPSHOT_INHERIT_STEWARD_ENABLED, true);
-    when(iamService.retrievePolicyEmails(
-            TEST_USER, IamResourceType.DATASET, SOURCE_DATASET.getId()))
+    Dataset sourceDataset =
+        new Dataset(new DatasetSummary().inheritSteward(true)).id(UUID.randomUUID());
+    step =
+        new SnapshotAuthzTabularAclStep(
+            bigQuerySnapshotPdao,
+            snapshotService,
+            configService,
+            iamService,
+            SNAPSHOT.getId(),
+            TEST_USER,
+            sourceDataset);
+    when(iamService.retrievePolicyEmails(TEST_USER, IamResourceType.DATASET, sourceDataset.getId()))
         .thenReturn(Map.of(IamRole.CUSTODIAN, "custodian"));
     assertThat(step.doStep(flightContext), is(StepResult.getStepResultSuccess()));
     verify(bigQuerySnapshotPdao)

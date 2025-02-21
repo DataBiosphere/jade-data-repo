@@ -5366,6 +5366,12 @@ components:
             $ref: '#/components/schemas/Tag'
         resourceLocks:
           $ref: '#/components/schemas/ResourceLocks'
+        inheritSteward:
+          type: boolean
+          default: false
+          description: >
+            If true, all snapshots created from this dataset will grant dataset custodians
+            the steward (owner) role on the snapshots.
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -5417,6 +5423,12 @@ components:
             $ref: '#/components/schemas/Tag'
         resourceLocks:
           $ref: '#/components/schemas/ResourceLocks'
+        inheritSteward:
+          type: boolean
+          default: false
+          description: >
+            If true, all snapshots created from this dataset will grant dataset custodians
+            the steward (owner) role on the snapshots.
       description: >
         Summary of a dataset.
     DatasetRequestModel:
@@ -5507,6 +5519,17 @@ components:
               type: array
               items:
                 type: string
+        inheritSteward:
+          type: boolean
+          default: false
+          description: >
+            If true, all snapshots created from this dataset will grant dataset custodians
+            the steward (owner) role on the snapshots. This is intended to be used in cases where
+            a dataset will have many (> 1000) snapshots and the user wants all dataset custodians
+            to have this role on all snapshots.
+
+            Using this flag is a more efficient way to grant this role, and will avoid using up
+            google resource quotas.
         tags:
           $ref: '#/components/schemas/ResourceCreateTags'
       description: >

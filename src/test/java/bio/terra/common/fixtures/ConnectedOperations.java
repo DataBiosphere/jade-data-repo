@@ -1,13 +1,14 @@
 package bio.terra.common.fixtures;
 
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
-import static junit.framework.TestCase.fail;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.oneOf;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -37,8 +38,6 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
-import bio.terra.model.EnumerateDatasetModel;
-import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
@@ -69,7 +68,7 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -77,9 +76,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
-import org.hamcrest.CoreMatchers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -96,19 +93,22 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 @Component
 public class ConnectedOperations {
   private static final Logger logger = LoggerFactory.getLogger(ConnectedOperations.class);
+  // The policy email must be a real google group, otherwise requests that
+  // update bigquery dataset policies will fail.
+  public static final String POLICY_EMAIL = "jadeteam@broadinstitute.org";
 
   private final MockMvc mvc;
   private final JsonLoader jsonLoader;
   private final Storage storage = StorageOptions.getDefaultInstance().getService();
   private final ConnectedTestConfiguration testConfig;
 
-  private boolean deleteOnTeardown;
-  private List<UUID> createdSnapshotIds;
-  private List<UUID> createdDatasetIds;
-  private List<UUID> createdProfileIds;
-  private List<String[]> createdFileIds; // [0] is datasetid, [1] is fileid
-  private List<String> createdBuckets;
-  private List<String> createdScratchFiles;
+  private final List<UUID> createdSnapshotIds = new ArrayList<>();
+  private final List<UUID> createdDatasetIds = new ArrayList<>();
+  private final List<UUID> createdProfileIds = new ArrayList<>();
+  private final List<String[]> createdFileIds =
+      new ArrayList<>(); // [0] is datasetid, [1] is fileid
+  private final List<String> createdBuckets = new ArrayList<>();
+  private final List<String> createdScratchFiles = new ArrayList<>();
 
   @Autowired
   public ConnectedOperations(
@@ -116,14 +116,6 @@ public class ConnectedOperations {
     this.mvc = mvc;
     this.jsonLoader = jsonLoader;
     this.testConfig = testConfig;
-
-    createdSnapshotIds = new ArrayList<>();
-    createdDatasetIds = new ArrayList<>();
-    createdFileIds = new ArrayList<>();
-    createdProfileIds = new ArrayList<>();
-    deleteOnTeardown = true;
-    createdBuckets = new ArrayList<>();
-    createdScratchFiles = new ArrayList<>();
   }
 
   private static Map<UUID, Set<IamRole>> uuidsToAuthMap(List<UUID> uuids) {
@@ -132,15 +124,17 @@ public class ConnectedOperations {
   }
 
   public void stubOutSamCalls(IamProviderInterface samService) throws Exception {
-    // The policy email must be a real google group, otherwise request that
-    // update bigquery dataset policies will fail
-    Map<IamRole, String> snapshotPolicies = new HashMap<>();
-    snapshotPolicies.put(IamRole.STEWARD, "jadeteam@broadinstitute.org");
-    snapshotPolicies.put(IamRole.READER, "jadeteam@broadinstitute.org");
-    Map<IamRole, String> datasetPolicies = new HashMap<>();
-    datasetPolicies.put(IamRole.CUSTODIAN, "jadeteam@broadinstitute.org");
-    datasetPolicies.put(IamRole.STEWARD, "jadeteam@broadinstitute.org");
-    datasetPolicies.put(IamRole.SNAPSHOT_CREATOR, "jadeteam@broadinstitute.org");
+    Map<IamRole, String> snapshotPolicies =
+        new EnumMap<>(
+            Map.of(
+                IamRole.STEWARD, POLICY_EMAIL,
+                IamRole.READER, POLICY_EMAIL));
+    Map<IamRole, String> datasetPolicies =
+        new EnumMap<>(
+            Map.of(
+                IamRole.CUSTODIAN, POLICY_EMAIL,
+                IamRole.STEWARD, POLICY_EMAIL,
+                IamRole.SNAPSHOT_CREATOR, POLICY_EMAIL));
 
     when(samService.createSnapshotResource(any(), any(), any(), any()))
         .thenReturn(snapshotPolicies);
@@ -178,7 +172,6 @@ public class ConnectedOperations {
    *
    * @param resourcePath path to json used for a dataset create request
    * @return summary of the dataset created
-   * @throws Exception
    */
   public DatasetSummaryModel createDataset(BillingProfileModel profileModel, String resourcePath)
       throws Exception {
@@ -215,8 +208,7 @@ public class ConnectedOperations {
                     .content(TestUtils.mapToJson(datasetRequest)))
             .andReturn();
     MockHttpServletResponse response = validateJobModelAndWait(result);
-    ErrorModel errorModel = handleFailureCase(response, expectedStatus);
-    return errorModel;
+    return handleFailureCase(response, expectedStatus);
   }
 
   public BillingProfileModel createProfileForAccount(String billingAccountId) throws Exception {
@@ -303,28 +295,8 @@ public class ConnectedOperations {
 
     MockHttpServletResponse response =
         launchCreateSnapshot(datasetSummaryModel, snapshotRequest, infix);
-    SnapshotSummaryModel snapshotSummary = handleCreateSnapshotSuccessCase(response);
 
-    return snapshotSummary;
-  }
-
-  public ErrorModel createSnapshotExpectError(
-      DatasetSummaryModel datasetSummaryModel,
-      String resourcePath,
-      String infix,
-      HttpStatus expectedStatus)
-      throws Exception {
-
-    MockHttpServletResponse response =
-        launchCreateSnapshot(datasetSummaryModel, resourcePath, infix);
-    return handleFailureCase(response, expectedStatus);
-  }
-
-  public MockHttpServletResponse launchCreateSnapshot(
-      DatasetSummaryModel datasetSummaryModel, String resourcePath, String infix) throws Exception {
-    SnapshotRequestModel snapshotRequest =
-        jsonLoader.loadObject(resourcePath, SnapshotRequestModel.class);
-    return launchCreateSnapshot(datasetSummaryModel, snapshotRequest, infix);
+    return handleCreateSnapshotSuccessCase(response);
   }
 
   public MockHttpServletResponse launchCreateSnapshot(
@@ -340,7 +312,7 @@ public class ConnectedOperations {
       SnapshotRequestModel snapshotRequest,
       String snapshotName)
       throws Exception {
-    // TODO: the next two lines assume SingleDatasetSnapshot
+
     snapshotRequest.getContents().get(0).setDatasetName(datasetSummaryModel.getName());
     snapshotRequest.profileId(datasetSummaryModel.getDefaultProfileId());
     snapshotRequest.setName(snapshotName);
@@ -351,8 +323,7 @@ public class ConnectedOperations {
                     .content(TestUtils.mapToJson(snapshotRequest)))
             .andReturn();
 
-    MockHttpServletResponse response = validateJobModelAndWait(result);
-    return response;
+    return validateJobModelAndWait(result);
   }
 
   public SnapshotModel getSnapshot(UUID snapshotId) throws Exception {
@@ -361,10 +332,9 @@ public class ConnectedOperations {
     return TestUtils.mapFromJson(response.getContentAsString(), SnapshotModel.class);
   }
 
-  public ErrorModel getSnapshotExpectError(UUID snapshotId, HttpStatus expectedStatus)
-      throws Exception {
+  public void getSnapshotExpectError(UUID snapshotId, HttpStatus expectedStatus) throws Exception {
     MvcResult result = mvc.perform(get("/api/repository/v1/snapshots/" + snapshotId)).andReturn();
-    return handleFailureCase(result.getResponse(), expectedStatus);
+    handleFailureCase(result.getResponse(), expectedStatus);
   }
 
   public DatasetModel getDataset(UUID datasetId) throws Exception {
@@ -372,56 +342,9 @@ public class ConnectedOperations {
     return handleSuccessCase(result.getResponse(), DatasetModel.class);
   }
 
-  public ErrorModel getDatasetExpectError(UUID datasetId, HttpStatus expectedStatus)
-      throws Exception {
+  public void getDatasetExpectError(UUID datasetId, HttpStatus expectedStatus) throws Exception {
     MvcResult result = mvc.perform(get("/api/repository/v1/datasets/" + datasetId)).andReturn();
-    return handleFailureCase(result.getResponse(), expectedStatus);
-  }
-
-  public MvcResult enumerateDatasetsRaw(String filter) throws Exception {
-    String direction = "desc"; // options: asc, desc
-    int limit = 10;
-    int offset = 0;
-    String sort = "created_date"; // options: name, description, created_date
-
-    String args =
-        "direction="
-            + direction
-            + "&limit="
-            + limit
-            + "&offset="
-            + offset
-            + "&sort="
-            + sort; // + "&filter=" + filter;
-    return mvc.perform(get("/api/repository/v1/datasets?" + args)).andReturn();
-  }
-
-  public EnumerateDatasetModel enumerateDatasets(String filter) throws Exception {
-    MvcResult result = enumerateDatasetsRaw(filter);
-    return handleSuccessCase(result.getResponse(), EnumerateDatasetModel.class);
-  }
-
-  public MvcResult enumerateSnapshotsRaw(String filter) throws Exception {
-    String direction = "desc"; // options: asc, desc
-    int limit = 10;
-    int offset = 0;
-    String sort = "created_date"; // options: name, description, created_date
-
-    String args =
-        "direction="
-            + direction
-            + "&limit="
-            + limit
-            + "&offset="
-            + offset
-            + "&sort="
-            + sort; // + "&filter=" + filter;
-    return mvc.perform(get("/api/repository/v1/snapshots?" + args)).andReturn();
-  }
-
-  public EnumerateSnapshotModel enumerateSnapshots(String filter) throws Exception {
-    MvcResult result = enumerateSnapshotsRaw(filter);
-    return handleSuccessCase(result.getResponse(), EnumerateSnapshotModel.class);
+    handleFailureCase(result.getResponse(), expectedStatus);
   }
 
   public SnapshotSummaryModel handleCreateSnapshotSuccessCase(MockHttpServletResponse response)
@@ -437,7 +360,7 @@ public class ConnectedOperations {
     HttpStatus responseStatus = HttpStatus.valueOf(response.getStatus());
     if (!responseStatus.is2xxSuccessful()) {
       String failMessage =
-          "Request for " + returnClass.getName() + " failed: status=" + responseStatus.toString();
+          "Request for " + returnClass.getName() + " failed: status=" + responseStatus;
       if (StringUtils.contains(responseBody, "message")) {
         // If the responseBody contains the word 'message', then we try to decode it as an
         // ErrorModel
@@ -464,14 +387,13 @@ public class ConnectedOperations {
     // check the failure status matches the expected
     // if no specific status is specified, just check that it's not successful
     if (expectedStatus == null) {
-      assertFalse("Expect failure", responseStatus.is2xxSuccessful());
+      assertThat("Expect failure", not(responseStatus.is2xxSuccessful()));
     } else {
-      assertEquals("Expect specific failure status", expectedStatus, responseStatus);
+      assertThat("Expect specific failure status", responseStatus, is(expectedStatus));
     }
 
     String responseBody = response.getContentAsString();
-    assertTrue(
-        "Error model was returned on failure", StringUtils.contains(responseBody, "message"));
+    assertThat("Error model was returned on failure", responseBody, containsString("message"));
 
     return TestUtils.mapFromJson(responseBody, ErrorModel.class);
   }
@@ -481,33 +403,33 @@ public class ConnectedOperations {
     removeDatasetFromTracking(id);
   }
 
-  public boolean deleteTestDataset(UUID id) throws Exception {
+  public void deleteTestDataset(UUID id) throws Exception {
     MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
     MockHttpServletResponse response = validateJobModelAndWait(result);
-    return checkDeleteResponse(response);
+    checkDeleteResponse(response);
   }
 
-  public boolean deleteTestProfile(UUID id) throws Exception {
+  public void deleteTestProfile(UUID id) throws Exception {
     MvcResult result =
         mvc.perform(delete("/api/resources/v1/profiles/{id}?deleteCloudResources=true", id))
             .andReturn();
     MockHttpServletResponse response = validateJobModelAndWait(result);
-    return checkDeleteResponse(response);
+    checkDeleteResponse(response);
   }
 
-  public boolean deleteTestSnapshot(UUID id) throws Exception {
+  public void deleteTestSnapshot(UUID id) throws Exception {
     MvcResult result = mvc.perform(delete("/api/repository/v1/snapshots/" + id)).andReturn();
     MockHttpServletResponse response = validateJobModelAndWait(result);
-    return checkDeleteResponse(response);
+    checkDeleteResponse(response);
   }
 
-  public boolean deleteTestFile(UUID datasetId, String fileId) throws Exception {
+  public void deleteTestFile(UUID datasetId, String fileId) throws Exception {
     MvcResult result =
         mvc.perform(delete("/api/repository/v1/datasets/" + datasetId + "/files/" + fileId))
             .andReturn();
     logger.info("deleting test file -  datasetId:{} objectId:{}", datasetId, fileId);
     MockHttpServletResponse response = validateJobModelAndWait(result);
-    return checkDeleteResponse(response);
+    checkDeleteResponse(response);
   }
 
   public void deleteTestBucket(String bucketName) {
@@ -521,25 +443,22 @@ public class ConnectedOperations {
     }
   }
 
-  public boolean checkDeleteResponse(MockHttpServletResponse response) throws Exception {
+  public void checkDeleteResponse(MockHttpServletResponse response) throws Exception {
     HttpStatus status = HttpStatus.valueOf(response.getStatus());
     if (status.is2xxSuccessful()) {
       DeleteResponseModel responseModel =
           TestUtils.mapFromJson(response.getContentAsString(), DeleteResponseModel.class);
-      assertTrue(
+      assertThat(
           "Valid delete response object state enumeration",
-          (responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.DELETED
-              || responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
-      return true;
+          responseModel.getObjectState(),
+          is(
+              oneOf(
+                  DeleteResponseModel.ObjectStateEnum.DELETED,
+                  DeleteResponseModel.ObjectStateEnum.NOT_FOUND)));
+    } else {
+      ErrorModel errorModel = handleFailureCase(response, HttpStatus.NOT_FOUND);
+      assertThat("error model returned", errorModel, notNullValue());
     }
-    ErrorModel errorModel = handleFailureCase(response, HttpStatus.NOT_FOUND);
-    assertNotNull("error model returned", errorModel);
-    return false;
-  }
-
-  public MvcResult ingestTableRaw(UUID datasetId, IngestRequestModel ingestRequestModel)
-      throws Exception {
-    return ingestTableRaw(datasetId, ingestRequestModel, null);
   }
 
   public MvcResult ingestTableRaw(
@@ -566,12 +485,11 @@ public class ConnectedOperations {
     MvcResult result = ingestTableRaw(datasetId, ingestRequestModel, userRequest);
     MockHttpServletResponse response = validateJobModelAndWait(result);
 
-    IngestResponseModel ingestResponse = checkIngestTableResponse(response);
-    return ingestResponse;
+    return checkIngestTableResponse(response);
   }
 
   public void checkTableRowCount(
-      FSContainerInterface tdrResource, String tableName, String prefix, int expectedRowCount) {
+      FSContainerInterface tdrResource, String tableName, int expectedRowCount) {
     int rowCount = BigQueryPdao.getTableTotalRowCount(tdrResource, tableName);
     assertThat("Expected row count", rowCount, equalTo(expectedRowCount));
   }
@@ -579,7 +497,6 @@ public class ConnectedOperations {
   public void checkDataModel(
       FSContainerInterface tdrResource,
       List<String> columnNames,
-      String prefix,
       String tableName,
       int expectedRowCount)
       throws InterruptedException {
@@ -594,7 +511,8 @@ public class ConnectedOperations {
             null,
             null);
     DataResultModel result = results.get(0);
-    assertNotNull("collection type should be defined as a snapshot or dataset.", tdrResource);
+    assertThat(
+        "collection type should be defined as a snapshot or dataset.", tdrResource, notNullValue());
     switch (tdrResource.getCollectionType()) {
       case DATASET:
         assertThat(
@@ -620,17 +538,17 @@ public class ConnectedOperations {
     return ingestResponse;
   }
 
-  public ErrorModel ingestTableFailure(UUID datasetId, IngestRequestModel ingestRequestModel)
+  public void ingestTableFailure(UUID datasetId, IngestRequestModel ingestRequestModel)
       throws Exception {
-    return ingestTableFailure(datasetId, ingestRequestModel, null);
+    ingestTableFailure(datasetId, ingestRequestModel, null);
   }
 
-  public ErrorModel ingestTableFailure(
+  public void ingestTableFailure(
       UUID datasetId, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userRequest)
       throws Exception {
     MvcResult result = ingestTableRaw(datasetId, ingestRequestModel, userRequest);
     MockHttpServletResponse response = validateJobModelAndWait(result);
-    return handleFailureCase(response);
+    handleFailureCase(response);
   }
 
   public FileModel ingestFileSuccess(UUID datasetId, FileLoadModel fileLoadModel) throws Exception {
@@ -649,8 +567,8 @@ public class ConnectedOperations {
   }
 
   public enum RetryType {
-    lock,
-    unlock
+    LOCK,
+    UNLOCK
   }
 
   /*
@@ -689,10 +607,10 @@ public class ConnectedOperations {
     TimeUnit.SECONDS.sleep(5); // give the flight time to fail a couple of times
     DatasetDaoUtils datasetDaoUtils = new DatasetDaoUtils();
     String[] sharedLocks = datasetDaoUtils.getSharedLocks(datasetDao, datasetId);
-    if (retryType.equals(RetryType.lock)) {
-      assertEquals("no shared locks after first call", 0, sharedLocks.length);
+    if (retryType == RetryType.LOCK) {
+      assertThat("no shared locks after first call", sharedLocks.length, is(0));
     } else {
-      assertEquals("Acquire shared locks after first call", 1, sharedLocks.length);
+      assertThat("Acquire shared locks after first call", sharedLocks.length, is(1));
     }
 
     if (removeFault) {
@@ -706,7 +624,7 @@ public class ConnectedOperations {
       // make sure successful unlock
       TimeUnit.SECONDS.sleep(5);
       String[] sharedLocks3 = datasetDaoUtils.getSharedLocks(datasetDao, datasetId);
-      assertEquals("successful unlock", 0, sharedLocks3.length);
+      assertThat("successful unlock", sharedLocks3.length, is(0));
 
       // Check if the flight successfully completed
       // Assume that if it successfully completed, then it was able to retry and acquire the shared
@@ -729,19 +647,14 @@ public class ConnectedOperations {
   private void checkSuccessfulFileLoad(
       FileLoadModel fileLoadModel, FileModel fileModel, UUID datasetId) {
     assertThat(
-        "description matches",
-        fileModel.getDescription(),
-        CoreMatchers.equalTo(fileLoadModel.getDescription()));
+        "description matches", fileModel.getDescription(), is(fileLoadModel.getDescription()));
     assertThat(
         "mime type matches",
         fileModel.getFileDetail().getMimeType(),
-        CoreMatchers.equalTo(fileLoadModel.getMimeType()));
+        is(fileLoadModel.getMimeType()));
 
     for (DRSChecksum checksum : fileModel.getChecksums()) {
-      assertTrue(
-          "valid checksum type",
-          (StringUtils.equals(checksum.getType(), "crc32c")
-              || StringUtils.equals(checksum.getType(), "md5")));
+      assertThat("valid checksum type", checksum.getType(), is(oneOf("crc32c", "md5")));
     }
 
     logger.info("addFile datasetId:{} objectId:{}", datasetId, fileModel.getFileId());
@@ -758,11 +671,11 @@ public class ConnectedOperations {
         .andReturn();
   }
 
-  public DeleteResponseModel softDeleteSuccess(
-      UUID datasetId, DataDeletionRequest softDeleteRequest) throws Exception {
+  public void softDeleteSuccess(UUID datasetId, DataDeletionRequest softDeleteRequest)
+      throws Exception {
     MvcResult result = softDeleteRaw(datasetId, softDeleteRequest);
     MockHttpServletResponse response = validateJobModelAndWait(result);
-    return handleSuccessCase(response, DeleteResponseModel.class);
+    handleSuccessCase(response, DeleteResponseModel.class);
   }
 
   public BulkLoadArrayResultModel ingestArraySuccess(
@@ -843,12 +756,6 @@ public class ConnectedOperations {
     return result.getResponse();
   }
 
-  public FileModel lookupFileSuccess(UUID datasetId, String fileId) throws Exception {
-    MockHttpServletResponse response = lookupFileRaw(datasetId, fileId);
-    assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
-    return TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
-  }
-
   public MockHttpServletResponse lookupFileByPathRaw(UUID datasetId, String filePath, long depth)
       throws Exception {
     String url = "/api/repository/v1/datasets/" + datasetId + "/filesystem/objects";
@@ -860,13 +767,6 @@ public class ConnectedOperations {
                     .contentType(MediaType.APPLICATION_JSON))
             .andReturn();
     return result.getResponse();
-  }
-
-  public FileModel lookupFileByPathSuccess(UUID datasetId, String filePath, long depth)
-      throws Exception {
-    MockHttpServletResponse response = lookupFileByPathRaw(datasetId, filePath, depth);
-    assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
-    return TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
   }
 
   public MockHttpServletResponse lookupSnapshotFileRaw(UUID snapshotId, String objectId)
@@ -966,7 +866,7 @@ public class ConnectedOperations {
   public enum TdrResourceType {
     SNAPSHOT,
     DATASET
-  };
+  }
 
   public List<Object> retrieveDataSuccess(
       TdrResourceType resourceType,
@@ -977,17 +877,14 @@ public class ConnectedOperations {
       String filter,
       String sort)
       throws Exception {
-    switch (resourceType) {
-      case SNAPSHOT:
-        return retrieveSnapshotPreviewByIdSuccess(
-                resourceId, tableName, limit, offset, filter, sort)
-            .getResult();
-      case DATASET:
-        return retrieveDatasetDataByIdSuccess(resourceId, tableName, limit, offset, filter, sort)
-            .getResult();
-      default:
-        throw new NotImplementedException();
-    }
+    return switch (resourceType) {
+      case SNAPSHOT ->
+          retrieveSnapshotPreviewByIdSuccess(resourceId, tableName, limit, offset, filter, sort)
+              .getResult();
+      case DATASET ->
+          retrieveDatasetDataByIdSuccess(resourceId, tableName, limit, offset, filter, sort)
+              .getResult();
+    };
   }
 
   public ErrorModel retrieveDataFailure(
@@ -1000,16 +897,14 @@ public class ConnectedOperations {
       String sort,
       HttpStatus expectedStatus)
       throws Exception {
-    switch (resourceType) {
-      case SNAPSHOT:
-        return retrieveSnapshotPreviewByIdFailure(
-            resourceId, tableName, limit, offset, filter, sort, expectedStatus);
-      case DATASET:
-        return retrieveDatasetDataByIdFailure(
-            resourceId, tableName, limit, offset, filter, sort, expectedStatus);
-      default:
-        throw new NotImplementedException();
-    }
+    return switch (resourceType) {
+      case SNAPSHOT ->
+          retrieveSnapshotPreviewByIdFailure(
+              resourceId, tableName, limit, offset, filter, sort, expectedStatus);
+      case DATASET ->
+          retrieveDatasetDataByIdFailure(
+              resourceId, tableName, limit, offset, filter, sort, expectedStatus);
+    };
   }
 
   public SnapshotPreviewModel retrieveSnapshotPreviewByIdSuccess(
@@ -1068,14 +963,15 @@ public class ConnectedOperations {
       if (status == HttpStatus.NOT_FOUND) {
         return result.getResponse();
       }
-      assertTrue(
-          "expected jobs polling status, got " + status.toString(),
-          (status == HttpStatus.ACCEPTED || status == HttpStatus.OK));
+      assertThat(
+          "expected jobs polling status, got " + status,
+          status,
+          is(oneOf(HttpStatus.ACCEPTED, HttpStatus.OK)));
 
       JobModel jobModel = TestUtils.mapFromJson(response.getContentAsString(), JobModel.class);
-      String jobId = jobModel.getId().toString();
+      String jobId = jobModel.getId();
       String locationUrl = response.getHeader("Location");
-      assertNotNull("location URL was specified", locationUrl);
+      assertThat("location URL was specified", locationUrl, notNullValue());
 
       switch (status) {
         case ACCEPTED:
@@ -1127,7 +1023,7 @@ public class ConnectedOperations {
   }
 
   public void addFile(String datasetId, String fileId) {
-    String[] createdFile = new String[] {datasetId, fileId};
+    String[] createdFile = {datasetId, fileId};
     createdFileIds.add(createdFile);
   }
 
@@ -1161,77 +1057,61 @@ public class ConnectedOperations {
     createdScratchFiles.add(path);
   }
 
-  public void setDeleteOnTeardown(boolean deleteOnTeardown) {
-    this.deleteOnTeardown = deleteOnTeardown;
-  }
-
-  public void addLabelsToGoogleProject(String googleProjectId, Map<String, String> labels) {}
-
   public void teardown() throws Exception {
     // call the reset configuration endpoint to disable all faults
     resetConfiguration();
 
-    if (deleteOnTeardown) {
-      // Order is important: delete all the snapshots first so we eliminate dependencies
-      // Then delete the files before the datasets
-      for (UUID snapshotId : createdSnapshotIds) {
-        try {
-          deleteTestSnapshot(snapshotId);
-        } catch (Exception ex) {
-          logger.info(
-              "CLEANUP ERROR! Error deleting snapshot. SnapshotId: {}", snapshotId.toString());
-        }
-      }
-
-      for (String[] fileInfo : createdFileIds) {
-        try {
-          deleteTestFile(UUID.fromString(fileInfo[0]), fileInfo[1]);
-        } catch (Exception ex) {
-          logger.info("CLEANUP ERROR! Error deleting file. FileId: {}", fileInfo[0]);
-        }
-      }
-
-      logger.info("Cleanup Tracking: {} datasets to be removed.", createdDatasetIds.size());
-      for (UUID datasetId : createdDatasetIds) {
-        logger.info("Cleanup Tracking: Dataset to be deleted {}", datasetId);
-        try {
-          deleteTestDataset(datasetId);
-        } catch (Exception ex) {
-          logger.info("CLEANUP ERROR! Error deleting dataset. DatasetId: {}", datasetId.toString());
-        }
-      }
-
-      for (UUID profileId : createdProfileIds) {
-        try {
-          deleteTestProfile(profileId);
-        } catch (Exception ex) {
-          logger.info("CLEANUP ERROR! Error deleting profile. ProfileId: {}", profileId.toString());
-        }
-      }
-
-      for (String bucketName : createdBuckets) {
-        try {
-          deleteTestBucket(bucketName);
-        } catch (Exception ex) {
-          logger.info("CLEANUP ERROR! Error deleting bucket. BucketName: {}", bucketName);
-        }
-      }
-
-      for (String path : createdScratchFiles) {
-        try {
-          deleteTestScratchFile(path);
-        } catch (Exception ex) {
-          logger.info("CLEANUP ERROR! Error deleting scratch file. Path: {}", path);
-        }
+    // Order is important: delete all the snapshots first so we eliminate dependencies
+    // Then delete the files before the datasets
+    for (UUID snapshotId : createdSnapshotIds) {
+      try {
+        deleteTestSnapshot(snapshotId);
+      } catch (Exception ex) {
+        logger.info("CLEANUP ERROR! Error deleting snapshot. SnapshotId: {}", snapshotId);
       }
     }
 
-    createdSnapshotIds = new ArrayList<>();
-    createdFileIds = new ArrayList<>();
-    createdDatasetIds = new ArrayList<>();
-    createdProfileIds = new ArrayList<>();
-    createdBuckets = new ArrayList<>();
-    createdScratchFiles = new ArrayList<>();
+    for (String[] fileInfo : createdFileIds) {
+      try {
+        deleteTestFile(UUID.fromString(fileInfo[0]), fileInfo[1]);
+      } catch (Exception ex) {
+        logger.info("CLEANUP ERROR! Error deleting file. FileId: {}", fileInfo[0]);
+      }
+    }
+
+    logger.info("Cleanup Tracking: {} datasets to be removed.", createdDatasetIds.size());
+    for (UUID datasetId : createdDatasetIds) {
+      logger.info("Cleanup Tracking: Dataset to be deleted {}", datasetId);
+      try {
+        deleteTestDataset(datasetId);
+      } catch (Exception ex) {
+        logger.info("CLEANUP ERROR! Error deleting dataset. DatasetId: {}", datasetId);
+      }
+    }
+
+    for (UUID profileId : createdProfileIds) {
+      try {
+        deleteTestProfile(profileId);
+      } catch (Exception ex) {
+        logger.info("CLEANUP ERROR! Error deleting profile. ProfileId: {}", profileId);
+      }
+    }
+
+    for (String bucketName : createdBuckets) {
+      try {
+        deleteTestBucket(bucketName);
+      } catch (Exception ex) {
+        logger.info("CLEANUP ERROR! Error deleting bucket. BucketName: {}", bucketName);
+      }
+    }
+
+    for (String path : createdScratchFiles) {
+      try {
+        deleteTestScratchFile(path);
+      } catch (Exception ex) {
+        logger.info("CLEANUP ERROR! Error deleting scratch file. Path: {}", path);
+      }
+    }
   }
 
   public void deleteLoadHistory(UUID datasetId, TableServiceClient serviceClient) {

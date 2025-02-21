@@ -53,11 +53,7 @@ public class SnapshotAuthzBqJobUserStep implements Step {
     List<String> policyEmails =
         new ArrayList<>(List.of(policyMap.get(IamRole.STEWARD), policyMap.get(IamRole.READER)));
 
-    Boolean inheritEnabled =
-        context
-            .getInputParameters()
-            .get(SnapshotWorkingMapKeys.SNAPSHOT_INHERIT_STEWARD_ENABLED, Boolean.class);
-    if (inheritEnabled != null && inheritEnabled) {
+    if (sourceDataset.isInheritSteward()) {
       var datasetPolicyMap =
           sam.retrievePolicyEmails(request, IamResourceType.DATASET, sourceDataset.getId());
       // Allow the custodian to make queries in this project.

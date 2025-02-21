@@ -66,11 +66,7 @@ public class SnapshotAuthzTabularAclStep implements Step {
     emails.add(policies.get(IamRole.STEWARD));
     emails.add(policies.get(IamRole.READER));
 
-    Boolean inheritEnabled =
-        context
-            .getInputParameters()
-            .get(SnapshotWorkingMapKeys.SNAPSHOT_INHERIT_STEWARD_ENABLED, Boolean.class);
-    if (inheritEnabled != null && inheritEnabled) {
+    if (sourceDataset.isInheritSteward()) {
       var datasetPolicyMap =
           iamService.retrievePolicyEmails(userReq, IamResourceType.DATASET, sourceDataset.getId());
       emails.add(datasetPolicyMap.get(IamRole.CUSTODIAN));

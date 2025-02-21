@@ -15,6 +15,11 @@ on:
     branches:
       - develop
 jobs:
+  checkout-code:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout jade-data-repo
+        uses: actions/checkout@v3
   bump_version:
     runs-on: ubuntu-latest
     outputs:
@@ -24,11 +29,11 @@ jobs:
     # We don't want to trigger a version bump/deploy to dev for those
     if: ${{ !contains( github.event.sender.login, 'broadbot') }}
     steps:
-      - name: Checkout Develop branch of jade-data-repo
-        uses: actions/checkout@v3
-        with:
-          # ref: develop
-          token: ${{ secrets.BROADBOT_TOKEN }}
+      # - name: Checkout jade-data-repo
+      #   uses: actions/checkout@v3
+      #   with:
+      #     ref: develop
+      #     token: ${{ secrets.BROADBOT_TOKEN }}
       # - name: "Bump the tag to a new version"
       #   id: bumperstep
       #   uses: broadinstitute/datarepo-actions/actions/main@0.74.0
@@ -42,6 +47,7 @@ jobs:
       # Version bump.
       - name: Bump the tag to a new version
         id: tag
+        needs: [ checkout-code ]
         uses: ./.github/workflows/tag.yml
         with:
           # The 'ref' parameter ensures that the provider version is postfixed with the HEAD commit of the PR branch,

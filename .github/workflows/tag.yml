@@ -30,7 +30,7 @@ on:
         type: string
       version-line-match:
         description: "If present, a grep regular expression to identify the line containing the version number in the VERSION_FILE_PATH."
-        default: "^\\s*version\\s\+'.*'"
+        default: "^\\s*version\\s\\+'.*'"
         required: false
         type: string
       version-suffix:

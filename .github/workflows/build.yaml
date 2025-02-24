@@ -31,7 +31,7 @@ jobs:
   build_client_and_publish:
     runs-on: ubuntu-latest
     needs:
-        - bump_version
+      - bump_version
     if: github.ref_name == github.event.repository.default_branch
     steps:
       - name: Checkout tagged branch of jade-data-repo

@@ -62,7 +62,6 @@ jobs:
       - name: Checkout jade-data-repo
         uses: actions/checkout@v4
         with:
-          # ref: ${{ needs.bump_version.outputs.tag }}
           persist-credentials: false
       - name: Set up JDK 17
         uses: actions/setup-java@v4

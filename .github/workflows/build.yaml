@@ -93,7 +93,6 @@ jobs:
         run: |
           echo "Branch name: ${GITHUB_HEAD_REF}"
           echo "branch-name=${GITHUB_HEAD_REF}" >> $GITHUB_OUTPUT
-        shell: bash
 
   tag-image-with-branch-name:
     if: github.ref_name != github.event.repository.default_branch

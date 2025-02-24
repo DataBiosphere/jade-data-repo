@@ -2,7 +2,7 @@ package bio.terra.service.common;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
 import bio.terra.grammar.exception.InvalidFilterException;

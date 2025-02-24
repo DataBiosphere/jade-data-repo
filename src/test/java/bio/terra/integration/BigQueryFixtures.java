@@ -1,6 +1,6 @@
 package bio.terra.integration;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
@@ -91,7 +91,7 @@ public final class BigQueryFixtures {
     logger.info("Slept {} seconds: checking for BigQuery access now", sleptSeconds);
 
     assertTrue(
-        "BigQuery dataset exists and is accessible",
-        BigQueryFixtures.datasetExists(bigQuery, dataProject, bqDatasetName));
+        BigQueryFixtures.datasetExists(bigQuery, dataProject, bqDatasetName),
+        "BigQuery dataset exists and is accessible");
   }
 }

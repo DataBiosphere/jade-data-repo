@@ -1015,7 +1015,7 @@ class AzureIntegrationTest {
         containsInAnyOrder("1", "2", "3"));
     ColumnStatisticsIntModel intModel =
         dataRepoFixtures.retrieveColumnIntStats(
-            steward, datasetId, "vocabulary", "vocabulary_concept_id", null);
+            steward, datasetId, "vocabulary", "vocabulary_concept_id");
     assertThat("Correct max values in vocabulary_concept_id", intModel.getMaxValue(), equalTo(3));
     assertThat("Correct min values in vocabulary_concept_id", intModel.getMinValue(), equalTo(1));
     List<Object> flippedVocabRows =

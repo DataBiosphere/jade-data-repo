@@ -2,8 +2,8 @@ package bio.terra.service.filedata;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
-import static org.junit.Assert.assertNull;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
@@ -58,6 +58,6 @@ class DrsDaoTest {
             "id",
             "createdDate"));
     assertThat("1 row can be deleted", drsDao.deleteDrsAliasByFlight(flightId), equalTo(1L));
-    assertNull("no rows left", drsDao.retrieveDrsAliasByAlias("foo"));
+    assertThat("no rows left", drsDao.retrieveDrsAliasByAlias("foo"), nullValue());
   }
 }

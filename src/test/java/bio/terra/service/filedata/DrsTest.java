@@ -10,7 +10,6 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import bio.terra.common.TestUtils;
@@ -184,7 +183,7 @@ class DrsTest {
     logger.info("DRS Object Id - file: {}", drsObjectId);
     final DRSObject drsObjectFile = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
     validateDrsObject(drsObjectFile, drsObjectId);
-    assertNull("Contents of file is null", drsObjectFile.getContents());
+    assertThat("Contents of file is null", drsObjectFile.getContents(), nullValue());
 
     TestUtils.validateDrsAccessMethods(
         drsObjectFile.getAccessMethods(),

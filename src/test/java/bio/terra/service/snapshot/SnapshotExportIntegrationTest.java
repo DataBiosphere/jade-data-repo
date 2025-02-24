@@ -13,7 +13,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.GcsUtils;
 import bio.terra.common.ParquetUtils;
@@ -269,9 +269,9 @@ class SnapshotExportIntegrationTest {
 
         StorageException notAuthorizedException =
             assertThrows(
-                "Unauthorized user cannot read " + path,
                 StorageException.class,
-                () -> unauthedStorage.get(blobId));
+                () -> unauthedStorage.get(blobId),
+                "Unauthorized user cannot read " + path);
 
         assertThat(
             "Unauthorized user cannot read " + path,

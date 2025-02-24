@@ -3,7 +3,7 @@ package bio.terra.service.filedata.azure.tables;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
@@ -81,14 +81,14 @@ class TableServiceClientUtilsTest {
     when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
     mockTableExists(true);
     // mock tableHasEntries
-    PagedIterable<TableEntity> hasEntriesMockPagedIterable = mock(PagedIterable.class);
+    PagedIterable<TableEntity> hasEntriesMockPagedIterable = mock();
     when(tableClient.listEntities(any(), any(), any())).thenReturn(hasEntriesMockPagedIterable);
 
     // Mock listing entities with filter
     var filter = "exampleParameter eq '1'";
     TableEntity fireStoreDependencyEntity = new TableEntity("partitionKey", "rowKey");
-    PagedIterable<TableEntity> mockPagedIterable2 = mock(PagedIterable.class);
-    Iterator<TableEntity> mockIterator = mock(Iterator.class);
+    PagedIterable<TableEntity> mockPagedIterable2 = mock();
+    Iterator<TableEntity> mockIterator = mock();
     when(mockIterator.hasNext()).thenReturn(hasEntries, false);
     when(mockPagedIterable2.iterator()).thenReturn(mockIterator);
     if (hasEntries) {
@@ -109,7 +109,7 @@ class TableServiceClientUtilsTest {
     when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
     mockTableExists(true);
     // mock tableHasEntries
-    PagedIterable<TableEntity> hasEntriesMockPagedIterable = mock(PagedIterable.class);
+    PagedIterable<TableEntity> hasEntriesMockPagedIterable = mock();
     when(tableClient.listEntities(any(), any(), any())).thenReturn(hasEntriesMockPagedIterable);
 
     var filter = "exampleParameter eq '1'";
@@ -124,16 +124,16 @@ class TableServiceClientUtilsTest {
   }
 
   private void mockTableExists(boolean shouldExist) {
-    PagedIterable<TableItem> mockPagedIterable = mock(PagedIterable.class);
-    Iterator<TableItem> mockIterator = mock(Iterator.class);
+    PagedIterable<TableItem> mockPagedIterable = mock();
+    Iterator<TableItem> mockIterator = mock();
     when(mockIterator.hasNext()).thenReturn(shouldExist);
     when(mockPagedIterable.iterator()).thenReturn(mockIterator);
     when(tableServiceClient.listTables(any(), any(), any())).thenReturn(mockPagedIterable);
   }
 
   private void mockTableHasEntries(boolean shouldHaveEntries) {
-    PagedIterable<TableEntity> mockPagedIterable = mock(PagedIterable.class);
-    Iterator<TableEntity> mockIterator = mock(Iterator.class);
+    PagedIterable<TableEntity> mockPagedIterable = mock();
+    Iterator<TableEntity> mockIterator = mock();
     when(mockIterator.hasNext()).thenReturn(shouldHaveEntries);
     when(mockPagedIterable.iterator()).thenReturn(mockIterator);
     when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);

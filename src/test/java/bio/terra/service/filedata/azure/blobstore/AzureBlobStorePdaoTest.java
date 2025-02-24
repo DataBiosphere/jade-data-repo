@@ -3,8 +3,8 @@ package bio.terra.service.filedata.azure.blobstore;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -316,26 +316,23 @@ class AzureBlobStorePdaoTest {
                 "https://src.blob.core.windows.net/srcdata/src.txt"
                     + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&"
                     + "sr=b&sig=mysig")));
-    assertThat(
-        "no sas token",
-        not(
-            AzureBlobStorePdao.isSignedUrl(
-                BlobUrlParts.parse("https://src.blob.core.windows.net/srcdata/src.txt"))));
-    assertThat(
-        "tld is wrong",
-        not(
-            AzureBlobStorePdao.isSignedUrl(
-                BlobUrlParts.parse(
-                    "https://src.foo.core.windows.net/srcdata/src.txt"
-                        + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04"
-                        + "&sr=b&sig=mysig"))));
-    assertThat(
-        "missing fields (sr and sig are removed)",
-        not(
-            AzureBlobStorePdao.isSignedUrl(
-                BlobUrlParts.parse(
-                    "https://src.foo.core.windows.net/srcdata/src.txt"
-                        + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04"))));
+    assertFalse(
+        AzureBlobStorePdao.isSignedUrl(
+            BlobUrlParts.parse("https://src.blob.core.windows.net/srcdata/src.txt")),
+        "no sas token");
+    assertFalse(
+        AzureBlobStorePdao.isSignedUrl(
+            BlobUrlParts.parse(
+                "https://src.foo.core.windows.net/srcdata/src.txt"
+                    + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04"
+                    + "&sr=b&sig=mysig")),
+        "tld is wrong");
+    assertFalse(
+        AzureBlobStorePdao.isSignedUrl(
+            BlobUrlParts.parse(
+                "https://src.foo.core.windows.net/srcdata/src.txt"
+                    + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04")),
+        "missing fields (sr and sig are removed)");
     assertThat(
         "extra fields don't hurt",
         AzureBlobStorePdao.isSignedUrl(

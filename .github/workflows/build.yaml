@@ -35,7 +35,7 @@ jobs:
     if: github.ref_name == github.event.repository.default_branch
     steps:
       - name: Checkout tagged branch of jade-data-repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ needs.bump_version.outputs.tag }}
           persist-credentials: false

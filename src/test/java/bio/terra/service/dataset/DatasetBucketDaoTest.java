@@ -185,8 +185,7 @@ class DatasetBucketDaoTest {
     datasetIds.add(datasetSecond.getId());
     createBucketDbEntry(projectResource);
     assertNull(
-        datasetBucketDao.getProjectResourceForBucket(
-            datasetSecond.getId(), billingProfile.getId()),
+        datasetBucketDao.getProjectResourceForBucket(datasetSecond.getId(), billingProfile.getId()),
         "Should NOT retrieve existing project");
   }
 

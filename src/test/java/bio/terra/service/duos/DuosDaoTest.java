@@ -5,10 +5,10 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
@@ -18,26 +18,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@Tag(Unit.TAG)
 @EmbeddedDatabaseTest
-public class DuosDaoTest {
+class DuosDaoTest {
   @Autowired private NamedParameterJdbcTemplate jdbcTemplate;
   private DuosDao duosDao;
 
@@ -49,8 +46,8 @@ public class DuosDaoTest {
   private String firecloudGroupEmail;
   private DuosFirecloudGroupModel toInsert;
 
-  @Before
-  public void before() {
+  @BeforeEach
+  void before() {
     duosDao = new DuosDao(jdbcTemplate, TDR_SERVICE_ACCOUNT_EMAIL);
 
     duosFirecloudGroupIds = new ArrayList<>();
@@ -63,30 +60,30 @@ public class DuosDaoTest {
             .firecloudGroupEmail(firecloudGroupEmail);
   }
 
-  @After
-  public void after() {
+  @AfterEach
+  void after() {
     for (UUID duosFirecloudGroupId : duosFirecloudGroupIds) {
-      assertTrue(
+      assertThat(
           "DUOS Firecloud group record %s was deleted".formatted(duosFirecloudGroupId),
           duosDao.deleteFirecloudGroup(duosFirecloudGroupId));
     }
   }
 
   @Test
-  public void testRetrieveFirecloudGroupBeforeInsert() {
+  void testRetrieveFirecloudGroupBeforeInsert() {
     assertNull(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID));
     assertThat(duosDao.retrieveFirecloudGroups(), empty());
     assertThat(duosDao.retrieveFirecloudGroups(List.of()), empty());
   }
 
   @Test
-  public void testDeleteNonExistentFirecloudGroup() {
+  void testDeleteNonExistentFirecloudGroup() {
     assertFalse(duosDao.deleteFirecloudGroup(null));
     assertFalse(duosDao.deleteFirecloudGroup(UUID.randomUUID()));
   }
 
   @Test
-  public void testInsertAndRetrieveFirecloudGroup() {
+  void testInsertAndRetrieveFirecloudGroup() {
     DuosFirecloudGroupModel retrieved = duosDao.insertAndRetrieveFirecloudGroup(toInsert);
     UUID id = retrieved.getId();
     duosFirecloudGroupIds.add(id);
@@ -95,7 +92,7 @@ public class DuosDaoTest {
   }
 
   @Test
-  public void testInsertAndRetrieveFirecloudGroupThrowsOnDuplicateDuosId() {
+  void testInsertAndRetrieveFirecloudGroupThrowsOnDuplicateDuosId() {
     UUID id = duosDao.insertAndRetrieveFirecloudGroup(toInsert).getId();
     duosFirecloudGroupIds.add(id);
 
@@ -110,12 +107,12 @@ public class DuosDaoTest {
   }
 
   @Test
-  public void testUpdateFirecloudGroupLastSyncedDateForNonexistentRow() {
+  void testUpdateFirecloudGroupLastSyncedDateForNonexistentRow() {
     assertFalse(duosDao.updateFirecloudGroupLastSyncedDate(UUID.randomUUID(), Instant.now()));
   }
 
   @Test
-  public void testUpdateFirecloudGroupLastSyncedDate() {
+  void testUpdateFirecloudGroupLastSyncedDate() {
     UUID id = duosDao.insertAndRetrieveFirecloudGroup(toInsert).getId();
     duosFirecloudGroupIds.add(id);
     // When reading back an Instant written to Postgres, the precision can differ.
@@ -130,7 +127,7 @@ public class DuosDaoTest {
   }
 
   @Test
-  public void testUpdateFirecloudGroupsLastSyncedDate() {
+  void testUpdateFirecloudGroupsLastSyncedDate() {
     for (int i = 0; i < 3; i++) {
       UUID id = duosDao.insertAndRetrieveFirecloudGroup(toInsert.duosId(DUOS_ID + i)).getId();
       duosFirecloudGroupIds.add(id);

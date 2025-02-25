@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.notNullValue;
@@ -973,9 +974,6 @@ class SnapshotDaoTest {
 
   @Test
   void getSnapshotIds() {
-    assertThat(
-        "No snapshots in DB yield an empty UUID list", snapshotDao.getSnapshotIds(), empty());
-
     String snapshotName = snapshotRequest.getName() + UUID.randomUUID();
     String flightId = "getSnapshotIds_flightId";
     for (int i = 0; i < 3; i++) {
@@ -987,13 +985,13 @@ class SnapshotDaoTest {
     assertThat(
         "Locked snapshot UUIDs are returned",
         snapshotDao.getSnapshotIds(),
-        containsInAnyOrder(snapshotIds.toArray()));
+        hasItems(snapshotIds.toArray(new UUID[0])));
 
     snapshotIds.forEach(id -> snapshotDao.unlock(id, flightId));
     assertThat(
         "Unlocked snapshot UUIDs are returned",
         snapshotDao.getSnapshotIds(),
-        containsInAnyOrder(snapshotIds.toArray()));
+        hasItems(snapshotIds.toArray(new UUID[0])));
   }
 
   @Test

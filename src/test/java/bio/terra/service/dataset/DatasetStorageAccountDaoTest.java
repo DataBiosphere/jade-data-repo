@@ -20,15 +20,11 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.stairway.ShortUUID;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -40,7 +36,6 @@ import org.springframework.test.context.ActiveProfiles;
 @Tag(Unit.TAG)
 @EmbeddedDatabaseTest
 class DatasetStorageAccountDaoTest {
-  private static final Logger logger = LoggerFactory.getLogger(DatasetStorageAccountDaoTest.class);
 
   @Autowired private JsonLoader jsonLoader;
 
@@ -54,10 +49,6 @@ class DatasetStorageAccountDaoTest {
 
   @Autowired private AzureResourceDao azureResourceDao;
 
-  private final List<UUID> billingProfileIds = new ArrayList<>();
-  private final List<UUID> datasetIds = new ArrayList<>();
-  private final List<UUID> storageAccountResourceIds = new ArrayList<>();
-
   private UUID applicationId;
   private UUID projectId;
   private BillingProfileModel billingProfile;
@@ -68,7 +59,6 @@ class DatasetStorageAccountDaoTest {
     BillingProfileRequestModel profileRequest =
         ProfileFixtures.randomizeAzureBillingProfileRequest();
     billingProfile = profileDao.createBillingProfile(profileRequest, "testUser");
-    billingProfileIds.add(billingProfile.getId());
 
     GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
     projectId = resourceDao.createProject(projectResource);
@@ -78,31 +68,9 @@ class DatasetStorageAccountDaoTest {
     applicationResource.id(applicationId);
   }
 
-  @AfterEach
-  void teardown() {
-    for (UUID datasetId : datasetIds) {
-      datasetStorageAccountDao.deleteDatasetStorageAccountLink(
-          datasetId, storageAccountResourceIds.get(0));
-
-      datasetDao.delete(datasetId);
-    }
-
-    billingProfileIds.forEach(
-        billingProfileId -> {
-          try {
-            profileDao.deleteBillingProfileById(billingProfileId);
-          } catch (Exception ex) {
-            logger.error("[CLEANUP] Unable to billing profile {}", billingProfileId);
-          }
-        });
-
-    azureResourceDao.deleteApplicationDeploymentMetadata(List.of(applicationId));
-  }
-
   @Test
   void testCreateEntry() throws Exception {
     UUID datasetId = createDataset("dataset-minimal.json");
-    datasetIds.add(datasetId);
 
     AzureStorageAccountResource storageAccount =
         azureResourceDao.createAndLockStorage(
@@ -111,7 +79,6 @@ class DatasetStorageAccountDaoTest {
             applicationResource,
             AzureRegion.ASIA_PACIFIC,
             ShortUUID.get());
-    storageAccountResourceIds.add(storageAccount.getResourceId());
     datasetStorageAccountDao.createDatasetStorageAccountLink(
         datasetId, storageAccount.getResourceId(), false);
 

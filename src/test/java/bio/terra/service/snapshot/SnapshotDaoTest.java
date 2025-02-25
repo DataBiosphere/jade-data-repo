@@ -48,8 +48,6 @@ import bio.terra.service.duos.DuosService;
 import bio.terra.service.filedata.DrsDao;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
-import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotUpdateException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -60,7 +58,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -83,10 +80,6 @@ class SnapshotDaoTest {
 
   @Autowired private DatasetDao datasetDao;
 
-  @Autowired private ProfileDao profileDao;
-
-  @Autowired private GoogleResourceDao resourceDao;
-
   @Autowired private SnapshotService snapshotService;
 
   @Autowired private JsonLoader jsonLoader;
@@ -108,8 +101,6 @@ class SnapshotDaoTest {
   private SnapshotRequestModel snapshotRequest;
   private List<UUID> snapshotIds;
   private List<UUID> datasetIds;
-  private UUID profileId;
-  private UUID projectId;
   private UUID duosFirecloudGroupId;
   private String duosId;
 
@@ -120,8 +111,6 @@ class SnapshotDaoTest {
   void setup() throws Exception {
     dataset = daoOperations.createDataset("snapshot-test-dataset-with-multi-columns.json");
     datasetId = dataset.getId();
-    projectId = dataset.getProjectResourceId();
-    profileId = dataset.getDefaultProfileId();
 
     snapshotRequest =
         daoOperations.createSnapshotRequestFromDataset(dataset, "snapshot-test-snapshot.json");
@@ -138,19 +127,6 @@ class SnapshotDaoTest {
                     .firecloudGroupName("firecloudGroupName")
                     .firecloudGroupEmail("firecloudGroupEmail"))
             .getId();
-  }
-
-  @AfterEach
-  void teardown() {
-    if (snapshotIds != null) {
-      for (UUID id : snapshotIds) {
-        snapshotDao.delete(id);
-      }
-    }
-    datasetDao.delete(datasetId);
-    resourceDao.deleteProject(projectId);
-    profileDao.deleteBillingProfileById(profileId);
-    duosDao.deleteFirecloudGroup(duosFirecloudGroupId);
   }
 
   private Snapshot createSnapshot(SnapshotRequestModel request) {

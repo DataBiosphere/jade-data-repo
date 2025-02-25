@@ -22,6 +22,7 @@ import io.swagger.annotations.Api;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.UUID;
+import org.apache.commons.lang3.NotImplementedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -123,5 +124,26 @@ public class AdminApiController implements AdminApi {
     logger.info("Retrieving snapshot id: {}", id);
     SnapshotModel snapshotModel = snapshotService.retrieveSnapshotModel(id, include, userReq);
     return ResponseEntity.ok(snapshotModel);
+  }
+
+  @Override
+  public ResponseEntity<JobModel> adminInheritSteward(UUID id, Boolean inherit) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    logger.info(
+        "Verifying resource type admin authorization: {} for resource type: {} and resource id: {}",
+        userReq.getEmail(),
+        IamResourceType.DATASET,
+        id);
+    iamService.verifyResourceTypeAdminAuthorized(
+        userReq, IamResourceType.DATASET, IamAction.ADMIN_TOGGLE_INHERIT_STEWARD);
+//    String jobId;
+//    if (inherit) {
+//      jobId = datasetService.enableInheritSteward(id, userReq);
+//    } else {
+//      jobId = datasetService.disableInheritSteward(id, userReq);
+//    }
+//    return jobToResponse(jobService.retrieveJob(jobId, userReq));
+    throw new NotImplementedException(
+        "adminInheritSteward is not implemented yet. This is a placeholder for future implementation.");
   }
 }

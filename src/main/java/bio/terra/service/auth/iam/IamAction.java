@@ -18,6 +18,7 @@ public enum IamAction {
   UPDATE_AUTH_DOMAIN,
   ADMIN_READ_SUMMARY_INFORMATION,
   // datarepo (admin-only actions)
+  ADMIN_TOGGLE_INHERIT_STEWARD,
   LIST_JOBS,
   DELETE_JOBS,
   CONFIGURE,

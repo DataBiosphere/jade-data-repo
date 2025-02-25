@@ -7,10 +7,6 @@ env:
 on:
   workflow_dispatch: {}
   pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize  # https://github.community/t/what-is-a-pull-request-synchronize-event/14784/2
   push:
     branches:
       - develop

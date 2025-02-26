@@ -93,11 +93,7 @@ public class AdminApiController implements AdminApi {
             DatasetRequestAccessIncludeModel.SCHEMA,
             DatasetRequestAccessIncludeModel.STORAGE);
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    logger.info(
-        AUTH_DESCRIPTION,
-        userReq.getEmail(),
-        IamResourceType.DATASET,
-        id);
+    logger.info(AUTH_DESCRIPTION, userReq.getEmail(), IamResourceType.DATASET, id);
     iamService.verifyResourceTypeAdminAuthorized(
         userReq, IamResourceType.DATASET, IamAction.ADMIN_READ_SUMMARY_INFORMATION);
     logger.info("Retrieving dataset id: {}", id);
@@ -118,11 +114,7 @@ public class AdminApiController implements AdminApi {
             SnapshotRetrieveIncludeModel.CREATION_INFORMATION,
             SnapshotRetrieveIncludeModel.DUOS);
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    logger.info(
-        AUTH_DESCRIPTION,
-        userReq.getEmail(),
-        IamResourceType.DATASNAPSHOT,
-        id);
+    logger.info(AUTH_DESCRIPTION, userReq.getEmail(), IamResourceType.DATASNAPSHOT, id);
     iamService.verifyResourceTypeAdminAuthorized(
         userReq, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION);
     logger.info("Retrieving snapshot id: {}", id);
@@ -133,11 +125,7 @@ public class AdminApiController implements AdminApi {
   @Override
   public ResponseEntity<JobModel> adminInheritSteward(UUID id, Boolean inheritSteward) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    logger.info(
-        AUTH_DESCRIPTION,
-        userReq.getEmail(),
-        IamResourceType.DATASET,
-        id);
+    logger.info(AUTH_DESCRIPTION, userReq.getEmail(), IamResourceType.DATASET, id);
     iamService.verifyResourceTypeAdminAuthorized(
         userReq, IamResourceType.DATASET, IamAction.ADMIN_TOGGLE_INHERIT_STEWARD);
 

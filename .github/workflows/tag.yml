@@ -68,7 +68,11 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           token: ${{ secrets.BROADBOT_TOKEN }} # this allows the push to succeed later
-          persist-credentials: false
+      - name: Setup Git
+        shell: bash
+        run: |
+          git config --global user.name 'broadbot'
+          git config --global user.email 'broadbot@broadinstitute.org'
       - name: Bump the tag to a new version
         # https://github.com/DataBiosphere/github-actions/tree/master/actions/bumper
         uses: databiosphere/github-actions/actions/bumper@bumper-0.3.0

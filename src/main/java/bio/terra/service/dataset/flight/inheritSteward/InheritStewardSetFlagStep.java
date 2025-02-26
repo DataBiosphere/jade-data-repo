@@ -5,6 +5,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.UUID;
 
 public class InheritStewardSetFlagStep implements Step {
@@ -52,5 +53,10 @@ public class InheritStewardSetFlagStep implements Step {
           new Exception("Unable to update inherit steward flag"));
     }
     return StepResult.getStepResultSuccess();
+  }
+
+  @VisibleForTesting
+  public Boolean getEnableInheritSteward() {
+    return enableInheritSteward;
   }
 }

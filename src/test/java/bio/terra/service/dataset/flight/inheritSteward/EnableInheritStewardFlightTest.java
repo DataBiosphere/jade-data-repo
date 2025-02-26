@@ -1,0 +1,55 @@
+package bio.terra.service.dataset.flight.inheritSteward;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+
+import bio.terra.common.FlightTestUtils;
+import bio.terra.common.category.Unit;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.job.JobMapKeys;
+import bio.terra.stairway.FlightMap;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationContext;
+
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class EnableInheritStewardFlightTest {
+
+  @Mock private ApplicationContext context;
+  private FlightMap inputParameters;
+  private static final UUID DATASET_ID = UUID.randomUUID();
+
+  @BeforeEach
+  void setUp() {
+    inputParameters = new FlightMap();
+    inputParameters.put(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET);
+    inputParameters.put(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), DATASET_ID);
+    inputParameters.put(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.ADMIN_TOGGLE_INHERIT_STEWARD);
+  }
+
+  @Test
+  void testCorrectStepsEnableInheritStewardFlight() {
+    var flight = new EnableInheritStewardFlight(inputParameters, context);
+    var steps = FlightTestUtils.getStepNames(flight);
+    assertThat(steps, contains("InheritStewardSetFlagStep"));
+  }
+
+  @Test
+  void testParametersForSetFlagStep() {
+    var flight = new EnableInheritStewardFlight(inputParameters, context);
+    var firstStep = flight.getSteps().get(0);
+    InheritStewardSetFlagStep setFlagStep = (InheritStewardSetFlagStep) firstStep;
+    assertThat(
+        "The correct boolean flag is passed to the step",
+        setFlagStep.getEnableInheritSteward(),
+        equalTo(true));
+  }
+}

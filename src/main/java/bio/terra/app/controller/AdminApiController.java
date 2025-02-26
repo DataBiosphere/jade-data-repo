@@ -1,7 +1,9 @@
 package bio.terra.app.controller;
 
+import static bio.terra.app.utils.ControllerUtils.jobToResponse;
+
 import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.app.utils.ControllerUtils;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.AdminApi;
@@ -76,7 +78,7 @@ public class AdminApiController implements AdminApi {
         appConfig.getResourceId(),
         IamAction.REGISTER_DRS_ALIASES);
     String jobId = drsService.registerDrsAliases(aliases, userReq);
-    return ControllerUtils.jobToResponse(jobService.retrieveJob(jobId, userReq));
+    return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
   @Override
@@ -127,7 +129,7 @@ public class AdminApiController implements AdminApi {
   }
 
   @Override
-  public ResponseEntity<JobModel> adminInheritSteward(UUID id, Boolean inherit) {
+  public ResponseEntity<JobModel> adminInheritSteward(UUID id, Boolean inheritSteward) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     logger.info(
         "Verifying resource type admin authorization: {} for resource type: {} and resource id: {}",
@@ -136,13 +138,20 @@ public class AdminApiController implements AdminApi {
         id);
     iamService.verifyResourceTypeAdminAuthorized(
         userReq, IamResourceType.DATASET, IamAction.ADMIN_TOGGLE_INHERIT_STEWARD);
-//    String jobId;
-//    if (inherit) {
-//      jobId = datasetService.enableInheritSteward(id, userReq);
-//    } else {
-//      jobId = datasetService.disableInheritSteward(id, userReq);
-//    }
-//    return jobToResponse(jobService.retrieveJob(jobId, userReq));
+
+    // dataset already has the requested value for inheritSteward
+    if (datasetService.retrieveDatasetSummary(id).isInheritSteward() == inheritSteward) {
+      throw new BadRequestException(
+          String.format("Dataset %s already has inheritSteward set to %s", id, inheritSteward));
+    }
+
+    //    if (inheritSteward) {
+    //      jobId = datasetService.enableInheritSteward(id, userReq);
+    //    } else {
+    //      jobId = datasetService.disableInheritSteward(id, userReq);
+    //    }
+    // return jobToResponse(jobService.retrieveJob(jobId, userReq));
+
     throw new NotImplementedException(
         "adminInheritSteward is not implemented yet. This is a placeholder for future implementation.");
   }

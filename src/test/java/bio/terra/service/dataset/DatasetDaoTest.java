@@ -178,8 +178,7 @@ class DatasetDaoTest {
 
     datasetDao.setInheritSteward(datasetId, false);
     dataset = datasetDao.retrieve(datasetId);
-    assertThat(
-        "Inherit Steward should now be disabled again", not(dataset.isInheritSteward()));
+    assertThat("Inherit Steward should now be disabled again", not(dataset.isInheritSteward()));
   }
 
   @Test

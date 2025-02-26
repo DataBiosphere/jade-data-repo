@@ -38,7 +38,7 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.dataset.flight.inheritSteward.EnableInheritStewardFlight;
+import bio.terra.service.dataset.flight.inheritsteward.EnableInheritStewardFlight;
 import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.SynapseDataResultModel;

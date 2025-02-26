@@ -1,4 +1,4 @@
-package bio.terra.service.dataset.flight.inheritSteward;
+package bio.terra.service.dataset.flight.inheritsteward;
 
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.job.JobMapKeys;

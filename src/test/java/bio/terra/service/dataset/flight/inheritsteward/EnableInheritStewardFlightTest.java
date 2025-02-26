@@ -1,4 +1,4 @@
-package bio.terra.service.dataset.flight.inheritSteward;
+package bio.terra.service.dataset.flight.inheritsteward;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;

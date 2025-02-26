@@ -44,6 +44,8 @@ public class AdminApiController implements AdminApi {
   private final SnapshotService snapshotService;
   private final ApplicationConfiguration appConfig;
   private static final Logger logger = LoggerFactory.getLogger(AdminApiController.class);
+  private static final String AUTH_DESCRIPTION =
+      "Verifying resource type admin authorization: {} for resource type: {} and resource id: {}";
 
   @Autowired
   public AdminApiController(
@@ -92,7 +94,7 @@ public class AdminApiController implements AdminApi {
             DatasetRequestAccessIncludeModel.STORAGE);
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     logger.info(
-        "Verifying resource type admin authorization: {} for resource type: {} and resource id: {}",
+        AUTH_DESCRIPTION,
         userReq.getEmail(),
         IamResourceType.DATASET,
         id);
@@ -117,7 +119,7 @@ public class AdminApiController implements AdminApi {
             SnapshotRetrieveIncludeModel.DUOS);
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     logger.info(
-        "Verifying resource type admin authorization: {} for resource type: {} and resource id: {}",
+        AUTH_DESCRIPTION,
         userReq.getEmail(),
         IamResourceType.DATASNAPSHOT,
         id);
@@ -132,7 +134,7 @@ public class AdminApiController implements AdminApi {
   public ResponseEntity<JobModel> adminInheritSteward(UUID id, Boolean inheritSteward) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     logger.info(
-        "Verifying resource type admin authorization: {} for resource type: {} and resource id: {}",
+        AUTH_DESCRIPTION,
         userReq.getEmail(),
         IamResourceType.DATASET,
         id);
@@ -140,7 +142,7 @@ public class AdminApiController implements AdminApi {
         userReq, IamResourceType.DATASET, IamAction.ADMIN_TOGGLE_INHERIT_STEWARD);
 
     // dataset already has the requested value for inheritSteward
-    if (datasetService.retrieveDatasetSummary(id).isInheritSteward() == inheritSteward) {
+    if (datasetService.retrieveDatasetSummary(id).isInheritSteward().equals(inheritSteward)) {
       throw new BadRequestException(
           String.format("Dataset %s already has inheritSteward set to %s", id, inheritSteward));
     }

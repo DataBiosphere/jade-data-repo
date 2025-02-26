@@ -1,4 +1,4 @@
-package bio.terra.service.dataset.flight.inheritSteward;
+package bio.terra.service.dataset.flight.inheritsteward;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;

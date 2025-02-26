@@ -1,3 +1,6 @@
+# Note that this action is called from the UI build process:
+# https://github.com/DataBiosphere/jade-data-repo-ui/blob/develop/.github/workflows/build.yaml#L41
+# Changes merged here require a version bump in that action.
 name: Tag
 on:
   workflow_dispatch:
@@ -23,6 +26,21 @@ on:
         default: 'main'
         required: false
         type: string
+      version-file-path:
+        description: "If present, update the version number in that file"
+        default: build.gradle
+        required: false
+        type: string
+      version-line-match:
+        description: "If present, a grep regular expression to identify the line containing the version number in the VERSION_FILE_PATH."
+        default: "^\\s*version\\s\\+'.*'"
+        required: false
+        type: string
+      version-suffix:
+        description: "Suffix added to the version in the version file, such as, -SNAPSHOT."
+        default: SNAPSHOT
+        required: false
+        type: string
     outputs:
       tag:
         description: "The value of the latest tag after running this action"
@@ -46,7 +64,7 @@ jobs:
       new-tag: ${{ steps.tag.outputs.new_tag }}
     steps:
       - name: Checkout current code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
           token: ${{ secrets.BROADBOT_TOKEN }} # this allows the push to succeed later
@@ -61,15 +79,15 @@ jobs:
           DEFAULT_BUMP: minor
           DRY_RUN: ${{ inputs.dry-run }}
           RELEASE_BRANCHES: ${{ inputs.release-branches }}
-          VERSION_FILE_PATH: build.gradle
-          VERSION_LINE_MATCH: "^\\s*version\\s+'.*'"
-          VERSION_SUFFIX: SNAPSHOT
+          VERSION_FILE_PATH: ${{ inputs.version-file-path }}
+          VERSION_LINE_MATCH: ${{ inputs.version-line-match }}
+          VERSION_SUFFIX: ${{ inputs.version-suffix }}
       - name: Echo tag to console
         if: ${{ inputs.print-tag == 'true' }}
         run: |
           echo "Newly created version tag: '${NEW_TAG}'"
-          echo "build.gradle"
+          echo "${{ inputs.version-file-path }}"
           echo "==============="
-          cat build.gradle
+          cat ${{ inputs.version-file-path }}
         env:
           NEW_TAG: ${{ steps.tag.outputs.new_tag }}

@@ -273,7 +273,8 @@ class JobServiceTest {
     // Retrieve past the end; should get nothing
     assertThat(
         "retrieve from the end",
-        jobService.enumerateJobs(22, 3, testUser2, SqlSortDirection.ASC, "").isEmpty());
+        jobService.enumerateJobs(22, 3, testUser2, SqlSortDirection.ASC, ""),
+        empty());
 
     assertThat(
         "admin user can list all jobs",

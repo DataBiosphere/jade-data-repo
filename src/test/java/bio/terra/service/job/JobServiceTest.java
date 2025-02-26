@@ -290,8 +290,8 @@ class JobServiceTest {
 
   private void testResultRetrieval(JobModel job) {
     var resultHolder = jobService.retrieveJobResult(job.getId(), String.class, null);
-    assertThat(resultHolder.statusCode(), is(equalTo(HttpStatus.I_AM_A_TEAPOT)));
-    assertThat(resultHolder.result(), is(equalTo(job.getDescription())));
+    assertThat(resultHolder.statusCode(), is(HttpStatus.I_AM_A_TEAPOT));
+    assertThat(resultHolder.result(), is(job.getDescription()));
   }
 
   @Test

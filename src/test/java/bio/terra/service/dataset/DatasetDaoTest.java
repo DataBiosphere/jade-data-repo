@@ -165,6 +165,24 @@ class DatasetDaoTest {
   }
 
   @Test
+  void setInheritStewardTest() throws Exception {
+    UUID datasetId = createDataset("dataset-minimal.json");
+    Dataset dataset = datasetDao.retrieve(datasetId);
+    assertThat(
+        "Dataset should by default have Inherit Steward set to false",
+        not(dataset.isInheritSteward()));
+
+    datasetDao.setInheritSteward(datasetId, true);
+    dataset = datasetDao.retrieve(datasetId);
+    assertThat("Inherit Steward should now be enabled", dataset.isInheritSteward());
+
+    datasetDao.setInheritSteward(datasetId, false);
+    dataset = datasetDao.retrieve(datasetId);
+    assertThat(
+        "Inherit Steward should now be disabled again", not(dataset.isInheritSteward()));
+  }
+
+  @Test
   void enumerateTest() throws Exception {
     UUID datasetId1 = createDataset("dataset-minimal.json");
     Dataset dataset1 = datasetDao.retrieve(datasetId1);

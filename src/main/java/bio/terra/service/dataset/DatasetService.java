@@ -52,6 +52,7 @@ import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.dataset.flight.ingest.scratch.DatasetScratchFilePrepareFlight;
+import bio.terra.service.dataset.flight.inheritSteward.EnableInheritStewardFlight;
 import bio.terra.service.dataset.flight.lock.DatasetLockFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionCommitFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
@@ -756,6 +757,16 @@ public class DatasetService {
       throw new RuntimeException("Dataset tags were not updated");
     }
     return datasetDao.retrieveSummaryById(id).toModel();
+  }
+
+  public String enableInheritSteward(UUID datasetId, AuthenticatedUserRequest userReq) {
+    String description = "Enable InheritSteward for dataset " + datasetId;
+    return jobService
+        .newJob(description, EnableInheritStewardFlight.class, null, userReq)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.ADMIN_TOGGLE_INHERIT_STEWARD)
+        .submit();
   }
 
   private static List<DatasetRequestAccessIncludeModel> getDefaultIncludes() {

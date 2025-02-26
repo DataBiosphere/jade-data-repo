@@ -35,8 +35,10 @@ import bio.terra.model.ResourceLocks;
 import bio.terra.model.TableDataType;
 import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.dataset.flight.inheritSteward.EnableInheritStewardFlight;
 import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.SynapseDataResultModel;
@@ -377,6 +379,30 @@ class DatasetServiceUnitTest {
                 TEST_USER, DATASET_ID, DATASET_TABLE_NAME, "column1", "");
     assertThat("Correct max value", statsModel.getMaxValue(), equalTo(expectedValue.getMaxValue()));
     assertThat("Correct min value", statsModel.getMinValue(), equalTo(expectedValue.getMinValue()));
+  }
+
+  @Test
+  void testEnableInheritSteward() {
+    JobBuilder jobBuilder = mock(JobBuilder.class);
+    when(jobService.newJob(
+            "Enable InheritSteward for dataset " + DATASET_ID,
+            EnableInheritStewardFlight.class,
+            null,
+            TEST_USER))
+        .thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(
+            JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET))
+        .thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), DATASET_ID))
+        .thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(
+            JobMapKeys.IAM_ACTION.getKeyName(), IamAction.ADMIN_TOGGLE_INHERIT_STEWARD))
+        .thenReturn(jobBuilder);
+    when(jobBuilder.submit()).thenReturn("JobId");
+    assertThat(
+        "Job is submitted and JobId is returned",
+        datasetService.enableInheritSteward(DATASET_ID, TEST_USER),
+        equalTo("JobId"));
   }
 
   private void mockDataset(CloudPlatform cloudPlatform, TableDataType columnDataType) {

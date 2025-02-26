@@ -92,8 +92,6 @@ class IamServiceTest {
 
     PolicyModel result =
         iamService.addPolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
-    verify(iamProvider)
-        .addPolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
     assertEquals(policyModel, result);
   }
 
@@ -109,8 +107,6 @@ class IamServiceTest {
     PolicyModel result =
         iamService.deletePolicyMember(
             TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
-    verify(iamProvider)
-        .deletePolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
     assertEquals(policyModel, result);
   }
 

@@ -23,7 +23,6 @@ import bio.terra.service.auth.iam.PolicyMemberValidator;
 import bio.terra.service.job.JobService;
 import io.swagger.annotations.Api;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -33,9 +32,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.InitBinder;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 @Api(tags = {"profiles"})
@@ -82,16 +78,14 @@ public class ProfileApiController implements ProfilesApi {
   }
 
   @Override
-  public ResponseEntity<JobModel> createProfile(
-      @RequestBody BillingProfileRequestModel billingProfileRequest) {
+  public ResponseEntity<JobModel> createProfile(BillingProfileRequestModel billingProfileRequest) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
     String jobId = profileService.createProfile(billingProfileRequest, user);
     return jobToResponse(jobService.retrieveJob(jobId, user));
   }
 
   @Override
-  public ResponseEntity<JobModel> updateProfile(
-      @Valid @RequestBody BillingProfileUpdateModel billingProfileRequest) {
+  public ResponseEntity<JobModel> updateProfile(BillingProfileUpdateModel billingProfileRequest) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
     verifyProfileAuthorization(
         user, billingProfileRequest.getId().toString(), IamAction.UPDATE_BILLING_ACCOUNT);
@@ -113,8 +107,7 @@ public class ProfileApiController implements ProfilesApi {
 
   @Override
   public ResponseEntity<EnumerateBillingProfileModel> enumerateProfiles(
-      @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-      @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+      Integer offset, Integer limit) {
     ControllerUtils.validateEnumerateParams(offset, limit);
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
     EnumerateBillingProfileModel ebpm = profileService.enumerateProfiles(offset, limit, user);
@@ -130,9 +123,7 @@ public class ProfileApiController implements ProfilesApi {
 
   @Override
   public ResponseEntity<PolicyResponse> addProfilePolicyMember(
-      @PathVariable("id") UUID id,
-      @PathVariable("policyName") String policyName,
-      @Valid @RequestBody PolicyMemberRequest policyMember) {
+      UUID id, String policyName, PolicyMemberRequest policyMember) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
     PolicyModel policy = profileService.addProfilePolicyMember(id, policyName, policyMember, user);
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
@@ -141,9 +132,7 @@ public class ProfileApiController implements ProfilesApi {
 
   @Override
   public ResponseEntity<PolicyResponse> deleteProfilePolicyMember(
-      @PathVariable("id") UUID id,
-      @PathVariable("policyName") String policyName,
-      @PathVariable("memberEmail") String memberEmail) {
+      UUID id, String policyName, String memberEmail) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
     PolicyModel policy =
         profileService.deleteProfilePolicyMember(id, policyName, memberEmail, user);
@@ -152,7 +141,7 @@ public class ProfileApiController implements ProfilesApi {
   }
 
   @Override
-  public ResponseEntity<PolicyResponse> retrieveProfilePolicies(@PathVariable("id") UUID id) {
+  public ResponseEntity<PolicyResponse> retrieveProfilePolicies(UUID id) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
     List<PolicyModel> policies = profileService.retrieveProfilePolicies(id, user);
     PolicyResponse response = new PolicyResponse().policies(policies);

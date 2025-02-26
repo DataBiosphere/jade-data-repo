@@ -11,29 +11,24 @@ import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.profile.ProfileDao;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@Tag(Unit.TAG)
 @EmbeddedDatabaseTest
-public class AzureResourceDaoTest {
+class AzureResourceDaoTest {
 
   @Autowired private ProfileDao profileDao;
 
@@ -43,12 +38,12 @@ public class AzureResourceDaoTest {
   private List<AzureApplicationDeploymentResource> applicationDeployments;
   private List<AzureStorageAccountResource> storageAccounts;
 
-  @Before
-  public void setup() throws IOException, InterruptedException {
+  @BeforeEach
+  void setup() {
     UUID datasetId = UUID.randomUUID();
     UUID snapshotId = UUID.randomUUID();
 
-    // Initialize list;
+    // Initialize lists
     applicationDeployments = new ArrayList<>();
     storageAccounts = new ArrayList<>();
 
@@ -81,8 +76,8 @@ public class AzureResourceDaoTest {
     storageAccounts.add(sa2);
   }
 
-  @After
-  public void teardown() {
+  @AfterEach
+  void teardown() {
     boolean allStorageDeleted =
         storageAccounts.stream()
             .allMatch(
@@ -92,9 +87,7 @@ public class AzureResourceDaoTest {
 
     azureResourceDao.markUnusedApplicationDeploymentsForDelete(billingProfile.getId());
     azureResourceDao.deleteApplicationDeploymentMetadata(
-        applicationDeployments.stream()
-            .map(AzureApplicationDeploymentResource::getId)
-            .collect(Collectors.toList()));
+        applicationDeployments.stream().map(AzureApplicationDeploymentResource::getId).toList());
 
     profileDao.deleteBillingProfileById(billingProfile.getId());
 
@@ -102,7 +95,7 @@ public class AzureResourceDaoTest {
   }
 
   @Test
-  public void oneApplicationOneBillingProfilesTwoStorageAccounts() throws Exception {
+  void oneApplicationOneBillingProfilesTwoStorageAccounts() {
     var retrievedAppDeployments =
         azureResourceDao.retrieveApplicationDeploymentsByBillingProfileId(billingProfile.getId());
 
@@ -141,7 +134,7 @@ public class AzureResourceDaoTest {
   }
 
   @Test
-  public void markForDeleteStorageAccountMetadata() {
+  void markForDeleteStorageAccountMetadata() {
     var appDeploymentId = applicationDeployments.get(0).getId();
     assertThat(
         "Before marking for delete, confirm that 2 storage accounts are returned when marked_for_delete = false",

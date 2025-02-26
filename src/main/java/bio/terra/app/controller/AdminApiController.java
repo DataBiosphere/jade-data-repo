@@ -145,14 +145,11 @@ public class AdminApiController implements AdminApi {
           String.format("Dataset %s already has inheritSteward set to %s", id, inheritSteward));
     }
 
-    //    if (inheritSteward) {
-    //      jobId = datasetService.enableInheritSteward(id, userReq);
-    //    } else {
-    //      jobId = datasetService.disableInheritSteward(id, userReq);
-    //    }
-    // return jobToResponse(jobService.retrieveJob(jobId, userReq));
-
-    throw new NotImplementedException(
-        "adminInheritSteward is not implemented yet. This is a placeholder for future implementation.");
+    if (inheritSteward) {
+      String jobId = datasetService.enableInheritSteward(id, userReq);
+      return jobToResponse(jobService.retrieveJob(jobId, userReq));
+    } else {
+      throw new NotImplementedException("disabling Inherit Steward is not implemented yet.");
+    }
   }
 }

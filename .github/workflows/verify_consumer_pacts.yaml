@@ -79,7 +79,7 @@ jobs:
     outputs:
       is-bump: ${{ steps.skiptest.outputs.is-bump }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Skip version bump merges
         id: skiptest
         uses: ./.github/actions/bump-skip
@@ -113,7 +113,7 @@ jobs:
 
     steps:
       - name: Checkout current code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 

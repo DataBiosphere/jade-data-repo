@@ -8,8 +8,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.springframework.test.util.AssertionErrors.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.auth.Users;
@@ -500,7 +499,7 @@ class SnapshotIntegrationTest {
         contains(discovererEmail));
 
     // Test enabling secure monitoring on existing project
-    assertThat("Secure monitoring should be disabled", not(dataset.isSecureMonitoringEnabled()));
+    assertFalse(dataset.isSecureMonitoringEnabled(), "Secure monitoring should be disabled");
     assertThat("Job completes", dataRepoFixtures.enableSecureMonitoring(steward(), datasetId));
     assertThat(
         "Secure monitoring should now be enabled",
@@ -509,7 +508,7 @@ class SnapshotIntegrationTest {
     // Test disabling secure monitoring on existing project
     assertThat("Job completes", dataRepoFixtures.disableSecureMonitoring(steward(), datasetId));
     assertFalse(
-        "Secure monitoring should now be disabled",
-        dataRepoFixtures.getDataset(steward(), datasetId).isSecureMonitoringEnabled());
+        dataRepoFixtures.getDataset(steward(), datasetId).isSecureMonitoringEnabled(),
+        "Secure monitoring should now be disabled");
   }
 }

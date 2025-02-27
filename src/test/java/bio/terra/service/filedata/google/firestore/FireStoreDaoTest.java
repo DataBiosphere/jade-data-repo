@@ -141,7 +141,7 @@ class FireStoreDaoTest {
       FireStoreDirectoryEntry snapObject =
           directoryDao.retrieveById(firestore, snapshotId, dsetObject.getFileId());
       assertThat("objectId matches", snapObject.getFileId(), equalTo(dsetObject.getFileId()));
-      assertThat("path does not match", snapObject.getPath(), not(equalTo(dsetObject.getPath())));
+      assertThat("path does not match", snapObject.getPath(), not(dsetObject.getPath()));
     }
 
     // ------ test FireStoreDependencyDao ----

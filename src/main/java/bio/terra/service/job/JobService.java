@@ -44,7 +44,6 @@ import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
-import jakarta.annotation.PostConstruct;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -58,13 +57,14 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component
-public class JobService {
+public class JobService implements SmartInitializingSingleton {
 
   private static final Logger logger = LoggerFactory.getLogger(JobService.class);
   private static final int MIN_SHUTDOWN_TIMEOUT = 14;
@@ -98,7 +98,7 @@ public class JobService {
     this.appConfig = appConfig;
     this.stairwayComponent = stairwayComponent;
     this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
-    this.isRunning = new AtomicBoolean(true);
+    isRunning = new AtomicBoolean(true);
     this.migrate = migrate;
     this.applicationContext = applicationContext;
     this.objectMapper = objectMapper;
@@ -106,13 +106,8 @@ public class JobService {
     this.openTelemetry = openTelemetry;
   }
 
-  /**
-   * This method is called from StartupInitializer as part of the sequence of migrating databases
-   * and recovering any jobs; i.e., Stairway flights. It lives in this class so that JobService
-   * encapsulates all Stairway interaction.
-   */
-  @PostConstruct
-  public void initialize() {
+  @Override
+  public void afterSingletonsInstantiated() {
     migrate.migrateDatabase();
 
     // Initialize stairway - only do the stairway migration if we did the data repo migration
@@ -143,10 +138,8 @@ public class JobService {
     int shutdownTimeout = appConfig.getShutdownTimeoutSeconds();
     if (shutdownTimeout < MIN_SHUTDOWN_TIMEOUT) {
       logger.warn(
-          "Shutdown timeout of "
-              + shutdownTimeout
-              + "is too small. Setting to "
-              + MIN_SHUTDOWN_TIMEOUT);
+          "Shutdown timeout of {} is too small. Setting to %{}",
+          shutdownTimeout, MIN_SHUTDOWN_TIMEOUT);
       shutdownTimeout = MIN_SHUTDOWN_TIMEOUT;
     }
 
@@ -162,7 +155,7 @@ public class JobService {
       logger.info("JobService request Stairway terminate");
       finishedShutdown = stairway.terminate(terminateTimeout, TimeUnit.SECONDS);
     }
-    logger.info("JobService finished shutdown?: " + finishedShutdown);
+    logger.info("JobService finished shutdown?: {}", finishedShutdown);
     return finishedShutdown;
   }
 
@@ -170,26 +163,14 @@ public class JobService {
     return kubeService.getActivePodCount();
   }
 
-  public static class JobResultWithStatus<T> {
-    private T result;
-    private HttpStatus statusCode;
+  public record JobResultWithStatus<T>(HttpStatus statusCode, T result) {
 
-    public T getResult() {
-      return result;
+    public static <T> JobResultWithStatus<T> of(HttpStatus statusCode, T result) {
+      return new JobResultWithStatus<>(statusCode, result);
     }
 
-    public JobResultWithStatus<T> result(T result) {
-      this.result = result;
-      return this;
-    }
-
-    public HttpStatus getStatusCode() {
-      return statusCode;
-    }
-
-    public JobResultWithStatus<T> statusCode(HttpStatus httpStatus) {
-      this.statusCode = httpStatus;
-      return this;
+    public static <T> JobResultWithStatus<T> accepted() {
+      return new JobResultWithStatus<>(HttpStatus.ACCEPTED, null);
     }
   }
 
@@ -228,7 +209,7 @@ public class JobService {
     AuthenticatedUserRequest userReq =
         parameterMap.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-    return retrieveJobResult(jobId, resultClass, userReq).getResult();
+    return retrieveJobResult(jobId, resultClass, userReq).result();
   }
 
   /**
@@ -511,18 +492,18 @@ public class JobService {
 
     switch (jobStatus) {
       case FAILED:
-        final Exception exceptionToThrow;
+        final Exception exceptionToThrow =
+            flightState
+                .getException()
+                .orElseGet(
+                    () ->
+                        getCompletionToFailureException(flightState)
+                            .orElse(
+                                new InvalidResultStateException(
+                                    "Failed operation with no exception reported")));
 
-        if (flightState.getException().isPresent()) {
-          exceptionToThrow = flightState.getException().get();
-        } else if (getCompletionToFailureException(flightState).isPresent()) {
-          exceptionToThrow = getCompletionToFailureException(flightState).get();
-        } else {
-          exceptionToThrow =
-              new InvalidResultStateException("Failed operation with no exception reported");
-        }
-        if (exceptionToThrow instanceof RuntimeException) {
-          throw (RuntimeException) exceptionToThrow;
+        if (exceptionToThrow instanceof RuntimeException runtimeException) {
+          throw runtimeException;
         } else {
           throw new JobResponseException("wrap non-runtime exception", exceptionToThrow);
         }
@@ -536,12 +517,11 @@ public class JobService {
         if (statusCode == null) {
           statusCode = HttpStatus.OK;
         }
-        return new JobResultWithStatus<T>()
-            .statusCode(statusCode)
-            .result(resultMap.get(JobMapKeys.RESPONSE.getKeyName(), resultClass));
+        return JobResultWithStatus.of(
+            statusCode, resultMap.get(JobMapKeys.RESPONSE.getKeyName(), resultClass));
 
       case RUNNING:
-        return new JobResultWithStatus<T>().statusCode(HttpStatus.ACCEPTED);
+        return JobResultWithStatus.accepted();
 
       default:
         throw new InvalidResultStateException("Impossible case reached");

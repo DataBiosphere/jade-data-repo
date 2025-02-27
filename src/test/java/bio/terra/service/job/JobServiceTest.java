@@ -5,9 +5,9 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
@@ -31,10 +31,10 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.ShortUUID;
 import bio.terra.stairway.exception.StairwayException;
-import java.sql.Date;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,21 +64,21 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 class JobServiceTest {
   private static final Logger logger = LoggerFactory.getLogger(JobServiceTest.class);
 
-  private AuthenticatedUserRequest testUser =
+  private final AuthenticatedUserRequest testUser =
       AuthenticatedUserRequest.builder()
           .setSubjectId("StairwayUnit")
           .setEmail("stairway@unit.com")
           .setToken("token")
           .build();
 
-  private AuthenticatedUserRequest testUser2 =
+  private final AuthenticatedUserRequest testUser2 =
       AuthenticatedUserRequest.builder()
           .setSubjectId("StairwayUnit2")
           .setEmail("stairway@unit2.com")
           .setToken("token")
           .build();
 
-  private AuthenticatedUserRequest adminUser =
+  private final AuthenticatedUserRequest adminUser =
       AuthenticatedUserRequest.builder()
           .setSubjectId("StairwayUnit3")
           .setEmail("stairway@unit3.com")
@@ -102,7 +102,7 @@ class JobServiceTest {
   @MockitoBean private BardClient bardClient;
 
   @BeforeEach
-  void setUp() throws Exception {
+  void setUp() {
     when(samService.isAuthorized(
             testUser, IamResourceType.DATAREPO, appConfig.getResourceId(), IamAction.LIST_JOBS))
         .thenReturn(false);
@@ -116,13 +116,13 @@ class JobServiceTest {
   }
 
   @AfterEach
-  void tearDown() throws Exception {
+  void tearDown() {
     logger.info("Deleting {} jobs", jobIds.size());
     jobIds.forEach(this::deleteJob);
   }
 
   @Test
-  void enumerateTooLongBackFilterTest() throws Exception {
+  void enumerateTooLongBackFilterTest() {
     int numVisibleJobs = 3;
     List<JobModel> expectedJobs =
         IntStream.range(0, numVisibleJobs)
@@ -144,7 +144,7 @@ class JobServiceTest {
   }
 
   @Test
-  void retrieveTest() throws Exception {
+  void retrieveTest() {
     // We perform 7 flights of alternating classes and then retrieve and enumerate them.
     // The fids list should be in exactly the same order as the database ordered by submit time.
 
@@ -194,7 +194,7 @@ class JobServiceTest {
   }
 
   @Test
-  void enumerateJobsPermissionTest() throws Exception {
+  void enumerateJobsPermissionTest() {
     // We perform 9 flights of alternating classes and then retrieve and enumerate them.
     // The fids list should be in exactly the same order as the database ordered by submit time.
 
@@ -217,9 +217,10 @@ class JobServiceTest {
         jobService.enumerateJobs(0, 100, testUser, SqlSortDirection.ASC, ""),
         contains(allJobs.toArray(new JobModel[0])));
 
-    assertTrue(
+    assertThat(
         "no jobs are visible to testUser2",
-        jobService.enumerateJobs(0, 100, testUser2, SqlSortDirection.ASC, "").isEmpty());
+        jobService.enumerateJobs(0, 100, testUser2, SqlSortDirection.ASC, ""),
+        empty());
 
     // Launch 2 jobs that are visible to the second test user via dataset access
     UUID sharedDatasetId = UUID.randomUUID();
@@ -270,9 +271,10 @@ class JobServiceTest {
         contains(allJobs.get(8)));
 
     // Retrieve past the end; should get nothing
-    assertTrue(
+    assertThat(
         "retrieve from the end",
-        jobService.enumerateJobs(22, 3, testUser2, SqlSortDirection.ASC, "").isEmpty());
+        jobService.enumerateJobs(22, 3, testUser2, SqlSortDirection.ASC, ""),
+        empty());
 
     assertThat(
         "admin user can list all jobs",
@@ -280,32 +282,31 @@ class JobServiceTest {
         contains(allJobs.toArray(new JobModel[0])));
   }
 
-  private void testSingleRetrieval(JobModel job) throws InterruptedException {
+  private void testSingleRetrieval(JobModel job) {
     JobModel response = jobService.retrieveJob(job.getId(), null);
     assertThat(response, notNullValue());
     assertThat(response, getJobMatcher(job));
   }
 
-  private void testResultRetrieval(JobModel job) throws InterruptedException {
-    JobService.JobResultWithStatus<String> resultHolder =
-        jobService.retrieveJobResult(job.getId(), String.class, null);
-    assertThat(resultHolder.getStatusCode(), is(equalTo(HttpStatus.I_AM_A_TEAPOT)));
-    assertThat(resultHolder.getResult(), is(equalTo(job.getDescription())));
+  private void testResultRetrieval(JobModel job) {
+    var resultHolder = jobService.retrieveJobResult(job.getId(), String.class, null);
+    assertThat(resultHolder.statusCode(), is(HttpStatus.I_AM_A_TEAPOT));
+    assertThat(resultHolder.result(), is(job.getDescription()));
   }
 
   @Test
-  void testBadIdRetrieveJob() throws InterruptedException {
+  void testBadIdRetrieveJob() {
     assertThrows(StairwayException.class, () -> jobService.retrieveJob("abcdef", null));
   }
 
   @Test
-  void testBadIdRetrieveResult() throws InterruptedException {
+  void testBadIdRetrieveResult() {
     assertThrows(
         StairwayException.class, () -> jobService.retrieveJobResult("abcdef", Object.class, null));
   }
 
   @Test
-  void testSubmissionAndRetrieval_noParameters() throws InterruptedException {
+  void testSubmissionAndRetrieval_noParameters() {
     JobModel expectedJob = runFlightAndReturnExpectedJobModel(1, false);
     testSingleRetrieval(expectedJob);
   }

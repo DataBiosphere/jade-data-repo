@@ -15,14 +15,10 @@ import bio.terra.service.dataset.DatasetRequestValidator;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,9 +30,6 @@ import org.springframework.web.bind.annotation.InitBinder;
 @Api(tags = {"jobs"})
 public class JobsApiController implements JobsApi {
 
-  private Logger logger = LoggerFactory.getLogger(JobsApiController.class);
-
-  private final ObjectMapper objectMapper;
   private final HttpServletRequest request;
   private final JobService jobService;
   private final DatasetRequestValidator datasetRequestValidator;
@@ -48,7 +41,6 @@ public class JobsApiController implements JobsApi {
 
   @Autowired
   public JobsApiController(
-      ObjectMapper objectMapper,
       HttpServletRequest request,
       JobService jobService,
       DatasetRequestValidator datasetRequestValidator,
@@ -57,7 +49,6 @@ public class JobsApiController implements JobsApi {
       PolicyMemberValidator policyMemberValidator,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       AssetModelValidator assetModelValidator) {
-    this.objectMapper = objectMapper;
     this.request = request;
     this.jobService = jobService;
     this.datasetRequestValidator = datasetRequestValidator;
@@ -75,16 +66,6 @@ public class JobsApiController implements JobsApi {
     binder.addValidators(ingestRequestValidator);
     binder.addValidators(policyMemberValidator);
     binder.addValidators(assetModelValidator);
-  }
-
-  @Override
-  public Optional<ObjectMapper> getObjectMapper() {
-    return Optional.ofNullable(objectMapper);
-  }
-
-  @Override
-  public Optional<HttpServletRequest> getRequest() {
-    return Optional.ofNullable(request);
   }
 
   private AuthenticatedUserRequest getAuthenticatedInfo() {
@@ -110,19 +91,18 @@ public class JobsApiController implements JobsApi {
 
   @Override
   public ResponseEntity<Object> retrieveJobResult(String id) {
-    JobService.JobResultWithStatus<Object> resultHolder =
-        jobService.retrieveJobResult(id, Object.class, getAuthenticatedInfo());
-    return ResponseEntity.status(resultHolder.getStatusCode()).body(resultHolder.getResult());
+    var resultHolder = jobService.retrieveJobResult(id, Object.class, getAuthenticatedInfo());
+    return ResponseEntity.status(resultHolder.statusCode()).body(resultHolder.result());
   }
 
   private void validateOffsetAndLimit(Integer offset, Integer limit) {
     List<String> errors = new ArrayList<>();
-    offset = (offset == null) ? offset = 0 : offset;
+    offset = (offset == null) ? 0 : offset;
     if (offset < 0) {
       errors.add("Offset must be greater than or equal to 0.");
     }
 
-    limit = (limit == null) ? limit = 10 : limit;
+    limit = (limit == null) ? 10 : limit;
     if (limit < 1) {
       errors.add("Limit must be greater than or equal to 1.");
     }

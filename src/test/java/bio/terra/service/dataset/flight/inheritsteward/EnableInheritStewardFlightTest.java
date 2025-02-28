@@ -43,8 +43,6 @@ class EnableInheritStewardFlightTest {
 
   @Test
   void testParametersForSetFlagStep() {
-    DatasetDao datasetDao = mock();
-    when(context.getBean(DatasetDao.class)).thenReturn(datasetDao);
     try (var mockedStep =
         mockConstruction(
             InheritStewardSetFlagStep.class,

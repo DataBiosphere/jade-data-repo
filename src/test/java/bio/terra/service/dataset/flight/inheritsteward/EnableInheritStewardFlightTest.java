@@ -3,6 +3,7 @@ package bio.terra.service.dataset.flight.inheritsteward;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.Mockito.mockConstruction;
 
 import bio.terra.common.FlightTestUtils;
 import bio.terra.common.category.Unit;
@@ -44,12 +45,19 @@ class EnableInheritStewardFlightTest {
 
   @Test
   void testParametersForSetFlagStep() {
-    var flight = new EnableInheritStewardFlight(inputParameters, context);
-    var firstStep = flight.getSteps().get(0);
-    InheritStewardSetFlagStep setFlagStep = (InheritStewardSetFlagStep) firstStep;
-    assertThat(
-        "The correct boolean flag is passed to the step",
-        setFlagStep.getEnableInheritSteward(),
-        equalTo(true));
+    try (var mockedStep =
+        mockConstruction(
+            InheritStewardSetFlagStep.class,
+            (mock, context) -> {
+              new EnableInheritStewardFlight(inputParameters, context);
+              assertThat(
+                  "The correct datasetId is passed to the step",
+                  (UUID) context.arguments().get(1),
+                  equalTo(DATASET_ID));
+              assertThat(
+                  "The correct boolean flag is passed to the step",
+                  (boolean) context.arguments().get(2),
+                  equalTo(true));
+            })) {}
   }
 }

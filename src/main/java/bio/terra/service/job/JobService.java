@@ -42,6 +42,7 @@ import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import jakarta.annotation.PostConstruct;
@@ -204,7 +205,8 @@ public class JobService {
 
   // submit a new job to stairway
   // protected method intended to be called only from JobBuilder
-  protected String submit(Class<? extends Flight> flightClass, FlightMap parameterMap) {
+  @VisibleForTesting
+  public String submit(Class<? extends Flight> flightClass, FlightMap parameterMap) {
     if (isRunning.get()) {
       String jobId = createJobId();
       try {

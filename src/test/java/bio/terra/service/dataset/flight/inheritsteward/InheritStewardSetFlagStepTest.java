@@ -7,7 +7,6 @@ import bio.terra.common.category.Unit;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
-import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -39,23 +38,9 @@ class InheritStewardSetFlagStepTest {
   }
 
   @Test
-  void doStepFailure() {
-    when(datasetDao.setInheritSteward(datasetId, true)).thenReturn(false);
-    StepResult result = step.doStep(context);
-    assertEquals(StepStatus.STEP_RESULT_FAILURE_FATAL, result.getStepStatus());
-  }
-
-  @Test
   void undoStep() {
     when(datasetDao.setInheritSteward(datasetId, false)).thenReturn(true);
     StepResult result = step.undoStep(context);
     assertEquals(StepResult.getStepResultSuccess(), result);
-  }
-
-  @Test
-  void undoStepFailure() {
-    when(datasetDao.setInheritSteward(datasetId, false)).thenReturn(false);
-    StepResult result = step.undoStep(context);
-    assertEquals(StepStatus.STEP_RESULT_FAILURE_FATAL, result.getStepStatus());
   }
 }

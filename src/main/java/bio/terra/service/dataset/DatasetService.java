@@ -765,7 +765,7 @@ public class DatasetService {
         .newJob(description, EnableInheritStewardFlight.class, null, userReq)
         .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
         .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), datasetId)
-        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.ADMIN_TOGGLE_INHERIT_STEWARD)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD)
         .submit();
   }
 

@@ -32,7 +32,7 @@ class EnableInheritStewardFlightTest {
     inputParameters = new FlightMap();
     inputParameters.put(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET);
     inputParameters.put(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), DATASET_ID);
-    inputParameters.put(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.ADMIN_TOGGLE_INHERIT_STEWARD);
+    inputParameters.put(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD);
   }
 
   @Test

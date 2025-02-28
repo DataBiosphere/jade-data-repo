@@ -160,6 +160,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/JobModel'
+        204:
+          description: >
+            Nothing was changed. The inheritSteward value was already set to the requested value.
+          content: {}
         400:
           description: Bad request - invalid id, badly formed
           content:

@@ -56,7 +56,7 @@ public class InheritStewardSetFlagStep implements Step {
   }
 
   @VisibleForTesting
-  public Boolean getEnableInheritSteward() {
+  public boolean getEnableInheritSteward() {
     return enableInheritSteward;
   }
 }

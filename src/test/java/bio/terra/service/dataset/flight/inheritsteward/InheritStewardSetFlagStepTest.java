@@ -1,7 +1,6 @@
 package bio.terra.service.dataset.flight.inheritsteward;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
@@ -23,42 +22,39 @@ class InheritStewardSetFlagStepTest {
 
   @Mock private DatasetDao datasetDao;
   private UUID datasetId;
-  private boolean enableInheritSteward;
   private InheritStewardSetFlagStep step;
-  private FlightContext context;
+  @Mock private FlightContext context;
 
   @BeforeEach
   void setUp() {
     datasetId = UUID.randomUUID();
-    enableInheritSteward = true;
-    step = new InheritStewardSetFlagStep(datasetDao, datasetId, enableInheritSteward);
-    context = mock(FlightContext.class);
+    step = new InheritStewardSetFlagStep(datasetDao, datasetId, true);
   }
 
   @Test
-  void testDoStepSuccess() {
-    when(datasetDao.setInheritSteward(datasetId, enableInheritSteward)).thenReturn(true);
+  void doStep() {
+    when(datasetDao.setInheritSteward(datasetId, true)).thenReturn(true);
     StepResult result = step.doStep(context);
     assertEquals(StepResult.getStepResultSuccess(), result);
   }
 
   @Test
-  void testDoStepFailure() {
-    when(datasetDao.setInheritSteward(datasetId, enableInheritSteward)).thenReturn(false);
+  void doStepFailure() {
+    when(datasetDao.setInheritSteward(datasetId, true)).thenReturn(false);
     StepResult result = step.doStep(context);
     assertEquals(StepStatus.STEP_RESULT_FAILURE_FATAL, result.getStepStatus());
   }
 
   @Test
-  void testUndoStepSuccess() {
-    when(datasetDao.setInheritSteward(datasetId, !enableInheritSteward)).thenReturn(true);
+  void undoStep() {
+    when(datasetDao.setInheritSteward(datasetId, false)).thenReturn(true);
     StepResult result = step.undoStep(context);
     assertEquals(StepResult.getStepResultSuccess(), result);
   }
 
   @Test
-  void testUndoStepFailure() {
-    when(datasetDao.setInheritSteward(datasetId, !enableInheritSteward)).thenReturn(false);
+  void undoStepFailure() {
+    when(datasetDao.setInheritSteward(datasetId, false)).thenReturn(false);
     StepResult result = step.undoStep(context);
     assertEquals(StepStatus.STEP_RESULT_FAILURE_FATAL, result.getStepStatus());
   }

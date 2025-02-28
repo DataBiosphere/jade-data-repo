@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -99,7 +100,7 @@ class AdminApiControllerTest {
   void testAdminRetrieveDatasetNotAuthorized() throws Exception {
     doThrow(FORBIDDEN_EXCEPTION)
         .when(iamService)
-        .verifyResourceTypeAdminAuthorized(any(), any(), any());
+        .verifyResourceTypeAdminAuthorized(any(), any(), any(), any());
     int status =
         mvc.perform(get(ADMIN_DATASETS_ENDPOINT, MODEL_ID)).andReturn().getResponse().getStatus();
     assertThat(status, equalTo(FORBIDDEN_EXCEPTION.getStatusCode().value()));
@@ -134,7 +135,7 @@ class AdminApiControllerTest {
   void testAdminRetrieveSnapshotNotAuthorized() throws Exception {
     doThrow(FORBIDDEN_EXCEPTION)
         .when(iamService)
-        .verifyResourceTypeAdminAuthorized(any(), any(), any());
+        .verifyResourceTypeAdminAuthorized(any(), any(), any(), any());
     int status =
         mvc.perform(get(ADMIN_SNAPSHOTS_ENDPOINT, MODEL_ID)).andReturn().getResponse().getStatus();
     assertThat(status, equalTo(FORBIDDEN_EXCEPTION.getStatusCode().value()));
@@ -157,16 +158,13 @@ class AdminApiControllerTest {
   @Test
   void testAdminInheritStewardEnable() throws Exception {
     String jobId = "jobId";
-    when(iamService.isResourceTypeAdminAuthorized(
-            any(), eq(IamResourceType.DATASET), eq(IamAction.ADMIN_TOGGLE_INHERIT_STEWARD)))
-        .thenReturn(true);
     when(datasetService.retrieveDatasetSummary(MODEL_ID))
         .thenReturn(new DatasetSummaryModel().id(MODEL_ID).inheritSteward(false));
     when(datasetService.enableInheritSteward(eq(MODEL_ID), any())).thenReturn(jobId);
-    when(jobService.retrieveJob(eq(jobId), any()))
-        .thenReturn(new JobModel().id(jobId).jobStatus(JobModel.JobStatusEnum.RUNNING));
+    JobModel jobModel = new JobModel().id(jobId).jobStatus(JobModel.JobStatusEnum.RUNNING);
+    when(jobService.retrieveJob(eq(jobId), any())).thenReturn(jobModel);
 
-    Boolean inheritSteward = true;
+    boolean inheritSteward = true;
     String json =
         mvc.perform(
                 put(ADMIN_INHERIT_STEWARD_ENDPOINT, MODEL_ID)
@@ -177,22 +175,25 @@ class AdminApiControllerTest {
             .getResponse()
             .getContentAsString();
     JobModel model = TestUtils.mapFromJson(json, JobModel.class);
-    assertThat("Job ID is returned", model.getId(), equalTo(jobId));
+    assertThat("Job ID is returned", model, equalTo(jobModel));
+    verify(iamService)
+        .verifyResourceTypeAdminAuthorized(
+            TEST_USER, IamResourceType.DATASET, IamAction.SET_INHERIT_STEWARD, MODEL_ID);
   }
 
   @Test
   void testAdminInheritStewardDisable() throws Exception {
-    when(iamService.isResourceTypeAdminAuthorized(
-            any(), eq(IamResourceType.DATASET), eq(IamAction.ADMIN_TOGGLE_INHERIT_STEWARD)))
-        .thenReturn(true);
     when(datasetService.retrieveDatasetSummary(MODEL_ID))
         .thenReturn(new DatasetSummaryModel().id(MODEL_ID).inheritSteward(true));
-    Boolean inheritSteward = false;
+    boolean inheritSteward = false;
     mvc.perform(
             put(ADMIN_INHERIT_STEWARD_ENDPOINT, MODEL_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtils.mapToJson(inheritSteward)))
-        .andExpect(status().isInternalServerError());
+        .andExpect(status().isNotImplemented());
+    verify(iamService)
+        .verifyResourceTypeAdminAuthorized(
+            TEST_USER, IamResourceType.DATASET, IamAction.SET_INHERIT_STEWARD, MODEL_ID);
   }
 
   @Test
@@ -200,8 +201,8 @@ class AdminApiControllerTest {
     doThrow(FORBIDDEN_EXCEPTION)
         .when(iamService)
         .verifyResourceTypeAdminAuthorized(
-            any(), eq(IamResourceType.DATASET), eq(IamAction.ADMIN_TOGGLE_INHERIT_STEWARD));
-    Boolean inheritSteward = true;
+            TEST_USER, IamResourceType.DATASET, IamAction.SET_INHERIT_STEWARD, MODEL_ID);
+    boolean inheritSteward = true;
     mvc.perform(
             put(ADMIN_INHERIT_STEWARD_ENDPOINT, MODEL_ID)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -211,7 +212,7 @@ class AdminApiControllerTest {
 
   @Test
   void testAdminInheritStewardInvalidId() throws Exception {
-    Boolean inheritSteward = true;
+    boolean inheritSteward = true;
     mvc.perform(
             put(ADMIN_INHERIT_STEWARD_ENDPOINT, "not a UUID")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -221,32 +222,31 @@ class AdminApiControllerTest {
 
   @Test
   void testAdminInheritStewardDatasetNotFound() throws Exception {
-    when(iamService.isResourceTypeAdminAuthorized(
-            any(), eq(IamResourceType.DATASET), eq(IamAction.ADMIN_TOGGLE_INHERIT_STEWARD)))
-        .thenReturn(true);
-    doThrow(new DatasetNotFoundException("Dataset not found for id: " + MODEL_ID))
-        .when(datasetService)
-        .retrieveDatasetSummary(MODEL_ID);
-    Boolean inheritSteward = true;
+    when(datasetService.retrieveDatasetSummary(MODEL_ID))
+        .thenThrow(new DatasetNotFoundException("Dataset not found for id: " + MODEL_ID));
+    boolean inheritSteward = true;
     mvc.perform(
             put(ADMIN_INHERIT_STEWARD_ENDPOINT, MODEL_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtils.mapToJson(inheritSteward)))
         .andExpect(status().isNotFound());
+    verify(iamService)
+        .verifyResourceTypeAdminAuthorized(
+            TEST_USER, IamResourceType.DATASET, IamAction.SET_INHERIT_STEWARD, MODEL_ID);
   }
 
   @Test
   void testAdminInheritStewardDatasetAlreadySet() throws Exception {
-    when(iamService.isResourceTypeAdminAuthorized(
-            any(), eq(IamResourceType.DATASET), eq(IamAction.ADMIN_TOGGLE_INHERIT_STEWARD)))
-        .thenReturn(true);
     when(datasetService.retrieveDatasetSummary(MODEL_ID))
         .thenReturn(new DatasetSummaryModel().id(MODEL_ID).inheritSteward(true));
-    Boolean inheritSteward = true;
+    boolean inheritSteward = true;
     mvc.perform(
             put(ADMIN_INHERIT_STEWARD_ENDPOINT, MODEL_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtils.mapToJson(inheritSteward)))
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isNoContent());
+    verify(iamService)
+        .verifyResourceTypeAdminAuthorized(
+            TEST_USER, IamResourceType.DATASET, IamAction.SET_INHERIT_STEWARD, MODEL_ID);
   }
 }

@@ -395,8 +395,7 @@ class DatasetServiceUnitTest {
         .thenReturn(jobBuilder);
     when(jobBuilder.addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), DATASET_ID))
         .thenReturn(jobBuilder);
-    when(jobBuilder.addParameter(
-            JobMapKeys.IAM_ACTION.getKeyName(), IamAction.ADMIN_TOGGLE_INHERIT_STEWARD))
+    when(jobBuilder.addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD))
         .thenReturn(jobBuilder);
     when(jobBuilder.submit()).thenReturn("JobId");
     assertThat(

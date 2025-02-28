@@ -1,9 +1,8 @@
 package bio.terra.app.controller;
 
-import static bio.terra.app.utils.ControllerUtils.jobToResponse;
-
 import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.common.exception.BadRequestException;
+import bio.terra.app.utils.ControllerUtils;
+import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.AdminApi;
@@ -24,7 +23,6 @@ import io.swagger.annotations.Api;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.UUID;
-import org.apache.commons.lang3.NotImplementedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,8 +42,6 @@ public class AdminApiController implements AdminApi {
   private final SnapshotService snapshotService;
   private final ApplicationConfiguration appConfig;
   private static final Logger logger = LoggerFactory.getLogger(AdminApiController.class);
-  private static final String AUTH_DESCRIPTION =
-      "Verifying resource type admin authorization: {} for resource type: {} and resource id: {}";
 
   @Autowired
   public AdminApiController(
@@ -80,7 +76,7 @@ public class AdminApiController implements AdminApi {
         appConfig.getResourceId(),
         IamAction.REGISTER_DRS_ALIASES);
     String jobId = drsService.registerDrsAliases(aliases, userReq);
-    return jobToResponse(jobService.retrieveJob(jobId, userReq));
+    return ControllerUtils.jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
   @Override
@@ -93,9 +89,8 @@ public class AdminApiController implements AdminApi {
             DatasetRequestAccessIncludeModel.SCHEMA,
             DatasetRequestAccessIncludeModel.STORAGE);
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    logger.info(AUTH_DESCRIPTION, userReq.getEmail(), IamResourceType.DATASET, id);
     iamService.verifyResourceTypeAdminAuthorized(
-        userReq, IamResourceType.DATASET, IamAction.ADMIN_READ_SUMMARY_INFORMATION);
+        userReq, IamResourceType.DATASET, IamAction.ADMIN_READ_SUMMARY_INFORMATION, id);
     logger.info("Retrieving dataset id: {}", id);
     DatasetModel datasetModel = datasetService.retrieveDatasetModel(id, userReq, include);
     return ResponseEntity.ok(datasetModel);
@@ -114,9 +109,8 @@ public class AdminApiController implements AdminApi {
             SnapshotRetrieveIncludeModel.CREATION_INFORMATION,
             SnapshotRetrieveIncludeModel.DUOS);
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    logger.info(AUTH_DESCRIPTION, userReq.getEmail(), IamResourceType.DATASNAPSHOT, id);
     iamService.verifyResourceTypeAdminAuthorized(
-        userReq, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION);
+        userReq, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION, id);
     logger.info("Retrieving snapshot id: {}", id);
     SnapshotModel snapshotModel = snapshotService.retrieveSnapshotModel(id, include, userReq);
     return ResponseEntity.ok(snapshotModel);
@@ -125,21 +119,18 @@ public class AdminApiController implements AdminApi {
   @Override
   public ResponseEntity<JobModel> adminInheritSteward(UUID id, Boolean inheritSteward) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    logger.info(AUTH_DESCRIPTION, userReq.getEmail(), IamResourceType.DATASET, id);
     iamService.verifyResourceTypeAdminAuthorized(
-        userReq, IamResourceType.DATASET, IamAction.ADMIN_TOGGLE_INHERIT_STEWARD);
+        userReq, IamResourceType.DATASET, IamAction.SET_INHERIT_STEWARD, id);
 
     // dataset already has the requested value for inheritSteward
     if (datasetService.retrieveDatasetSummary(id).isInheritSteward().equals(inheritSteward)) {
-      throw new BadRequestException(
-          String.format("Dataset %s already has inheritSteward set to %s", id, inheritSteward));
+      return ResponseEntity.noContent().build();
     }
 
     if (inheritSteward) {
       String jobId = datasetService.enableInheritSteward(id, userReq);
-      return jobToResponse(jobService.retrieveJob(jobId, userReq));
-    } else {
-      throw new NotImplementedException("disabling Inherit Steward is not implemented yet.");
+      return ControllerUtils.jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
+    throw new FeatureNotImplementedException("disabling Inherit Steward is not implemented yet.");
   }
 }

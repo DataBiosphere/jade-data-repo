@@ -802,12 +802,7 @@ public class DatasetDao implements TaggableResourceDao {
             .addValue("enabledInheritSteward", enableInheritSteward);
 
     int rowsAffected = jdbcTemplate.update(sql, params);
-    boolean patchSucceeded = (rowsAffected == 1);
-
-    if (patchSucceeded) {
-      logger.info("Dataset {} set inherit steward to {}", id, enableInheritSteward);
-    }
-    return patchSucceeded;
+    return (rowsAffected == 1);
   }
 
   /**

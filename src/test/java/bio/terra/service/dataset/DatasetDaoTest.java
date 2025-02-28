@@ -152,7 +152,7 @@ class DatasetDaoTest {
     Dataset dataset = datasetDao.retrieve(datasetId);
     assertThat(
         "Dataset should by default have secure monitoring set to false",
-        not(dataset.isSecureMonitoringEnabled()));
+        !dataset.isSecureMonitoringEnabled());
 
     datasetDao.setSecureMonitoring(datasetId, true, TEST_USER);
     dataset = datasetDao.retrieve(datasetId);
@@ -161,7 +161,7 @@ class DatasetDaoTest {
     datasetDao.setSecureMonitoring(datasetId, false, TEST_USER);
     dataset = datasetDao.retrieve(datasetId);
     assertThat(
-        "Secure Monitoring should now be disabled again", not(dataset.isSecureMonitoringEnabled()));
+        "Secure Monitoring should now be disabled again", !dataset.isSecureMonitoringEnabled());
   }
 
   @Test
@@ -169,8 +169,7 @@ class DatasetDaoTest {
     UUID datasetId = createDataset("dataset-minimal.json");
     Dataset dataset = datasetDao.retrieve(datasetId);
     assertThat(
-        "Dataset should by default have Inherit Steward set to false",
-        not(dataset.isInheritSteward()));
+        "Dataset should by default have Inherit Steward set to false", !dataset.isInheritSteward());
 
     datasetDao.setInheritSteward(datasetId, true);
     dataset = datasetDao.retrieve(datasetId);
@@ -178,7 +177,7 @@ class DatasetDaoTest {
 
     datasetDao.setInheritSteward(datasetId, false);
     dataset = datasetDao.retrieve(datasetId);
-    assertThat("Inherit Steward should now be disabled again", not(dataset.isInheritSteward()));
+    assertThat("Inherit Steward should now be disabled again", !dataset.isInheritSteward());
   }
 
   @Test

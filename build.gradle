@@ -277,6 +277,7 @@ dependencies {
     generatedCompile 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.webjars:webjars-locator-core'
+    // NOTE: If this version is changed, the version in WebConfig.addResourceHandlers must be updated as well.
     runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.20.0'
     generatedCompile 'io.swagger.core.v3:swagger-annotations'
 

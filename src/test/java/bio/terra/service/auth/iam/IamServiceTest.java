@@ -232,17 +232,22 @@ class IamServiceTest {
 
   @Test
   void testVerifyResourceTypeAdminAuthorizedTrue() throws InterruptedException {
+    UUID id = UUID.randomUUID();
     when(iamProvider.getResourceTypeAdminPermission(
             TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION))
         .thenReturn(true);
     assertDoesNotThrow(
         () ->
             iamService.verifyResourceTypeAdminAuthorized(
-                TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION));
+                TEST_USER,
+                IamResourceType.DATASNAPSHOT,
+                IamAction.ADMIN_READ_SUMMARY_INFORMATION,
+                id));
   }
 
   @Test
   void testVerifyResourceTypeAdminAuthorizedFalse() throws InterruptedException {
+    UUID id = UUID.randomUUID();
     when(iamProvider.getResourceTypeAdminPermission(
             TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION))
         .thenReturn(false);
@@ -250,7 +255,10 @@ class IamServiceTest {
         IamForbiddenException.class,
         () ->
             iamService.verifyResourceTypeAdminAuthorized(
-                TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION));
+                TEST_USER,
+                IamResourceType.DATASNAPSHOT,
+                IamAction.ADMIN_READ_SUMMARY_INFORMATION,
+                id));
   }
 
   @Test

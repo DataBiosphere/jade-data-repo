@@ -2,6 +2,7 @@ package bio.terra.app.controller;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.utils.ControllerUtils;
+import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.AdminApi;
@@ -88,13 +89,8 @@ public class AdminApiController implements AdminApi {
             DatasetRequestAccessIncludeModel.SCHEMA,
             DatasetRequestAccessIncludeModel.STORAGE);
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    logger.info(
-        "Verifying resource type admin authorization: {} for resource type: {} and resource id: {}",
-        userReq.getEmail(),
-        IamResourceType.DATASET,
-        id);
     iamService.verifyResourceTypeAdminAuthorized(
-        userReq, IamResourceType.DATASET, IamAction.ADMIN_READ_SUMMARY_INFORMATION);
+        userReq, IamResourceType.DATASET, IamAction.ADMIN_READ_SUMMARY_INFORMATION, id);
     logger.info("Retrieving dataset id: {}", id);
     DatasetModel datasetModel = datasetService.retrieveDatasetModel(id, userReq, include);
     return ResponseEntity.ok(datasetModel);
@@ -113,15 +109,28 @@ public class AdminApiController implements AdminApi {
             SnapshotRetrieveIncludeModel.CREATION_INFORMATION,
             SnapshotRetrieveIncludeModel.DUOS);
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    logger.info(
-        "Verifying resource type admin authorization: {} for resource type: {} and resource id: {}",
-        userReq.getEmail(),
-        IamResourceType.DATASNAPSHOT,
-        id);
     iamService.verifyResourceTypeAdminAuthorized(
-        userReq, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION);
+        userReq, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION, id);
     logger.info("Retrieving snapshot id: {}", id);
     SnapshotModel snapshotModel = snapshotService.retrieveSnapshotModel(id, include, userReq);
     return ResponseEntity.ok(snapshotModel);
+  }
+
+  @Override
+  public ResponseEntity<JobModel> adminInheritSteward(UUID id, Boolean inheritSteward) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    iamService.verifyResourceTypeAdminAuthorized(
+        userReq, IamResourceType.DATASET, IamAction.SET_INHERIT_STEWARD, id);
+
+    // dataset already has the requested value for inheritSteward
+    if (datasetService.retrieveDatasetSummary(id).isInheritSteward().equals(inheritSteward)) {
+      return ResponseEntity.noContent().build();
+    }
+
+    if (inheritSteward) {
+      String jobId = datasetService.enableInheritSteward(id, userReq);
+      return ControllerUtils.jobToResponse(jobService.retrieveJob(jobId, userReq));
+    }
+    throw new FeatureNotImplementedException("disabling Inherit Steward is not implemented yet.");
   }
 }

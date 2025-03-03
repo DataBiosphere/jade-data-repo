@@ -786,6 +786,26 @@ public class DatasetDao implements TaggableResourceDao {
   }
 
   /**
+   * Set a dataset's inherit steward flag
+   *
+   * @param id dataset UUID
+   * @param enableInheritSteward sets the inherit steward flag in the dataset
+   * @return whether the dataset record was updated
+   */
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public boolean setInheritSteward(UUID id, boolean enableInheritSteward) {
+    String sql = "UPDATE dataset SET inherit_steward = :enabledInheritSteward WHERE id = :id";
+
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("id", id)
+            .addValue("enabledInheritSteward", enableInheritSteward);
+
+    int rowsAffected = jdbcTemplate.update(sql, params);
+    return (rowsAffected == 1);
+  }
+
+  /**
    * Update a dataset's predictableFileIds flag
    *
    * @param id dataset UUID

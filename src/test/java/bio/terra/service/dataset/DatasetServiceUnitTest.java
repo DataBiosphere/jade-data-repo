@@ -35,8 +35,10 @@ import bio.terra.model.ResourceLocks;
 import bio.terra.model.TableDataType;
 import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.dataset.flight.inheritsteward.EnableInheritStewardFlight;
 import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.SynapseDataResultModel;
@@ -55,6 +57,7 @@ import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
+import bio.terra.stairway.FlightMap;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -67,6 +70,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -377,6 +381,34 @@ class DatasetServiceUnitTest {
                 TEST_USER, DATASET_ID, DATASET_TABLE_NAME, "column1", "");
     assertThat("Correct max value", statsModel.getMaxValue(), equalTo(expectedValue.getMaxValue()));
     assertThat("Correct min value", statsModel.getMinValue(), equalTo(expectedValue.getMinValue()));
+  }
+
+  @Test
+  void testEnableInheritSteward() {
+    JobBuilder jobBuilder =
+        new JobBuilder("", EnableInheritStewardFlight.class, null, TEST_USER, jobService);
+    when(jobService.newJob(
+            "Enable InheritSteward for dataset " + DATASET_ID,
+            EnableInheritStewardFlight.class,
+            null,
+            TEST_USER))
+        .thenReturn(jobBuilder);
+    ArgumentCaptor<FlightMap> captor = ArgumentCaptor.forClass(FlightMap.class);
+    when(jobService.submit(eq(EnableInheritStewardFlight.class), captor.capture()))
+        .thenReturn("JobId");
+    assertThat(
+        "Job is submitted and JobId is returned",
+        datasetService.enableInheritSteward(DATASET_ID, TEST_USER),
+        equalTo("JobId"));
+    FlightMap flightMap = captor.getValue();
+    assertThat(
+        flightMap.get(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class),
+        equalTo(IamResourceType.DATASET));
+    assertThat(
+        flightMap.get(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), UUID.class), equalTo(DATASET_ID));
+    assertThat(
+        flightMap.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class),
+        equalTo(IamAction.SET_INHERIT_STEWARD));
   }
 
   private void mockDataset(CloudPlatform cloudPlatform, TableDataType columnDataType) {

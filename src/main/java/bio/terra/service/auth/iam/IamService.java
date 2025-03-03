@@ -158,8 +158,16 @@ public class IamService {
    * @throws IamForbiddenException if NOT authorized
    */
   public void verifyResourceTypeAdminAuthorized(
-      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action) {
+      AuthenticatedUserRequest userReq,
+      IamResourceType iamResourceType,
+      IamAction action,
+      UUID id) {
     String userEmail = userReq.getEmail();
+    logger.info(
+        "Verifying resource type admin authorization: {} for resource type: {} and resource id: {}",
+        userEmail,
+        iamResourceType,
+        id);
     if (!isResourceTypeAdminAuthorized(userReq, iamResourceType, action)) {
       throw new IamForbiddenException(
           String.format(

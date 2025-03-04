@@ -28,6 +28,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -323,5 +324,27 @@ class IamServiceTest {
             childId,
             IamResourceType.DATASET,
             parentId);
+  }
+
+  @Test
+  void deleteResourceParent() throws InterruptedException {
+    UUID childId = UUID.randomUUID();
+    iamService.deleteResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId);
+    verify(iamProvider)
+        .deleteResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId);
+  }
+
+  @Test
+  void getResourceParent() throws InterruptedException {
+    UUID childId = UUID.randomUUID();
+    FullyQualifiedResourceId parent =
+        new FullyQualifiedResourceId()
+            .resourceTypeName(IamResourceType.DATASET.getSamResourceName())
+            .resourceId(UUID.randomUUID().toString());
+    when(iamProvider.getResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId))
+        .thenReturn(parent);
+    assertEquals(
+        iamService.getResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId),
+        parent);
   }
 }

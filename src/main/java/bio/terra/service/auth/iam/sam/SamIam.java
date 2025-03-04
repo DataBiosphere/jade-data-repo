@@ -915,6 +915,26 @@ public class SamIam implements IamProviderInterface {
     return SamRetry.retry(configurationService, () -> getUserIdsInner(accessToken, userEmail));
   }
 
+  private UserIdInfo getUserIdsInner(String accessToken, String userEmail) throws ApiException {
+    return samApiService.usersApi(accessToken).getUserIds(userEmail);
+  }
+
+  @Override
+  public FullyQualifiedResourceId getResourceParent(
+      String accessToken, IamResourceType childIamResourceType, UUID childId)
+      throws InterruptedException {
+    return SamRetry.retry(
+        configurationService,
+        () -> getResourceParentInner(accessToken, childIamResourceType, childId));
+  }
+
+  private FullyQualifiedResourceId getResourceParentInner(
+      String accessToken, IamResourceType childIamResourceType, UUID childId)
+      throws ApiException {
+    ResourcesApi samResourceApi = samApiService.resourcesApi(accessToken);
+    return samResourceApi.getResourceParent(childIamResourceType.toString(), childId.toString());
+  }
+
   @Override
   public void setResourceParent(
       String accessToken,
@@ -946,8 +966,19 @@ public class SamIam implements IamProviderInterface {
             .resourceId(parentId.toString()));
   }
 
-  private UserIdInfo getUserIdsInner(String accessToken, String userEmail) throws ApiException {
-    return samApiService.usersApi(accessToken).getUserIds(userEmail);
+  @Override
+  public void deleteResourceParent(
+      String accessToken, IamResourceType childIamResourceType, UUID childId)
+      throws InterruptedException {
+    SamRetry.retry(
+        configurationService,
+        () -> deleteResourceParentInner(accessToken, childIamResourceType, childId));
+  }
+
+  private void deleteResourceParentInner(
+      String accessToken, IamResourceType childIamResourceType, UUID childId) throws ApiException {
+    ResourcesApi samResourceApi = samApiService.resourcesApi(accessToken);
+    samResourceApi.deleteResourceParent(childIamResourceType.toString(), childId.toString());
   }
 
   /**

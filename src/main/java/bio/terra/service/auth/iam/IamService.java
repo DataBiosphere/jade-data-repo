@@ -27,6 +27,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
+import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 import org.broadinstitute.dsde.workbench.client.sam.model.UserIdInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -589,5 +590,17 @@ public class IamService {
         () ->
             iamProvider.setResourceParent(
                 accessToken, childIamResourceType, childId, parentIamResourceType, parentId));
+  }
+
+  public FullyQualifiedResourceId getResourceParent(
+      String accessToken, IamResourceType childIamResourceType, UUID childId) {
+    return callProvider(
+        () -> iamProvider.getResourceParent(accessToken, childIamResourceType, childId));
+  }
+
+  public void deleteResourceParent(
+      String accessToken, IamResourceType childIamResourceType, UUID childId) {
+    callProvider(
+        () -> iamProvider.deleteResourceParent(accessToken, childIamResourceType, childId));
   }
 }

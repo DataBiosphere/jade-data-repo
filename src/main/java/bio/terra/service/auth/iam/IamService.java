@@ -578,4 +578,16 @@ public class IamService {
     String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
     return callProvider(() -> iamProvider.getUserIds(tdrSaAccessToken, userEmail));
   }
+
+  public void setResourceParent(
+      String accessToken,
+      IamResourceType childIamResourceType,
+      UUID childId,
+      IamResourceType parentIamResourceType,
+      UUID parentId) {
+    callProvider(
+        () ->
+            iamProvider.setResourceParent(
+                accessToken, childIamResourceType, childId, parentIamResourceType, parentId));
+  }
 }

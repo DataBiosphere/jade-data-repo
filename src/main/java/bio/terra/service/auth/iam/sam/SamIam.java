@@ -915,6 +915,37 @@ public class SamIam implements IamProviderInterface {
     return SamRetry.retry(configurationService, () -> getUserIdsInner(accessToken, userEmail));
   }
 
+  @Override
+  public void setResourceParent(
+      String accessToken,
+      IamResourceType childIamResourceType,
+      UUID childId,
+      IamResourceType parentIamResourceType,
+      UUID parentId)
+      throws InterruptedException {
+    SamRetry.retry(
+        configurationService,
+        () ->
+            setResourceParentInner(
+                accessToken, childIamResourceType, childId, parentIamResourceType, parentId));
+  }
+
+  private void setResourceParentInner(
+      String accessToken,
+      IamResourceType childIamResourceType,
+      UUID childId,
+      IamResourceType parentIamResourceType,
+      UUID parentId)
+      throws ApiException {
+    ResourcesApi samResourceApi = samApiService.resourcesApi(accessToken);
+    samResourceApi.setResourceParent(
+        childIamResourceType.toString(),
+        childId.toString(),
+        new FullyQualifiedResourceId()
+            .resourceTypeName(parentIamResourceType.toString())
+            .resourceId(parentId.toString()));
+  }
+
   private UserIdInfo getUserIdsInner(String accessToken, String userEmail) throws ApiException {
     return samApiService.usersApi(accessToken).getUserIds(userEmail);
   }

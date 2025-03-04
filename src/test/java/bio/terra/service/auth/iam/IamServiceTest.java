@@ -305,4 +305,23 @@ class IamServiceTest {
         .thenReturn(List.of());
     assertEquals(iamService.removeEmailFromGroup(groupName, policyName, email), List.of());
   }
+
+  @Test
+  void setResourceParent() throws InterruptedException {
+    UUID childId = UUID.randomUUID();
+    UUID parentId = UUID.randomUUID();
+    iamService.setResourceParent(
+        TEST_USER.getToken(),
+        IamResourceType.DATASNAPSHOT,
+        childId,
+        IamResourceType.DATASET,
+        parentId);
+    verify(iamProvider)
+        .setResourceParent(
+            TEST_USER.getToken(),
+            IamResourceType.DATASNAPSHOT,
+            childId,
+            IamResourceType.DATASET,
+            parentId);
+  }
 }

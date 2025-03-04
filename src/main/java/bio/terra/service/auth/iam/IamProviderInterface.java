@@ -379,4 +379,22 @@ public interface IamProviderInterface {
       throws InterruptedException;
 
   UserIdInfo getUserIds(String accessToken, String userEmail) throws InterruptedException;
+
+  /**
+   * Set the parent of a specified resource to the specified parent resource.
+   *
+   * @param accessToken String requesting user's access token
+   * @param childIamResourceType The IamResourceType of the child resource
+   * @param childId The UUID of the child resource
+   * @param parentIamResourceType The IamResourceType of the parent resource
+   * @param parentId The UUID of the parent resource
+   * @throws InterruptedException throws if sam retry fails due to interruption
+   */
+  void setResourceParent(
+      String accessToken,
+      IamResourceType childIamResourceType,
+      UUID childId,
+      IamResourceType parentIamResourceType,
+      UUID parentId)
+      throws InterruptedException;
 }

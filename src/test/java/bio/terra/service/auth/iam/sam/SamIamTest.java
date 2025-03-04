@@ -759,6 +759,48 @@ class SamIamTest {
           .patchAuthDomainV2(
               IamResourceType.DATASNAPSHOT.getSamResourceName(), snapshotId.toString(), authDomain);
     }
+
+    @Test
+    void setResourceParent() throws ApiException, InterruptedException {
+      String accessToken = TEST_USER.getToken();
+      UUID childId = UUID.randomUUID();
+      UUID parentId = UUID.randomUUID();
+      samIam.setResourceParent(
+          accessToken, IamResourceType.DATASNAPSHOT, childId, IamResourceType.DATASET, parentId);
+      verify(samResourceApi)
+          .setResourceParent(
+              IamResourceType.DATASNAPSHOT.getSamResourceName(),
+              childId.toString(),
+              new FullyQualifiedResourceId()
+                  .resourceTypeName(IamResourceType.DATASET.getSamResourceName())
+                  .resourceId(parentId.toString()));
+    }
+
+    @Test
+    void setResourceParentThrows() throws ApiException {
+      String accessToken = TEST_USER.getToken();
+      UUID childId = UUID.randomUUID();
+      UUID parentId = UUID.randomUUID();
+      ApiException samEx =
+          new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Resource not found");
+      doThrow(samEx)
+          .when(samResourceApi)
+          .setResourceParent(
+              IamResourceType.DATASNAPSHOT.getSamResourceName(),
+              childId.toString(),
+              new FullyQualifiedResourceId()
+                  .resourceTypeName(IamResourceType.DATASET.getSamResourceName())
+                  .resourceId(parentId.toString()));
+      assertThrows(
+          IamNotFoundException.class,
+          () ->
+              samIam.setResourceParent(
+                  accessToken,
+                  IamResourceType.DATASNAPSHOT,
+                  childId,
+                  IamResourceType.DATASET,
+                  parentId));
+    }
   }
 
   @Nested

@@ -11,6 +11,8 @@ import bio.terra.common.category.Unit;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
@@ -28,6 +30,7 @@ class EnableInheritStewardFlightTest {
 
   @Mock private ApplicationContext context;
   @Mock private DatasetDao datasetDao;
+  @Mock private DatasetService datasetService;
   private FlightMap inputParameters;
   private static final UUID DATASET_ID = UUID.randomUUID();
 
@@ -38,6 +41,14 @@ class EnableInheritStewardFlightTest {
     inputParameters.put(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), DATASET_ID);
     inputParameters.put(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD);
     when(context.getBean(DatasetDao.class)).thenReturn(datasetDao);
+    when(context.getBean(DatasetService.class)).thenReturn(datasetService);
+  }
+
+  @Test
+  void testStepsIncluded() {
+    var flight = new EnableInheritStewardFlight(inputParameters, context);
+    var steps = FlightTestUtils.getStepNames(flight);
+    assertThat(steps, contains("InheritStewardSetFlagStep", "LockDatasetStep"));
   }
 
   @Test
@@ -56,9 +67,27 @@ class EnableInheritStewardFlightTest {
                   (boolean) context.arguments().get(2),
                   equalTo(true));
             })) {
-      var flight = new EnableInheritStewardFlight(inputParameters, context);
-      var steps = FlightTestUtils.getStepNames(flight);
-      assertThat(steps, contains("InheritStewardSetFlagStep"));
+      new EnableInheritStewardFlight(inputParameters, context);
+    }
+  }
+
+  @Test
+  void testParametersForLockDatasetStep() {
+    try (var mockedStep =
+        mockConstruction(
+            LockDatasetStep.class,
+            (mock, context) -> {
+              assertThat((DatasetService) context.arguments().get(0), equalTo(datasetService));
+              assertThat(
+                  "The correct datasetId is passed to the step",
+                  (UUID) context.arguments().get(1),
+                  equalTo(DATASET_ID));
+              assertThat(
+                  "The correct shared lock boolean flag is passed to the step",
+                  (boolean) context.arguments().get(2),
+                  equalTo(false));
+            })) {
+      new EnableInheritStewardFlight(inputParameters, context);
     }
   }
 }

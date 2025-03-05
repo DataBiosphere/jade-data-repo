@@ -766,7 +766,6 @@ public class DatasetService {
         .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
         .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), datasetId)
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD)
-        .addParameter(JobMapKeys.AUTH_USER_INFO.getKeyName(), userReq)
         .submit();
   }
 

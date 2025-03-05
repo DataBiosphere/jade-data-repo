@@ -929,8 +929,7 @@ public class SamIam implements IamProviderInterface {
   }
 
   private FullyQualifiedResourceId getResourceParentInner(
-      String accessToken, IamResourceType childIamResourceType, UUID childId)
-      throws ApiException {
+      String accessToken, IamResourceType childIamResourceType, UUID childId) throws ApiException {
     ResourcesApi samResourceApi = samApiService.resourcesApi(accessToken);
     return samResourceApi.getResourceParent(childIamResourceType.toString(), childId.toString());
   }

@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import bio.terra.common.category.Unit;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,17 +23,13 @@ class WebConfigTest {
     Resource[] resources =
         resolver.getResources("classpath:/META-INF/resources/webjars/swagger-ui-dist/*/");
 
+    assertEquals(
+        1, resources.length, "Expected one swagger-ui-dist resource, found " + resources.length);
+
     Pattern versionPattern = Pattern.compile(".+/swagger-ui-dist/(\\d+\\.\\d+\\.\\d+)/");
+    Matcher matcher = versionPattern.matcher(((ClassPathResource) resources[0]).getPath());
     Optional<String> currentVersion =
-        Arrays.stream(resources)
-            .map(
-                resource -> {
-                  Matcher matcher =
-                      versionPattern.matcher(((ClassPathResource) resource).getPath());
-                  return matcher.matches() ? matcher.group(1) : null;
-                })
-            .filter(v -> v != null)
-            .findFirst();
+        matcher.matches() ? Optional.of(matcher.group(1)) : Optional.empty();
 
     assertTrue(
         currentVersion.isPresent(),

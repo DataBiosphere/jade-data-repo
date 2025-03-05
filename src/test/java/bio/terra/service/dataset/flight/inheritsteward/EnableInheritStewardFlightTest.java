@@ -8,10 +8,10 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.FlightTestUtils;
 import bio.terra.common.category.Unit;
-import bio.terra.service.auth.iam.IamAction;
-import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,37 +28,63 @@ class EnableInheritStewardFlightTest {
 
   @Mock private ApplicationContext context;
   @Mock private DatasetDao datasetDao;
+  @Mock private ResourceService resourceService;
+  @Mock private SnapshotService snapshotService;
   private final FlightMap inputParameters = new FlightMap();
+
+  private static final String CUSTODIAN_EMAIL = "custodian email";
   private static final UUID DATASET_ID = UUID.randomUUID();
 
   @BeforeEach
   void setUp() {
-    inputParameters.put(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET);
     inputParameters.put(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), DATASET_ID);
-    inputParameters.put(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD);
-    inputParameters.put(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), "custodian email");
+    inputParameters.put(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), CUSTODIAN_EMAIL);
     when(context.getBean(DatasetDao.class)).thenReturn(datasetDao);
+    when(context.getBean(ResourceService.class)).thenReturn(resourceService);
+    when(context.getBean(SnapshotService.class)).thenReturn(snapshotService);
   }
 
   @Test
   void testParametersForSetFlagStep() {
     try (var mockedStep =
-        mockConstruction(
-            InheritStewardSetFlagStep.class,
-            (mock, context) -> {
-              assertThat((DatasetDao) context.arguments().get(0), equalTo(datasetDao));
-              assertThat(
-                  "The correct datasetId is passed to the step",
-                  (UUID) context.arguments().get(1),
-                  equalTo(DATASET_ID));
-              assertThat(
-                  "The correct boolean flag is passed to the step",
-                  (boolean) context.arguments().get(2),
-                  equalTo(true));
-            })) {
+            mockConstruction(
+                InheritStewardSetFlagStep.class,
+                (mock, context) -> {
+                  assertThat((DatasetDao) context.arguments().get(0), equalTo(datasetDao));
+                  assertThat(
+                      "The correct datasetId is passed to the step",
+                      (UUID) context.arguments().get(1),
+                      equalTo(DATASET_ID));
+                  assertThat(
+                      "The correct boolean flag is passed to the step",
+                      (boolean) context.arguments().get(2),
+                      equalTo(true));
+                });
+        var step2 =
+            mockConstruction(
+                GetSnapshotGoogleProjectIdsStep.class,
+                (mock, context) -> {
+                  assertThat(
+                      (SnapshotService) context.arguments().get(0), equalTo(snapshotService));
+                  assertThat((UUID) context.arguments().get(1), equalTo(DATASET_ID));
+                });
+        var step3 =
+            mockConstruction(
+                SetAuthBqJobUserStep.class,
+                (mock, context) -> {
+                  assertThat(
+                      (ResourceService) context.arguments().get(0), equalTo(resourceService));
+                  assertThat((String) context.arguments().get(1), equalTo(CUSTODIAN_EMAIL));
+                  assertThat((boolean) context.arguments().get(2), equalTo(true));
+                })) {
       var flight = new EnableInheritStewardFlight(inputParameters, context);
       var steps = FlightTestUtils.getStepNames(flight);
-      assertThat(steps, contains("InheritStewardSetFlagStep"));
+      assertThat(
+          steps,
+          contains(
+              "InheritStewardSetFlagStep",
+              "GetSnapshotGoogleProjectIdsStep",
+              "SetAuthBqJobUserStep"));
     }
   }
 }

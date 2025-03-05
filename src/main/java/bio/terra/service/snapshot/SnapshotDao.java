@@ -794,6 +794,20 @@ public class SnapshotDao implements TaggableResourceDao {
     logger.info("Updated " + logSuffix);
   }
 
+  public List<String> getSnapshotGoogleProjectIds(UUID datasetId) {
+    String sql =
+        """
+            select google_project_id
+            from snapshot_source,
+               snapshot,
+               project_resource
+            where dataset_id = :datasetId
+               and snapshot.id = snapshot_source.snapshot_id
+               and snapshot.project_resource_id = project_resource.id;
+            """;
+    return jdbcTemplate.query(sql, Map.of("datasetId", datasetId), (rs, rowNum) -> rs.getString(1));
+  }
+
   private class SnapshotSummaryMapper implements RowMapper<SnapshotSummary> {
 
     public SnapshotSummary mapRow(ResultSet rs, int rowNum) throws SQLException {

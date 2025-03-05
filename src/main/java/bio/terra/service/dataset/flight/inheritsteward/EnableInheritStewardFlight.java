@@ -2,6 +2,8 @@ package bio.terra.service.dataset.flight.inheritsteward;
 
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
@@ -14,10 +16,16 @@ public class EnableInheritStewardFlight extends Flight {
     // Get the required DAOs and services to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
+    ResourceService resourceService = appContext.getBean(ResourceService.class);
+    SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
 
     // Get the input parameters
     UUID datasetId = inputParameters.get(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), UUID.class);
+    String custodianEmail =
+        inputParameters.get(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), String.class);
 
     addStep(new InheritStewardSetFlagStep(datasetDao, datasetId, true));
+    addStep(new GetSnapshotGoogleProjectIdsStep(snapshotService, datasetId));
+    addStep(new SetAuthBqJobUserStep(resourceService, custodianEmail, true));
   }
 }

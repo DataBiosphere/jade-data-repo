@@ -28,15 +28,15 @@ class EnableInheritStewardFlightTest {
 
   @Mock private ApplicationContext context;
   @Mock private DatasetDao datasetDao;
-  private FlightMap inputParameters;
+  private final FlightMap inputParameters = new FlightMap();
   private static final UUID DATASET_ID = UUID.randomUUID();
 
   @BeforeEach
   void setUp() {
-    inputParameters = new FlightMap();
     inputParameters.put(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET);
     inputParameters.put(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), DATASET_ID);
     inputParameters.put(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD);
+    inputParameters.put(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), "custodian email");
     when(context.getBean(DatasetDao.class)).thenReturn(datasetDao);
   }
 

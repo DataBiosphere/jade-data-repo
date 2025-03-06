@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.common.AssetUtils;
@@ -38,9 +39,9 @@ class WalkRelationshipTest {
 
     boolean secondVisit = walkRelationship.visitRelationship(walkRelationship.getToTableId());
 
-    assertThat(
-        "visitRelationship should return false since we have already visited this relationship.",
-        not(secondVisit));
+    assertFalse(
+        secondVisit,
+        "visitRelationship should return false since we have already visited this relationship.");
   }
 
   @Test

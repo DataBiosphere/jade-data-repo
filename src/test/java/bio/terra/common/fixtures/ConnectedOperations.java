@@ -5,9 +5,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.oneOf;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -387,7 +387,7 @@ public class ConnectedOperations {
     // check the failure status matches the expected
     // if no specific status is specified, just check that it's not successful
     if (expectedStatus == null) {
-      assertThat("Expect failure", not(responseStatus.is2xxSuccessful()));
+      assertFalse(responseStatus.is2xxSuccessful(), "Expect failure");
     } else {
       assertThat("Expect specific failure status", responseStatus, is(expectedStatus));
     }

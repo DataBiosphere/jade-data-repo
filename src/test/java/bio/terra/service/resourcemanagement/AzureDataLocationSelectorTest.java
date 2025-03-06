@@ -83,12 +83,11 @@ class AzureDataLocationSelectorTest {
             parameters1.region,
             parameters1.profile,
             parameters1.secureMonitoringEnabled),
-        is(
-            not(
-                dataLocationSelector.createStorageAccountName(
-                    parameters2.prefix,
-                    parameters2.region,
-                    parameters2.profile,
-                    parameters2.secureMonitoringEnabled))));
+        not(
+            dataLocationSelector.createStorageAccountName(
+                parameters2.prefix,
+                parameters2.region,
+                parameters2.profile,
+                parameters2.secureMonitoringEnabled)));
   }
 }

@@ -5,7 +5,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.oneOf;
@@ -477,10 +476,7 @@ public class DataRepoFixtures {
   public void deleteDatasetShouldFail(TestConfiguration.User user, UUID datasetId)
       throws Exception {
     DataRepoResponse<DeleteResponseModel> deleteResponse = deleteDatasetLog(user, datasetId);
-    assertThat(
-        "delete is not successful",
-        deleteResponse.getStatusCode(),
-        is(not(equalTo(HttpStatus.OK))));
+    assertThat("delete is not successful", deleteResponse.getStatusCode(), not(HttpStatus.OK));
   }
 
   public DataRepoResponse<DeleteResponseModel> deleteDatasetLog(

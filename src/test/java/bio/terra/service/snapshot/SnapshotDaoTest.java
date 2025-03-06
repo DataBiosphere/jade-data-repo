@@ -1083,7 +1083,7 @@ class SnapshotDaoTest {
             .toList();
 
     assertThat(
-        snapshotDao.getSnapshotGoogleProjectIds(snapshots.get(0).getSourceDataset().getId()),
+        snapshotDao.getSnapshotGoogleProjectIds(datasetId),
         containsInAnyOrder(
             snapshots.stream()
                 .map(Snapshot::getProjectResource)

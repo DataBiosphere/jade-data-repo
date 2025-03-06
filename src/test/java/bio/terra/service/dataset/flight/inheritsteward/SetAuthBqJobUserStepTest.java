@@ -14,8 +14,9 @@ import bio.terra.stairway.StepResult;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -26,17 +27,20 @@ class SetAuthBqJobUserStepTest {
   @Mock private ResourceService resourceService;
   @Mock private FlightContext flightContext;
 
-  private void verifySetAuth(boolean inheritSteward) throws Exception {
-    String custodianEmail = "custodianEmail";
-    SetAuthBqJobUserStep step =
-        new SetAuthBqJobUserStep(resourceService, custodianEmail, inheritSteward);
+  private final String custodianEmail = "custodianEmail";
+
+  interface DoOrUndo {
+    StepResult apply(FlightContext t) throws Exception;
+  }
+
+  private void verifySetAuth(DoOrUndo doOrUndo, boolean grantPolicy) throws Exception {
     var projectIds = Arrays.asList("project1", "project2");
     FlightMap workingMap = new FlightMap();
     workingMap.put(DatasetWorkingMapKeys.SNAPSHOT_GOOGLE_PROJECT_IDS, projectIds);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    assertThat(step.doStep(flightContext), is(StepResult.getStepResultSuccess()));
+    assertThat(doOrUndo.apply(flightContext), is(StepResult.getStepResultSuccess()));
     for (var projectId : projectIds) {
-      if (inheritSteward) {
+      if (grantPolicy) {
         verify(resourceService).grantPoliciesBqJobUser(projectId, List.of(custodianEmail));
       } else {
         verify(resourceService).revokePoliciesBqJobUser(projectId, List.of(custodianEmail));
@@ -44,13 +48,12 @@ class SetAuthBqJobUserStepTest {
     }
   }
 
-  @Test
-  void doStep() throws Exception {
-    verifySetAuth(true);
-  }
-
-  @Test
-  void undoStep() throws Exception {
-    verifySetAuth(false);
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void doStep(boolean inheritSteward) throws Exception {
+    SetAuthBqJobUserStep step =
+        new SetAuthBqJobUserStep(resourceService, custodianEmail, inheritSteward);
+    verifySetAuth(step::doStep, inheritSteward);
+    verifySetAuth(step::undoStep, !inheritSteward);
   }
 }

@@ -3,6 +3,7 @@ package bio.terra.service.dataset.flight.inheritsteward;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.when;
 
@@ -45,46 +46,76 @@ class EnableInheritStewardFlightTest {
   }
 
   @Test
-  void testParametersForSetFlagStep() {
-    try (var mockedStep =
-            mockConstruction(
-                InheritStewardSetFlagStep.class,
-                (mock, context) -> {
-                  assertThat((DatasetDao) context.arguments().get(0), equalTo(datasetDao));
-                  assertThat(
-                      "The correct datasetId is passed to the step",
-                      (UUID) context.arguments().get(1),
-                      equalTo(DATASET_ID));
-                  assertThat(
-                      "The correct boolean flag is passed to the step",
-                      (boolean) context.arguments().get(2),
-                      equalTo(true));
-                });
-        var step2 =
-            mockConstruction(
-                GetSnapshotGoogleProjectIdsStep.class,
-                (mock, context) -> {
-                  assertThat(
-                      (SnapshotService) context.arguments().get(0), equalTo(snapshotService));
-                  assertThat((UUID) context.arguments().get(1), equalTo(DATASET_ID));
-                });
-        var step3 =
-            mockConstruction(
-                SetAuthBqJobUserStep.class,
-                (mock, context) -> {
-                  assertThat(
-                      (ResourceService) context.arguments().get(0), equalTo(resourceService));
-                  assertThat((String) context.arguments().get(1), equalTo(CUSTODIAN_EMAIL));
-                  assertThat((boolean) context.arguments().get(2), equalTo(true));
-                })) {
-      var flight = new EnableInheritStewardFlight(inputParameters, context);
-      var steps = FlightTestUtils.getStepNames(flight);
-      assertThat(
-          steps,
-          contains(
-              "InheritStewardSetFlagStep",
-              "GetSnapshotGoogleProjectIdsStep",
-              "SetAuthBqJobUserStep"));
+  void allSteps() {
+    var flight = new EnableInheritStewardFlight(inputParameters, context);
+    var steps = FlightTestUtils.getStepNames(flight);
+    assertThat(
+        steps,
+        contains(
+            "InheritStewardSetFlagStep",
+            "GetSnapshotGoogleProjectIdsStep",
+            "SetAuthBqJobUserStep"));
+  }
+
+  @Test
+  void inheritStewardSetFlagStep() {
+    try (var mockStep =
+        mockConstruction(
+            InheritStewardSetFlagStep.class,
+            (mock, context) -> {
+              assertThat((DatasetDao) context.arguments().get(0), equalTo(datasetDao));
+              assertThat(
+                  "The correct datasetId is passed to the step",
+                  (UUID) context.arguments().get(1),
+                  equalTo(DATASET_ID));
+              assertThat(
+                  "The correct boolean flag is passed to the step",
+                  (boolean) context.arguments().get(2),
+                  equalTo(true));
+            })) {
+      //noinspection ResultOfObjectAllocationIgnored
+      new EnableInheritStewardFlight(inputParameters, context);
+      assertThat(mockStep.constructed(), hasSize(1));
+    }
+  }
+
+  @Test
+  void getSnapshotGoogleProjectIdsStep() {
+    try (var mockStep =
+        mockConstruction(
+            GetSnapshotGoogleProjectIdsStep.class,
+            (mock, context) -> {
+              assertThat((SnapshotService) context.arguments().get(0), equalTo(snapshotService));
+              assertThat(
+                  "The correct datasetId is passed to the step",
+                  (UUID) context.arguments().get(1),
+                  equalTo(DATASET_ID));
+            })) {
+      //noinspection ResultOfObjectAllocationIgnored
+      new EnableInheritStewardFlight(inputParameters, context);
+      assertThat(mockStep.constructed(), hasSize(1));
+    }
+  }
+
+  @Test
+  void setAuthBqJobUserStep() {
+    try (var mockStep =
+        mockConstruction(
+            SetAuthBqJobUserStep.class,
+            (mock, context) -> {
+              assertThat((ResourceService) context.arguments().get(0), equalTo(resourceService));
+              assertThat(
+                  "The correct custodian email is passed to the step",
+                  (String) context.arguments().get(1),
+                  equalTo(CUSTODIAN_EMAIL));
+              assertThat(
+                  "The correct boolean flag is passed to the step",
+                  (boolean) context.arguments().get(2),
+                  equalTo(true));
+            })) {
+      //noinspection ResultOfObjectAllocationIgnored
+      new EnableInheritStewardFlight(inputParameters, context);
+      assertThat(mockStep.constructed(), hasSize(1));
     }
   }
 }

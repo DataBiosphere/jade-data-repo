@@ -4,7 +4,9 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.dataset.flight.LockDatasetStep;
+import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.Flight;
@@ -24,14 +26,16 @@ public class EnableInheritStewardFlight extends Flight {
     IamService iamService = appContext.getBean(IamService.class);
 
     // Get the input parameters
-    UUID datasetId = inputParameters.get(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), UUID.class);
+    UUID datasetId = inputParameters.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-    addStep(new InheritStewardSetFlagStep(datasetDao, datasetId, true));
     addStep(new LockDatasetStep(datasetService, datasetId, false));
+    addStep(new InheritStewardSetFlagStep(datasetDao, datasetId, true));
+    addStep(new InheritStewardGetSnapshotIdsStep(snapshotService, datasetId, userReq));
     addStep(
         new InheritStewardSetParentOnSnapshotsStep(
             snapshotService, iamService, datasetId, userReq));
+    addStep(new UnlockDatasetStep(datasetService, false));
   }
 }

@@ -422,4 +422,8 @@ public interface IamProviderInterface {
    */
   void deleteResourceParent(String accessToken, IamResourceType childIamResourceType, UUID childId)
       throws InterruptedException;
+
+  List<FullyQualifiedResourceId> listResourceChildren(
+      String accessToken, IamResourceType parentIamResourceType, UUID parentId)
+      throws InterruptedException;
 }

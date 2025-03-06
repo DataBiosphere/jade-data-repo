@@ -1,21 +1,23 @@
 package bio.terra.service.dataset.flight.inheritsteward;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
-import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import java.util.List;
 import java.util.UUID;
+import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -45,34 +47,37 @@ class InheritStewardSetParentOnSnapshotsStepTest {
 
   @Test
   void doStep() throws InterruptedException {
-    when(snapshotService.enumerateSnapshotIdsForDataset(DATASET_ID, TEST_USER))
-        .thenReturn(List.of(SNAPSHOT_1, SNAPSHOT_2));
+    List<UUID> snapshotIds = List.of(SNAPSHOT_1, SNAPSHOT_2);
+    FlightMap workingMap = new FlightMap();
+    workingMap.put(DatasetWorkingMapKeys.SNAPSHOT_IDS, snapshotIds);
+    when(context.getWorkingMap()).thenReturn(workingMap);
     assertEquals(step.doStep(context), StepResult.getStepResultSuccess());
-    verify(iamService)
-        .setResourceParent(
-            TEST_USER.getToken(),
-            IamResourceType.DATASNAPSHOT,
-            SNAPSHOT_1,
-            IamResourceType.DATASET,
-            DATASET_ID);
-    verify(iamService)
-        .setResourceParent(
-            TEST_USER.getToken(),
-            IamResourceType.DATASNAPSHOT,
-            SNAPSHOT_2,
-            IamResourceType.DATASET,
-            DATASET_ID);
+    for (UUID snapshotId : snapshotIds) {
+      verify(iamService)
+          .setResourceParent(
+              TEST_USER.getToken(),
+              IamResourceType.DATASNAPSHOT,
+              snapshotId,
+              IamResourceType.DATASET,
+              DATASET_ID);
+    }
   }
 
   @Test
   void undoStep() throws InterruptedException {
-    when(snapshotService.enumerateSnapshotIdsForDataset(DATASET_ID, TEST_USER))
-        .thenReturn(List.of(SNAPSHOT_1, SNAPSHOT_2));
-    doThrow(new NotFoundException("no parent found"))
-        .when(iamService)
-        .deleteResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, SNAPSHOT_1);
+    FullyQualifiedResourceId childSnapshot =
+        new FullyQualifiedResourceId()
+            .resourceId(SNAPSHOT_1.toString())
+            .resourceTypeName(IamResourceType.DATASNAPSHOT.name());
+    FullyQualifiedResourceId childDataset =
+        new FullyQualifiedResourceId()
+            .resourceId(UUID.randomUUID().toString())
+            .resourceTypeName(IamResourceType.DATASET.name());
+    when(iamService.listResourceChildren(TEST_USER.getToken(), IamResourceType.DATASET, DATASET_ID))
+        .thenReturn(List.of(childSnapshot, childDataset));
     assertEquals(step.undoStep(context), StepResult.getStepResultSuccess());
     verify(iamService)
-        .deleteResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, SNAPSHOT_2);
+        .deleteResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, SNAPSHOT_1);
+    verifyNoMoreInteractions(iamService);
   }
 }

@@ -603,4 +603,10 @@ public class IamService {
     callProvider(
         () -> iamProvider.deleteResourceParent(accessToken, childIamResourceType, childId));
   }
+
+  public List<FullyQualifiedResourceId> listResourceChildren(
+      String accessToken, IamResourceType parentIamResourceType, UUID parentId) {
+    return callProvider(
+        () -> iamProvider.listResourceChildren(accessToken, parentIamResourceType, parentId));
+  }
 }

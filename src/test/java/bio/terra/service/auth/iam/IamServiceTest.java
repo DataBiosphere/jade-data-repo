@@ -337,14 +337,22 @@ class IamServiceTest {
   @Test
   void getResourceParent() throws InterruptedException {
     UUID childId = UUID.randomUUID();
-    FullyQualifiedResourceId parent =
-        new FullyQualifiedResourceId()
-            .resourceTypeName(IamResourceType.DATASET.getSamResourceName())
-            .resourceId(UUID.randomUUID().toString());
+    FullyQualifiedResourceId parent = new FullyQualifiedResourceId();
     when(iamProvider.getResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId))
         .thenReturn(parent);
     assertEquals(
-        iamService.getResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId),
-        parent);
+        parent,
+        iamService.getResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId));
+  }
+
+  @Test
+  void listResourceChildren() throws InterruptedException {
+    UUID parentId = UUID.randomUUID();
+    List<FullyQualifiedResourceId> children = List.of(new FullyQualifiedResourceId());
+    when(iamProvider.listResourceChildren(TEST_USER.getToken(), IamResourceType.DATASET, parentId))
+        .thenReturn(children);
+    assertEquals(
+        children,
+        iamService.listResourceChildren(TEST_USER.getToken(), IamResourceType.DATASET, parentId));
   }
 }

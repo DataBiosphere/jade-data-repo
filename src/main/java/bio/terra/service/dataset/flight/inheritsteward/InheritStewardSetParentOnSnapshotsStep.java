@@ -1,16 +1,19 @@
 package bio.terra.service.dataset.flight.inheritsteward;
 
-import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 
 public class InheritStewardSetParentOnSnapshotsStep implements Step {
   private final SnapshotService snapshotService;
@@ -31,36 +34,43 @@ public class InheritStewardSetParentOnSnapshotsStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    List<UUID> snapshots = snapshotService.enumerateSnapshotIdsForDataset(datasetId, userReq);
-    snapshots.forEach(
-        snapshotId -> {
-          // do not catch and handle errors, if one occurs, fail the flight
-          // we are not checking if a parent already exists because
-          // we want to overwrite it no matter what it is
-          iamService.setResourceParent(
-              userReq.getToken(),
-              IamResourceType.DATASNAPSHOT,
-              snapshotId,
-              IamResourceType.DATASET,
-              datasetId);
-        });
+    String accessToken = userReq.getToken();
+    List<UUID> snapshots =
+        context.getWorkingMap().get(DatasetWorkingMapKeys.SNAPSHOT_IDS, new TypeReference<>() {});
+    Objects.requireNonNull(snapshots)
+        .forEach(
+            snapshotId -> {
+              // do not catch and handle errors, if one occurs, fail the flight
+              // we are not checking if a parent already exists because
+              // we want to overwrite it no matter what it is
+              iamService.setResourceParent(
+                  accessToken,
+                  IamResourceType.DATASNAPSHOT,
+                  snapshotId,
+                  IamResourceType.DATASET,
+                  datasetId);
+            });
     return StepResult.getStepResultSuccess();
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    List<UUID> snapshots = snapshotService.enumerateSnapshotIdsForDataset(datasetId, userReq);
-    snapshots.forEach(
-        snapshotId -> {
-          // we are not checking to see if the parent is the dataset set in the doStep
-          // because we want to delete all parents here regardless of what they are
-          try {
-            iamService.deleteResourceParent(
-                userReq.getToken(), IamResourceType.DATASNAPSHOT, snapshotId);
-          } catch (NotFoundException e) {
-            // if a snapshot does not have a parent, continue
-          }
-        });
+    List<FullyQualifiedResourceId> children =
+        iamService.listResourceChildren(userReq.getToken(), IamResourceType.DATASET, datasetId);
+    children.stream()
+        .filter(
+            child ->
+                child
+                    .getResourceTypeName()
+                    .equalsIgnoreCase(IamResourceType.DATASNAPSHOT.getSamResourceName()))
+        .forEach(
+            child -> {
+              iamService.deleteResourceParent(
+                  userReq.getToken(),
+                  IamResourceType.DATASNAPSHOT,
+                  UUID.fromString(child.getResourceId()));
+            });
+    ;
     return StepResult.getStepResultSuccess();
   }
 }

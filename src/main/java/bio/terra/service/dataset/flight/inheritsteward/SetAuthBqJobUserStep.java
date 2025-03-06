@@ -9,18 +9,18 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
+import java.util.Objects;
 
 public record SetAuthBqJobUserStep(
     ResourceService resourceService, String custodianEmail, boolean inheritSteward)
     implements Step {
 
-  @Override
-  public StepResult doStep(FlightContext flightContext)
-      throws InterruptedException, RetryException {
+  private StepResult setAuth(FlightContext flightContext, boolean inheritSteward)
+      throws InterruptedException {
     FlightMap workingMap = flightContext.getWorkingMap();
     List<String> projectIds =
         workingMap.get(DatasetWorkingMapKeys.SNAPSHOT_GOOGLE_PROJECT_IDS, new TypeReference<>() {});
-    for (var projectId : projectIds) {
+    for (var projectId : Objects.requireNonNull(projectIds)) {
       if (inheritSteward) {
         resourceService.grantPoliciesBqJobUser(projectId, List.of(custodianEmail));
       } else {
@@ -31,17 +31,13 @@ public record SetAuthBqJobUserStep(
   }
 
   @Override
+  public StepResult doStep(FlightContext flightContext)
+      throws InterruptedException, RetryException {
+    return setAuth(flightContext, inheritSteward);
+  }
+
+  @Override
   public StepResult undoStep(FlightContext flightContext) throws InterruptedException {
-    FlightMap workingMap = flightContext.getWorkingMap();
-    List<String> projectIds =
-        workingMap.get(DatasetWorkingMapKeys.SNAPSHOT_GOOGLE_PROJECT_IDS, new TypeReference<>() {});
-    for (var projectId : projectIds) {
-      if (!inheritSteward) {
-        resourceService.grantPoliciesBqJobUser(projectId, List.of(custodianEmail));
-      } else {
-        resourceService.revokePoliciesBqJobUser(projectId, List.of(custodianEmail));
-      }
-    }
-    return StepResult.getStepResultSuccess();
+    return setAuth(flightContext, !inheritSteward);
   }
 }

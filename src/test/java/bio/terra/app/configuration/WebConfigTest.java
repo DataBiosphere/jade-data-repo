@@ -28,8 +28,7 @@ class WebConfigTest {
 
     Pattern versionPattern = Pattern.compile(".+/swagger-ui-dist/(\\d+\\.\\d+\\.\\d+)/");
     Matcher matcher = versionPattern.matcher(((ClassPathResource) resources[0]).getPath());
-    Optional<String> currentVersion =
-        matcher.matches() ? Optional.of(matcher.group(1)) : Optional.empty();
+    Optional<String> currentVersion = matcher.results().findFirst().map(m -> m.group(1));
 
     assertTrue(
         currentVersion.isPresent(),

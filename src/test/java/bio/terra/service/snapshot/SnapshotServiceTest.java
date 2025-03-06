@@ -1656,4 +1656,11 @@ class SnapshotServiceTest {
     assertThat(
         service.retrieveAuthDomains(snapshotId, TEST_USER), containsInAnyOrder("group1", "group2"));
   }
+
+  @Test
+  void getSnapshotGoogleProjectIds() {
+    var projectIds = List.of("project1", "project2");
+    when(snapshotDao.getSnapshotGoogleProjectIds(snapshotId)).thenReturn(projectIds);
+    assertThat(service.getSnapshotGoogleProjectIds(snapshotId), is(projectIds));
+  }
 }

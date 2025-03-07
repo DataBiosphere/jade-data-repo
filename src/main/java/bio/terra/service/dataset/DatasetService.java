@@ -762,11 +762,16 @@ public class DatasetService {
 
   public String enableInheritSteward(UUID datasetId, AuthenticatedUserRequest userReq) {
     String description = "Enable InheritSteward for dataset " + datasetId;
+    var custodianEmail =
+        iamService
+            .retrievePolicyEmails(userReq, IamResourceType.DATASET, datasetId)
+            .get(IamRole.CUSTODIAN);
     return jobService
         .newJob(description, EnableInheritStewardFlight.class, null, userReq)
         .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD)
         .addParameter(DatasetWorkingMapKeys.DATASET_ID, datasetId)
+        .addParameter(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), custodianEmail)
         .submit();
   }
 

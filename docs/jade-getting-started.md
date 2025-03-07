@@ -235,10 +235,6 @@ export JADE_USER_EMAIL=<EMAIL_YOU_CREATED_FOR_DEVELOPMENT>
 
 export AZURE_SYNAPSE_INITIALIZE=false
 
-# Pact contract test settings
-export PACT_BROKER_USERNAME=$(cat /tmp/pact-ro-username.key)
-export PACT_BROKER_PASSWORD=$(cat /tmp/pact-ro-password.key)
-
 # Setting for testing environment (Further explained in oncall playbook)
 export GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
 
@@ -297,14 +293,6 @@ First, make sure you have run through the following steps:
 * Start application by running `./scripts/run local` (or in docker with `./scripts/run docker`)
 * Select test in intellij UI, select 'testIntegration' and run or debug it
 
-
-### 4. Running Pact tests
-This can be achieved by rendering a small set of Pact-specific configurations first:
-```
-./src/test/render-pact-configs.sh
-# Reload your environment variables, e.g. src ~/.zshrc
-./gradlew verifyPacts     # verify contracts published with TDR as the provider
-```
 
 Note that connected and integration test suites can each take 90+ minutes to run.
 In normal development, you'll likely rely on GitHub Actions / automated PR test runs

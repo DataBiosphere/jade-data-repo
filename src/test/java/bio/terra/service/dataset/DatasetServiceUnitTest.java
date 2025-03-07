@@ -394,6 +394,9 @@ class DatasetServiceUnitTest {
             null,
             TEST_USER))
         .thenReturn(jobBuilder);
+    var custodianEmail = "custodianEmail";
+    when(iamService.retrievePolicyEmails(TEST_USER, IamResourceType.DATASET, DATASET_ID))
+        .thenReturn(Map.of(IamRole.CUSTODIAN, custodianEmail));
     ArgumentCaptor<FlightMap> captor = ArgumentCaptor.forClass(FlightMap.class);
     when(jobService.submit(eq(EnableInheritStewardFlight.class), captor.capture()))
         .thenReturn("JobId");
@@ -409,6 +412,9 @@ class DatasetServiceUnitTest {
     assertThat(
         flightMap.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class),
         equalTo(IamAction.SET_INHERIT_STEWARD));
+    assertThat(
+        flightMap.get(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), String.class),
+        equalTo(custodianEmail));
   }
 
   private void mockDataset(CloudPlatform cloudPlatform, TableDataType columnDataType) {

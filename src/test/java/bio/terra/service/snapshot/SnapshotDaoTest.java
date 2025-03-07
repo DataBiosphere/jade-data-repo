@@ -49,6 +49,7 @@ import bio.terra.service.duos.DuosService;
 import bio.terra.service.filedata.DrsDao;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotUpdateException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -1070,5 +1071,23 @@ class SnapshotDaoTest {
   void testRetrieveSnapshotNotFound() {
     UUID snapshotId = UUID.randomUUID();
     assertThrows(SnapshotNotFoundException.class, () -> snapshotDao.retrieveSnapshot(snapshotId));
+  }
+
+  @Test
+  void getSnapshotGoogleProjectIds() {
+    String snapshotName = snapshotRequest.getName() + UUID.randomUUID();
+    List<Snapshot> snapshots =
+        IntStream.range(0, 3)
+            .mapToObj(i -> snapshotRequest.name(makeName(snapshotName, i)))
+            .map(this::createSnapshot)
+            .toList();
+
+    assertThat(
+        snapshotDao.getSnapshotGoogleProjectIds(datasetId),
+        containsInAnyOrder(
+            snapshots.stream()
+                .map(Snapshot::getProjectResource)
+                .map(GoogleProjectResource::getGoogleProjectId)
+                .toArray()));
   }
 }

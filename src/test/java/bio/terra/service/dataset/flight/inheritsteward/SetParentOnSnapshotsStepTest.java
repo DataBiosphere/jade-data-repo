@@ -41,9 +41,7 @@ class SetParentOnSnapshotsStepTest {
 
   @BeforeEach
   void setUp() {
-    step =
-        new SetParentOnSnapshotsStep(
-            snapshotService, iamService, DATASET_ID, TEST_USER);
+    step = new SetParentOnSnapshotsStep(snapshotService, iamService, DATASET_ID, TEST_USER);
   }
 
   @Test

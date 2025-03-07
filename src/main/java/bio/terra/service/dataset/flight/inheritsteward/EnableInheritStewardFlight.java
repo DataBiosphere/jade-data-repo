@@ -33,9 +33,7 @@ public class EnableInheritStewardFlight extends Flight {
     addStep(new LockDatasetStep(datasetService, datasetId, false));
     addStep(new SetInheritStewardFlagStep(datasetDao, datasetId, true));
     addStep(new GetSnapshotIdsStep(snapshotService, datasetId, userReq));
-    addStep(
-        new SetParentOnSnapshotsStep(
-            snapshotService, iamService, datasetId, userReq));
+    addStep(new SetParentOnSnapshotsStep(snapshotService, iamService, datasetId, userReq));
     addStep(new UnlockDatasetStep(datasetService, false));
   }
 }

@@ -21,6 +21,7 @@ import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
@@ -38,6 +39,7 @@ class EnableInheritStewardFlightTest {
 
   @Mock private ApplicationContext context;
   @Mock private DatasetDao datasetDao;
+  @Mock private SnapshotDao snapshotDao;
   @Mock private ResourceService resourceService;
   @Mock private SnapshotService snapshotService;
   @Mock private DatasetService datasetService;
@@ -57,6 +59,7 @@ class EnableInheritStewardFlightTest {
     inputParameters.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), TEST_USER);
     inputParameters.put(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), CUSTODIAN_EMAIL);
     when(context.getBean(DatasetDao.class)).thenReturn(datasetDao);
+    when(context.getBean(SnapshotDao.class)).thenReturn(snapshotDao);
     when(context.getBean(DatasetService.class)).thenReturn(datasetService);
     when(context.getBean(ResourceService.class)).thenReturn(resourceService);
     when(context.getBean(SnapshotService.class)).thenReturn(snapshotService);
@@ -129,7 +132,7 @@ class EnableInheritStewardFlightTest {
         mockConstruction(
             GetSnapshotIdsStep.class,
             (mock, context) -> {
-              assertThat((SnapshotService) context.arguments().get(0), equalTo(snapshotService));
+              assertThat((SnapshotDao) context.arguments().get(0), equalTo(snapshotDao));
               assertThat(
                   "The correct datasetId is passed to the step",
                   (UUID) context.arguments().get(1),

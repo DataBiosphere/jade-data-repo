@@ -39,15 +39,15 @@ public class InheritStewardSetParentOnSnapshotsStep implements Step {
     Objects.requireNonNull(snapshots)
         .forEach(
             snapshotId ->
-              // do not catch and handle errors, if one occurs, fail the flight
-              // we are not checking if a parent already exists because
-              // we want to overwrite it no matter what it is
-              iamService.setResourceParent(
-                  accessToken,
-                  IamResourceType.DATASNAPSHOT,
-                  snapshotId,
-                  IamResourceType.DATASET,
-                  datasetId));
+                // do not catch and handle errors, if one occurs, fail the flight
+                // we are not checking if a parent already exists because
+                // we want to overwrite it no matter what it is
+                iamService.setResourceParent(
+                    accessToken,
+                    IamResourceType.DATASNAPSHOT,
+                    snapshotId,
+                    IamResourceType.DATASET,
+                    datasetId));
     return StepResult.getStepResultSuccess();
   }
 

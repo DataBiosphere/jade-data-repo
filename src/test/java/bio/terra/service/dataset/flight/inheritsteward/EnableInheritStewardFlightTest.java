@@ -144,13 +144,12 @@ class EnableInheritStewardFlightTest {
         mockConstruction(
             SetParentOnSnapshotsStep.class,
             (mock, context) -> {
-              assertThat((SnapshotService) context.arguments().get(0), equalTo(snapshotService));
-              assertThat((IamService) context.arguments().get(1), equalTo(iamService));
+              assertThat((IamService) context.arguments().get(0), equalTo(iamService));
               assertThat(
                   "The correct datasetId is passed to the step",
-                  (UUID) context.arguments().get(2),
+                  (UUID) context.arguments().get(1),
                   equalTo(DATASET_ID));
-              assertThat((AuthenticatedUserRequest) context.arguments().get(3), equalTo(TEST_USER));
+              assertThat((AuthenticatedUserRequest) context.arguments().get(2), equalTo(TEST_USER));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
       new EnableInheritStewardFlight(inputParameters, context);

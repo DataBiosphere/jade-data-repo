@@ -4,7 +4,6 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -15,17 +14,12 @@ import java.util.UUID;
 import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 
 public class SetParentOnSnapshotsStep implements Step {
-  private final SnapshotService snapshotService;
   private final IamService iamService;
   private final UUID datasetId;
   private final AuthenticatedUserRequest userReq;
 
   public SetParentOnSnapshotsStep(
-      SnapshotService snapshotService,
-      IamService iamService,
-      UUID datasetId,
-      AuthenticatedUserRequest userReq) {
-    this.snapshotService = snapshotService;
+      IamService iamService, UUID datasetId, AuthenticatedUserRequest userReq) {
     this.iamService = iamService;
     this.datasetId = datasetId;
     this.userReq = userReq;
@@ -62,13 +56,11 @@ public class SetParentOnSnapshotsStep implements Step {
                     .getResourceTypeName()
                     .equalsIgnoreCase(IamResourceType.DATASNAPSHOT.getSamResourceName()))
         .forEach(
-            child -> {
-              iamService.deleteResourceParent(
-                  userReq.getToken(),
-                  IamResourceType.DATASNAPSHOT,
-                  UUID.fromString(child.getResourceId()));
-            });
-    ;
+            child ->
+                iamService.deleteResourceParent(
+                    userReq.getToken(),
+                    IamResourceType.DATASNAPSHOT,
+                    UUID.fromString(child.getResourceId())));
     return StepResult.getStepResultSuccess();
   }
 }

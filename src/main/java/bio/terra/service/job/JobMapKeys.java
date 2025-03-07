@@ -23,9 +23,10 @@ public enum JobMapKeys {
   ASSET_ID("assetId"),
   TRANSACTION_ID("transactionId"),
   DELETE_CLOUD_RESOURCES("deleteCloudResources"),
-  BUCKET_NAME("bucketName");
+  BUCKET_NAME("bucketName"),
+  CUSTODIAN_EMAIL("custodianEmail");
 
-  private String keyName;
+  private final String keyName;
 
   JobMapKeys(String keyName) {
     this.keyName = keyName;

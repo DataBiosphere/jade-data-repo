@@ -38,7 +38,7 @@ public class InheritStewardSetParentOnSnapshotsStep implements Step {
         context.getWorkingMap().get(DatasetWorkingMapKeys.SNAPSHOT_IDS, List.class);
     Objects.requireNonNull(snapshots)
         .forEach(
-            snapshotId -> {
+            snapshotId ->
               // do not catch and handle errors, if one occurs, fail the flight
               // we are not checking if a parent already exists because
               // we want to overwrite it no matter what it is
@@ -47,8 +47,7 @@ public class InheritStewardSetParentOnSnapshotsStep implements Step {
                   IamResourceType.DATASNAPSHOT,
                   snapshotId,
                   IamResourceType.DATASET,
-                  datasetId);
-            });
+                  datasetId));
     return StepResult.getStepResultSuccess();
   }
 

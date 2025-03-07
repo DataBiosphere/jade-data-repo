@@ -23,18 +23,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-class InheritStewardGetSnapshotIdsStepTest {
+class GetSnapshotIdsStepTest {
 
   @Mock private SnapshotService snapshotService;
   @Mock private FlightContext flightContext;
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
-  private InheritStewardGetSnapshotIdsStep step;
+  private GetSnapshotIdsStep step;
 
   @BeforeEach
   void setUp() {
-    step = new InheritStewardGetSnapshotIdsStep(snapshotService, DATASET_ID, TEST_USER);
+    step = new GetSnapshotIdsStep(snapshotService, DATASET_ID, TEST_USER);
   }
 
   @Test

@@ -10,12 +10,12 @@ import bio.terra.stairway.exception.RetryException;
 import java.util.List;
 import java.util.UUID;
 
-public class InheritStewardGetSnapshotIdsStep extends DefaultUndoStep {
+public class GetSnapshotIdsStep extends DefaultUndoStep {
   private final SnapshotService snapshotService;
   private final UUID datasetId;
   private final AuthenticatedUserRequest userReq;
 
-  public InheritStewardGetSnapshotIdsStep(
+  public GetSnapshotIdsStep(
       SnapshotService snapshotService, UUID datasetId, AuthenticatedUserRequest userReq) {
     this.snapshotService = snapshotService;
     this.datasetId = datasetId;

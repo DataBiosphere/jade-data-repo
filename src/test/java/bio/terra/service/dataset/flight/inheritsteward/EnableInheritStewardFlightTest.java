@@ -66,9 +66,9 @@ class EnableInheritStewardFlightTest {
         steps,
         contains(
             "LockDatasetStep",
-            "InheritStewardSetFlagStep",
-            "InheritStewardGetSnapshotIdsStep",
-            "InheritStewardSetParentOnSnapshotsStep",
+            "SetInheritStewardFlagStep",
+            "GetSnapshotIdsStep",
+            "SetParentOnSnapshotsStep",
             "UnlockDatasetStep"));
   }
 
@@ -98,7 +98,7 @@ class EnableInheritStewardFlightTest {
   void setFlagStep() {
     try (var mockStep =
         mockConstruction(
-            InheritStewardSetFlagStep.class,
+            SetInheritStewardFlagStep.class,
             (mock, context) -> {
               assertThat((DatasetDao) context.arguments().get(0), equalTo(datasetDao));
               assertThat(
@@ -120,7 +120,7 @@ class EnableInheritStewardFlightTest {
   void getSnapshotsStep() {
     try (var mockStep =
         mockConstruction(
-            InheritStewardGetSnapshotIdsStep.class,
+            GetSnapshotIdsStep.class,
             (mock, context) -> {
               assertThat((SnapshotService) context.arguments().get(0), equalTo(snapshotService));
               assertThat(
@@ -142,7 +142,7 @@ class EnableInheritStewardFlightTest {
   void setParentsStep() {
     try (var mockStep =
         mockConstruction(
-            InheritStewardSetParentOnSnapshotsStep.class,
+            SetParentOnSnapshotsStep.class,
             (mock, context) -> {
               assertThat((SnapshotService) context.arguments().get(0), equalTo(snapshotService));
               assertThat((IamService) context.arguments().get(1), equalTo(iamService));

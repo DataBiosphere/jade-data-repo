@@ -17,17 +17,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-class InheritStewardSetFlagStepTest {
+class SetInheritStewardFlagStepTest {
 
   @Mock private DatasetDao datasetDao;
   private UUID datasetId;
-  private InheritStewardSetFlagStep step;
+  private SetInheritStewardFlagStep step;
   @Mock private FlightContext context;
 
   @BeforeEach
   void setUp() {
     datasetId = UUID.randomUUID();
-    step = new InheritStewardSetFlagStep(datasetDao, datasetId, true);
+    step = new SetInheritStewardFlagStep(datasetDao, datasetId, true);
   }
 
   @Test

@@ -14,13 +14,13 @@ import java.util.Objects;
 import java.util.UUID;
 import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 
-public class InheritStewardSetParentOnSnapshotsStep implements Step {
+public class SetParentOnSnapshotsStep implements Step {
   private final SnapshotService snapshotService;
   private final IamService iamService;
   private final UUID datasetId;
   private final AuthenticatedUserRequest userReq;
 
-  public InheritStewardSetParentOnSnapshotsStep(
+  public SetParentOnSnapshotsStep(
       SnapshotService snapshotService,
       IamService iamService,
       UUID datasetId,

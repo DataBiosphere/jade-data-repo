@@ -31,10 +31,10 @@ public class EnableInheritStewardFlight extends Flight {
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
     addStep(new LockDatasetStep(datasetService, datasetId, false));
-    addStep(new InheritStewardSetFlagStep(datasetDao, datasetId, true));
-    addStep(new InheritStewardGetSnapshotIdsStep(snapshotService, datasetId, userReq));
+    addStep(new SetInheritStewardFlagStep(datasetDao, datasetId, true));
+    addStep(new GetSnapshotIdsStep(snapshotService, datasetId, userReq));
     addStep(
-        new InheritStewardSetParentOnSnapshotsStep(
+        new SetParentOnSnapshotsStep(
             snapshotService, iamService, datasetId, userReq));
     addStep(new UnlockDatasetStep(datasetService, false));
   }

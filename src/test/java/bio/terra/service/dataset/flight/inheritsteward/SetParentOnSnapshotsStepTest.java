@@ -28,11 +28,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-class InheritStewardSetParentOnSnapshotsStepTest {
+class SetParentOnSnapshotsStepTest {
   @Mock private SnapshotService snapshotService;
   @Mock private IamService iamService;
   @Mock private FlightContext context;
-  private InheritStewardSetParentOnSnapshotsStep step;
+  private SetParentOnSnapshotsStep step;
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -42,7 +42,7 @@ class InheritStewardSetParentOnSnapshotsStepTest {
   @BeforeEach
   void setUp() {
     step =
-        new InheritStewardSetParentOnSnapshotsStep(
+        new SetParentOnSnapshotsStep(
             snapshotService, iamService, DATASET_ID, TEST_USER);
   }
 

@@ -1075,13 +1075,7 @@ class SnapshotDaoTest {
 
   @Test
   void getSnapshotGoogleProjectIds() {
-    String snapshotName = snapshotRequest.getName() + UUID.randomUUID();
-    List<Snapshot> snapshots =
-        IntStream.range(0, 3)
-            .mapToObj(i -> snapshotRequest.name(makeName(snapshotName, i)))
-            .map(this::createSnapshot)
-            .toList();
-
+    List<Snapshot> snapshots = makeSnapshots();
     assertThat(
         snapshotDao.getSnapshotGoogleProjectIds(datasetId),
         containsInAnyOrder(
@@ -1089,5 +1083,23 @@ class SnapshotDaoTest {
                 .map(Snapshot::getProjectResource)
                 .map(GoogleProjectResource::getGoogleProjectId)
                 .toArray()));
+  }
+
+  @Test
+  void getSnapshotIdsForDataset() {
+    List<Snapshot> snapshots = makeSnapshots();
+    assertThat(
+        snapshotDao.getSnapshotIds(datasetId),
+        containsInAnyOrder(snapshots.stream().map(Snapshot::getId).toArray()));
+  }
+
+  private List<Snapshot> makeSnapshots() {
+    String snapshotName = snapshotRequest.getName() + UUID.randomUUID();
+    List<Snapshot> snapshots =
+        IntStream.range(0, 3)
+            .mapToObj(i -> snapshotRequest.name(makeName(snapshotName, i)))
+            .map(this::createSnapshot)
+            .toList();
+    return snapshots;
   }
 }

@@ -808,6 +808,11 @@ public class SnapshotDao implements TaggableResourceDao {
     return jdbcTemplate.query(sql, Map.of("datasetId", datasetId), (rs, rowNum) -> rs.getString(1));
   }
 
+  public List<UUID> getSnapshotIds(UUID datasetId) {
+    String sql = "select id from snapshot where dataset_id = :datasetId";
+    return jdbcTemplate.query(sql, Map.of("datasetId", datasetId), new UuidMapper("id"));
+  }
+
   private class SnapshotSummaryMapper implements RowMapper<SnapshotSummary> {
 
     public SnapshotSummary mapRow(ResultSet rs, int rowNum) throws SQLException {

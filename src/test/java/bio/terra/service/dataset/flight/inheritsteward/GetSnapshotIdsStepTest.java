@@ -7,7 +7,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
@@ -25,7 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @Tag(Unit.TAG)
 class GetSnapshotIdsStepTest {
 
-  @Mock private SnapshotService snapshotService;
+  @Mock private SnapshotDao snapshotDao;
   @Mock private FlightContext flightContext;
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final AuthenticatedUserRequest TEST_USER =
@@ -34,7 +34,7 @@ class GetSnapshotIdsStepTest {
 
   @BeforeEach
   void setUp() {
-    step = new GetSnapshotIdsStep(snapshotService, DATASET_ID, TEST_USER);
+    step = new GetSnapshotIdsStep(snapshotDao, DATASET_ID, TEST_USER);
   }
 
   @Test
@@ -42,8 +42,7 @@ class GetSnapshotIdsStepTest {
     List<UUID> snapshotIds = Arrays.asList(UUID.randomUUID(), UUID.randomUUID());
     FlightMap workingMap = new FlightMap();
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    when(snapshotService.enumerateSnapshotIdsForDataset(DATASET_ID, TEST_USER))
-        .thenReturn(snapshotIds);
+    when(snapshotDao.getSnapshotIds(DATASET_ID)).thenReturn(snapshotIds);
     assertEquals(step.doStep(flightContext), StepResult.getStepResultSuccess());
     assertEquals(workingMap.get(DatasetWorkingMapKeys.SNAPSHOT_IDS, List.class), snapshotIds);
   }

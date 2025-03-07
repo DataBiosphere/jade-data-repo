@@ -11,6 +11,7 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +39,7 @@ class InheritStewardGetSnapshotIdsStepTest {
 
   @Test
   void doStep() throws Exception {
-    List<UUID> snapshotIds = List.of(UUID.randomUUID(), UUID.randomUUID());
+    List<UUID> snapshotIds = Arrays.asList(UUID.randomUUID(), UUID.randomUUID());
     FlightMap workingMap = new FlightMap();
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     when(snapshotService.enumerateSnapshotIdsForDataset(DATASET_ID, TEST_USER))

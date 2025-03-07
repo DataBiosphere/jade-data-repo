@@ -15,6 +15,7 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
@@ -47,7 +48,7 @@ class InheritStewardSetParentOnSnapshotsStepTest {
 
   @Test
   void doStep() throws InterruptedException {
-    List<UUID> snapshotIds = List.of(SNAPSHOT_1, SNAPSHOT_2);
+    List<UUID> snapshotIds = Arrays.asList(SNAPSHOT_1, SNAPSHOT_2);
     FlightMap workingMap = new FlightMap();
     workingMap.put(DatasetWorkingMapKeys.SNAPSHOT_IDS, snapshotIds);
     when(context.getWorkingMap()).thenReturn(workingMap);

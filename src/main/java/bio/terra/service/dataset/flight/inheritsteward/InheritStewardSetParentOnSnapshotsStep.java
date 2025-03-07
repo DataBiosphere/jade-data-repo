@@ -9,7 +9,6 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -36,7 +35,7 @@ public class InheritStewardSetParentOnSnapshotsStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     String accessToken = userReq.getToken();
     List<UUID> snapshots =
-        context.getWorkingMap().get(DatasetWorkingMapKeys.SNAPSHOT_IDS, new TypeReference<>() {});
+        context.getWorkingMap().get(DatasetWorkingMapKeys.SNAPSHOT_IDS, List.class);
     Objects.requireNonNull(snapshots)
         .forEach(
             snapshotId -> {

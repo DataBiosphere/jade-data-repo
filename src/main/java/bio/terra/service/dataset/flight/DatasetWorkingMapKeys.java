@@ -17,6 +17,7 @@ public final class DatasetWorkingMapKeys extends ProjectCreatingFlightKeys {
   public static final String SERVICE_ACCOUNT_EMAIL = "serviceAccountEmail";
   public static final String SECURE_MONITORING_ENABLED = "secureMonitoringEnabled";
   public static final String SNAPSHOT_GOOGLE_PROJECT_IDS = "snapshotGoogleProjectIds";
+  public static final String SNAPSHOT_IDS = "snapshotIds";
 
   public static final String IS_SHARED_LOCK = "isSharedLock";
 }

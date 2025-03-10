@@ -4,6 +4,7 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
@@ -18,14 +19,19 @@ public class EnableInheritStewardFlight extends Flight {
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
+    BigQuerySnapshotPdao bigQuerySnapshotPdao = appContext.getBean(BigQuerySnapshotPdao.class);
 
     // Get the input parameters
     UUID datasetId = inputParameters.get(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), UUID.class);
     String custodianEmail =
         inputParameters.get(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), String.class);
 
-    addStep(new InheritStewardSetFlagStep(datasetDao, datasetId, true));
+    boolean inheritSteward = true;
+    addStep(new InheritStewardSetFlagStep(datasetDao, datasetId, inheritSteward));
     addStep(new GetSnapshotGoogleProjectIdsStep(snapshotService, datasetId));
-    addStep(new SetAuthBqJobUserStep(resourceService, custodianEmail, true));
+    addStep(new SetAuthBqJobUserStep(resourceService, custodianEmail, inheritSteward));
+    addStep(
+        new SetAuthTabluarAclStep(
+            bigQuerySnapshotPdao, snapshotService, custodianEmail, inheritSteward));
   }
 }

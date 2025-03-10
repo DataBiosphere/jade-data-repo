@@ -53,7 +53,7 @@ public enum BigQueryPdao {
     bigQueryProject.addDatasetAcls(name, emailsToReaderAcls(policyGroupEmails));
   }
 
-  public static void revokeReadAccessWorker(
+  static void revokeReadAccessWorker(
       BigQueryProject bigQueryProject, String name, Collection<String> policyGroupEmails)
       throws InterruptedException {
     bigQueryProject.removeDatasetAcls(name, emailsToReaderAcls(policyGroupEmails));

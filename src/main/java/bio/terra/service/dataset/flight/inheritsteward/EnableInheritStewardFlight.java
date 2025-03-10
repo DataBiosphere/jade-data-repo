@@ -48,7 +48,6 @@ public class EnableInheritStewardFlight extends Flight {
     addStep(
         new SetAuthTabularAclStep(
             bigQuerySnapshotPdao, snapshotService, custodianEmail, inheritSteward));
-    addStep(new SetServiceAccountConsumerUserStep(resourceService, custodianEmail, true));
     addStep(new UnlockDatasetStep(datasetService, false));
   }
 }

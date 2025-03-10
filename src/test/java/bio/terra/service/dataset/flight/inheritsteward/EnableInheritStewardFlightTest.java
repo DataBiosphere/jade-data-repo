@@ -83,7 +83,6 @@ class EnableInheritStewardFlightTest {
             "GetSnapshotGoogleProjectIdsStep",
             "SetAuthBqJobUserStep",
             "SetAuthTabularAclStep",
-            "SetServiceAccountConsumerUserStep",
             "UnlockDatasetStep"));
   }
 
@@ -191,28 +190,6 @@ class EnableInheritStewardFlightTest {
     try (var mockStep =
         mockConstruction(
             SetAuthBqJobUserStep.class,
-            (mock, context) -> {
-              assertThat((ResourceService) context.arguments().get(0), equalTo(resourceService));
-              assertThat(
-                  "The correct custodian email is passed to the step",
-                  (String) context.arguments().get(1),
-                  equalTo(CUSTODIAN_EMAIL));
-              assertThat(
-                  "The correct boolean flag is passed to the step",
-                  (boolean) context.arguments().get(2),
-                  equalTo(true));
-            })) {
-      //noinspection ResultOfObjectAllocationIgnored
-      new EnableInheritStewardFlight(inputParameters, context);
-      assertThat(mockStep.constructed(), hasSize(1));
-    }
-  }
-
-  @Test
-  void setServiceAccountConsumerUserStep() {
-    try (var mockStep =
-        mockConstruction(
-            SetServiceAccountConsumerUserStep.class,
             (mock, context) -> {
               assertThat((ResourceService) context.arguments().get(0), equalTo(resourceService));
               assertThat(

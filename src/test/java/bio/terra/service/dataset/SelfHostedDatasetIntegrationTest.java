@@ -305,7 +305,7 @@ class SelfHostedDatasetIntegrationTest {
       assertThat(
           "TDR was able to create a signed URL",
           objectAccessUrl.getUrl(),
-          is(not(emptyOrNullString())));
+          not(emptyOrNullString()));
 
       // Ensure that the signed URL is accessible
       TestUtils.verifyHttpAccess(objectAccessUrl.getUrl(), Map.of());

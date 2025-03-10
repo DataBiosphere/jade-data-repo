@@ -4,8 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.AuthenticationFixtures;
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.stairway.FlightContext;
@@ -28,13 +26,11 @@ class GetSnapshotIdsStepTest {
   @Mock private SnapshotDao snapshotDao;
   @Mock private FlightContext flightContext;
   private static final UUID DATASET_ID = UUID.randomUUID();
-  private static final AuthenticatedUserRequest TEST_USER =
-      AuthenticationFixtures.randomUserRequest();
   private GetSnapshotIdsStep step;
 
   @BeforeEach
   void setUp() {
-    step = new GetSnapshotIdsStep(snapshotDao, DATASET_ID, TEST_USER);
+    step = new GetSnapshotIdsStep(snapshotDao, DATASET_ID);
   }
 
   @Test

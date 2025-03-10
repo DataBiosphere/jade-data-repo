@@ -1,6 +1,5 @@
 package bio.terra.service.dataset.flight.inheritsteward;
 
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.snapshot.SnapshotDao;
@@ -13,13 +12,10 @@ import java.util.UUID;
 public class GetSnapshotIdsStep extends DefaultUndoStep {
   private final SnapshotDao snapshotDao;
   private final UUID datasetId;
-  private final AuthenticatedUserRequest userReq;
 
-  public GetSnapshotIdsStep(
-      SnapshotDao snapshotDao, UUID datasetId, AuthenticatedUserRequest userReq) {
+  public GetSnapshotIdsStep(SnapshotDao snapshotDao, UUID datasetId) {
     this.snapshotDao = snapshotDao;
     this.datasetId = datasetId;
-    this.userReq = userReq;
   }
 
   @Override

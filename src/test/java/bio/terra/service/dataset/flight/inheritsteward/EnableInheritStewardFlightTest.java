@@ -137,10 +137,6 @@ class EnableInheritStewardFlightTest {
                   "The correct datasetId is passed to the step",
                   (UUID) context.arguments().get(1),
                   equalTo(DATASET_ID));
-              assertThat(
-                  "The correct user request is passed to the step",
-                  (AuthenticatedUserRequest) context.arguments().get(2),
-                  equalTo(TEST_USER));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
       new EnableInheritStewardFlight(inputParameters, context);

@@ -38,7 +38,7 @@ public class EnableInheritStewardFlight extends Flight {
 
     addStep(new LockDatasetStep(datasetService, datasetId, false));
     addStep(new SetInheritStewardFlagStep(datasetDao, datasetId, true));
-    addStep(new GetSnapshotIdsStep(snapshotDao, datasetId, userReq));
+    addStep(new GetSnapshotIdsStep(snapshotDao, datasetId));
     addStep(new SetParentOnSnapshotsStep(iamService, datasetId, userReq));
     addStep(new GetSnapshotGoogleProjectIdsStep(snapshotService, datasetId));
     addStep(new SetAuthBqJobUserStep(resourceService, custodianEmail, true));

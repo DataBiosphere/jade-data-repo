@@ -12,12 +12,10 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.StairwayMapper;
 import bio.terra.stairway.StepResult;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeAll;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -39,18 +37,14 @@ class SetAuthTabularAclStepTest {
     StepResult apply(FlightContext t) throws Exception;
   }
 
-  @BeforeAll
-  static void beforeAll() {
-    StairwayMapper.getObjectMapper().deactivateDefaultTyping();
-  }
-
   private void verifySetAuth(SetAuthTabularAclStepTest.DoOrUndo doOrUndo, boolean grantPolicy)
       throws Exception {
     var snapshots =
-        Arrays.asList(new Snapshot().id(UUID.randomUUID()), new Snapshot().id(UUID.randomUUID()));
+        List.of(new Snapshot().id(UUID.randomUUID()), new Snapshot().id(UUID.randomUUID()));
     FlightMap workingMap = new FlightMap();
     workingMap.put(
-        DatasetWorkingMapKeys.SNAPSHOT_IDS, snapshots.stream().map(Snapshot::getId).toList());
+        DatasetWorkingMapKeys.SNAPSHOT_IDS,
+        snapshots.stream().map(Snapshot::getId).collect(Collectors.toList()));
     for (var snapshot : snapshots) {
       when(snapshotService.retrieve(snapshot.getId())).thenReturn(snapshot);
     }

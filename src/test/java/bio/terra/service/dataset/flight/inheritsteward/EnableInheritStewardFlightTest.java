@@ -81,7 +81,7 @@ class EnableInheritStewardFlightTest {
             "GetSnapshotIdsStep",
             "SetParentOnSnapshotsStep",
             "GetSnapshotGoogleProjectIdsStep",
-            "SetAuthBqJobUserStep",
+            "SetAuthGcpUserRolesStep",
             "SetAuthTabularAclStep",
             "UnlockDatasetStep"));
   }
@@ -186,7 +186,7 @@ class EnableInheritStewardFlightTest {
   }
 
   @Test
-  void setAuthBqJobUserStep() {
+  void setAuthGcpUserRolesStep() {
     try (var mockStep =
         mockConstruction(
             SetAuthGcpUserRolesStep.class,

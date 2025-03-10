@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -150,7 +151,9 @@ class ResourceServiceTest {
     // Verify that the IAM permissions were updated
     verify(resourceManagerService)
         .updateIamPermissions(
-            any(), eq(dataProject), eq(GoogleProjectService.PermissionOp.ENABLE_PERMISSIONS));
+            argThat(arg -> arg.containsKey(roles.get(0)) && arg.containsKey(roles.get(1))),
+            eq(dataProject),
+            eq(GoogleProjectService.PermissionOp.ENABLE_PERMISSIONS));
   }
 
   @Test
@@ -164,6 +167,8 @@ class ResourceServiceTest {
     // Verify that the IAM permissions were updated
     verify(resourceManagerService)
         .updateIamPermissions(
-            any(), eq(dataProject), eq(GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS));
+            argThat(arg -> arg.containsKey(roles.get(0)) && arg.containsKey(roles.get(1))),
+            eq(dataProject),
+            eq(GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS));
   }
 }

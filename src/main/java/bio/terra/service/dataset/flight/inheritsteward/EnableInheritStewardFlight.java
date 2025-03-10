@@ -44,7 +44,7 @@ public class EnableInheritStewardFlight extends Flight {
     addStep(new GetSnapshotIdsStep(snapshotDao, datasetId));
     addStep(new SetParentOnSnapshotsStep(iamService, datasetId, userReq));
     addStep(new GetSnapshotGoogleProjectIdsStep(snapshotService, datasetId));
-    addStep(new SetAuthBqJobUserStep(resourceService, custodianEmail, inheritSteward));
+    addStep(new SetAuthGcpUserRolesStep(resourceService, custodianEmail, inheritSteward));
     addStep(
         new SetAuthTabularAclStep(
             bigQuerySnapshotPdao, snapshotService, custodianEmail, inheritSteward));

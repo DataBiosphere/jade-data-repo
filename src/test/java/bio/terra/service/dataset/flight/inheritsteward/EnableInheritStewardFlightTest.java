@@ -189,7 +189,7 @@ class EnableInheritStewardFlightTest {
   void setAuthBqJobUserStep() {
     try (var mockStep =
         mockConstruction(
-            SetAuthBqJobUserStep.class,
+            SetAuthGcpUserRolesStep.class,
             (mock, context) -> {
               assertThat((ResourceService) context.arguments().get(0), equalTo(resourceService));
               assertThat(

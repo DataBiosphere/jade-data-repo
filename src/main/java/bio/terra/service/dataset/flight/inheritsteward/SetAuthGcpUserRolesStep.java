@@ -1,5 +1,8 @@
 package bio.terra.service.dataset.flight.inheritsteward;
 
+import static bio.terra.service.resourcemanagement.ResourceService.BQ_JOB_USER_ROLE;
+import static bio.terra.service.resourcemanagement.ResourceService.SERVICE_USAGE_CONSUMER_ROLE;
+
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.FlightContext;
@@ -11,9 +14,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import java.util.Objects;
 
-public record SetAuthBqJobUserStep(
+public record SetAuthGcpUserRolesStep(
     ResourceService resourceService, String custodianEmail, boolean inheritSteward)
     implements Step {
+
+  public static final List<String> SNAPSHOT_GCP_IAM_ROLES =
+      List.of(BQ_JOB_USER_ROLE, SERVICE_USAGE_CONSUMER_ROLE);
 
   private StepResult setAuth(FlightContext flightContext, boolean inheritSteward)
       throws InterruptedException {
@@ -22,9 +28,11 @@ public record SetAuthBqJobUserStep(
         workingMap.get(DatasetWorkingMapKeys.SNAPSHOT_GOOGLE_PROJECT_IDS, new TypeReference<>() {});
     for (var projectId : Objects.requireNonNull(projectIds)) {
       if (inheritSteward) {
-        resourceService.grantPoliciesBqJobUser(projectId, List.of(custodianEmail));
+        resourceService.grantPoliciesForRoles(
+            projectId, List.of(custodianEmail), SNAPSHOT_GCP_IAM_ROLES);
       } else {
-        resourceService.revokePoliciesBqJobUser(projectId, List.of(custodianEmail));
+        resourceService.revokePoliciesForRoles(
+            projectId, List.of(custodianEmail), SNAPSHOT_GCP_IAM_ROLES);
       }
     }
     return StepResult.getStepResultSuccess();

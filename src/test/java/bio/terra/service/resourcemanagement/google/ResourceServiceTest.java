@@ -4,7 +4,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.SamConfiguration;
@@ -40,7 +42,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-class ResourceServiceUnitTest {
+class ResourceServiceTest {
 
   private ResourceService resourceService;
 
@@ -51,6 +53,8 @@ class ResourceServiceUnitTest {
   @Mock private DatasetStorageAccountDao datasetStorageAccountDao;
 
   @Mock private AzureApplicationDeploymentService applicationDeploymentService;
+
+  @Mock private GoogleResourceManagerService resourceManagerService;
 
   private final UUID billingProfileId = UUID.randomUUID();
 
@@ -100,7 +104,7 @@ class ResourceServiceUnitTest {
             mock(SamConfiguration.class),
             datasetStorageAccountDao,
             mock(SnapshotStorageAccountDao.class),
-            mock(GoogleResourceManagerService.class),
+            resourceManagerService,
             mock(AzureContainerPdao.class),
             mock(ProfileDao.class));
   }
@@ -133,5 +137,33 @@ class ResourceServiceUnitTest {
     AzureStorageAccountResource createdStorageAccount =
         resourceService.getOrCreateDatasetStorageAccount(dataset, profileModel, "flightId");
     assertThat(createdStorageAccount, is(storageAccountResource));
+  }
+
+  @Test
+  void grantPoliciesForRoles() throws InterruptedException {
+    String dataProject = "test-project";
+    List<String> policyEmails = List.of("test-email@example.com");
+    List<String> roles = List.of("roles/testRole", "roles/testRole2");
+
+    resourceService.grantPoliciesForRoles(dataProject, policyEmails, roles);
+
+    // Verify that the IAM permissions were updated
+    verify(resourceManagerService)
+        .updateIamPermissions(
+            any(), eq(dataProject), eq(GoogleProjectService.PermissionOp.ENABLE_PERMISSIONS));
+  }
+
+  @Test
+  void revokePoliciesForRoles() throws InterruptedException {
+    String dataProject = "test-project";
+    List<String> policyEmails = List.of("test-email@example.com");
+    List<String> roles = List.of("roles/testRole", "roles/testRole2");
+
+    resourceService.revokePoliciesForRoles(dataProject, policyEmails, roles);
+
+    // Verify that the IAM permissions were updated
+    verify(resourceManagerService)
+        .updateIamPermissions(
+            any(), eq(dataProject), eq(GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS));
   }
 }

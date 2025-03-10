@@ -599,6 +599,18 @@ public class ResourceService {
     return applicationDeploymentService.getApplicationDeploymentResourceById(applicationId);
   }
 
+  public void grantPoliciesForRoles(
+      String dataProject, Collection<String> policyEmails, List<String> roles)
+      throws InterruptedException {
+    modifyRoles(dataProject, policyEmails, roles, ENABLE_PERMISSIONS);
+  }
+
+  public void revokePoliciesForRoles(
+      String dataProject, Collection<String> policyEmails, List<String> roles)
+      throws InterruptedException {
+    modifyRoles(dataProject, policyEmails, roles, REVOKE_PERMISSIONS);
+  }
+
   public void grantPoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
       throws InterruptedException {
     modifyRoles(dataProject, policyEmails, List.of(BQ_JOB_USER_ROLE), ENABLE_PERMISSIONS);

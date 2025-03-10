@@ -810,7 +810,13 @@ public class SnapshotDao implements TaggableResourceDao {
 
   public List<UUID> getSnapshotIds(UUID datasetId) {
     String sql =
-        "select distinct snapshot.id from snapshot_source, snapshot where dataset_id = :datasetId";
+        """
+            select snapshot.id
+            from snapshot_source,
+               snapshot
+            where dataset_id = :datasetId
+               and snapshot.id = snapshot_source.snapshot_id
+        """;
     return jdbcTemplate.query(sql, Map.of("datasetId", datasetId), new UuidMapper("id"));
   }
 

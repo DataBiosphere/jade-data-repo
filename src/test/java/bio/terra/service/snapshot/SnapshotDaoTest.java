@@ -53,6 +53,7 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotUpdateException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -133,6 +134,11 @@ class SnapshotDaoTest {
 
   private Snapshot createSnapshot(SnapshotRequestModel request) {
     Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(request, dataset);
+    return insertAndRetrieveSnapshot(snapshot);
+  }
+
+  private Snapshot createSnapshot(SnapshotRequestModel request, Dataset sourceDataset) {
+    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(request, sourceDataset);
     return insertAndRetrieveSnapshot(snapshot);
   }
 
@@ -1075,13 +1081,7 @@ class SnapshotDaoTest {
 
   @Test
   void getSnapshotGoogleProjectIds() {
-    String snapshotName = snapshotRequest.getName() + UUID.randomUUID();
-    List<Snapshot> snapshots =
-        IntStream.range(0, 3)
-            .mapToObj(i -> snapshotRequest.name(makeName(snapshotName, i)))
-            .map(this::createSnapshot)
-            .toList();
-
+    List<Snapshot> snapshots = makeSnapshots(dataset);
     assertThat(
         snapshotDao.getSnapshotGoogleProjectIds(datasetId),
         containsInAnyOrder(
@@ -1089,5 +1089,30 @@ class SnapshotDaoTest {
                 .map(Snapshot::getProjectResource)
                 .map(GoogleProjectResource::getGoogleProjectId)
                 .toArray()));
+  }
+
+  @Test
+  void getSnapshotIdsForDataset() throws IOException {
+    Dataset newDataset =
+        daoOperations.createDataset("snapshot-test-dataset-with-multi-columns.json");
+    List<Snapshot> snapshots = makeSnapshots(newDataset);
+    assertThat(
+        snapshotDao.getSnapshotIds(newDataset.getId()),
+        containsInAnyOrder(snapshots.stream().map(Snapshot::getId).toArray()));
+  }
+
+  private List<Snapshot> makeSnapshots(Dataset sourceDataset) {
+    String snapshotName = snapshotRequest.getName() + UUID.randomUUID();
+    return IntStream.range(0, 3)
+        .mapToObj(
+            i -> {
+              snapshotRequest
+                  .name(makeName(snapshotName, i))
+                  .profileId(sourceDataset.getDefaultProfileId());
+              snapshotRequest.getContents().get(0).datasetName(sourceDataset.getName());
+              return snapshotRequest;
+            })
+        .map(request -> createSnapshot(request, sourceDataset))
+        .toList();
   }
 }

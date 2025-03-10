@@ -28,6 +28,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -304,5 +305,54 @@ class IamServiceTest {
     when(iamProvider.removeGroupPolicyEmail(accessToken, groupName, policyName, email))
         .thenReturn(List.of());
     assertEquals(iamService.removeEmailFromGroup(groupName, policyName, email), List.of());
+  }
+
+  @Test
+  void setResourceParent() throws InterruptedException {
+    UUID childId = UUID.randomUUID();
+    UUID parentId = UUID.randomUUID();
+    iamService.setResourceParent(
+        TEST_USER.getToken(),
+        IamResourceType.DATASNAPSHOT,
+        childId,
+        IamResourceType.DATASET,
+        parentId);
+    verify(iamProvider)
+        .setResourceParent(
+            TEST_USER.getToken(),
+            IamResourceType.DATASNAPSHOT,
+            childId,
+            IamResourceType.DATASET,
+            parentId);
+  }
+
+  @Test
+  void deleteResourceParent() throws InterruptedException {
+    UUID childId = UUID.randomUUID();
+    iamService.deleteResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId);
+    verify(iamProvider)
+        .deleteResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId);
+  }
+
+  @Test
+  void getResourceParent() throws InterruptedException {
+    UUID childId = UUID.randomUUID();
+    FullyQualifiedResourceId parent = new FullyQualifiedResourceId();
+    when(iamProvider.getResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId))
+        .thenReturn(parent);
+    assertEquals(
+        parent,
+        iamService.getResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId));
+  }
+
+  @Test
+  void listResourceChildren() throws InterruptedException {
+    UUID parentId = UUID.randomUUID();
+    List<FullyQualifiedResourceId> children = List.of(new FullyQualifiedResourceId());
+    when(iamProvider.listResourceChildren(TEST_USER.getToken(), IamResourceType.DATASET, parentId))
+        .thenReturn(children);
+    assertEquals(
+        children,
+        iamService.listResourceChildren(TEST_USER.getToken(), IamResourceType.DATASET, parentId));
   }
 }

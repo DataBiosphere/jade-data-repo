@@ -6,12 +6,12 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.UUID;
 
-public class InheritStewardSetFlagStep implements Step {
+public class SetInheritStewardFlagStep implements Step {
   private final DatasetDao datasetDao;
   private final UUID datasetId;
   private final boolean enableInheritSteward;
 
-  public InheritStewardSetFlagStep(
+  public SetInheritStewardFlagStep(
       DatasetDao datasetDao, UUID datasetId, boolean enableInheritSteward) {
     this.datasetDao = datasetDao;
     this.datasetId = datasetId;

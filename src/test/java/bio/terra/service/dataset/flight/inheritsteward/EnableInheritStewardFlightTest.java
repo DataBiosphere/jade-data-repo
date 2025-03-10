@@ -13,6 +13,7 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +32,7 @@ class EnableInheritStewardFlightTest {
   @Mock private DatasetDao datasetDao;
   @Mock private ResourceService resourceService;
   @Mock private SnapshotService snapshotService;
+  @Mock private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final FlightMap inputParameters = new FlightMap();
 
   private static final String CUSTODIAN_EMAIL = "custodian email";
@@ -43,6 +45,7 @@ class EnableInheritStewardFlightTest {
     when(context.getBean(DatasetDao.class)).thenReturn(datasetDao);
     when(context.getBean(ResourceService.class)).thenReturn(resourceService);
     when(context.getBean(SnapshotService.class)).thenReturn(snapshotService);
+    when(context.getBean(BigQuerySnapshotPdao.class)).thenReturn(bigQuerySnapshotPdao);
   }
 
   @Test
@@ -54,7 +57,8 @@ class EnableInheritStewardFlightTest {
         contains(
             "InheritStewardSetFlagStep",
             "GetSnapshotGoogleProjectIdsStep",
-            "SetAuthBqJobUserStep"));
+            "SetAuthBqJobUserStep",
+            "SetAuthTabluarAclStep"));
   }
 
   @Test
@@ -111,6 +115,30 @@ class EnableInheritStewardFlightTest {
               assertThat(
                   "The correct boolean flag is passed to the step",
                   (boolean) context.arguments().get(2),
+                  equalTo(true));
+            })) {
+      //noinspection ResultOfObjectAllocationIgnored
+      new EnableInheritStewardFlight(inputParameters, context);
+      assertThat(mockStep.constructed(), hasSize(1));
+    }
+  }
+
+  @Test
+  void setAuthTabluarAclStep() {
+    try (var mockStep =
+        mockConstruction(
+            SetAuthTabularAclStep.class,
+            (mock, context) -> {
+              assertThat(
+                  (BigQuerySnapshotPdao) context.arguments().get(0), equalTo(bigQuerySnapshotPdao));
+              assertThat((SnapshotService) context.arguments().get(1), equalTo(snapshotService));
+              assertThat(
+                  "The correct custodian email is passed to the step",
+                  (String) context.arguments().get(2),
+                  equalTo(CUSTODIAN_EMAIL));
+              assertThat(
+                  "The correct boolean flag is passed to the step",
+                  (boolean) context.arguments().get(3),
                   equalTo(true));
             })) {
       //noinspection ResultOfObjectAllocationIgnored

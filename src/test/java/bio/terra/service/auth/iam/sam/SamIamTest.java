@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -758,6 +759,130 @@ class SamIamTest {
       verify(samResourceApi)
           .patchAuthDomainV2(
               IamResourceType.DATASNAPSHOT.getSamResourceName(), snapshotId.toString(), authDomain);
+    }
+
+    @Test
+    void setResourceParent() throws Exception {
+      UUID childId = UUID.randomUUID();
+      UUID parentId = UUID.randomUUID();
+      samIam.setResourceParent(
+          TEST_USER.getToken(),
+          IamResourceType.DATASNAPSHOT,
+          childId,
+          IamResourceType.DATASET,
+          parentId);
+      verify(samResourceApi)
+          .setResourceParent(
+              IamResourceType.DATASNAPSHOT.getSamResourceName(),
+              childId.toString(),
+              new FullyQualifiedResourceId()
+                  .resourceTypeName(IamResourceType.DATASET.getSamResourceName())
+                  .resourceId(parentId.toString()));
+    }
+
+    @Test
+    void setResourceParentThrows() throws Exception {
+      UUID childId = UUID.randomUUID();
+      UUID parentId = UUID.randomUUID();
+      String accessToken = TEST_USER.getToken();
+      ApiException samEx =
+          new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Resource not found");
+      doThrow(samEx)
+          .when(samResourceApi)
+          .setResourceParent(
+              IamResourceType.DATASNAPSHOT.getSamResourceName(),
+              childId.toString(),
+              new FullyQualifiedResourceId()
+                  .resourceTypeName(IamResourceType.DATASET.getSamResourceName())
+                  .resourceId(parentId.toString()));
+      assertThrows(
+          IamNotFoundException.class,
+          () ->
+              samIam.setResourceParent(
+                  accessToken,
+                  IamResourceType.DATASNAPSHOT,
+                  childId,
+                  IamResourceType.DATASET,
+                  parentId));
+    }
+
+    @Test
+    void deleteResourceParent() throws Exception {
+      UUID childId = UUID.randomUUID();
+      samIam.deleteResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId);
+      verify(samResourceApi)
+          .deleteResourceParent(
+              IamResourceType.DATASNAPSHOT.getSamResourceName(), childId.toString());
+    }
+
+    @Test
+    void deleteResourceParentThrows() throws Exception {
+      UUID childId = UUID.randomUUID();
+      String accessToken = TEST_USER.getToken();
+      ApiException samEx =
+          new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Resource not found");
+      doThrow(samEx)
+          .when(samResourceApi)
+          .deleteResourceParent(
+              IamResourceType.DATASNAPSHOT.getSamResourceName(), childId.toString());
+      assertThrows(
+          IamNotFoundException.class,
+          () -> samIam.deleteResourceParent(accessToken, IamResourceType.DATASNAPSHOT, childId));
+    }
+
+    @Test
+    void getResourceParent() throws Exception {
+      UUID childId = UUID.randomUUID();
+      FullyQualifiedResourceId parent =
+          new FullyQualifiedResourceId()
+              .resourceTypeName(IamResourceType.DATASET.getSamResourceName())
+              .resourceId(UUID.randomUUID().toString());
+      when(samResourceApi.getResourceParent(
+              IamResourceType.DATASNAPSHOT.getSamResourceName(), childId.toString()))
+          .thenReturn(parent);
+      assertThat(
+          samIam.getResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId),
+          is(parent));
+    }
+
+    @Test
+    void getResourceParentThrows() throws Exception {
+      UUID childId = UUID.randomUUID();
+      String accessToken = TEST_USER.getToken();
+      ApiException samEx =
+          new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Resource parent not found");
+      doThrow(samEx)
+          .when(samResourceApi)
+          .getResourceParent(IamResourceType.DATASNAPSHOT.getSamResourceName(), childId.toString());
+      assertThrows(
+          IamNotFoundException.class,
+          () -> samIam.getResourceParent(accessToken, IamResourceType.DATASNAPSHOT, childId));
+    }
+
+    @Test
+    void listResourceChildren() throws Exception {
+      UUID parentId = UUID.randomUUID();
+      List<FullyQualifiedResourceId> children = List.of(new FullyQualifiedResourceId());
+      when(samResourceApi.listResourceChildren(
+              IamResourceType.DATASET.getSamResourceName(), parentId.toString()))
+          .thenReturn(children);
+      assertEquals(
+          children,
+          samIam.listResourceChildren(TEST_USER.getToken(), IamResourceType.DATASET, parentId));
+    }
+
+    @Test
+    void listResourceChildrenThrows() throws Exception {
+      UUID parentId = UUID.randomUUID();
+      String accessToken = TEST_USER.getToken();
+      ApiException samEx =
+          new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Resource not found");
+      doThrow(samEx)
+          .when(samResourceApi)
+          .listResourceChildren(IamResourceType.DATASET.getSamResourceName(), parentId.toString());
+      assertThrows(
+          IamNotFoundException.class,
+          () -> samIam.listResourceChildren(accessToken, IamResourceType.DATASET, parentId));
     }
   }
 

@@ -38,6 +38,7 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.dataset.flight.inheritsteward.EnableInheritStewardFlight;
 import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
@@ -407,8 +408,7 @@ class DatasetServiceUnitTest {
     assertThat(
         flightMap.get(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class),
         equalTo(IamResourceType.DATASET));
-    assertThat(
-        flightMap.get(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), UUID.class), equalTo(DATASET_ID));
+    assertThat(flightMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class), equalTo(DATASET_ID));
     assertThat(
         flightMap.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class),
         equalTo(IamAction.SET_INHERIT_STEWARD));

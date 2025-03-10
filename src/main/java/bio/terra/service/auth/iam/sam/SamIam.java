@@ -919,6 +919,84 @@ public class SamIam implements IamProviderInterface {
     return samApiService.usersApi(accessToken).getUserIds(userEmail);
   }
 
+  @Override
+  public FullyQualifiedResourceId getResourceParent(
+      String accessToken, IamResourceType childIamResourceType, UUID childId)
+      throws InterruptedException {
+    return SamRetry.retry(
+        configurationService,
+        () -> getResourceParentInner(accessToken, childIamResourceType, childId));
+  }
+
+  private FullyQualifiedResourceId getResourceParentInner(
+      String accessToken, IamResourceType childIamResourceType, UUID childId) throws ApiException {
+    ResourcesApi samResourceApi = samApiService.resourcesApi(accessToken);
+    return samResourceApi.getResourceParent(childIamResourceType.toString(), childId.toString());
+  }
+
+  @Override
+  public void setResourceParent(
+      String accessToken,
+      IamResourceType childIamResourceType,
+      UUID childId,
+      IamResourceType parentIamResourceType,
+      UUID parentId)
+      throws InterruptedException {
+    SamRetry.retry(
+        configurationService,
+        () ->
+            setResourceParentInner(
+                accessToken, childIamResourceType, childId, parentIamResourceType, parentId));
+  }
+
+  private void setResourceParentInner(
+      String accessToken,
+      IamResourceType childIamResourceType,
+      UUID childId,
+      IamResourceType parentIamResourceType,
+      UUID parentId)
+      throws ApiException {
+    ResourcesApi samResourceApi = samApiService.resourcesApi(accessToken);
+    samResourceApi.setResourceParent(
+        childIamResourceType.toString(),
+        childId.toString(),
+        new FullyQualifiedResourceId()
+            .resourceTypeName(parentIamResourceType.toString())
+            .resourceId(parentId.toString()));
+  }
+
+  @Override
+  public void deleteResourceParent(
+      String accessToken, IamResourceType childIamResourceType, UUID childId)
+      throws InterruptedException {
+    SamRetry.retry(
+        configurationService,
+        () -> deleteResourceParentInner(accessToken, childIamResourceType, childId));
+  }
+
+  private void deleteResourceParentInner(
+      String accessToken, IamResourceType childIamResourceType, UUID childId) throws ApiException {
+    ResourcesApi samResourceApi = samApiService.resourcesApi(accessToken);
+    samResourceApi.deleteResourceParent(childIamResourceType.toString(), childId.toString());
+  }
+
+  @Override
+  public List<FullyQualifiedResourceId> listResourceChildren(
+      String accessToken, IamResourceType parentIamResourceType, UUID parentId)
+      throws InterruptedException {
+    return SamRetry.retry(
+        configurationService,
+        () -> listResourceChildrenInner(accessToken, parentIamResourceType, parentId));
+  }
+
+  private List<FullyQualifiedResourceId> listResourceChildrenInner(
+      String accessToken, IamResourceType parentIamResourceType, UUID parentId)
+      throws ApiException {
+    ResourcesApi samResourceApi = samApiService.resourcesApi(accessToken);
+    return samResourceApi.listResourceChildren(
+        parentIamResourceType.toString(), parentId.toString());
+  }
+
   /**
    * Syncing a policy with SAM results in a Google group being created that is tied to that policy.
    * The response is an object with one key that is the policy group email and a value that is a

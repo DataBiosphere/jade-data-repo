@@ -50,7 +50,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '2.244.0-SNAPSHOT'
+    version '2.247.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -208,7 +208,7 @@ dependencies {
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.241'
     implementation 'bio.terra:terra-policy-client:1.0.17-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'
-    implementation 'bio.terra:externalcreds-client-resttemplate:1.72.0-SNAPSHOT'
+    implementation 'bio.terra:externalcreds-client-resttemplate:1.79.0-SNAPSHOT'
 
     implementation 'org.glassfish.jersey.inject:jersey-hk2'
 

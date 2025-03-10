@@ -7,9 +7,9 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -513,7 +513,7 @@ class SnapshotConnectedTest {
       throws Exception {
     String responseBody = response.getContentAsString();
     HttpStatus responseStatus = HttpStatus.valueOf(response.getStatus());
-    assertThat("Expect create snapshot failure", not(responseStatus.is2xxSuccessful()));
+    assertFalse(responseStatus.is2xxSuccessful(), "Expect create snapshot failure");
 
     assertThat("Error model was returned on failure", responseBody, containsString("message"));
 

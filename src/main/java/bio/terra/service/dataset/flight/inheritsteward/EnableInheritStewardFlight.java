@@ -55,11 +55,6 @@ public class EnableInheritStewardFlight extends Flight {
     addStep(new UnlockDatasetStep(datasetService, false));
     addStep(
         new JournalRecordUpdateEntryStep(
-            journalService,
-            userReq,
-            datasetId,
-            IamResourceType.DATASET,
-            "Enable inherit steward",
-            true));
+            journalService, userReq, datasetId, IamResourceType.DATASET, "Enable inherit steward"));
   }
 }

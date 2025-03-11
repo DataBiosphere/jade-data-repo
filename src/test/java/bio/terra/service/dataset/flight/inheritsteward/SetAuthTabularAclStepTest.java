@@ -50,11 +50,12 @@ class SetAuthTabularAclStepTest {
     }
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     assertThat(doOrUndo.apply(flightContext), is(StepResult.getStepResultSuccess()));
+    List<String> emails = List.of(custodianEmail);
     for (var snapshot : snapshots) {
       if (grantPolicy) {
-        verify(bigQuerySnapshotPdao).grantReadAccessToSnapshot(snapshot, List.of(custodianEmail));
+        verify(bigQuerySnapshotPdao).grantReadAccessToSnapshot(snapshot, emails);
       } else {
-        verify(bigQuerySnapshotPdao).revokeReadAccessToSnapshot(snapshot, List.of(custodianEmail));
+        verify(bigQuerySnapshotPdao).revokeReadAccessToSnapshot(snapshot, emails);
       }
     }
   }

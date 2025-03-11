@@ -25,8 +25,10 @@ class BigQuerySnapshotPdaoTest {
 
   private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private Snapshot snapshot;
+
   private static final String NAME = "test";
   private static final String EMAIL = "email";
+  private static final List<Acl> ACLS = List.of(Acl.of(new Acl.Group(EMAIL), Acl.Role.READER));
 
   @BeforeEach
   void beforeEach() {
@@ -40,14 +42,12 @@ class BigQuerySnapshotPdaoTest {
   @Test
   void grantReadAccessToSnapshot() throws Exception {
     bigQuerySnapshotPdao.grantReadAccessToSnapshot(snapshot, List.of(EMAIL));
-    verify(bigQueryProject)
-        .addDatasetAcls(NAME, List.of(Acl.of(new Acl.Group(EMAIL), Acl.Role.READER)));
+    verify(bigQueryProject).addDatasetAcls(NAME, ACLS);
   }
 
   @Test
   void revokeReadAccessToSnapshot() throws Exception {
     bigQuerySnapshotPdao.revokeReadAccessToSnapshot(snapshot, List.of(EMAIL));
-    verify(bigQueryProject)
-        .removeDatasetAcls(NAME, List.of(Acl.of(new Acl.Group(EMAIL), Acl.Role.READER)));
+    verify(bigQueryProject).removeDatasetAcls(NAME, ACLS);
   }
 }

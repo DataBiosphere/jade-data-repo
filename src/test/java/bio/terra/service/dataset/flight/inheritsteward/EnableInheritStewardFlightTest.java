@@ -23,6 +23,7 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +43,7 @@ class EnableInheritStewardFlightTest {
   @Mock private SnapshotDao snapshotDao;
   @Mock private ResourceService resourceService;
   @Mock private SnapshotService snapshotService;
+  @Mock private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   @Mock private DatasetService datasetService;
   @Mock private IamService iamService;
   private final FlightMap inputParameters = new FlightMap();
@@ -63,6 +65,7 @@ class EnableInheritStewardFlightTest {
     when(context.getBean(DatasetService.class)).thenReturn(datasetService);
     when(context.getBean(ResourceService.class)).thenReturn(resourceService);
     when(context.getBean(SnapshotService.class)).thenReturn(snapshotService);
+    when(context.getBean(BigQuerySnapshotPdao.class)).thenReturn(bigQuerySnapshotPdao);
     when(context.getBean(IamService.class)).thenReturn(iamService);
   }
 
@@ -79,6 +82,7 @@ class EnableInheritStewardFlightTest {
             "SetParentOnSnapshotsStep",
             "GetSnapshotGoogleProjectIdsStep",
             "SetAuthBqJobUserStep",
+            "SetAuthTabularAclStep",
             "UnlockDatasetStep"));
   }
 
@@ -214,6 +218,30 @@ class EnableInheritStewardFlightTest {
                   "The correct shared lock boolean flag is passed to the step",
                   (boolean) context.arguments().get(1),
                   equalTo(false));
+            })) {
+      //noinspection ResultOfObjectAllocationIgnored
+      new EnableInheritStewardFlight(inputParameters, context);
+      assertThat(mockStep.constructed(), hasSize(1));
+    }
+  }
+
+  @Test
+  void setAuthTabluarAclStep() {
+    try (var mockStep =
+        mockConstruction(
+            SetAuthTabularAclStep.class,
+            (mock, context) -> {
+              assertThat(
+                  (BigQuerySnapshotPdao) context.arguments().get(0), equalTo(bigQuerySnapshotPdao));
+              assertThat((SnapshotService) context.arguments().get(1), equalTo(snapshotService));
+              assertThat(
+                  "The correct custodian email is passed to the step",
+                  (String) context.arguments().get(2),
+                  equalTo(CUSTODIAN_EMAIL));
+              assertThat(
+                  "The correct boolean flag is passed to the step",
+                  (boolean) context.arguments().get(3),
+                  equalTo(true));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
       new EnableInheritStewardFlight(inputParameters, context);

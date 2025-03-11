@@ -142,7 +142,7 @@ class ResourceServiceTest {
   }
 
   @Test
-  void grantPoliciesForRoles() throws InterruptedException {
+  void assignRolesForSnapshot() throws InterruptedException {
     String dataProject = "test-project";
     List<String> policyEmails = List.of("test-email@example.com");
 
@@ -160,7 +160,7 @@ class ResourceServiceTest {
   }
 
   @Test
-  void revokePoliciesForRoles() throws InterruptedException {
+  void revokeRolesForSnapshot() throws InterruptedException {
     String dataProject = "test-project";
     List<String> policyEmails = List.of("test-email@example.com");
 

@@ -53,6 +53,9 @@ public class ResourceService {
   public static final String SERVICE_USAGE_CONSUMER_ROLE =
       "roles/serviceusage.serviceUsageConsumer";
 
+  public static final List<String> SNAPSHOT_GCP_IAM_ROLES =
+      List.of(BQ_JOB_USER_ROLE, SERVICE_USAGE_CONSUMER_ROLE);
+
   private final AzureDataLocationSelector azureDataLocationSelector;
   private final GoogleProjectService projectService;
   private final GoogleBucketService bucketService;
@@ -599,16 +602,14 @@ public class ResourceService {
     return applicationDeploymentService.getApplicationDeploymentResourceById(applicationId);
   }
 
-  public void grantPoliciesForRoles(
-      String dataProject, Collection<String> policyEmails, List<String> roles)
+  public void assignRolesForSnapshot(String dataProject, Collection<String> policyEmails)
       throws InterruptedException {
-    modifyRoles(dataProject, policyEmails, roles, ENABLE_PERMISSIONS);
+    modifyRoles(dataProject, policyEmails, SNAPSHOT_GCP_IAM_ROLES, ENABLE_PERMISSIONS);
   }
 
-  public void revokePoliciesForRoles(
-      String dataProject, Collection<String> policyEmails, List<String> roles)
+  public void revokeRolesForSnapshot(String dataProject, Collection<String> policyEmails)
       throws InterruptedException {
-    modifyRoles(dataProject, policyEmails, roles, REVOKE_PERMISSIONS);
+    modifyRoles(dataProject, policyEmails, SNAPSHOT_GCP_IAM_ROLES, REVOKE_PERMISSIONS);
   }
 
   public void grantPoliciesBqJobUser(String dataProject, Collection<String> policyEmails)

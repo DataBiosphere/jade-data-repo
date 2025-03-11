@@ -35,19 +35,16 @@ class SetAuthGcpUserRolesStepTest {
 
   private void verifySetAuth(DoOrUndo doOrUndo, boolean grantPolicy) throws Exception {
     var projectIds = Arrays.asList("project1", "project2");
+    var emails = List.of(custodianEmail);
     FlightMap workingMap = new FlightMap();
     workingMap.put(DatasetWorkingMapKeys.SNAPSHOT_GOOGLE_PROJECT_IDS, projectIds);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     assertThat(doOrUndo.apply(flightContext), is(StepResult.getStepResultSuccess()));
     for (var projectId : projectIds) {
       if (grantPolicy) {
-        verify(resourceService)
-            .grantPoliciesForRoles(
-                projectId, List.of(custodianEmail), SetAuthGcpUserRolesStep.SNAPSHOT_GCP_IAM_ROLES);
+        verify(resourceService).assignRolesForSnapshot(projectId, emails);
       } else {
-        verify(resourceService)
-            .revokePoliciesForRoles(
-                projectId, List.of(custodianEmail), SetAuthGcpUserRolesStep.SNAPSHOT_GCP_IAM_ROLES);
+        verify(resourceService).revokeRolesForSnapshot(projectId, emails);
       }
     }
   }

@@ -1,5 +1,6 @@
 package bio.terra.service.resourcemanagement.google;
 
+import static bio.terra.service.resourcemanagement.ResourceService.SNAPSHOT_GCP_IAM_ROLES;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -144,14 +145,16 @@ class ResourceServiceTest {
   void grantPoliciesForRoles() throws InterruptedException {
     String dataProject = "test-project";
     List<String> policyEmails = List.of("test-email@example.com");
-    List<String> roles = List.of("roles/testRole", "roles/testRole2");
 
-    resourceService.grantPoliciesForRoles(dataProject, policyEmails, roles);
+    resourceService.assignRolesForSnapshot(dataProject, policyEmails);
 
     // Verify that the IAM permissions were updated
     verify(resourceManagerService)
         .updateIamPermissions(
-            argThat(arg -> arg.containsKey(roles.get(0)) && arg.containsKey(roles.get(1))),
+            argThat(
+                arg ->
+                    arg.containsKey(SNAPSHOT_GCP_IAM_ROLES.get(0))
+                        && arg.containsKey(SNAPSHOT_GCP_IAM_ROLES.get(1))),
             eq(dataProject),
             eq(GoogleProjectService.PermissionOp.ENABLE_PERMISSIONS));
   }
@@ -160,14 +163,16 @@ class ResourceServiceTest {
   void revokePoliciesForRoles() throws InterruptedException {
     String dataProject = "test-project";
     List<String> policyEmails = List.of("test-email@example.com");
-    List<String> roles = List.of("roles/testRole", "roles/testRole2");
 
-    resourceService.revokePoliciesForRoles(dataProject, policyEmails, roles);
+    resourceService.revokeRolesForSnapshot(dataProject, policyEmails);
 
     // Verify that the IAM permissions were updated
     verify(resourceManagerService)
         .updateIamPermissions(
-            argThat(arg -> arg.containsKey(roles.get(0)) && arg.containsKey(roles.get(1))),
+            argThat(
+                arg ->
+                    arg.containsKey(SNAPSHOT_GCP_IAM_ROLES.get(0))
+                        && arg.containsKey(SNAPSHOT_GCP_IAM_ROLES.get(1))),
             eq(dataProject),
             eq(GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS));
   }

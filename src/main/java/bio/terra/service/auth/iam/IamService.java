@@ -27,6 +27,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
+import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 import org.broadinstitute.dsde.workbench.client.sam.model.UserIdInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -158,8 +159,16 @@ public class IamService {
    * @throws IamForbiddenException if NOT authorized
    */
   public void verifyResourceTypeAdminAuthorized(
-      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action) {
+      AuthenticatedUserRequest userReq,
+      IamResourceType iamResourceType,
+      IamAction action,
+      UUID id) {
     String userEmail = userReq.getEmail();
+    logger.info(
+        "Verifying resource type admin authorization: {} for resource type: {} and resource id: {}",
+        userEmail,
+        iamResourceType,
+        id);
     if (!isResourceTypeAdminAuthorized(userReq, iamResourceType, action)) {
       throw new IamForbiddenException(
           String.format(
@@ -569,5 +578,35 @@ public class IamService {
   public UserIdInfo getUserIds(String userEmail) {
     String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
     return callProvider(() -> iamProvider.getUserIds(tdrSaAccessToken, userEmail));
+  }
+
+  public void setResourceParent(
+      String accessToken,
+      IamResourceType childIamResourceType,
+      UUID childId,
+      IamResourceType parentIamResourceType,
+      UUID parentId) {
+    callProvider(
+        () ->
+            iamProvider.setResourceParent(
+                accessToken, childIamResourceType, childId, parentIamResourceType, parentId));
+  }
+
+  public FullyQualifiedResourceId getResourceParent(
+      String accessToken, IamResourceType childIamResourceType, UUID childId) {
+    return callProvider(
+        () -> iamProvider.getResourceParent(accessToken, childIamResourceType, childId));
+  }
+
+  public void deleteResourceParent(
+      String accessToken, IamResourceType childIamResourceType, UUID childId) {
+    callProvider(
+        () -> iamProvider.deleteResourceParent(accessToken, childIamResourceType, childId));
+  }
+
+  public List<FullyQualifiedResourceId> listResourceChildren(
+      String accessToken, IamResourceType parentIamResourceType, UUID parentId) {
+    return callProvider(
+        () -> iamProvider.listResourceChildren(accessToken, parentIamResourceType, parentId));
   }
 }

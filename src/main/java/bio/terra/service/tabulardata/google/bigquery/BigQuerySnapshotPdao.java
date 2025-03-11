@@ -801,6 +801,12 @@ public class BigQuerySnapshotPdao {
         BigQueryProject.from(snapshot), snapshot.getName(), policies);
   }
 
+  public void revokeReadAccessToSnapshot(Snapshot snapshot, Collection<String> policies)
+      throws InterruptedException {
+    BigQueryPdao.revokeReadAccessWorker(
+        BigQueryProject.from(snapshot), snapshot.getName(), policies);
+  }
+
   /*
    * WARNING: Ensure SQL is validated before executing this method!
    */

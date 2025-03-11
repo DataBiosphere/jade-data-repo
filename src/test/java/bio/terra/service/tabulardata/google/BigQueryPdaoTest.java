@@ -7,6 +7,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -83,7 +84,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -256,7 +256,7 @@ public class BigQueryPdaoTest {
     BigQueryProject bigQuerySnapshotProject =
         TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());
 
-    assertThat(snapshot.getTables().size(), is(equalTo(3)));
+    assertThat(snapshot.getTables(), hasSize(3));
     List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQuerySnapshotProject);
 
     assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample7"));
@@ -416,7 +416,7 @@ public class BigQueryPdaoTest {
 
     Snapshot snapshot = snapshotService.retrieve(snapshotSummary.getId());
     assertThat(snapshot.getName(), is(snapshotService.getSnapshotName(requestModel)));
-    assertThat(snapshot.getTables().size(), is(equalTo(3)));
+    assertThat(snapshot.getTables(), hasSize(3));
     BigQueryProject bigQuerySnapshotProject =
         TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());
     String rowId = "datarepo_row_id";
@@ -620,7 +620,7 @@ public class BigQueryPdaoTest {
       BigQueryProject bigQuerySnapshotProject =
           TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());
 
-      assertThat(snapshot.getTables().size(), is(equalTo(3)));
+      assertThat(snapshot.getTables(), hasSize(3));
       List<String> participantIds =
           queryForIds(snapshot.getName(), "participant", bigQuerySnapshotProject);
       List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQuerySnapshotProject);
@@ -634,7 +634,7 @@ public class BigQueryPdaoTest {
           sampleIds,
           containsInAnyOrder(
               "sample1", "sample2", "sample3", "sample4", "sample5", "sample6", "sample7"));
-      assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
+      assertThat(fileIds, contains("file1"));
     } finally {
       storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(), fileBlob.getBlobId());
     }

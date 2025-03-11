@@ -133,7 +133,7 @@ class JobsApiControllerTest {
     record ResultClass(String value) {}
     ResultClass result = new ResultClass("fooResult");
     when(jobService.retrieveJobResult(anyString(), any(), any()))
-        .thenReturn(new JobResultWithStatus<>().result(result).statusCode(HttpStatus.OK));
+        .thenReturn(JobResultWithStatus.of(HttpStatus.OK, result));
     mvc.perform(get(RETRIEVE_JOB_RESULT_ENDPOINT, JOB_2.getId()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.value").value("fooResult"));

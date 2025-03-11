@@ -76,8 +76,6 @@ public class ResourceServiceConnectedTest {
     projectService.deleteGoogleProject(projectResource.getId());
     project = resourceManagerService.getProject(projectId);
     assertThat(
-        "the project is not active after delete",
-        project.getLifecycleState(),
-        not(equalTo("ACTIVE")));
+        "the project is not active after delete", project.getLifecycleState(), not("ACTIVE"));
   }
 }

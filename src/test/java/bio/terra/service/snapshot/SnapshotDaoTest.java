@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.notNullValue;
@@ -48,11 +49,11 @@ import bio.terra.service.duos.DuosService;
 import bio.terra.service.filedata.DrsDao;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
-import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotUpdateException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +61,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -83,10 +83,6 @@ class SnapshotDaoTest {
 
   @Autowired private DatasetDao datasetDao;
 
-  @Autowired private ProfileDao profileDao;
-
-  @Autowired private GoogleResourceDao resourceDao;
-
   @Autowired private SnapshotService snapshotService;
 
   @Autowired private JsonLoader jsonLoader;
@@ -108,8 +104,6 @@ class SnapshotDaoTest {
   private SnapshotRequestModel snapshotRequest;
   private List<UUID> snapshotIds;
   private List<UUID> datasetIds;
-  private UUID profileId;
-  private UUID projectId;
   private UUID duosFirecloudGroupId;
   private String duosId;
 
@@ -120,8 +114,6 @@ class SnapshotDaoTest {
   void setup() throws Exception {
     dataset = daoOperations.createDataset("snapshot-test-dataset-with-multi-columns.json");
     datasetId = dataset.getId();
-    projectId = dataset.getProjectResourceId();
-    profileId = dataset.getDefaultProfileId();
 
     snapshotRequest =
         daoOperations.createSnapshotRequestFromDataset(dataset, "snapshot-test-snapshot.json");
@@ -140,21 +132,13 @@ class SnapshotDaoTest {
             .getId();
   }
 
-  @AfterEach
-  void teardown() {
-    if (snapshotIds != null) {
-      for (UUID id : snapshotIds) {
-        snapshotDao.delete(id);
-      }
-    }
-    datasetDao.delete(datasetId);
-    resourceDao.deleteProject(projectId);
-    profileDao.deleteBillingProfileById(profileId);
-    duosDao.deleteFirecloudGroup(duosFirecloudGroupId);
-  }
-
   private Snapshot createSnapshot(SnapshotRequestModel request) {
     Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(request, dataset);
+    return insertAndRetrieveSnapshot(snapshot);
+  }
+
+  private Snapshot createSnapshot(SnapshotRequestModel request, Dataset sourceDataset) {
+    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(request, sourceDataset);
     return insertAndRetrieveSnapshot(snapshot);
   }
 
@@ -997,9 +981,6 @@ class SnapshotDaoTest {
 
   @Test
   void getSnapshotIds() {
-    assertThat(
-        "No snapshots in DB yield an empty UUID list", snapshotDao.getSnapshotIds(), empty());
-
     String snapshotName = snapshotRequest.getName() + UUID.randomUUID();
     String flightId = "getSnapshotIds_flightId";
     for (int i = 0; i < 3; i++) {
@@ -1011,13 +992,13 @@ class SnapshotDaoTest {
     assertThat(
         "Locked snapshot UUIDs are returned",
         snapshotDao.getSnapshotIds(),
-        containsInAnyOrder(snapshotIds.toArray()));
+        hasItems(snapshotIds.toArray(new UUID[0])));
 
     snapshotIds.forEach(id -> snapshotDao.unlock(id, flightId));
     assertThat(
         "Unlocked snapshot UUIDs are returned",
         snapshotDao.getSnapshotIds(),
-        containsInAnyOrder(snapshotIds.toArray()));
+        hasItems(snapshotIds.toArray(new UUID[0])));
   }
 
   @Test
@@ -1096,5 +1077,42 @@ class SnapshotDaoTest {
   void testRetrieveSnapshotNotFound() {
     UUID snapshotId = UUID.randomUUID();
     assertThrows(SnapshotNotFoundException.class, () -> snapshotDao.retrieveSnapshot(snapshotId));
+  }
+
+  @Test
+  void getSnapshotGoogleProjectIds() {
+    List<Snapshot> snapshots = makeSnapshots(dataset);
+    assertThat(
+        snapshotDao.getSnapshotGoogleProjectIds(datasetId),
+        containsInAnyOrder(
+            snapshots.stream()
+                .map(Snapshot::getProjectResource)
+                .map(GoogleProjectResource::getGoogleProjectId)
+                .toArray()));
+  }
+
+  @Test
+  void getSnapshotIdsForDataset() throws IOException {
+    Dataset newDataset =
+        daoOperations.createDataset("snapshot-test-dataset-with-multi-columns.json");
+    List<Snapshot> snapshots = makeSnapshots(newDataset);
+    assertThat(
+        snapshotDao.getSnapshotIds(newDataset.getId()),
+        containsInAnyOrder(snapshots.stream().map(Snapshot::getId).toArray()));
+  }
+
+  private List<Snapshot> makeSnapshots(Dataset sourceDataset) {
+    String snapshotName = snapshotRequest.getName() + UUID.randomUUID();
+    return IntStream.range(0, 3)
+        .mapToObj(
+            i -> {
+              snapshotRequest
+                  .name(makeName(snapshotName, i))
+                  .profileId(sourceDataset.getDefaultProfileId());
+              snapshotRequest.getContents().get(0).datasetName(sourceDataset.getName());
+              return snapshotRequest;
+            })
+        .map(request -> createSnapshot(request, sourceDataset))
+        .toList();
   }
 }

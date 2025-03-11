@@ -63,13 +63,11 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -89,7 +87,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 @Tag(Unit.TAG)
 @EmbeddedDatabaseTest
 class DatasetServiceTest {
-  private AuthenticatedUserRequest testUser =
+  private final AuthenticatedUserRequest testUser =
       AuthenticatedUserRequest.builder()
           .setSubjectId("DatasetUnit")
           .setEmail("dataset@unit.com")
@@ -125,7 +123,6 @@ class DatasetServiceTest {
 
   private BillingProfileModel billingProfile;
   private UUID projectId;
-  private ArrayList<UUID> datasetIdList;
 
   private UUID createDataset(DatasetRequestModel datasetRequest, String newName)
       throws IOException {
@@ -139,7 +136,6 @@ class DatasetServiceTest {
     dataset.id(datasetId);
     datasetDao.createAndLock(dataset, createFlightId);
     datasetDao.unlockExclusive(datasetId, createFlightId);
-    datasetIdList.add(datasetId);
     return datasetId;
   }
 
@@ -151,9 +147,7 @@ class DatasetServiceTest {
     DatasetRequestModel datasetRequest =
         jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
     datasetRequest.setCloudPlatform(platform);
-    UUID datasetId = createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID());
-    datasetIdList.add(datasetId);
-    return datasetId;
+    return createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID());
   }
 
   @BeforeEach
@@ -166,16 +160,6 @@ class DatasetServiceTest {
 
     // Setup mock sam service
     connectedOperations.stubOutSamCalls(samService);
-    datasetIdList = new ArrayList<>();
-  }
-
-  @AfterEach
-  void teardown() {
-    for (UUID datasetId : datasetIdList) {
-      datasetDao.delete(datasetId);
-    }
-    resourceDao.deleteProject(projectId);
-    profileDao.deleteBillingProfileById(billingProfile.getId());
   }
 
   @Test

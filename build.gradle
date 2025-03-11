@@ -29,11 +29,11 @@ buildscript {
 plugins {
     // This is set back to 3.4.2 because of: https://github.com/GoogleContainerTools/jib/issues/4265
     id 'com.google.cloud.tools.jib' version '3.4.2'
-    id 'org.liquibase.gradle' version '3.0.1'
+    id 'org.liquibase.gradle' version '3.0.2'
     id 'org.gradle.test-retry' version '1.6.2'
     id 'antlr'
     id 'org.hidetake.swagger.generator' version '2.19.2'
-    id 'org.springframework.boot' version '3.4.2'
+    id 'org.springframework.boot' version '3.4.3'
     id 'idea'
     id 'java'
     id 'io.spring.dependency-management' version '1.1.7'
@@ -50,7 +50,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '2.234.0-SNAPSHOT'
+    version '2.249.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -164,14 +164,14 @@ dependencies {
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
 
-    implementation platform('com.google.cloud:libraries-bom:26.54.0')
+    implementation platform('com.google.cloud:libraries-bom:26.55.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
     implementation 'com.google.cloud:google-cloud-bigquery'
     implementation 'com.google.cloud:google-cloud-storage'
     implementation 'com.google.cloud:google-cloud-firestore'
     implementation 'com.google.cloud:google-cloud-pubsub'
-    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:6.0.0'
+    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:6.0.1'
     implementation 'com.google.http-client:google-http-client'
 
     implementation 'org.apache.commons:commons-compress:1.27.1' // For srcclr, jib plugin conflict
@@ -208,7 +208,7 @@ dependencies {
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.241'
     implementation 'bio.terra:terra-policy-client:1.0.17-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'
-    implementation 'bio.terra:externalcreds-client-resttemplate:1.68.0-SNAPSHOT'
+    implementation 'bio.terra:externalcreds-client-resttemplate:1.79.0-SNAPSHOT'
 
     implementation 'org.glassfish.jersey.inject:jersey-hk2'
 
@@ -222,20 +222,20 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     // Azure related dependencies
-    implementation 'com.azure:azure-identity:1.15.2'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.47.0'
+    implementation 'com.azure:azure-identity:1.15.3'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.48.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'
     implementation 'com.azure:azure-storage-common:12.28.0'
     implementation 'com.azure:azure-storage-file-datalake:12.22.0'
-    implementation 'com.azure:azure-data-tables:12.5.0'
+    implementation 'com.azure:azure-data-tables:12.5.2'
 
-    implementation platform('io.sentry:sentry-bom:8.2.0') //import bom
+    implementation platform('io.sentry:sentry-bom:8.3.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')
     implementation('io.sentry:sentry-logback')
 
     // OpenTelemetry @WithSpan annotations:
-    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.13.0'
+    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.13.3'
 
     testImplementation 'org.apache.parquet:parquet-common:1.15.0'
     testImplementation 'org.apache.parquet:parquet-hadoop:1.15.0'
@@ -257,9 +257,6 @@ dependencies {
         exclude group: 'org.slf4j', module: 'slf4j-reload4j'
     }
 
-    testImplementation 'au.com.dius.pact.provider:junit5:4.6.17'
-    testImplementation 'au.com.dius.pact.provider:junit5spring:4.6.17'
-
     antlr 'org.antlr:antlr4:4.13.2'
 
     liquibaseRuntime 'org.liquibase:liquibase-core'
@@ -270,14 +267,15 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'io.zonky.test:embedded-database-spring-test:2.6.0'
     testImplementation 'io.zonky.test:embedded-postgres:2.1.0'
-    implementation enforcedPlatform('io.zonky.test.postgres:embedded-postgres-binaries-bom:16.6.0')
+    implementation enforcedPlatform('io.zonky.test.postgres:embedded-postgres-binaries-bom:16.8.0')
 
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'
     // boot-starter-validation required for jakarta.validation.Valid references, @Valid tags
     generatedCompile 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.webjars:webjars-locator-core'
-    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.18.3'
+    // NOTE: If this version is changed, the version in WebConfig.addResourceHandlers must be updated as well.
+    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.20.0'
     generatedCompile 'io.swagger.core.v3:swagger-annotations'
 
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
@@ -511,28 +509,6 @@ tasks.register('testAll', Test) {
         includeTags 'bio.terra.common.category.Connected', 'bio.terra.common.category.Unit'
     }
     outputs.upToDateWhen { false }
-}
-
-tasks.register('verifyPacts', Test) {
-    useJUnitPlatform {
-        includeTags 'bio.terra.common.category.Pact'
-    }
-    testLogging {
-        events = ["passed", "failed", "skipped", "started", "standard_out"]
-    }
-    outputs.upToDateWhen { false }
-    if (isCiServer) {
-        systemProperty 'pact.verifier.publishResults', true
-    }
-    // to run a local pactbroker, see:
-    // https://broadworkbench.atlassian.net/wiki/spaces/IRT/pages/2829680649/Contract+Test+Local+Development
-    if (System.getenv().containsKey('PACT_BROKER_URL')) {
-        systemProperty 'pactbroker.url', System.getenv('PACT_BROKER_URL')
-    }
-    systemProperty 'pactbroker.auth.username', System.getenv('PACT_BROKER_USERNAME')
-    systemProperty 'pactbroker.auth.password', System.getenv('PACT_BROKER_PASSWORD')
-    systemProperty 'pact.provider.version', System.getenv('PACT_PROVIDER_VERSION')
-    systemProperty 'pact.provider.branch', System.getenv('PACT_PROVIDER_BRANCH')
 }
 
 compileGeneratedJava.dependsOn swaggerSources.server.code

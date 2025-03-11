@@ -120,14 +120,14 @@ class GoogleResourceDaoUnitTest {
     assertThat(
         "Dedicated service account is detected",
         googleResourceDao.retrieveProjectById(projectId1).hasDedicatedServiceAccount());
-    assertThat(
-        "Unaltered project still uses the general TDR SA",
-        !googleResourceDao.retrieveProjectById(projectId2).hasDedicatedServiceAccount());
+    assertFalse(
+        googleResourceDao.retrieveProjectById(projectId2).hasDedicatedServiceAccount(),
+        "Unaltered project still uses the general TDR SA");
 
     googleResourceDao.updateProjectResourceServiceAccount(projectId1, TDR_SERVICE_ACCOUNT_EMAIL);
-    assertThat(
-        "Project explicitly using general TDR SA is registered as such",
-        !googleResourceDao.retrieveProjectById(projectId1).hasDedicatedServiceAccount());
+    assertFalse(
+        googleResourceDao.retrieveProjectById(projectId1).hasDedicatedServiceAccount(),
+        "Project explicitly using general TDR SA is registered as such");
   }
 
   @Test

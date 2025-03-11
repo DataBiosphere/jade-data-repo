@@ -289,10 +289,9 @@ class JobServiceTest {
   }
 
   private void testResultRetrieval(JobModel job) {
-    JobService.JobResultWithStatus<String> resultHolder =
-        jobService.retrieveJobResult(job.getId(), String.class, null);
-    assertThat(resultHolder.getStatusCode(), is(equalTo(HttpStatus.I_AM_A_TEAPOT)));
-    assertThat(resultHolder.getResult(), is(equalTo(job.getDescription())));
+    var resultHolder = jobService.retrieveJobResult(job.getId(), String.class, null);
+    assertThat(resultHolder.statusCode(), is(HttpStatus.I_AM_A_TEAPOT));
+    assertThat(resultHolder.result(), is(job.getDescription()));
   }
 
   @Test
@@ -316,6 +315,7 @@ class JobServiceTest {
     return samePropertyValuesAs(jobModel, "submitted", "completed");
   }
 
+  @SuppressWarnings("unchecked")
   private Matcher<JobModel>[] getJobMatchers(List<JobModel> jobModels) {
     return jobModels.stream().map(this::getJobMatcher).toArray(Matcher[]::new);
   }
@@ -426,12 +426,12 @@ class JobServiceTest {
     return jobService.retrieveJob(completedJobId, testUser);
   }
 
-  private String makeDescription(int i) {
-    return String.format("flight%d", i);
+  private String makeDescription(int ii) {
+    return String.format("flight%d", ii);
   }
 
-  private Class<? extends Flight> makeFlightClass(int i) {
-    return i % 2 == 0 ? JobServiceTestFlight.class : JobServiceTestFlightAlt.class;
+  private Class<? extends Flight> makeFlightClass(int ii) {
+    return ii % 2 == 0 ? JobServiceTestFlight.class : JobServiceTestFlightAlt.class;
   }
 
   /**

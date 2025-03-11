@@ -213,7 +213,7 @@ public class GcsPdaoTest {
       assertThat(
           "times between copies is different since file was deleted",
           gcsPdao.copyFile(dataset, fileLoadModel, fileId, targetBucket).getCreatedDate(),
-          not(equalTo(initialTime)));
+          not(initialTime));
     } catch (InterruptedException e) {
       storage.delete(sourceBlob);
     } finally {

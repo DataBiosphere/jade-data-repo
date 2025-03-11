@@ -15,6 +15,8 @@ public class WebConfig implements WebMvcConfigurer {
   @Autowired private LoggerInterceptor loggerInterceptor;
   @Autowired private UserMetricsInterceptor metricsInterceptor;
 
+  public static final String SWAGGER_UI_VERSION = "5.20.0";
+
   @Override
   public void addInterceptors(InterceptorRegistry registry) {
     registry.addInterceptor(loggerInterceptor);
@@ -36,6 +38,8 @@ public class WebConfig implements WebMvcConfigurer {
   public void addResourceHandlers(ResourceHandlerRegistry registry) {
     registry
         .addResourceHandler("/webjars/swagger-ui-dist/**")
-        .addResourceLocations("classpath:/META-INF/resources/webjars/swagger-ui-dist/5.18.3/");
+        .addResourceLocations(
+            String.format(
+                "classpath:/META-INF/resources/webjars/swagger-ui-dist/%s/", SWAGGER_UI_VERSION));
   }
 }

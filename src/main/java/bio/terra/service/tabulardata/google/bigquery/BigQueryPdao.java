@@ -33,25 +33,33 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
 
-public abstract class BigQueryPdao {
+public enum BigQueryPdao {
+  ;
   private static final Logger logger = LoggerFactory.getLogger(BigQueryPdao.class);
+
+  private static List<Acl> emailsToReaderAcls(Collection<String> policyGroupEmails) {
+    return policyGroupEmails.stream()
+        .map(email -> Acl.of(new Acl.Group(email), Acl.Role.READER))
+        .toList();
+  }
 
   static void grantReadAccessWorker(
       BigQueryProject bigQueryProject, String name, Collection<String> policyGroupEmails)
       throws InterruptedException {
-    List<Acl> policyGroupAcls =
-        policyGroupEmails.stream()
-            .map(email -> Acl.of(new Acl.Group(email), Acl.Role.READER))
-            .collect(Collectors.toList());
-    bigQueryProject.addDatasetAcls(name, policyGroupAcls);
+    bigQueryProject.addDatasetAcls(name, emailsToReaderAcls(policyGroupEmails));
   }
 
-  private static final String selectHasDuplicateStagingIdsTemplate =
+  static void revokeReadAccessWorker(
+      BigQueryProject bigQueryProject, String name, Collection<String> policyGroupEmails)
+      throws InterruptedException {
+    bigQueryProject.removeDatasetAcls(name, emailsToReaderAcls(policyGroupEmails));
+  }
+
+  private static final String SELECT_HAS_DUPLICATE_STAGING_IDS_TEMPLATE =
       "SELECT <pkColumns:{c|<c.name>}; separator=\",\">,COUNT(*) AS <count> "
           + "FROM `<project>.<dataset>.<tableName>` "
           + "GROUP BY <pkColumns:{c|<c.name>}; separator=\",\"> "
@@ -69,7 +77,7 @@ public abstract class BigQueryPdao {
     String bqDatasetName = prefixContainerName(container);
 
     ST sqlTemplate =
-        new ST(selectHasDuplicateStagingIdsTemplate)
+        new ST(SELECT_HAS_DUPLICATE_STAGING_IDS_TEMPLATE)
             .add("count", PDAO_COUNT_ALIAS)
             .add("project", bigQueryProject.getProjectId())
             .add("dataset", bqDatasetName)
@@ -195,7 +203,7 @@ public abstract class BigQueryPdao {
       SqlSortDirection direction,
       String filter)
       throws InterruptedException {
-    boolean isDataset = tdrResource.getCollectionType().equals(CollectionType.DATASET);
+    boolean isDataset = tdrResource.getCollectionType() == CollectionType.DATASET;
 
     String columns = String.join(",", columnNames);
     // Parse before querying because the where clause is user-provided
@@ -263,7 +271,7 @@ public abstract class BigQueryPdao {
                         value =
                             fieldValue.getRepeatedValue().stream()
                                 .map(FieldValue::getValue)
-                                .collect(Collectors.toList());
+                                .toList();
                       } else {
                         value = fieldValue.getValue();
                       }
@@ -330,9 +338,7 @@ public abstract class BigQueryPdao {
             rows -> {
               ColumnStatisticsTextValue val = new ColumnStatisticsTextValue();
               FieldValue fieldValue = rows.get(column);
-              // getStringValue() throws NPE if value of field is null; getValue() does not
-              Object rowValue = fieldValue.getValue();
-              val.value(rowValue != null ? fieldValue.getStringValue() : null);
+              val.value(fieldValue.getStringValueOrDefault(null));
               val.count((int) (rows.get(PDAO_COUNT_COLUMN_NAME).getLongValue()));
               values.add(val);
             });

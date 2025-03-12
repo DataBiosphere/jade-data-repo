@@ -22,7 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-class SetAuthBqJobUserStepTest {
+class SetAuthGcpUserRolesStepTest {
 
   @Mock private ResourceService resourceService;
   @Mock private FlightContext flightContext;
@@ -35,15 +35,16 @@ class SetAuthBqJobUserStepTest {
 
   private void verifySetAuth(DoOrUndo doOrUndo, boolean grantPolicy) throws Exception {
     var projectIds = Arrays.asList("project1", "project2");
+    var emails = List.of(custodianEmail);
     FlightMap workingMap = new FlightMap();
     workingMap.put(DatasetWorkingMapKeys.SNAPSHOT_GOOGLE_PROJECT_IDS, projectIds);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     assertThat(doOrUndo.apply(flightContext), is(StepResult.getStepResultSuccess()));
     for (var projectId : projectIds) {
       if (grantPolicy) {
-        verify(resourceService).grantPoliciesBqJobUser(projectId, List.of(custodianEmail));
+        verify(resourceService).assignRolesForSnapshot(projectId, emails);
       } else {
-        verify(resourceService).revokePoliciesBqJobUser(projectId, List.of(custodianEmail));
+        verify(resourceService).revokeRolesForSnapshot(projectId, emails);
       }
     }
   }
@@ -51,8 +52,8 @@ class SetAuthBqJobUserStepTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void doStep(boolean inheritSteward) throws Exception {
-    SetAuthBqJobUserStep step =
-        new SetAuthBqJobUserStep(resourceService, custodianEmail, inheritSteward);
+    SetAuthGcpUserRolesStep step =
+        new SetAuthGcpUserRolesStep(resourceService, custodianEmail, inheritSteward);
     verifySetAuth(step::doStep, inheritSteward);
     verifySetAuth(step::undoStep, !inheritSteward);
   }

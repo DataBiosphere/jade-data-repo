@@ -1,10 +1,14 @@
 package bio.terra.service.resourcemanagement.google;
 
+import static bio.terra.service.resourcemanagement.ResourceService.SNAPSHOT_GCP_IAM_ROLES;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.SamConfiguration;
@@ -40,7 +44,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-class ResourceServiceUnitTest {
+class ResourceServiceTest {
 
   private ResourceService resourceService;
 
@@ -51,6 +55,8 @@ class ResourceServiceUnitTest {
   @Mock private DatasetStorageAccountDao datasetStorageAccountDao;
 
   @Mock private AzureApplicationDeploymentService applicationDeploymentService;
+
+  @Mock private GoogleResourceManagerService resourceManagerService;
 
   private final UUID billingProfileId = UUID.randomUUID();
 
@@ -100,7 +106,7 @@ class ResourceServiceUnitTest {
             mock(SamConfiguration.class),
             datasetStorageAccountDao,
             mock(SnapshotStorageAccountDao.class),
-            mock(GoogleResourceManagerService.class),
+            resourceManagerService,
             mock(AzureContainerPdao.class),
             mock(ProfileDao.class));
   }
@@ -133,5 +139,41 @@ class ResourceServiceUnitTest {
     AzureStorageAccountResource createdStorageAccount =
         resourceService.getOrCreateDatasetStorageAccount(dataset, profileModel, "flightId");
     assertThat(createdStorageAccount, is(storageAccountResource));
+  }
+
+  @Test
+  void assignRolesForSnapshot() throws InterruptedException {
+    String dataProject = "test-project";
+    List<String> policyEmails = List.of("test-email@example.com");
+
+    resourceService.assignRolesForSnapshot(dataProject, policyEmails);
+
+    // Verify that the IAM permissions were updated
+    verify(resourceManagerService)
+        .updateIamPermissions(
+            argThat(
+                arg ->
+                    arg.containsKey(SNAPSHOT_GCP_IAM_ROLES.get(0))
+                        && arg.containsKey(SNAPSHOT_GCP_IAM_ROLES.get(1))),
+            eq(dataProject),
+            eq(GoogleProjectService.PermissionOp.ENABLE_PERMISSIONS));
+  }
+
+  @Test
+  void revokeRolesForSnapshot() throws InterruptedException {
+    String dataProject = "test-project";
+    List<String> policyEmails = List.of("test-email@example.com");
+
+    resourceService.revokeRolesForSnapshot(dataProject, policyEmails);
+
+    // Verify that the IAM permissions were updated
+    verify(resourceManagerService)
+        .updateIamPermissions(
+            argThat(
+                arg ->
+                    arg.containsKey(SNAPSHOT_GCP_IAM_ROLES.get(0))
+                        && arg.containsKey(SNAPSHOT_GCP_IAM_ROLES.get(1))),
+            eq(dataProject),
+            eq(GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS));
   }
 }

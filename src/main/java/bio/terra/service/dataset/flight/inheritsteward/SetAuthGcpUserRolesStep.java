@@ -11,7 +11,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import java.util.Objects;
 
-public record SetAuthBqJobUserStep(
+public record SetAuthGcpUserRolesStep(
     ResourceService resourceService, String custodianEmail, boolean inheritSteward)
     implements Step {
 
@@ -22,9 +22,9 @@ public record SetAuthBqJobUserStep(
         workingMap.get(DatasetWorkingMapKeys.SNAPSHOT_GOOGLE_PROJECT_IDS, new TypeReference<>() {});
     for (var projectId : Objects.requireNonNull(projectIds)) {
       if (inheritSteward) {
-        resourceService.grantPoliciesBqJobUser(projectId, List.of(custodianEmail));
+        resourceService.assignRolesForSnapshot(projectId, List.of(custodianEmail));
       } else {
-        resourceService.revokePoliciesBqJobUser(projectId, List.of(custodianEmail));
+        resourceService.revokeRolesForSnapshot(projectId, List.of(custodianEmail));
       }
     }
     return StepResult.getStepResultSuccess();

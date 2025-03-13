@@ -83,7 +83,8 @@ class EnableInheritStewardFlightTest {
             "GetSnapshotGoogleProjectIdsStep",
             "SetAuthGcpUserRolesStep",
             "SetAuthTabularAclStep",
-            "UnlockDatasetStep"));
+            "UnlockDatasetStep",
+            "JournalRecordUpdateEntryStep"));
   }
 
   @Test

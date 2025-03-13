@@ -7,6 +7,7 @@ import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
@@ -66,6 +67,11 @@ public class SnapshotAuthzIamStep implements Step {
     Map<IamRole, String> policies =
         sam.createSnapshotResource(userReq, snapshotId, parentDatasetId, derivedPolicies);
     workingMap.put(SnapshotWorkingMapKeys.POLICY_MAP, policies);
+    if (sourceDataset.isInheritSteward()) {
+      var datasetPolicyMap =
+          sam.retrievePolicyEmails(userReq, IamResourceType.DATASET, sourceDataset.getId());
+      workingMap.put(SnapshotWorkingMapKeys.SOURCE_DATASET_POLICY_MAP, datasetPolicyMap);
+    }
     return StepResult.getStepResultSuccess();
   }
 

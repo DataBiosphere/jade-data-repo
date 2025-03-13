@@ -1,9 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
-import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.SnapshotService;
@@ -20,22 +17,16 @@ import java.util.Map;
 public class SnapshotAuthzBqJobUserStep implements Step {
   private final SnapshotService snapshotService;
   private final ResourceService resourceService;
-  private final IamService sam;
-  private final AuthenticatedUserRequest request;
   private final String snapshotName;
   private final Dataset sourceDataset;
 
   public SnapshotAuthzBqJobUserStep(
       SnapshotService snapshotService,
       ResourceService resourceService,
-      IamService sam,
-      AuthenticatedUserRequest request,
       String snapshotName,
       Dataset sourceDataset) {
     this.snapshotService = snapshotService;
     this.resourceService = resourceService;
-    this.sam = sam;
-    this.request = request;
     this.snapshotName = snapshotName;
     this.sourceDataset = sourceDataset;
   }
@@ -54,10 +45,11 @@ public class SnapshotAuthzBqJobUserStep implements Step {
         new ArrayList<>(List.of(policyMap.get(IamRole.STEWARD), policyMap.get(IamRole.READER)));
 
     if (sourceDataset.isInheritSteward()) {
-      var datasetPolicyMap =
-          sam.retrievePolicyEmails(request, IamResourceType.DATASET, sourceDataset.getId());
+      Map<IamRole, String> sourceDatasetPolicyMap =
+          workingMap.get(
+              SnapshotWorkingMapKeys.SOURCE_DATASET_POLICY_MAP, new TypeReference<>() {});
       // Allow the custodian to make queries in this project.
-      policyEmails.add(datasetPolicyMap.get(IamRole.CUSTODIAN));
+      policyEmails.add(sourceDatasetPolicyMap.get(IamRole.CUSTODIAN));
     }
     // The underlying service provides retries so we do not need to retry this operation
     resourceService.grantPoliciesBqJobUser(googleProjectId, policyEmails);

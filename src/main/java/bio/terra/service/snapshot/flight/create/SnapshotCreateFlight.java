@@ -369,10 +369,14 @@ public class SnapshotCreateFlight extends Flight {
 
       addStep(
           new SnapshotAuthzBqJobUserStep(
-              snapshotService, resourceService, iamService, userReq, snapshotName, sourceDataset));
+              snapshotService, resourceService, snapshotName, sourceDataset));
       addStep(
           new SnapshotAuthzServiceAccountConsumerStep(
-              snapshotService, resourceService, snapshotName, tdrServiceAccountEmail));
+              snapshotService,
+              resourceService,
+              snapshotName,
+              tdrServiceAccountEmail,
+              sourceDataset));
       // Record the Drs IDs if this is a global file id snapshot
       if (snapshotReq.isGlobalFileIds()) {
         addStep(

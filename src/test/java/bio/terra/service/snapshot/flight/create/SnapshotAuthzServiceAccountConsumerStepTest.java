@@ -5,11 +5,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.auth.iam.IamRole;
@@ -20,6 +16,7 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -37,7 +34,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-class SnapshotAuthzBqJobUserStepTest {
+class SnapshotAuthzServiceAccountConsumerStepTest {
   @Mock private SnapshotService snapshotService;
   @Mock private ResourceService resourceService;
   @Mock private IamService iamService;
@@ -45,12 +42,21 @@ class SnapshotAuthzBqJobUserStepTest {
 
   private static final String SNAPSHOT_NAME = "snapshotName";
   private static final String GOOGLE_PROJECT_ID = "google project id";
+  private static final String TDR_SERVICE_ACCOUNT_EMAIL = "tdr-service-account-email";
   private static final Snapshot SNAPSHOT =
       new Snapshot()
+          .snapshotSources(
+              List.of(
+                  new SnapshotSource()
+                      .dataset(
+                          new Dataset()
+                              .projectResource(
+                                  new GoogleProjectResource()
+                                      .serviceAccount(TDR_SERVICE_ACCOUNT_EMAIL)))))
           .projectResource(new GoogleProjectResource().googleProjectId(GOOGLE_PROJECT_ID));
 
   private final List<String> addedEmails = new ArrayList<>();
-  private SnapshotAuthzBqJobUserStep step;
+  private SnapshotAuthzServiceAccountConsumerStep step;
 
   @BeforeEach
   void beforeEach() throws Exception {
@@ -74,16 +80,49 @@ class SnapshotAuthzBqJobUserStepTest {
               return null;
             })
         .when(resourceService)
-        .grantPoliciesBqJobUser(eq(GOOGLE_PROJECT_ID), anyList());
+        .grantPoliciesServiceUsageConsumer(eq(GOOGLE_PROJECT_ID), anyList());
   }
 
   @Test
   void doStep() throws Exception {
     step =
-        new SnapshotAuthzBqJobUserStep(
-            snapshotService, resourceService, SNAPSHOT_NAME, new Dataset());
+        new SnapshotAuthzServiceAccountConsumerStep(
+            snapshotService,
+            resourceService,
+            SNAPSHOT_NAME,
+            TDR_SERVICE_ACCOUNT_EMAIL,
+            new Dataset());
     assertThat(step.doStep(flightContext), is(StepResult.getStepResultSuccess()));
+
     assertThat(addedEmails, containsInAnyOrder("steward", "reader"));
+    verifyNoMoreInteractions(resourceService);
+    verifyNoInteractions(iamService);
+  }
+
+  @Test
+  void doStepAddServiceAccount() throws Exception {
+    var DEDICATED_SERVICE_ACCOUNT_EMAIL = "different";
+    var SNAPSHOT_DEDICATED_SA =
+        SNAPSHOT.snapshotSources(
+            List.of(
+                new SnapshotSource()
+                    .dataset(
+                        new Dataset()
+                            .projectResource(
+                                new GoogleProjectResource()
+                                    .serviceAccount(DEDICATED_SERVICE_ACCOUNT_EMAIL)))));
+    when(snapshotService.retrieveByName(SNAPSHOT_NAME)).thenReturn(SNAPSHOT_DEDICATED_SA);
+    step =
+        new SnapshotAuthzServiceAccountConsumerStep(
+            snapshotService,
+            resourceService,
+            SNAPSHOT_NAME,
+            TDR_SERVICE_ACCOUNT_EMAIL,
+            new Dataset());
+    assertThat(step.doStep(flightContext), is(StepResult.getStepResultSuccess()));
+
+    assertThat(
+        addedEmails, containsInAnyOrder("steward", "reader", DEDICATED_SERVICE_ACCOUNT_EMAIL));
     verifyNoMoreInteractions(resourceService);
     verifyNoInteractions(iamService);
   }
@@ -93,18 +132,26 @@ class SnapshotAuthzBqJobUserStepTest {
     var sourceDataset =
         new Dataset(new DatasetSummary().inheritSteward(true)).id(UUID.randomUUID());
     step =
-        new SnapshotAuthzBqJobUserStep(
-            snapshotService, resourceService, SNAPSHOT_NAME, sourceDataset);
+        new SnapshotAuthzServiceAccountConsumerStep(
+            snapshotService,
+            resourceService,
+            SNAPSHOT_NAME,
+            TDR_SERVICE_ACCOUNT_EMAIL,
+            sourceDataset);
     assertThat(step.doStep(flightContext), is(StepResult.getStepResultSuccess()));
     assertThat(addedEmails, containsInAnyOrder("steward", "reader", "custodian"));
   }
 
   @Test
-  void undoStep() {
+  void undoStep() throws InterruptedException {
     reset(snapshotService, flightContext, resourceService);
     step =
-        new SnapshotAuthzBqJobUserStep(
-            snapshotService, resourceService, SNAPSHOT_NAME, new Dataset());
+        new SnapshotAuthzServiceAccountConsumerStep(
+            snapshotService,
+            resourceService,
+            SNAPSHOT_NAME,
+            TDR_SERVICE_ACCOUNT_EMAIL,
+            new Dataset());
     assertThat(step.undoStep(flightContext), is(StepResult.getStepResultSuccess()));
     verifyNoInteractions(snapshotService, resourceService, iamService, flightContext);
   }

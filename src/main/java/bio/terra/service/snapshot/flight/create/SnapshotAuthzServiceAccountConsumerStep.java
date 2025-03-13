@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.service.auth.iam.IamRole;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -19,16 +20,19 @@ public class SnapshotAuthzServiceAccountConsumerStep implements Step {
   private final ResourceService resourceService;
   private final String snapshotName;
   private final String tdrServiceAccountEmail;
+  private final Dataset sourceDataset;
 
   public SnapshotAuthzServiceAccountConsumerStep(
       SnapshotService snapshotService,
       ResourceService resourceService,
       String snapshotName,
-      String tdrServiceAccountEmail) {
+      String tdrServiceAccountEmail,
+      Dataset sourceDataset) {
     this.snapshotService = snapshotService;
     this.resourceService = resourceService;
     this.snapshotName = snapshotName;
     this.tdrServiceAccountEmail = tdrServiceAccountEmail;
+    this.sourceDataset = sourceDataset;
   }
 
   @Override
@@ -50,6 +54,14 @@ public class SnapshotAuthzServiceAccountConsumerStep implements Step {
         .getServiceAccount()
         .equals(tdrServiceAccountEmail)) {
       principalsToAdd.add(snapshot.getSourceDataset().getProjectResource().getServiceAccount());
+    }
+
+    if (sourceDataset.isInheritSteward()) {
+      Map<IamRole, String> sourceDatasetPolicyMap =
+          workingMap.get(
+              SnapshotWorkingMapKeys.SOURCE_DATASET_POLICY_MAP, new TypeReference<>() {});
+      // Allow the custodian to make queries in this project.
+      principalsToAdd.add(sourceDatasetPolicyMap.get(IamRole.CUSTODIAN));
     }
     resourceService.grantPoliciesServiceUsageConsumer(
         snapshot.getProjectResource().getGoogleProjectId(), principalsToAdd);

@@ -534,6 +534,7 @@ public class SamIam implements IamProviderInterface {
               entry ->
                   new SamPolicyModel()
                       .name(entry.getPolicyName())
+                      .email(entry.getEmail())
                       .members(entry.getPolicy().getMemberEmails())
                       .memberPolicies(
                           Optional.ofNullable(entry.getPolicy().getMemberPolicies())
@@ -546,8 +547,8 @@ public class SamIam implements IamProviderInterface {
                                           .policyEmail(pid.getPolicyEmail())
                                           .resourceId(UUID.fromString(pid.getResourceId()))
                                           .resourceTypeName(pid.getResourceTypeName()))
-                              .collect(Collectors.toList())))
-          .collect(Collectors.toList());
+                              .toList()))
+          .toList();
     }
   }
 
@@ -555,23 +556,9 @@ public class SamIam implements IamProviderInterface {
   public Map<IamRole, String> retrievePolicyEmails(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws InterruptedException {
-    return SamRetry.retry(
-        configurationService,
-        () -> retrievePolicyEmailsInner(userReq, iamResourceType, resourceId));
-  }
-
-  private Map<IamRole, String> retrievePolicyEmailsInner(
-      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
-      throws ApiException {
-    ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
-    try (Stream<AccessPolicyResponseEntryV2> resultStream =
-        samResourceApi
-            .listResourcePoliciesV2(iamResourceType.toString(), resourceId.toString())
-            .stream()) {
-      return resultStream.collect(
-          Collectors.toMap(
-              a -> IamRole.fromValue(a.getPolicyName()), AccessPolicyResponseEntryV2::getEmail));
-    }
+    var policies = retrievePolicies(userReq, iamResourceType, resourceId);
+    return policies.stream()
+        .collect(Collectors.toMap(p -> IamRole.fromValue(p.getName()), SamPolicyModel::getEmail));
   }
 
   @Override
@@ -590,7 +577,7 @@ public class SamIam implements IamProviderInterface {
         () -> retrievePolicy(userReq, iamResourceType, resourceId, policyName));
   }
 
-  private void addPolicyMemberInner(
+  private void  addPolicyMemberInner(
       AuthenticatedUserRequest userReq,
       IamResourceType iamResourceType,
       UUID resourceId,

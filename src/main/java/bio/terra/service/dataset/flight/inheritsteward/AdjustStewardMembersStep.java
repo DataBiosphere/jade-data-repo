@@ -16,7 +16,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-public record AdjustStewardMembersStep(AuthenticatedUserRequest userReq, IamService iamService, boolean inheritSteward) implements Step {
+public record AdjustStewardMembersStep(
+    AuthenticatedUserRequest userReq, IamService iamService, boolean inheritSteward)
+    implements Step {
 
   interface AddRemoveApi {
     PolicyModel addRemoveMember(
@@ -29,18 +31,18 @@ public record AdjustStewardMembersStep(AuthenticatedUserRequest userReq, IamServ
 
   private void addRemoveStewardMembers(FlightContext context, boolean inheritSteward) {
     FlightMap workingMap = context.getWorkingMap();
-    List<UUID> snapshotIds = Objects.requireNonNull(workingMap.get(DatasetWorkingMapKeys.SNAPSHOT_IDS, List.class));
+    List<UUID> snapshotIds =
+        Objects.requireNonNull(workingMap.get(DatasetWorkingMapKeys.SNAPSHOT_IDS, List.class));
     FlightMap inputParams = context.getInputParameters();
-    List<String> custodians = Objects.requireNonNull(inputParams.get(JobMapKeys.CUSTODIAN_USERS.getKeyName(), List.class));
-    AddRemoveApi api = inheritSteward ? iamService::addPolicyMember : iamService::deletePolicyMember;
+    List<String> custodians =
+        Objects.requireNonNull(
+            inputParams.get(JobMapKeys.CUSTODIAN_USERS.getKeyName(), List.class));
+    AddRemoveApi api =
+        inheritSteward ? iamService::addPolicyMember : iamService::deletePolicyMember;
     for (var snapshotId : snapshotIds) {
       for (var email : custodians) {
         api.addRemoveMember(
-            userReq,
-            IamResourceType.DATASNAPSHOT,
-            snapshotId,
-            IamRole.CUSTODIAN.toString(),
-            email);
+            userReq, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.CUSTODIAN.toString(), email);
       }
     }
   }

@@ -577,7 +577,7 @@ public class SamIam implements IamProviderInterface {
         () -> retrievePolicy(userReq, iamResourceType, resourceId, policyName));
   }
 
-  private void  addPolicyMemberInner(
+  private void addPolicyMemberInner(
       AuthenticatedUserRequest userReq,
       IamResourceType iamResourceType,
       UUID resourceId,

@@ -2,7 +2,6 @@ package bio.terra.service.auth.iam;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetRequestModelPolicies;
-import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
@@ -198,19 +197,19 @@ public interface IamProviderInterface {
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws InterruptedException;
 
-  PolicyModel addPolicyMember(
+  void addPolicyMember(
       AuthenticatedUserRequest userReq,
       IamResourceType iamResourceType,
       UUID resourceId,
-      String policyName,
+      IamRole policy,
       String userEmail)
       throws InterruptedException;
 
-  PolicyModel deletePolicyMember(
+  void deletePolicyMember(
       AuthenticatedUserRequest userReq,
       IamResourceType iamResourceType,
       UUID resourceId,
-      String policyName,
+      IamRole policy,
       String userEmail)
       throws InterruptedException;
 

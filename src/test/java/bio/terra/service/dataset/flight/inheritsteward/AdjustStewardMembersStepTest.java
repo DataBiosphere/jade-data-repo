@@ -61,7 +61,7 @@ class AdjustStewardMembersStepTest {
                 TEST_USER,
                 IamResourceType.DATASNAPSHOT,
                 snapshot.getId(),
-                IamRole.CUSTODIAN.toString(),
+                IamRole.CUSTODIAN,
                 custodianUser);
       } else {
         verify(iamService)
@@ -69,7 +69,7 @@ class AdjustStewardMembersStepTest {
                 TEST_USER,
                 IamResourceType.DATASNAPSHOT,
                 snapshot.getId(),
-                IamRole.CUSTODIAN.toString(),
+                IamRole.CUSTODIAN,
                 custodianUser);
       }
     }

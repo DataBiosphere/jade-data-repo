@@ -55,7 +55,7 @@ class RemoveDuosFirecloudReaderStepTest {
             TEST_USER,
             IamResourceType.DATASNAPSHOT,
             SNAPSHOT_ID,
-            IamRole.READER.toString(),
+            IamRole.READER,
             DUOS_FIRECLOUD_GROUP_PREV.getFirecloudGroupEmail());
     verifyNoInteractions(flightContext);
 
@@ -66,7 +66,7 @@ class RemoveDuosFirecloudReaderStepTest {
             TEST_USER,
             IamResourceType.DATASNAPSHOT,
             SNAPSHOT_ID,
-            IamRole.READER.toString(),
+            IamRole.READER,
             DUOS_FIRECLOUD_GROUP_PREV.getFirecloudGroupEmail());
     verifyNoInteractions(flightContext);
   }

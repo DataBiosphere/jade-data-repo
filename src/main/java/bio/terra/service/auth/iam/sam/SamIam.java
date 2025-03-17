@@ -562,26 +562,23 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
-  public PolicyModel addPolicyMember(
+  public void addPolicyMember(
       AuthenticatedUserRequest userReq,
       IamResourceType iamResourceType,
       UUID resourceId,
-      String policyName,
+      IamRole policy,
       String userEmail)
       throws InterruptedException {
     SamRetry.retry(
         configurationService,
-        () -> addPolicyMemberInner(userReq, iamResourceType, resourceId, policyName, userEmail));
-    return SamRetry.retry(
-        configurationService,
-        () -> retrievePolicy(userReq, iamResourceType, resourceId, policyName));
+        () -> addPolicyMemberInner(userReq, iamResourceType, resourceId, policy, userEmail));
   }
 
   private void addPolicyMemberInner(
       AuthenticatedUserRequest userReq,
       IamResourceType iamResourceType,
       UUID resourceId,
-      String policyName,
+      IamRole policy,
       String userEmail)
       throws ApiException {
     ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
@@ -589,38 +586,35 @@ public class SamIam implements IamProviderInterface {
         "addUserPolicy resourceType {} resourceId {} policyName {} userEmail {}",
         iamResourceType.toString(),
         resourceId.toString(),
-        policyName,
+        policy,
         userEmail);
     samResourceApi.addUserToPolicyV2(
-        iamResourceType.toString(), resourceId.toString(), policyName, userEmail, null);
+        iamResourceType.toString(), resourceId.toString(), policy.toString(), userEmail, null);
   }
 
   @Override
-  public PolicyModel deletePolicyMember(
+  public void deletePolicyMember(
       AuthenticatedUserRequest userReq,
       IamResourceType iamResourceType,
       UUID resourceId,
-      String policyName,
+      IamRole policy,
       String userEmail)
       throws InterruptedException {
     SamRetry.retry(
         configurationService,
-        () -> deletePolicyMemberInner(userReq, iamResourceType, resourceId, policyName, userEmail));
-    return SamRetry.retry(
-        configurationService,
-        () -> retrievePolicy(userReq, iamResourceType, resourceId, policyName));
+        () -> deletePolicyMemberInner(userReq, iamResourceType, resourceId, policy, userEmail));
   }
 
   private void deletePolicyMemberInner(
       AuthenticatedUserRequest userReq,
       IamResourceType iamResourceType,
       UUID resourceId,
-      String policyName,
+      IamRole policy,
       String userEmail)
       throws ApiException {
     ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     samResourceApi.removeUserFromPolicyV2(
-        iamResourceType.toString(), resourceId.toString(), policyName, userEmail);
+        iamResourceType.toString(), resourceId.toString(), policy.toString(), userEmail);
   }
 
   private PolicyModel retrievePolicy(

@@ -32,6 +32,7 @@ import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ResourceLocks;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
@@ -62,6 +63,7 @@ import bio.terra.stairway.FlightMap;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -395,8 +397,14 @@ class DatasetServiceUnitTest {
             TEST_USER))
         .thenReturn(jobBuilder);
     var custodianEmail = "custodianEmail";
-    when(iamService.retrievePolicyEmails(TEST_USER, IamResourceType.DATASET, DATASET_ID))
-        .thenReturn(Map.of(IamRole.CUSTODIAN, custodianEmail));
+    var members = Arrays.asList("member");
+    when(iamService.retrievePolicies(TEST_USER, IamResourceType.DATASET, DATASET_ID))
+        .thenReturn(
+            List.of(
+                new SamPolicyModel()
+                    .name(IamRole.CUSTODIAN.toString())
+                    .email(custodianEmail)
+                    .members(members)));
     ArgumentCaptor<FlightMap> captor = ArgumentCaptor.forClass(FlightMap.class);
     when(jobService.submit(eq(EnableInheritStewardFlight.class), captor.capture()))
         .thenReturn("JobId");
@@ -415,6 +423,8 @@ class DatasetServiceUnitTest {
     assertThat(
         flightMap.get(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), String.class),
         equalTo(custodianEmail));
+    assertThat(
+        flightMap.get(JobMapKeys.CUSTODIAN_USERS.getKeyName(), List.class), equalTo(members));
   }
 
   private void mockDataset(CloudPlatform cloudPlatform, TableDataType columnDataType) {

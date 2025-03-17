@@ -1,0 +1,86 @@
+package bio.terra.service.dataset.flight.inheritsteward;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamRole;
+import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
+import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.StepResult;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class AdjustStewardMembersStepTest {
+
+  @Mock private IamService iamService;
+  @Mock private FlightContext flightContext;
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticationFixtures.randomUserRequest();
+
+  interface DoOrUndo {
+    StepResult apply(FlightContext t) throws Exception;
+  }
+
+  private void verifyAdjustMembers(DoOrUndo doOrUndo, boolean inheritSteward) throws Exception {
+    var snapshots =
+        List.of(new Snapshot().id(UUID.randomUUID()), new Snapshot().id(UUID.randomUUID()));
+    var custodianUser = "user";
+    FlightMap workingMap = new FlightMap();
+    workingMap.put(
+        DatasetWorkingMapKeys.SNAPSHOT_IDS,
+        snapshots.stream().map(Snapshot::getId).collect(Collectors.toList()));
+    FlightMap inputParameters = new FlightMap();
+    inputParameters.put(JobMapKeys.CUSTODIAN_USERS.getKeyName(), Arrays.asList(custodianUser));
+    when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    when(flightContext.getInputParameters()).thenReturn(inputParameters);
+    assertThat(doOrUndo.apply(flightContext), is(StepResult.getStepResultSuccess()));
+    for (var snapshot : snapshots) {
+      if (inheritSteward) {
+        verify(iamService)
+            .addPolicyMember(
+                TEST_USER,
+                IamResourceType.DATASNAPSHOT,
+                snapshot.getId(),
+                IamRole.CUSTODIAN.toString(),
+                custodianUser);
+      } else {
+        verify(iamService)
+            .deletePolicyMember(
+                TEST_USER,
+                IamResourceType.DATASNAPSHOT,
+                snapshot.getId(),
+                IamRole.CUSTODIAN.toString(),
+                custodianUser);
+      }
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void doStep(boolean inheritSteward) throws Exception {
+    AdjustStewardMembersStep step =
+        new AdjustStewardMembersStep(TEST_USER, iamService, inheritSteward);
+    verifyAdjustMembers(step::doStep, inheritSteward);
+    verifyAdjustMembers(step::undoStep, !inheritSteward);
+  }
+}

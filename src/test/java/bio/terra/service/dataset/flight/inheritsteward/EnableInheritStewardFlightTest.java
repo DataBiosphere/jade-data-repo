@@ -83,6 +83,7 @@ class EnableInheritStewardFlightTest {
             "GetSnapshotGoogleProjectIdsStep",
             "SetAuthGcpUserRolesStep",
             "SetAuthTabularAclStep",
+            "AdjustStewardMembersStep",
             "UnlockDatasetStep",
             "JournalRecordUpdateEntryStep"));
   }
@@ -201,6 +202,22 @@ class EnableInheritStewardFlightTest {
                   "The correct boolean flag is passed to the step",
                   (boolean) context.arguments().get(2),
                   equalTo(true));
+            })) {
+      //noinspection ResultOfObjectAllocationIgnored
+      new EnableInheritStewardFlight(inputParameters, context);
+      assertThat(mockStep.constructed(), hasSize(1));
+    }
+  }
+
+  @Test
+  void adjustStewardMembersStep() {
+    try (var mockStep =
+        mockConstruction(
+            AdjustStewardMembersStep.class,
+            (mock, context) -> {
+              assertThat((AuthenticatedUserRequest) context.arguments().get(0), equalTo(TEST_USER));
+              assertThat((IamService) context.arguments().get(1), equalTo(iamService));
+              assertThat((boolean) context.arguments().get(2), equalTo(true));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
       new EnableInheritStewardFlight(inputParameters, context);

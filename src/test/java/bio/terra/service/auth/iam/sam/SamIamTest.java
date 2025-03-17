@@ -510,6 +510,7 @@ class SamIamTest {
               List.of(
                   new SamPolicyModel()
                       .name(IamRole.CUSTODIAN.toString())
+                      .email(policyEmail)
                       .addMembersItem(memberEmail)
                       .memberPolicies(List.of()))));
 

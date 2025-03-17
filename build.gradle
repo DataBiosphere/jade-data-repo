@@ -236,7 +236,7 @@ dependencies {
 
     // OpenTelemetry @WithSpan annotations:
     implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.14.0'
-    implementation 'io.opentelemetry:opentelemetry-sdk-extension-autoconfigure:1.32.0'
+    implementation 'io.opentelemetry:opentelemetry-sdk-extension-autoconfigure'
 
     testImplementation 'org.apache.parquet:parquet-common:1.15.1'
     testImplementation 'org.apache.parquet:parquet-hadoop:1.15.1'

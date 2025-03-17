@@ -50,7 +50,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '2.252.0-SNAPSHOT'
+    version '2.254.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -171,7 +171,7 @@ dependencies {
     implementation 'com.google.cloud:google-cloud-storage'
     implementation 'com.google.cloud:google-cloud-firestore'
     implementation 'com.google.cloud:google-cloud-pubsub'
-    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:6.0.1'
+    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:6.1.0'
     implementation 'com.google.http-client:google-http-client'
 
     implementation 'org.apache.commons:commons-compress:1.27.1' // For srcclr, jib plugin conflict
@@ -204,11 +204,11 @@ dependencies {
     implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.3.0'
     implementation 'net.javacrumbs.shedlock:shedlock-spring:6.3.0'
 
-    implementation 'bio.terra:terra-common-lib:1.1.18-SNAPSHOT'
+    implementation 'bio.terra:terra-common-lib:1.1.21-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.241'
     implementation 'bio.terra:terra-policy-client:1.0.17-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'
-    implementation 'bio.terra:externalcreds-client-resttemplate:1.81.0-SNAPSHOT'
+    implementation 'bio.terra:externalcreds-client-resttemplate:1.87.0-SNAPSHOT'
 
     implementation 'org.glassfish.jersey.inject:jersey-hk2'
 
@@ -222,26 +222,27 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     // Azure related dependencies
-    implementation 'com.azure:azure-identity:1.15.3'
+    implementation 'com.azure:azure-identity:1.15.4'
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.48.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'
-    implementation 'com.azure:azure-storage-common:12.28.1'
-    implementation 'com.azure:azure-storage-file-datalake:12.22.1'
+    implementation 'com.azure:azure-storage-common:12.29.0'
+    implementation 'com.azure:azure-storage-file-datalake:12.23.0'
     implementation 'com.azure:azure-data-tables:12.5.2'
 
-    implementation platform('io.sentry:sentry-bom:8.3.0') //import bom
+    implementation platform('io.sentry:sentry-bom:8.4.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')
     implementation('io.sentry:sentry-logback')
 
     // OpenTelemetry @WithSpan annotations:
-    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.13.3'
+    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.14.0'
+    implementation 'io.opentelemetry:opentelemetry-sdk-extension-autoconfigure'
 
-    testImplementation 'org.apache.parquet:parquet-common:1.15.0'
-    testImplementation 'org.apache.parquet:parquet-hadoop:1.15.0'
-    testImplementation 'org.apache.parquet:parquet-hadoop-bundle:1.15.0'
-    testImplementation 'org.apache.parquet:parquet-encoding:1.15.0'
-    testImplementation 'org.apache.parquet:parquet-column:1.15.0'
+    testImplementation 'org.apache.parquet:parquet-common:1.15.1'
+    testImplementation 'org.apache.parquet:parquet-hadoop:1.15.1'
+    testImplementation 'org.apache.parquet:parquet-hadoop-bundle:1.15.1'
+    testImplementation 'org.apache.parquet:parquet-encoding:1.15.1'
+    testImplementation 'org.apache.parquet:parquet-column:1.15.1'
     testImplementation ('org.apache.hadoop:hadoop-common:3.4.1')  {
         exclude group: 'com.sun.jersey', module: 'jersey-core'
         exclude group: 'com.sun.jersey', module: 'jersey-servlet'

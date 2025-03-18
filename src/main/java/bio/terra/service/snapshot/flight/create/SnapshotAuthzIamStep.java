@@ -67,11 +67,10 @@ public class SnapshotAuthzIamStep implements Step {
     Map<IamRole, String> policies =
         sam.createSnapshotResource(userReq, snapshotId, parentDatasetId, derivedPolicies);
     workingMap.put(SnapshotWorkingMapKeys.POLICY_MAP, policies);
-    if (sourceDataset.isInheritSteward()) {
-      var datasetPolicyMap =
-          sam.retrievePolicyEmails(userReq, IamResourceType.DATASET, sourceDataset.getId());
-      workingMap.put(SnapshotWorkingMapKeys.SOURCE_DATASET_POLICY_MAP, datasetPolicyMap);
-    }
+    var datasetPolicyMap =
+        sam.retrievePolicyEmails(userReq, IamResourceType.DATASET, sourceDataset.getId());
+    workingMap.put(SnapshotWorkingMapKeys.SOURCE_DATASET_POLICY_MAP, datasetPolicyMap);
+
     return StepResult.getStepResultSuccess();
   }
 

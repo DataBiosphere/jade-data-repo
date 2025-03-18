@@ -682,11 +682,8 @@ class SamIamTest {
       final UUID id = UUID.randomUUID();
       final String userEmail = "a@a.com";
       IamRole policy = IamRole.OWNER;
-      when(samResourceApi.getPolicyV2(
-              IamResourceType.SPEND_PROFILE.getSamResourceName(), id.toString(), policy.toString()))
-          .thenReturn(new AccessPolicyMembershipV2().memberEmails(List.of()));
       samIam.deletePolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, id, policy, userEmail);
-      verify(samResourceApi, times(1))
+      verify(samResourceApi)
           .removeUserFromPolicyV2(
               IamResourceType.SPEND_PROFILE.getSamResourceName(),
               id.toString(),

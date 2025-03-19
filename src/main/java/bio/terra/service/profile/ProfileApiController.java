@@ -18,6 +18,7 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.PolicyMemberValidator;
 import bio.terra.service.job.JobService;
@@ -125,7 +126,8 @@ public class ProfileApiController implements ProfilesApi {
   public ResponseEntity<PolicyResponse> addProfilePolicyMember(
       UUID id, String policyName, PolicyMemberRequest policyMember) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
-    PolicyModel policy = profileService.addProfilePolicyMember(id, policyName, policyMember, user);
+    IamRole role = IamRole.fromValue(policyName);
+    PolicyModel policy = profileService.addProfilePolicyMember(id, role, policyMember, user);
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
@@ -134,8 +136,8 @@ public class ProfileApiController implements ProfilesApi {
   public ResponseEntity<PolicyResponse> deleteProfilePolicyMember(
       UUID id, String policyName, String memberEmail) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
-    PolicyModel policy =
-        profileService.deleteProfilePolicyMember(id, policyName, memberEmail, user);
+    IamRole role = IamRole.fromValue(policyName);
+    PolicyModel policy = profileService.deleteProfilePolicyMember(id, role, memberEmail, user);
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
     return new ResponseEntity<>(response, HttpStatus.OK);
   }

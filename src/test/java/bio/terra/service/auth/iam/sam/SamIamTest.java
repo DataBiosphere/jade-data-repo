@@ -25,7 +25,6 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetRequestModelPolicies;
-import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
@@ -510,6 +509,7 @@ class SamIamTest {
               List.of(
                   new SamPolicyModel()
                       .name(IamRole.CUSTODIAN.toString())
+                      .email(policyEmail)
                       .addMembersItem(memberEmail)
                       .memberPolicies(List.of()))));
 
@@ -666,22 +666,13 @@ class SamIamTest {
     void testAddPolicy() throws InterruptedException, ApiException {
       final UUID id = UUID.randomUUID();
       final String userEmail = "a@a.com";
-      when(samResourceApi.getPolicyV2(
-              IamResourceType.SPEND_PROFILE.getSamResourceName(),
-              id.toString(),
-              IamRole.OWNER.toString()))
-          .thenReturn(new AccessPolicyMembershipV2().memberEmails(List.of(userEmail)));
-      final PolicyModel policyModel =
-          samIam.addPolicyMember(
-              TEST_USER, IamResourceType.SPEND_PROFILE, id, IamRole.OWNER.toString(), userEmail);
-      assertThat(
-          policyModel,
-          is(new PolicyModel().name(IamRole.OWNER.toString()).addMembersItem(userEmail)));
-      verify(samResourceApi, times(1))
+      IamRole policy = IamRole.OWNER;
+      samIam.addPolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, id, policy, userEmail);
+      verify(samResourceApi)
           .addUserToPolicyV2(
               IamResourceType.SPEND_PROFILE.getSamResourceName(),
               id.toString(),
-              IamRole.OWNER.toString(),
+              policy.toString(),
               userEmail,
               null);
     }
@@ -690,21 +681,13 @@ class SamIamTest {
     void testDeletePolicy() throws InterruptedException, ApiException {
       final UUID id = UUID.randomUUID();
       final String userEmail = "a@a.com";
-      when(samResourceApi.getPolicyV2(
-              IamResourceType.SPEND_PROFILE.getSamResourceName(),
-              id.toString(),
-              IamRole.OWNER.toString()))
-          .thenReturn(new AccessPolicyMembershipV2().memberEmails(List.of()));
-      final PolicyModel policyModel =
-          samIam.deletePolicyMember(
-              TEST_USER, IamResourceType.SPEND_PROFILE, id, IamRole.OWNER.toString(), userEmail);
-      assertThat(
-          policyModel, is(new PolicyModel().name(IamRole.OWNER.toString()).members(List.of())));
-      verify(samResourceApi, times(1))
+      IamRole policy = IamRole.OWNER;
+      samIam.deletePolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, id, policy, userEmail);
+      verify(samResourceApi)
           .removeUserFromPolicyV2(
               IamResourceType.SPEND_PROFILE.getSamResourceName(),
               id.toString(),
-              IamRole.OWNER.toString(),
+              policy.toString(),
               userEmail);
     }
 

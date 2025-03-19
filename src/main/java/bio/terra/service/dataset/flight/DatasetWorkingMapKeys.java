@@ -19,4 +19,5 @@ public final class DatasetWorkingMapKeys extends ProjectCreatingFlightKeys {
   public static final String SNAPSHOT_GOOGLE_PROJECT_IDS = "snapshotGoogleProjectIds";
   public static final String IS_SHARED_LOCK = "isSharedLock";
   public static final String SNAPSHOT_IDS = "snapshotIds";
+  public static final String INHERIT_STEWARD = "inheritSteward";
 }

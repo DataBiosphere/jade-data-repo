@@ -760,8 +760,10 @@ public class DatasetService {
     return datasetDao.retrieveSummaryById(id).toModel();
   }
 
-  public String enableInheritSteward(UUID datasetId, AuthenticatedUserRequest userReq) {
-    String description = "Enable InheritSteward for dataset " + datasetId;
+  public String setInheritSteward(
+      UUID datasetId, boolean inheritSteward, AuthenticatedUserRequest userReq) {
+    String description =
+        String.format("Set InheritSteward for Dataset, %s, to %s", datasetId, inheritSteward);
     var custodianEmail =
         iamService
             .retrievePolicyEmails(userReq, IamResourceType.DATASET, datasetId)
@@ -772,6 +774,7 @@ public class DatasetService {
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD)
         .addParameter(DatasetWorkingMapKeys.DATASET_ID, datasetId)
         .addParameter(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), custodianEmail)
+        .addParameter(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward)
         .submit();
   }
 

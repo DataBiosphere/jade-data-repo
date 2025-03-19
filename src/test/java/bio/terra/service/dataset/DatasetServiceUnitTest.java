@@ -71,6 +71,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -384,12 +386,13 @@ class DatasetServiceUnitTest {
     assertThat("Correct min value", statsModel.getMinValue(), equalTo(expectedValue.getMinValue()));
   }
 
-  @Test
-  void testEnableInheritSteward() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void setInheritSteward(boolean inheritSteward) {
     JobBuilder jobBuilder =
         new JobBuilder("", EnableInheritStewardFlight.class, null, TEST_USER, jobService);
     when(jobService.newJob(
-            "Enable InheritSteward for dataset " + DATASET_ID,
+            String.format("Set InheritSteward for Dataset, %s, to %s", DATASET_ID, inheritSteward),
             EnableInheritStewardFlight.class,
             null,
             TEST_USER))
@@ -402,7 +405,7 @@ class DatasetServiceUnitTest {
         .thenReturn("JobId");
     assertThat(
         "Job is submitted and JobId is returned",
-        datasetService.enableInheritSteward(DATASET_ID, TEST_USER),
+        datasetService.setInheritSteward(DATASET_ID, inheritSteward, TEST_USER),
         equalTo("JobId"));
     FlightMap flightMap = captor.getValue();
     assertThat(

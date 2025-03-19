@@ -7,6 +7,7 @@ public final class SnapshotWorkingMapKeys extends ProjectCreatingFlightKeys {
   private SnapshotWorkingMapKeys() {}
 
   public static final String POLICY_MAP = "policyMap";
+  public static final String SOURCE_DATASET_POLICY_MAP = "sourceDatasetPolicyMap";
   public static final String PROJECT_RESOURCE_ID = "projectResourceId";
   public static final String PROFILE_ID = "profileId";
   public static final String PROJECTS_MARKED_FOR_DELETE = "projectsMarkedForDelete";

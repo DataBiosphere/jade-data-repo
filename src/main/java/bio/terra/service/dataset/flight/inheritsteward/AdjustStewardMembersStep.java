@@ -1,7 +1,6 @@
 package bio.terra.service.dataset.flight.inheritsteward;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.PolicyModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
@@ -21,11 +20,11 @@ public record AdjustStewardMembersStep(
     implements Step {
 
   interface AddRemoveApi {
-    PolicyModel addRemoveMember(
+    void addRemoveMember(
         AuthenticatedUserRequest userReq,
         IamResourceType iamResourceType,
         UUID resourceId,
-        String policyName,
+        IamRole policy,
         String userEmail);
   }
 
@@ -42,7 +41,7 @@ public record AdjustStewardMembersStep(
     for (var snapshotId : snapshotIds) {
       for (var email : custodians) {
         api.addRemoveMember(
-            userReq, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.CUSTODIAN.toString(), email);
+            userReq, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.CUSTODIAN, email);
       }
     }
   }

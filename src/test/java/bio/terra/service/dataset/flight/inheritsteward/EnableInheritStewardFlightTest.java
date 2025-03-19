@@ -14,12 +14,14 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
@@ -46,6 +48,7 @@ class EnableInheritStewardFlightTest {
   @Mock private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   @Mock private DatasetService datasetService;
   @Mock private IamService iamService;
+  @Mock private JournalService journalService;
   private final FlightMap inputParameters = new FlightMap();
 
   private static final String CUSTODIAN_EMAIL = "custodian email";
@@ -60,6 +63,7 @@ class EnableInheritStewardFlightTest {
     inputParameters.put(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD);
     inputParameters.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), TEST_USER);
     inputParameters.put(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), CUSTODIAN_EMAIL);
+    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, true);
     when(context.getBean(DatasetDao.class)).thenReturn(datasetDao);
     when(context.getBean(SnapshotDao.class)).thenReturn(snapshotDao);
     when(context.getBean(DatasetService.class)).thenReturn(datasetService);
@@ -67,6 +71,7 @@ class EnableInheritStewardFlightTest {
     when(context.getBean(SnapshotService.class)).thenReturn(snapshotService);
     when(context.getBean(BigQuerySnapshotPdao.class)).thenReturn(bigQuerySnapshotPdao);
     when(context.getBean(IamService.class)).thenReturn(iamService);
+    when(context.getBean(JournalService.class)).thenReturn(journalService);
   }
 
   @Test
@@ -243,6 +248,37 @@ class EnableInheritStewardFlightTest {
                   "The correct boolean flag is passed to the step",
                   (boolean) context.arguments().get(3),
                   equalTo(true));
+            })) {
+      //noinspection ResultOfObjectAllocationIgnored
+      new EnableInheritStewardFlight(inputParameters, context);
+      assertThat(mockStep.constructed(), hasSize(1));
+    }
+  }
+
+  @Test
+  void journalRecordUpdateEntryStep() {
+    try (var mockStep =
+        mockConstruction(
+            JournalRecordUpdateEntryStep.class,
+            (mock, context) -> {
+              assertThat((JournalService) context.arguments().get(0), equalTo(journalService));
+              assertThat((AuthenticatedUserRequest) context.arguments().get(1), equalTo(TEST_USER));
+              assertThat(
+                  "The correct dataset ID is passed to the step",
+                  (UUID) context.arguments().get(2),
+                  equalTo(DATASET_ID));
+              assertThat(
+                  "The correct resource type is passed to the step",
+                  (UUID) context.arguments().get(2),
+                  equalTo(DATASET_ID));
+              assertThat(
+                  "The correct resource type is passed to the step",
+                  (IamResourceType) context.arguments().get(3),
+                  equalTo(IamResourceType.DATASET));
+              assertThat(
+                  "The correct note is passed to the step",
+                  (String) context.arguments().get(4),
+                  equalTo("Set Inherit Steward flag to true on dataset, " + DATASET_ID));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
       new EnableInheritStewardFlight(inputParameters, context);

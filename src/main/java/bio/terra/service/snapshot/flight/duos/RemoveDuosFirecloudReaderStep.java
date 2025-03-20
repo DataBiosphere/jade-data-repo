@@ -35,7 +35,7 @@ public class RemoveDuosFirecloudReaderStep implements Step {
         userReq,
         IamResourceType.DATASNAPSHOT,
         snapshotId,
-        IamRole.READER.toString(),
+        IamRole.READER,
         duosFirecloudGroupPrev.getFirecloudGroupEmail());
     return StepResult.getStepResultSuccess();
   }
@@ -46,7 +46,7 @@ public class RemoveDuosFirecloudReaderStep implements Step {
         userReq,
         IamResourceType.DATASNAPSHOT,
         snapshotId,
-        IamRole.READER.toString(),
+        IamRole.READER,
         duosFirecloudGroupPrev.getFirecloudGroupEmail());
     return StepResult.getStepResultSuccess();
   }

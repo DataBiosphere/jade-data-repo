@@ -7170,6 +7170,8 @@ components:
       properties:
         name:
           type: string
+        email:
+          type: string
         members:
           type: array
           items:

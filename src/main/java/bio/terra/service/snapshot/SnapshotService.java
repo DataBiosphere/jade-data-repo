@@ -1439,8 +1439,4 @@ public class SnapshotService {
   public void deleteSnapshotBuilderSettings(UUID snapshotId) {
     snapshotBuilderSettingsDao.deleteBySnapshotId(snapshotId);
   }
-
-  public List<String> getSnapshotGoogleProjectIds(UUID datasetId) {
-    return snapshotDao.getSnapshotGoogleProjectIds(datasetId);
-  }
 }

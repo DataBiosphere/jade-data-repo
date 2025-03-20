@@ -40,7 +40,8 @@ class GetSnapshotIdsStepTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void doStep(boolean inheritSteward) throws Exception {
-   GetSnapshotIdsStep step = new GetSnapshotIdsStep(snapshotDao, iamService, TEST_USER, DATASET_ID, inheritSteward);
+    GetSnapshotIdsStep step =
+        new GetSnapshotIdsStep(snapshotDao, iamService, TEST_USER, DATASET_ID, inheritSteward);
     FlightMap workingMap = new FlightMap();
     List<UUID> snapshotIds = Arrays.asList(SNAPSHOT_1, SNAPSHOT_2);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);

@@ -217,7 +217,7 @@ class SetInheritStewardFlightTest {
               assertThat((boolean) context.arguments().get(2), equalTo(true));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
-      new EnableInheritStewardFlight(inputParameters, context);
+      new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
     }
   }

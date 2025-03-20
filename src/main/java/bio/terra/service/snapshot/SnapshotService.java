@@ -820,11 +820,27 @@ public class SnapshotService {
               inaccessibleWorkspaces.addAll(wpms.inaccessible());
             });
 
-    return new PolicyResponse()
-        .policies(PolicyUtils.samToTdrPolicyModels(samPolicyModels))
-        .authDomain(authDomain)
-        .workspaces(accessibleWorkspaces)
-        .inaccessibleWorkspaces(inaccessibleWorkspaces);
+    PolicyResponse policyResponse =
+        new PolicyResponse()
+            .policies(PolicyUtils.samToTdrPolicyModels(samPolicyModels))
+            .authDomain(authDomain)
+            .workspaces(accessibleWorkspaces)
+            .inaccessibleWorkspaces(inaccessibleWorkspaces)
+            .inheritedStewards(List.of());
+
+    Dataset sourceDataset = snapshotDao.retrieveSnapshot(snapshotId).getSourceDataset();
+    if (sourceDataset.isInheritSteward()) {
+      var custodians =
+          iamService
+              .retrievePolicies(userReq, IamResourceType.DATASET, sourceDataset.getId())
+              .stream()
+              .filter(p -> p.getName().equals(IamRole.CUSTODIAN.toString()))
+              .map(SamPolicyModel::getMembers)
+              .findFirst();
+      custodians.ifPresent(policyResponse::setInheritedStewards);
+    }
+
+    return policyResponse;
   }
 
   /**

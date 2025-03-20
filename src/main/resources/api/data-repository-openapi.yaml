@@ -7239,6 +7239,8 @@ components:
             description: The Sam user groups that define this auth domain
             type: string
     PolicyResponse:
+      description: >
+        Policy information about this snapshot, dataset or profile
       type: object
       properties:
         policies:
@@ -7258,8 +7260,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/InaccessibleWorkspacePolicyModel'
-      description: >
-        email of user or group to add to policy
+        inheritedStewards:
+            description: For a snapshot, the inherited stewards from the source dataset.
+            type: array
+            items:
+                description: The steward's email address
+                type: string
     DataDeletionRequest:
       required:
         - deleteType

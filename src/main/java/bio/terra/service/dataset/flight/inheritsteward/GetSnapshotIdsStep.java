@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.inheritsteward;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.job.DefaultUndoStep;
@@ -43,7 +44,12 @@ public class GetSnapshotIdsStep extends DefaultUndoStep {
               .listResourceChildren(
                   userReq.getToken(), bio.terra.service.auth.iam.IamResourceType.DATASET, datasetId)
               .stream()
-              .map((child) -> UUID.fromString(child.getResourceId()))
+              .filter(
+                  child ->
+                      child
+                          .getResourceTypeName()
+                          .equals(IamResourceType.DATASNAPSHOT.getSamResourceName()))
+              .map(snapshot -> UUID.fromString(snapshot.getResourceId()))
               .collect(Collectors.toList());
     }
     context.getWorkingMap().put(DatasetWorkingMapKeys.SNAPSHOT_IDS, snapshotIds);

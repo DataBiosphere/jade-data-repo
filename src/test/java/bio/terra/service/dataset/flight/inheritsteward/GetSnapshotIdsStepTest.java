@@ -56,7 +56,10 @@ class GetSnapshotIdsStepTest {
                   .resourceId(SNAPSHOT_1.toString()),
               new FullyQualifiedResourceId()
                   .resourceTypeName(IamResourceType.DATASNAPSHOT.getSamResourceName())
-                  .resourceId(SNAPSHOT_2.toString()));
+                  .resourceId(SNAPSHOT_2.toString()),
+              new FullyQualifiedResourceId()
+                  .resourceTypeName(IamResourceType.DATASET.getSamResourceName())
+                  .resourceId(UUID.randomUUID().toString()));
       when(iamService.listResourceChildren(
               TEST_USER.getToken(), IamResourceType.DATASET, DATASET_ID))
           .thenReturn(children);

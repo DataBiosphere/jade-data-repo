@@ -39,7 +39,7 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.dataset.flight.inheritsteward.EnableInheritStewardFlight;
+import bio.terra.service.dataset.flight.inheritsteward.SetInheritStewardFlight;
 import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.SynapseDataResultModel;
@@ -390,10 +390,10 @@ class DatasetServiceUnitTest {
   @ValueSource(booleans = {true, false})
   void setInheritSteward(boolean inheritSteward) {
     JobBuilder jobBuilder =
-        new JobBuilder("", EnableInheritStewardFlight.class, null, TEST_USER, jobService);
+        new JobBuilder("", SetInheritStewardFlight.class, null, TEST_USER, jobService);
     when(jobService.newJob(
             String.format("Set InheritSteward for Dataset, %s, to %s", DATASET_ID, inheritSteward),
-            EnableInheritStewardFlight.class,
+            SetInheritStewardFlight.class,
             null,
             TEST_USER))
         .thenReturn(jobBuilder);
@@ -401,7 +401,7 @@ class DatasetServiceUnitTest {
     when(iamService.retrievePolicyEmails(TEST_USER, IamResourceType.DATASET, DATASET_ID))
         .thenReturn(Map.of(IamRole.CUSTODIAN, custodianEmail));
     ArgumentCaptor<FlightMap> captor = ArgumentCaptor.forClass(FlightMap.class);
-    when(jobService.submit(eq(EnableInheritStewardFlight.class), captor.capture()))
+    when(jobService.submit(eq(SetInheritStewardFlight.class), captor.capture()))
         .thenReturn("JobId");
     assertThat(
         "Job is submitted and JobId is returned",

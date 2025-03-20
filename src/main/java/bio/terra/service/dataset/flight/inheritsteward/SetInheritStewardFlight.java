@@ -20,8 +20,8 @@ import bio.terra.stairway.FlightMap;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
-public class EnableInheritStewardFlight extends Flight {
-  public EnableInheritStewardFlight(FlightMap inputParameters, Object applicationContext) {
+public class SetInheritStewardFlight extends Flight {
+  public SetInheritStewardFlight(FlightMap inputParameters, Object applicationContext) {
     super(inputParameters, applicationContext);
 
     // Get the required DAOs and services to pass into the steps

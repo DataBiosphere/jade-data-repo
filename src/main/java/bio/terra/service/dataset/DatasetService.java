@@ -53,7 +53,7 @@ import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.dataset.flight.ingest.scratch.DatasetScratchFilePrepareFlight;
-import bio.terra.service.dataset.flight.inheritsteward.EnableInheritStewardFlight;
+import bio.terra.service.dataset.flight.inheritsteward.SetInheritStewardFlight;
 import bio.terra.service.dataset.flight.lock.DatasetLockFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionCommitFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
@@ -769,7 +769,7 @@ public class DatasetService {
             .retrievePolicyEmails(userReq, IamResourceType.DATASET, datasetId)
             .get(IamRole.CUSTODIAN);
     return jobService
-        .newJob(description, EnableInheritStewardFlight.class, null, userReq)
+        .newJob(description, SetInheritStewardFlight.class, null, userReq)
         .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD)
         .addParameter(DatasetWorkingMapKeys.DATASET_ID, datasetId)

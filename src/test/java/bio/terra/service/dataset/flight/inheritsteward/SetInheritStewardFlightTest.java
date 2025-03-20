@@ -38,7 +38,7 @@ import org.springframework.context.ApplicationContext;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-class EnableInheritStewardFlightTest {
+class SetInheritStewardFlightTest {
 
   @Mock private ApplicationContext context;
   @Mock private DatasetDao datasetDao;
@@ -76,7 +76,7 @@ class EnableInheritStewardFlightTest {
 
   @Test
   void allSteps() {
-    var flight = new EnableInheritStewardFlight(inputParameters, context);
+    var flight = new SetInheritStewardFlight(inputParameters, context);
     var steps = FlightTestUtils.getStepNames(flight);
     assertThat(
         steps,
@@ -108,7 +108,7 @@ class EnableInheritStewardFlightTest {
                   equalTo(false));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
-      new EnableInheritStewardFlight(inputParameters, context);
+      new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
     }
   }
@@ -130,7 +130,7 @@ class EnableInheritStewardFlightTest {
                   equalTo(true));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
-      new EnableInheritStewardFlight(inputParameters, context);
+      new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
     }
   }
@@ -154,7 +154,7 @@ class EnableInheritStewardFlightTest {
                   equalTo(true));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
-      new EnableInheritStewardFlight(inputParameters, context);
+      new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
     }
   }
@@ -177,7 +177,7 @@ class EnableInheritStewardFlightTest {
                   equalTo(true));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
-      new EnableInheritStewardFlight(inputParameters, context);
+      new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
     }
   }
@@ -200,7 +200,7 @@ class EnableInheritStewardFlightTest {
                   equalTo(true));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
-      new EnableInheritStewardFlight(inputParameters, context);
+      new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
     }
   }
@@ -218,7 +218,7 @@ class EnableInheritStewardFlightTest {
                   equalTo(false));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
-      new EnableInheritStewardFlight(inputParameters, context);
+      new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
     }
   }
@@ -242,7 +242,7 @@ class EnableInheritStewardFlightTest {
                   equalTo(true));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
-      new EnableInheritStewardFlight(inputParameters, context);
+      new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
     }
   }
@@ -273,7 +273,7 @@ class EnableInheritStewardFlightTest {
                   equalTo("Set Inherit Steward flag to true on dataset, " + DATASET_ID));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
-      new EnableInheritStewardFlight(inputParameters, context);
+      new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
     }
   }

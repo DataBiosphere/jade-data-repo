@@ -830,14 +830,13 @@ public class SnapshotService {
 
     Dataset sourceDataset = snapshotDao.retrieveSnapshot(snapshotId).getSourceDataset();
     if (sourceDataset.isInheritSteward()) {
-      var custodians =
-          iamService
-              .retrievePolicies(userReq, IamResourceType.DATASET, sourceDataset.getId())
-              .stream()
-              .filter(p -> p.getName().equals(IamRole.CUSTODIAN.toString()))
-              .map(SamPolicyModel::getMembers)
-              .findFirst();
-      custodians.ifPresent(policyResponse::setInheritedStewards);
+      iamService
+          .retrievePolicies(userReq, IamResourceType.DATASET, sourceDataset.getId())
+          .stream()
+          .filter(p -> p.getName().equals(IamRole.CUSTODIAN.toString()))
+          .map(SamPolicyModel::getMembers)
+          .findFirst()
+          .ifPresent(policyResponse::setInheritedStewards);
     }
 
     return policyResponse;

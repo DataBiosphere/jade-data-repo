@@ -42,11 +42,12 @@ public class EnableInheritStewardFlight extends Flight {
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-    boolean inheritSteward = true;
+    boolean inheritSteward =
+        inputParameters.get(DatasetWorkingMapKeys.INHERIT_STEWARD, Boolean.class);
     addStep(new LockDatasetStep(datasetService, datasetId, false));
     addStep(new SetInheritStewardFlagStep(datasetDao, datasetId, inheritSteward));
     addStep(new GetSnapshotIdsStep(snapshotDao, datasetId));
-    addStep(new SetParentOnSnapshotsStep(iamService, datasetId, userReq));
+    addStep(new SetParentOnSnapshotsStep(iamService, datasetId, userReq, inheritSteward));
     addStep(new GetSnapshotGoogleProjectIdsStep(snapshotService, datasetId));
     addStep(new SetAuthGcpUserRolesStep(resourceService, custodianEmail, inheritSteward));
     addStep(

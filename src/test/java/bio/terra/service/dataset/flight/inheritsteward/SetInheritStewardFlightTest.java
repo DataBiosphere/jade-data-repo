@@ -2,7 +2,6 @@ package bio.terra.service.dataset.flight.inheritsteward;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.when;
@@ -100,17 +99,8 @@ class SetInheritStewardFlightTest {
     try (var mockStep =
         mockConstruction(
             LockDatasetStep.class,
-            (mock, context) -> {
-              assertThat((DatasetService) context.arguments().get(0), equalTo(datasetService));
-              assertThat(
-                  "The correct datasetId is passed to the step",
-                  (UUID) context.arguments().get(1),
-                  equalTo(DATASET_ID));
-              assertThat(
-                  "The correct shared lock boolean flag is passed to the step",
-                  (boolean) context.arguments().get(2),
-                  equalTo(false));
-            })) {
+            (mock, context) ->
+                assertThat(context.arguments(), contains(datasetService, DATASET_ID, false)))) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
@@ -124,17 +114,9 @@ class SetInheritStewardFlightTest {
     try (var mockStep =
         mockConstruction(
             SetInheritStewardFlagStep.class,
-            (mock, context) -> {
-              assertThat((DatasetDao) context.arguments().get(0), equalTo(datasetDao));
-              assertThat(
-                  "The correct datasetId is passed to the step",
-                  (UUID) context.arguments().get(1),
-                  equalTo(DATASET_ID));
-              assertThat(
-                  "The correct boolean flag is passed to the step",
-                  (boolean) context.arguments().get(2),
-                  equalTo(inheritSteward));
-            })) {
+            (mock, context) ->
+                assertThat(
+                    context.arguments(), contains(datasetDao, DATASET_ID, inheritSteward)))) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
@@ -148,19 +130,10 @@ class SetInheritStewardFlightTest {
     try (var mockStep =
         mockConstruction(
             GetSnapshotIdsStep.class,
-            (mock, context) -> {
-              assertThat((SnapshotDao) context.arguments().get(0), equalTo(snapshotDao));
-              assertThat((IamService) context.arguments().get(1), equalTo(iamService));
-              assertThat((AuthenticatedUserRequest) context.arguments().get(2), equalTo(TEST_USER));
-              assertThat(
-                  "The correct datasetId is passed to the step",
-                  (UUID) context.arguments().get(3),
-                  equalTo(DATASET_ID));
-              assertThat(
-                  "The correct boolean flag is passed to the step",
-                  (boolean) context.arguments().get(4),
-                  equalTo(inheritSteward));
-            })) {
+            (mock, context) ->
+                assertThat(
+                    context.arguments(),
+                    contains(snapshotDao, iamService, TEST_USER, DATASET_ID, inheritSteward)))) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
@@ -174,18 +147,10 @@ class SetInheritStewardFlightTest {
     try (var mockStep =
         mockConstruction(
             SetParentOnSnapshotsStep.class,
-            (mock, context) -> {
-              assertThat((IamService) context.arguments().get(0), equalTo(iamService));
-              assertThat(
-                  "The correct datasetId is passed to the step",
-                  (UUID) context.arguments().get(1),
-                  equalTo(DATASET_ID));
-              assertThat((AuthenticatedUserRequest) context.arguments().get(2), equalTo(TEST_USER));
-              assertThat(
-                  "The correct boolean flag is passed to the step",
-                  (boolean) context.arguments().get(3),
-                  equalTo(inheritSteward));
-            })) {
+            (mock, context) ->
+                assertThat(
+                    context.arguments(),
+                    contains(iamService, DATASET_ID, TEST_USER, inheritSteward)))) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
@@ -199,18 +164,10 @@ class SetInheritStewardFlightTest {
     try (var mockStep =
         mockConstruction(
             SetAuthGcpUserRolesStep.class,
-            (mock, context) -> {
-              assertThat((ResourceService) context.arguments().get(0), equalTo(resourceService));
-              assertThat((SnapshotService) context.arguments().get(1), equalTo(snapshotService));
-              assertThat(
-                  "The correct custodian email is passed to the step",
-                  (String) context.arguments().get(2),
-                  equalTo(CUSTODIAN_EMAIL));
-              assertThat(
-                  "The correct boolean flag is passed to the step",
-                  (boolean) context.arguments().get(3),
-                  equalTo(inheritSteward));
-            })) {
+            (mock, context) ->
+                assertThat(
+                    context.arguments(),
+                    contains(resourceService, snapshotService, CUSTODIAN_EMAIL, inheritSteward)))) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
@@ -224,11 +181,8 @@ class SetInheritStewardFlightTest {
     try (var mockStep =
         mockConstruction(
             AdjustStewardMembersStep.class,
-            (mock, context) -> {
-              assertThat((AuthenticatedUserRequest) context.arguments().get(0), equalTo(TEST_USER));
-              assertThat((IamService) context.arguments().get(1), equalTo(iamService));
-              assertThat((boolean) context.arguments().get(2), equalTo(inheritSteward));
-            })) {
+            (mock, context) ->
+                assertThat(context.arguments(), contains(TEST_USER, iamService, inheritSteward)))) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
@@ -242,13 +196,7 @@ class SetInheritStewardFlightTest {
     try (var mockStep =
         mockConstruction(
             UnlockDatasetStep.class,
-            (mock, context) -> {
-              assertThat((DatasetService) context.arguments().get(0), equalTo(datasetService));
-              assertThat(
-                  "The correct shared lock boolean flag is passed to the step",
-                  (boolean) context.arguments().get(1),
-                  equalTo(false));
-            })) {
+            (mock, context) -> assertThat(context.arguments(), contains(datasetService, false)))) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
@@ -262,19 +210,11 @@ class SetInheritStewardFlightTest {
     try (var mockStep =
         mockConstruction(
             SetAuthTabularAclStep.class,
-            (mock, context) -> {
-              assertThat(
-                  (BigQuerySnapshotPdao) context.arguments().get(0), equalTo(bigQuerySnapshotPdao));
-              assertThat((SnapshotService) context.arguments().get(1), equalTo(snapshotService));
-              assertThat(
-                  "The correct custodian email is passed to the step",
-                  (String) context.arguments().get(2),
-                  equalTo(CUSTODIAN_EMAIL));
-              assertThat(
-                  "The correct boolean flag is passed to the step",
-                  (boolean) context.arguments().get(3),
-                  equalTo(inheritSteward));
-            })) {
+            (mock, context) ->
+                assertThat(
+                    context.arguments(),
+                    contains(
+                        bigQuerySnapshotPdao, snapshotService, CUSTODIAN_EMAIL, inheritSteward)))) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
@@ -288,26 +228,15 @@ class SetInheritStewardFlightTest {
     try (var mockStep =
         mockConstruction(
             JournalRecordUpdateEntryStep.class,
-            (mock, context) -> {
-              assertThat((JournalService) context.arguments().get(0), equalTo(journalService));
-              assertThat((AuthenticatedUserRequest) context.arguments().get(1), equalTo(TEST_USER));
-              assertThat(
-                  "The correct dataset ID is passed to the step",
-                  (UUID) context.arguments().get(2),
-                  equalTo(DATASET_ID));
-              assertThat(
-                  "The correct resource type is passed to the step",
-                  (UUID) context.arguments().get(2),
-                  equalTo(DATASET_ID));
-              assertThat(
-                  "The correct resource type is passed to the step",
-                  (IamResourceType) context.arguments().get(3),
-                  equalTo(IamResourceType.DATASET));
-              assertThat(
-                  "The correct note is passed to the step",
-                  (String) context.arguments().get(4),
-                  equalTo("Set inherit steward flag to " + inheritSteward));
-            })) {
+            (mock, context) ->
+                assertThat(
+                    context.arguments(),
+                    contains(
+                        journalService,
+                        TEST_USER,
+                        DATASET_ID,
+                        IamResourceType.DATASET,
+                        "Set inherit steward flag to " + inheritSteward)))) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));

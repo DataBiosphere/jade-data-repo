@@ -428,6 +428,9 @@ class DatasetServiceUnitTest {
         equalTo(custodianEmail));
     assertThat(
         flightMap.get(JobMapKeys.CUSTODIAN_USERS.getKeyName(), List.class), equalTo(members));
+    assertThat(
+        flightMap.get(JobMapKeys.INHERIT_STEWARD.getKeyName(), Boolean.class),
+        equalTo(inheritSteward));
   }
 
   private void mockDataset(CloudPlatform cloudPlatform, TableDataType columnDataType) {

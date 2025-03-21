@@ -163,8 +163,7 @@ class AdminApiControllerTest {
     String jobId = "jobId";
     when(datasetService.retrieveDatasetSummary(MODEL_ID))
         .thenReturn(new DatasetSummaryModel().id(MODEL_ID).inheritSteward(!inheritSteward));
-    when(datasetService.setInheritSteward(eq(MODEL_ID), eq(inheritSteward), any()))
-        .thenReturn(jobId);
+    when(datasetService.setInheritSteward(MODEL_ID, inheritSteward, TEST_USER)).thenReturn(jobId);
     JobModel jobModel = new JobModel().id(jobId).jobStatus(JobModel.JobStatusEnum.RUNNING);
     when(jobService.retrieveJob(eq(jobId), any())).thenReturn(jobModel);
 

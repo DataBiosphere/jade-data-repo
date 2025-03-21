@@ -61,7 +61,6 @@ public class SetInheritStewardFlight extends Flight {
             userReq,
             datasetId,
             IamResourceType.DATASET,
-            String.format(
-                "Set Inherit Steward flag to %s on dataset, %s", inheritSteward, datasetId)));
+            "Set inherit steward flag to " + inheritSteward));
   }
 }

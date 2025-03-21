@@ -306,10 +306,7 @@ class SetInheritStewardFlightTest {
               assertThat(
                   "The correct note is passed to the step",
                   (String) context.arguments().get(4),
-                  equalTo(
-                      String.format(
-                          "Set Inherit Steward flag to %s on dataset, %s",
-                          inheritSteward, DATASET_ID)));
+                  equalTo("Set inherit steward flag to " + inheritSteward));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);

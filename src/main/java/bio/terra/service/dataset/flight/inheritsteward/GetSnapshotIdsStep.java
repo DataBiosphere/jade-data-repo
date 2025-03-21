@@ -41,8 +41,7 @@ public class GetSnapshotIdsStep extends DefaultUndoStep {
     } else {
       snapshotIds =
           iamService
-              .listResourceChildren(
-                  userReq.getToken(), bio.terra.service.auth.iam.IamResourceType.DATASET, datasetId)
+              .listResourceChildren(userReq.getToken(), IamResourceType.DATASET, datasetId)
               .stream()
               .filter(
                   child ->

@@ -50,7 +50,7 @@ class GetSnapshotIdsStepTest {
       when(snapshotDao.getSnapshotIds(DATASET_ID)).thenReturn(snapshotIds);
     } else {
       List<FullyQualifiedResourceId> children =
-          Arrays.asList(
+          List.of(
               new FullyQualifiedResourceId()
                   .resourceTypeName(IamResourceType.DATASNAPSHOT.getSamResourceName())
                   .resourceId(SNAPSHOT_1.toString()),

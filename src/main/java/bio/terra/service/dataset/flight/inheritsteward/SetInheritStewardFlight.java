@@ -6,7 +6,6 @@ import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
@@ -36,14 +35,14 @@ public class SetInheritStewardFlight extends Flight {
     JournalService journalService = appContext.getBean(JournalService.class);
 
     // Get the input parameters
-    UUID datasetId = inputParameters.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
+    UUID datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), UUID.class);
     String custodianEmail =
         inputParameters.get(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), String.class);
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
     boolean inheritSteward =
-        inputParameters.get(DatasetWorkingMapKeys.INHERIT_STEWARD, Boolean.class);
+        inputParameters.get(JobMapKeys.INHERIT_STEWARD.getKeyName(), Boolean.class);
     addStep(new LockDatasetStep(datasetService, datasetId, false));
     addStep(new SetInheritStewardFlagStep(datasetDao, datasetId, inheritSteward));
     addStep(new GetSnapshotIdsStep(snapshotDao, iamService, userReq, datasetId, inheritSteward));

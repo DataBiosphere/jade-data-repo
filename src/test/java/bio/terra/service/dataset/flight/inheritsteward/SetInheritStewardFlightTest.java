@@ -17,7 +17,6 @@ import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
@@ -60,7 +59,7 @@ class SetInheritStewardFlightTest {
   @BeforeEach
   void setUp() {
     inputParameters.put(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET);
-    inputParameters.put(DatasetWorkingMapKeys.DATASET_ID, DATASET_ID);
+    inputParameters.put(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID);
     inputParameters.put(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD);
     inputParameters.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), TEST_USER);
     inputParameters.put(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), CUSTODIAN_EMAIL);
@@ -77,7 +76,7 @@ class SetInheritStewardFlightTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void allSteps(boolean inheritSteward) {
-    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
+    inputParameters.put(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward);
     var flight = new SetInheritStewardFlight(inputParameters, context);
     var steps = FlightTestUtils.getStepNames(flight);
     assertThat(
@@ -97,7 +96,7 @@ class SetInheritStewardFlightTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void lockDatasetStep(boolean inheritSteward) {
-    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
+    inputParameters.put(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward);
     try (var mockStep =
         mockConstruction(
             LockDatasetStep.class,
@@ -121,7 +120,7 @@ class SetInheritStewardFlightTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void setFlagStep(boolean inheritSteward) {
-    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
+    inputParameters.put(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward);
     try (var mockStep =
         mockConstruction(
             SetInheritStewardFlagStep.class,
@@ -145,7 +144,7 @@ class SetInheritStewardFlightTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void getSnapshotIdsStep(boolean inheritSteward) {
-    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
+    inputParameters.put(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward);
     try (var mockStep =
         mockConstruction(
             GetSnapshotIdsStep.class,
@@ -171,7 +170,7 @@ class SetInheritStewardFlightTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void setParentsStep(boolean inheritSteward) {
-    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
+    inputParameters.put(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward);
     try (var mockStep =
         mockConstruction(
             SetParentOnSnapshotsStep.class,
@@ -196,7 +195,7 @@ class SetInheritStewardFlightTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void setAuthGcpUserRolesStep(boolean inheritSteward) {
-    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
+    inputParameters.put(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward);
     try (var mockStep =
         mockConstruction(
             SetAuthGcpUserRolesStep.class,
@@ -221,7 +220,7 @@ class SetInheritStewardFlightTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void adjustStewardMembersStep(boolean inheritSteward) {
-    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
+    inputParameters.put(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward);
     try (var mockStep =
         mockConstruction(
             AdjustStewardMembersStep.class,
@@ -239,7 +238,7 @@ class SetInheritStewardFlightTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void unlockDatasetStep(boolean inheritSteward) {
-    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
+    inputParameters.put(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward);
     try (var mockStep =
         mockConstruction(
             UnlockDatasetStep.class,
@@ -259,7 +258,7 @@ class SetInheritStewardFlightTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void setAuthTabluarAclStep(boolean inheritSteward) {
-    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
+    inputParameters.put(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward);
     try (var mockStep =
         mockConstruction(
             SetAuthTabularAclStep.class,
@@ -285,7 +284,7 @@ class SetInheritStewardFlightTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void journalRecordUpdateEntryStep(boolean inheritSteward) {
-    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
+    inputParameters.put(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward);
     try (var mockStep =
         mockConstruction(
             JournalRecordUpdateEntryStep.class,

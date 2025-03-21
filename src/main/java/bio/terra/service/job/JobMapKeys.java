@@ -25,7 +25,8 @@ public enum JobMapKeys {
   DELETE_CLOUD_RESOURCES("deleteCloudResources"),
   BUCKET_NAME("bucketName"),
   CUSTODIAN_EMAIL("custodianEmail"),
-  CUSTODIAN_USERS("custodianUsers");
+  CUSTODIAN_USERS("custodianUsers"),
+  INHERIT_STEWARD("inheritSteward");
 
   private final String keyName;
 

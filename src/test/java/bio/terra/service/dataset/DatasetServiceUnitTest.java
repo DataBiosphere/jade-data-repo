@@ -394,7 +394,7 @@ class DatasetServiceUnitTest {
     JobBuilder jobBuilder =
         new JobBuilder("", SetInheritStewardFlight.class, null, TEST_USER, jobService);
     when(jobService.newJob(
-            String.format("Set InheritSteward for Dataset, %s, to %s", DATASET_ID, inheritSteward),
+            String.format("Set inherit steward to %s for dataset %s", inheritSteward, DATASET_ID),
             SetInheritStewardFlight.class,
             null,
             TEST_USER))

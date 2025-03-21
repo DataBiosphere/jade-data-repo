@@ -43,7 +43,6 @@ import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.exception.DatasetDataException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
-import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
 import bio.terra.service.dataset.flight.datadelete.DatasetDataDeleteFlight;
@@ -763,7 +762,7 @@ public class DatasetService {
   public String setInheritSteward(
       UUID datasetId, boolean inheritSteward, AuthenticatedUserRequest userReq) {
     String description =
-        String.format("Set InheritSteward for Dataset, %s, to %s", datasetId, inheritSteward);
+        String.format("Set inherit steward to %s for dataset %s", inheritSteward, datasetId);
     var custodianPolicy =
         iamService.retrievePolicies(userReq, IamResourceType.DATASET, datasetId).stream()
             .filter(p -> p.getName().equals(IamRole.CUSTODIAN.toString()))
@@ -773,10 +772,10 @@ public class DatasetService {
         .newJob(description, SetInheritStewardFlight.class, null, userReq)
         .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD)
-        .addParameter(DatasetWorkingMapKeys.DATASET_ID, datasetId)
+        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
         .addParameter(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), custodianPolicy.getEmail())
         .addParameter(JobMapKeys.CUSTODIAN_USERS.getKeyName(), custodianPolicy.getMembers())
-        .addParameter(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward)
+        .addParameter(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward)
         .submit();
   }
 

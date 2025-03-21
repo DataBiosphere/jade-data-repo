@@ -30,8 +30,9 @@ import bio.terra.stairway.FlightMap;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
@@ -63,7 +64,6 @@ class SetInheritStewardFlightTest {
     inputParameters.put(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD);
     inputParameters.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), TEST_USER);
     inputParameters.put(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), CUSTODIAN_EMAIL);
-    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, true);
     when(context.getBean(DatasetDao.class)).thenReturn(datasetDao);
     when(context.getBean(SnapshotDao.class)).thenReturn(snapshotDao);
     when(context.getBean(DatasetService.class)).thenReturn(datasetService);
@@ -74,8 +74,10 @@ class SetInheritStewardFlightTest {
     when(context.getBean(JournalService.class)).thenReturn(journalService);
   }
 
-  @Test
-  void allSteps() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void allSteps(boolean inheritSteward) {
+    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
     var flight = new SetInheritStewardFlight(inputParameters, context);
     var steps = FlightTestUtils.getStepNames(flight);
     assertThat(
@@ -92,8 +94,10 @@ class SetInheritStewardFlightTest {
             "JournalRecordUpdateEntryStep"));
   }
 
-  @Test
-  void lockDatasetStep() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void lockDatasetStep(boolean inheritSteward) {
+    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
     try (var mockStep =
         mockConstruction(
             LockDatasetStep.class,
@@ -114,8 +118,10 @@ class SetInheritStewardFlightTest {
     }
   }
 
-  @Test
-  void setFlagStep() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void setFlagStep(boolean inheritSteward) {
+    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
     try (var mockStep =
         mockConstruction(
             SetInheritStewardFlagStep.class,
@@ -128,7 +134,7 @@ class SetInheritStewardFlightTest {
               assertThat(
                   "The correct boolean flag is passed to the step",
                   (boolean) context.arguments().get(2),
-                  equalTo(true));
+                  equalTo(inheritSteward));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
@@ -136,8 +142,10 @@ class SetInheritStewardFlightTest {
     }
   }
 
-  @Test
-  void getSnapshotIdsStep() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void getSnapshotIdsStep(boolean inheritSteward) {
+    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
     try (var mockStep =
         mockConstruction(
             GetSnapshotIdsStep.class,
@@ -152,7 +160,7 @@ class SetInheritStewardFlightTest {
               assertThat(
                   "The correct boolean flag is passed to the step",
                   (boolean) context.arguments().get(4),
-                  equalTo(true));
+                  equalTo(inheritSteward));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
@@ -160,8 +168,10 @@ class SetInheritStewardFlightTest {
     }
   }
 
-  @Test
-  void setParentsStep() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void setParentsStep(boolean inheritSteward) {
+    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
     try (var mockStep =
         mockConstruction(
             SetParentOnSnapshotsStep.class,
@@ -175,7 +185,7 @@ class SetInheritStewardFlightTest {
               assertThat(
                   "The correct boolean flag is passed to the step",
                   (boolean) context.arguments().get(3),
-                  equalTo(true));
+                  equalTo(inheritSteward));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
@@ -183,8 +193,10 @@ class SetInheritStewardFlightTest {
     }
   }
 
-  @Test
-  void setAuthGcpUserRolesStep() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void setAuthGcpUserRolesStep(boolean inheritSteward) {
+    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
     try (var mockStep =
         mockConstruction(
             SetAuthGcpUserRolesStep.class,
@@ -198,7 +210,7 @@ class SetInheritStewardFlightTest {
               assertThat(
                   "The correct boolean flag is passed to the step",
                   (boolean) context.arguments().get(3),
-                  equalTo(true));
+                  equalTo(inheritSteward));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
@@ -206,15 +218,17 @@ class SetInheritStewardFlightTest {
     }
   }
 
-  @Test
-  void adjustStewardMembersStep() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void adjustStewardMembersStep(boolean inheritSteward) {
+    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
     try (var mockStep =
         mockConstruction(
             AdjustStewardMembersStep.class,
             (mock, context) -> {
               assertThat((AuthenticatedUserRequest) context.arguments().get(0), equalTo(TEST_USER));
               assertThat((IamService) context.arguments().get(1), equalTo(iamService));
-              assertThat((boolean) context.arguments().get(2), equalTo(true));
+              assertThat((boolean) context.arguments().get(2), equalTo(inheritSteward));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
@@ -222,8 +236,10 @@ class SetInheritStewardFlightTest {
     }
   }
 
-  @Test
-  void unlockDatasetStep() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void unlockDatasetStep(boolean inheritSteward) {
+    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
     try (var mockStep =
         mockConstruction(
             UnlockDatasetStep.class,
@@ -240,8 +256,10 @@ class SetInheritStewardFlightTest {
     }
   }
 
-  @Test
-  void setAuthTabluarAclStep() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void setAuthTabluarAclStep(boolean inheritSteward) {
+    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
     try (var mockStep =
         mockConstruction(
             SetAuthTabularAclStep.class,
@@ -256,7 +274,7 @@ class SetInheritStewardFlightTest {
               assertThat(
                   "The correct boolean flag is passed to the step",
                   (boolean) context.arguments().get(3),
-                  equalTo(true));
+                  equalTo(inheritSteward));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
@@ -264,8 +282,10 @@ class SetInheritStewardFlightTest {
     }
   }
 
-  @Test
-  void journalRecordUpdateEntryStep() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void journalRecordUpdateEntryStep(boolean inheritSteward) {
+    inputParameters.put(DatasetWorkingMapKeys.INHERIT_STEWARD, inheritSteward);
     try (var mockStep =
         mockConstruction(
             JournalRecordUpdateEntryStep.class,
@@ -287,7 +307,10 @@ class SetInheritStewardFlightTest {
               assertThat(
                   "The correct note is passed to the step",
                   (String) context.arguments().get(4),
-                  equalTo("Set Inherit Steward flag to true on dataset, " + DATASET_ID));
+                  equalTo(
+                      String.format(
+                          "Set Inherit Steward flag to %s on dataset, %s",
+                          inheritSteward, DATASET_ID)));
             })) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);

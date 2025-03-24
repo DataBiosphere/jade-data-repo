@@ -830,9 +830,7 @@ public class SnapshotService {
 
     Dataset sourceDataset = snapshotDao.retrieveSnapshot(snapshotId).getSourceDataset();
     if (sourceDataset.isInheritSteward()) {
-      iamService
-          .retrievePolicies(userReq, IamResourceType.DATASET, sourceDataset.getId())
-          .stream()
+      iamService.retrievePolicies(userReq, IamResourceType.DATASET, sourceDataset.getId()).stream()
           .filter(p -> p.getName().equals(IamRole.CUSTODIAN.toString()))
           .map(SamPolicyModel::getMembers)
           .findFirst()

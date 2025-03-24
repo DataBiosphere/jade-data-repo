@@ -22,7 +22,7 @@ buildscript {
     dependencies {
         classpath('io.swagger.codegen.v3:swagger-codegen:3.0.68')
         // Required for gradle liquibase plugin
-        classpath ('org.liquibase:liquibase-core:4.30.0')
+        classpath ('org.liquibase:liquibase-core:4.31.1')
     }
 }
 
@@ -260,7 +260,10 @@ dependencies {
 
     antlr 'org.antlr:antlr4:4.13.2'
 
-    liquibaseRuntime 'org.liquibase:liquibase-core'
+    // NOTE: The version here must match the version required by the liquibase gradle plugin. If
+    // the version is omitted, the version provided by spring will be used, which may be different
+    // from the plugin version, and the plugin commands won't work.
+    liquibaseRuntime 'org.liquibase:liquibase-core:4.31.1'
     liquibaseRuntime 'org.postgresql:postgresql'
     liquibaseRuntime 'info.picocli:picocli:4.7.6'
 

@@ -3,8 +3,8 @@
 
 usage() {
   cat <<-'EOF'
-usage: run-db [--clean-db] [-h|--help] COMMAND
-[--clean-db]       clean the database (only with `stop` or `start`)
+usage: run-db [-c|--clean-db] [-h|--help] COMMAND
+[-c|--clean-db]       clean the database (only with `stop` or `start`)
 [-h|--help]        print this help text
 COMMAND is one of:
 - start            start a local database server

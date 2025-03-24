@@ -28,6 +28,7 @@ import bio.terra.stairway.FlightMap;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -72,10 +73,9 @@ class SetInheritStewardFlightTest {
     when(context.getBean(JournalService.class)).thenReturn(journalService);
   }
 
-  @ParameterizedTest
-  @ValueSource(booleans = {true, false})
-  void allSteps(boolean inheritSteward) {
-    inputParameters.put(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward);
+  @Test
+  void allStepsTrue() {
+    inputParameters.put(JobMapKeys.INHERIT_STEWARD.getKeyName(), true);
     var flight = new SetInheritStewardFlight(inputParameters, context);
     var steps = FlightTestUtils.getStepNames(flight);
     assertThat(
@@ -88,6 +88,25 @@ class SetInheritStewardFlightTest {
             "SetAuthGcpUserRolesStep",
             "SetAuthTabularAclStep",
             "AdjustStewardMembersStep",
+            "UnlockDatasetStep",
+            "JournalRecordUpdateEntryStep"));
+  }
+
+  @Test
+  void allStepsFalse() {
+    inputParameters.put(JobMapKeys.INHERIT_STEWARD.getKeyName(), false);
+    var flight = new SetInheritStewardFlight(inputParameters, context);
+    var steps = FlightTestUtils.getStepNames(flight);
+    assertThat(
+        steps,
+        contains(
+            "LockDatasetStep",
+            "GetSnapshotIdsStep",
+            "SetParentOnSnapshotsStep",
+            "SetAuthGcpUserRolesStep",
+            "SetAuthTabularAclStep",
+            "AdjustStewardMembersStep",
+            "SetInheritStewardFlagStep",
             "UnlockDatasetStep",
             "JournalRecordUpdateEntryStep"));
   }

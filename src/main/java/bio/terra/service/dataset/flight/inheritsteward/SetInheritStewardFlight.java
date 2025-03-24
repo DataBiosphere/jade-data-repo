@@ -44,7 +44,10 @@ public class SetInheritStewardFlight extends Flight {
     boolean inheritSteward =
         inputParameters.get(JobMapKeys.INHERIT_STEWARD.getKeyName(), Boolean.class);
     addStep(new LockDatasetStep(datasetService, datasetId, false));
-    addStep(new SetInheritStewardFlagStep(datasetDao, datasetId, inheritSteward));
+    if (inheritSteward) {
+      // If we are setting inherit steward to true, we want to set the flag first
+      addStep(new SetInheritStewardFlagStep(datasetDao, datasetId, inheritSteward));
+    }
     addStep(new GetSnapshotIdsStep(snapshotDao, iamService, userReq, datasetId, inheritSteward));
     addStep(new SetParentOnSnapshotsStep(iamService, datasetId, userReq, inheritSteward));
     addStep(
@@ -54,6 +57,10 @@ public class SetInheritStewardFlight extends Flight {
         new SetAuthTabularAclStep(
             bigQuerySnapshotPdao, snapshotService, custodianEmail, inheritSteward));
     addStep(new AdjustStewardMembersStep(userReq, iamService, inheritSteward));
+    if (!inheritSteward) {
+      // If we are setting inherit steward to false, we want to set the flag last
+      addStep(new SetInheritStewardFlagStep(datasetDao, datasetId, inheritSteward));
+    }
     addStep(new UnlockDatasetStep(datasetService, false));
     addStep(
         new JournalRecordUpdateEntryStep(

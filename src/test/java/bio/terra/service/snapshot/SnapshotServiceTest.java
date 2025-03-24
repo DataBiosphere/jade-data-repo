@@ -358,53 +358,54 @@ class SnapshotServiceTest {
                 .dataProject(SNAPSHOT_DATA_PROJECT)));
   }
 
-  private void mockSnapshot() {
-    when(snapshotDao.retrieveSnapshot(snapshotId))
-        .thenReturn(
-            new Snapshot()
-                .id(snapshotId)
-                .name(SNAPSHOT_NAME)
-                .description(SNAPSHOT_DESCRIPTION)
-                .createdDate(createdDate)
-                .profileId(profileId)
-                .projectResource(
-                    new GoogleProjectResource()
-                        .profileId(profileId)
-                        .googleProjectId(SNAPSHOT_DATA_PROJECT))
-                .snapshotSources(
-                    List.of(
-                        new SnapshotSource()
-                            .dataset(
-                                new Dataset(
-                                    new DatasetSummary()
-                                        .id(datasetId)
-                                        .name(DATASET_NAME)
-                                        .projectResourceId(profileId)
-                                        .createdDate(createdDate)
-                                        .storage(
-                                            List.of(
-                                                new GoogleStorageResource(
-                                                    datasetId,
-                                                    GoogleCloudResource.BUCKET,
-                                                    GoogleRegion.DEFAULT_GOOGLE_REGION)))))))
-                .snapshotTables(
-                    List.of(
-                        new SnapshotTable()
-                            .name(SNAPSHOT_TABLE_NAME)
-                            .id(snapshotTableId)
-                            .columns(
-                                List.of(
-                                    new Column()
-                                        .name(SNAPSHOT_COLUMN_NAME)
-                                        .type(TableDataType.STRING)
-                                        .arrayOf(true)
-                                        .required(true)))))
-                .creationInformation(
-                    new SnapshotRequestContentsModel()
-                        .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW)
-                        .datasetName(DATASET_NAME))
-                .duosFirecloudGroupId(duosFirecloudGroup.getId())
-                .duosFirecloudGroup(duosFirecloudGroup));
+  private Snapshot mockSnapshot() {
+    Snapshot snapshot =
+        new Snapshot()
+            .id(snapshotId)
+            .name(SNAPSHOT_NAME)
+            .description(SNAPSHOT_DESCRIPTION)
+            .createdDate(createdDate)
+            .profileId(profileId)
+            .projectResource(
+                new GoogleProjectResource()
+                    .profileId(profileId)
+                    .googleProjectId(SNAPSHOT_DATA_PROJECT))
+            .snapshotSources(
+                List.of(
+                    new SnapshotSource()
+                        .dataset(
+                            new Dataset(
+                                new DatasetSummary()
+                                    .id(datasetId)
+                                    .name(DATASET_NAME)
+                                    .projectResourceId(profileId)
+                                    .createdDate(createdDate)
+                                    .storage(
+                                        List.of(
+                                            new GoogleStorageResource(
+                                                datasetId,
+                                                GoogleCloudResource.BUCKET,
+                                                GoogleRegion.DEFAULT_GOOGLE_REGION)))))))
+            .snapshotTables(
+                List.of(
+                    new SnapshotTable()
+                        .name(SNAPSHOT_TABLE_NAME)
+                        .id(snapshotTableId)
+                        .columns(
+                            List.of(
+                                new Column()
+                                    .name(SNAPSHOT_COLUMN_NAME)
+                                    .type(TableDataType.STRING)
+                                    .arrayOf(true)
+                                    .required(true)))))
+            .creationInformation(
+                new SnapshotRequestContentsModel()
+                    .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW)
+                    .datasetName(DATASET_NAME))
+            .duosFirecloudGroupId(duosFirecloudGroup.getId())
+            .duosFirecloudGroup(duosFirecloudGroup);
+    when(snapshotDao.retrieveSnapshot(snapshotId)).thenReturn(snapshot);
+    return snapshot;
   }
 
   private SnapshotModel expectedMockSnapshotModelBase() {
@@ -823,16 +824,13 @@ class SnapshotServiceTest {
     when(iamService.retrievePolicies(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
         .thenReturn(List.of(spm1, spm2));
 
-    List<WorkspacePolicyModel> accessible =
+    var accessible =
+        List.of(new WorkspacePolicyModel(), new WorkspacePolicyModel(), new WorkspacePolicyModel());
+    var inaccessible =
         List.of(
-            mock(WorkspacePolicyModel.class),
-            mock(WorkspacePolicyModel.class),
-            mock(WorkspacePolicyModel.class));
-    List<InaccessibleWorkspacePolicyModel> inaccessible =
-        List.of(
-            mock(InaccessibleWorkspacePolicyModel.class),
-            mock(InaccessibleWorkspacePolicyModel.class),
-            mock(InaccessibleWorkspacePolicyModel.class));
+            new InaccessibleWorkspacePolicyModel(),
+            new InaccessibleWorkspacePolicyModel(),
+            new InaccessibleWorkspacePolicyModel());
     List<String> userGroups = List.of("userGroup1", "userGroup2");
 
     when(iamService.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
@@ -845,6 +843,15 @@ class SnapshotServiceTest {
         .thenReturn(
             new RawlsService.WorkspacePolicyModels(
                 accessible.subList(1, 3), inaccessible.subList(2, 3)));
+    var dataset = mockSnapshot().getSourceDataset();
+    dataset.getDatasetSummary().inheritSteward(true);
+    String custodianUser = "custodian";
+    when(iamService.retrievePolicies(TEST_USER, IamResourceType.DATASET, dataset.getId()))
+        .thenReturn(
+            List.of(
+                new SamPolicyModel()
+                    .name(IamRole.CUSTODIAN.toString())
+                    .addMembersItem(custodianUser)));
 
     PolicyResponse response = service.retrieveSnapshotPolicies(snapshotId, TEST_USER);
 
@@ -860,6 +867,7 @@ class SnapshotServiceTest {
         "All inaccessible workspaces from SAM policy models are returned",
         response.getInaccessibleWorkspaces(),
         is(inaccessible));
+    assertThat(response.getInheritedStewards(), contains(custodianUser));
   }
 
   @Test

@@ -40,7 +40,7 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.dataset.flight.inheritsteward.EnableInheritStewardFlight;
+import bio.terra.service.dataset.flight.inheritsteward.SetInheritStewardFlight;
 import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.SynapseDataResultModel;
@@ -73,6 +73,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -386,13 +388,14 @@ class DatasetServiceUnitTest {
     assertThat("Correct min value", statsModel.getMinValue(), equalTo(expectedValue.getMinValue()));
   }
 
-  @Test
-  void testEnableInheritSteward() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void setInheritSteward(boolean inheritSteward) {
     JobBuilder jobBuilder =
-        new JobBuilder("", EnableInheritStewardFlight.class, null, TEST_USER, jobService);
+        new JobBuilder("", SetInheritStewardFlight.class, null, TEST_USER, jobService);
     when(jobService.newJob(
-            "Enable InheritSteward for dataset " + DATASET_ID,
-            EnableInheritStewardFlight.class,
+            String.format("Set inherit steward to %s for dataset %s", inheritSteward, DATASET_ID),
+            SetInheritStewardFlight.class,
             null,
             TEST_USER))
         .thenReturn(jobBuilder);
@@ -406,11 +409,11 @@ class DatasetServiceUnitTest {
                     .email(custodianEmail)
                     .members(members)));
     ArgumentCaptor<FlightMap> captor = ArgumentCaptor.forClass(FlightMap.class);
-    when(jobService.submit(eq(EnableInheritStewardFlight.class), captor.capture()))
+    when(jobService.submit(eq(SetInheritStewardFlight.class), captor.capture()))
         .thenReturn("JobId");
     assertThat(
         "Job is submitted and JobId is returned",
-        datasetService.enableInheritSteward(DATASET_ID, TEST_USER),
+        datasetService.setInheritSteward(DATASET_ID, inheritSteward, TEST_USER),
         equalTo("JobId"));
     FlightMap flightMap = captor.getValue();
     assertThat(
@@ -425,6 +428,9 @@ class DatasetServiceUnitTest {
         equalTo(custodianEmail));
     assertThat(
         flightMap.get(JobMapKeys.CUSTODIAN_USERS.getKeyName(), List.class), equalTo(members));
+    assertThat(
+        flightMap.get(JobMapKeys.INHERIT_STEWARD.getKeyName(), Boolean.class),
+        equalTo(inheritSteward));
   }
 
   private void mockDataset(CloudPlatform cloudPlatform, TableDataType columnDataType) {

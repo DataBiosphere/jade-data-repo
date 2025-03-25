@@ -1383,12 +1383,8 @@ public class SnapshotService {
     return new TableModel()
         .name(table.getName())
         .rowCount(rowCount != null ? rowCount.intValue() : null)
-        .primaryKey(
-            table.getPrimaryKey().stream().map(Column::getName).toList())
-        .columns(
-            table.getColumns().stream()
-                .map(this::makeColumnModelFromColumn)
-                .toList());
+        .primaryKey(table.getPrimaryKey().stream().map(Column::getName).toList())
+        .columns(table.getColumns().stream().map(this::makeColumnModelFromColumn).toList());
   }
 
   private ColumnModel makeColumnModelFromColumn(Column column) {

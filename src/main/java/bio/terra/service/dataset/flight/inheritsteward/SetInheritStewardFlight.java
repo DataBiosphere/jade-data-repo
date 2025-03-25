@@ -61,7 +61,7 @@ public class SetInheritStewardFlight extends Flight {
       // If we are setting inherit steward to false, we want to set the flag last
       addStep(new SetInheritStewardFlagStep(datasetDao, datasetId, inheritSteward));
     }
-    addStep(new UnlockDatasetStep(datasetService, false));
+    addStep(new UnlockDatasetStep(datasetService, datasetId, false));
     addStep(
         new JournalRecordUpdateEntryStep(
             journalService,

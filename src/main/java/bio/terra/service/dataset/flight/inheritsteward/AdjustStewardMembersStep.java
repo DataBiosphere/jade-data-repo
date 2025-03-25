@@ -41,7 +41,7 @@ public record AdjustStewardMembersStep(
     for (var snapshotId : snapshotIds) {
       for (var email : custodians) {
         api.addRemoveMember(
-            userReq, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.CUSTODIAN, email);
+            userReq, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.STEWARD, email);
       }
     }
   }

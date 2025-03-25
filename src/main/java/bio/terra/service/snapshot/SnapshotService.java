@@ -14,6 +14,7 @@ import bio.terra.common.Table;
 import bio.terra.common.ValidationUtils;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.ForbiddenException;
+import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.externalcreds.model.RASv1Dot1VisaCriterion;
 import bio.terra.externalcreds.model.ValidatePassportRequest;
@@ -830,11 +831,18 @@ public class SnapshotService {
 
     Dataset sourceDataset = snapshotDao.retrieveSnapshot(snapshotId).getSourceDataset();
     if (sourceDataset.isInheritSteward()) {
-      iamService.retrievePolicies(userReq, IamResourceType.DATASET, sourceDataset.getId()).stream()
-          .filter(p -> p.getName().equals(IamRole.CUSTODIAN.toString()))
-          .map(SamPolicyModel::getMembers)
-          .findFirst()
-          .ifPresent(policyResponse::setInheritedStewards);
+      try {
+        iamService
+            .retrievePolicies(userReq, IamResourceType.DATASET, sourceDataset.getId())
+            .stream()
+            .filter(p -> p.getName().equals(IamRole.CUSTODIAN.toString()))
+            .map(SamPolicyModel::getMembers)
+            .findFirst()
+            .ifPresent(policyResponse::setInheritedStewards);
+      } catch (NotFoundException e) {
+        // This will occur when the user has permission to view the snapshot but can't view policies
+        // for the snapshot's source dataset.
+      }
     }
 
     return policyResponse;
@@ -1376,11 +1384,11 @@ public class SnapshotService {
         .name(table.getName())
         .rowCount(rowCount != null ? rowCount.intValue() : null)
         .primaryKey(
-            table.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()))
+            table.getPrimaryKey().stream().map(Column::getName).toList())
         .columns(
             table.getColumns().stream()
                 .map(this::makeColumnModelFromColumn)
-                .collect(Collectors.toList()));
+                .toList());
   }
 
   private ColumnModel makeColumnModelFromColumn(Column column) {
@@ -1395,7 +1403,7 @@ public class SnapshotService {
     return Arrays.stream(
             StringUtils.split(SnapshotsApiController.RETRIEVE_INCLUDE_DEFAULT_VALUE, ','))
         .map(SnapshotRetrieveIncludeModel::fromValue)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   public List<UUID> enumerateSnapshotIdsForDataset(

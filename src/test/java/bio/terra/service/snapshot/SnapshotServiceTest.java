@@ -33,6 +33,7 @@ import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.ForbiddenException;
+import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.fixtures.DuosFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.externalcreds.model.ValidatePassportResult;
@@ -868,6 +869,29 @@ class SnapshotServiceTest {
         response.getInaccessibleWorkspaces(),
         is(inaccessible));
     assertThat(response.getInheritedStewards(), contains(custodianUser));
+  }
+
+  @Test
+  void retrieveSnapshotPoliciesCantReadSource() {
+    when(iamService.retrievePolicies(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
+        .thenReturn(List.of());
+    var dataset = mockSnapshot().getSourceDataset();
+    dataset.getDatasetSummary().inheritSteward(true);
+    when(iamService.retrievePolicies(TEST_USER, IamResourceType.DATASET, dataset.getId()))
+        .thenThrow(new NotFoundException(""));
+    var response = service.retrieveSnapshotPolicies(snapshotId, TEST_USER);
+    assertThat(response.getInheritedStewards(), empty());
+  }
+
+  @Test
+  void retrieveSnapshotPoliciesNoInheritSteward() {
+    when(iamService.retrievePolicies(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
+        .thenReturn(List.of());
+    var dataset = mockSnapshot().getSourceDataset();
+    var response = service.retrieveSnapshotPolicies(snapshotId, TEST_USER);
+    assertThat(response.getInheritedStewards(), empty());
+    verify(iamService, never())
+        .retrievePolicies(TEST_USER, IamResourceType.DATASET, dataset.getId());
   }
 
   @Test

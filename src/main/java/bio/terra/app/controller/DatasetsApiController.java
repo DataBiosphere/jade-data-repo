@@ -508,6 +508,20 @@ public class DatasetsApiController implements DatasetsApi {
     return ResponseEntity.ok(datasetService.getTags(idsAndRoles, filter, limit));
   }
 
+  @Override
+  public ResponseEntity<JobModel> setInheritSteward(UUID id, Boolean inheritSteward) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.SET_INHERIT_STEWARD);
+
+    // dataset already has the requested value for inheritSteward
+    if (datasetService.retrieveDatasetSummary(id).isInheritSteward().equals(inheritSteward)) {
+      return ResponseEntity.noContent().build();
+    }
+
+    String jobId = datasetService.setInheritSteward(id, inheritSteward, userReq);
+    return ControllerUtils.jobToResponse(jobService.retrieveJob(jobId, userReq));
+  }
+
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {
     CloudPlatform datasetPlatform =
         datasetService.retrieveDatasetSummary(datasetId).getCloudPlatform();

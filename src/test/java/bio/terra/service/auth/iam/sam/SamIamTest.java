@@ -867,6 +867,83 @@ class SamIamTest {
           IamNotFoundException.class,
           () -> samIam.listResourceChildren(accessToken, IamResourceType.DATASET, parentId));
     }
+
+    @Test
+    void setPolicyPublicV2() throws Exception {
+      UUID resourceId = UUID.randomUUID();
+      samIam.setPolicyPublicV2(
+          TEST_USER.getToken(),
+          IamResourceType.DATASNAPSHOT,
+          resourceId,
+          IamRole.READER.name(),
+          true);
+      verify(samResourceApi)
+          .setPolicyPublicV2(
+              IamResourceType.DATASNAPSHOT.getSamResourceName(),
+              resourceId.toString(),
+              IamRole.READER.name(),
+              true);
+    }
+
+    @Test
+    void setPolicyPublicV2Throws() throws Exception {
+      UUID resourceId = UUID.randomUUID();
+      String accessToken = TEST_USER.getToken();
+      ApiException samEx =
+          new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Resource not found");
+      doThrow(samEx)
+          .when(samResourceApi)
+          .setPolicyPublicV2(
+              IamResourceType.DATASNAPSHOT.getSamResourceName(),
+              resourceId.toString(),
+              IamRole.READER.name(),
+              true);
+      assertThrows(
+          IamNotFoundException.class,
+          () ->
+              samIam.setPolicyPublicV2(
+                  accessToken,
+                  IamResourceType.DATASNAPSHOT,
+                  resourceId,
+                  IamRole.READER.name(),
+                  true));
+    }
+
+    @Test
+    void getPublicPolicyV2() throws Exception {
+      UUID resourceId = UUID.randomUUID();
+      when(samResourceApi.getPolicyPublicV2(
+              IamResourceType.DATASNAPSHOT.getSamResourceName(),
+              resourceId.toString(),
+              IamRole.READER.name()))
+          .thenReturn(false);
+      assertThat(
+          samIam.getPolicyPublicV2(
+              TEST_USER.getToken(),
+              IamResourceType.DATASNAPSHOT,
+              resourceId,
+              IamRole.READER.name()),
+          is(false));
+    }
+
+    @Test
+    void getPublicPolicyV2Throws() throws Exception {
+      UUID resourceId = UUID.randomUUID();
+      String accessToken = TEST_USER.getToken();
+      ApiException samEx =
+          new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Resource not found");
+      doThrow(samEx)
+          .when(samResourceApi)
+          .getPolicyPublicV2(
+              IamResourceType.DATASNAPSHOT.getSamResourceName(),
+              resourceId.toString(),
+              IamRole.READER.name());
+      assertThrows(
+          IamNotFoundException.class,
+          () ->
+              samIam.getPolicyPublicV2(
+                  accessToken, IamResourceType.DATASNAPSHOT, resourceId, IamRole.READER.name()));
+    }
   }
 
   @Nested

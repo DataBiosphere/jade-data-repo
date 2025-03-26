@@ -360,4 +360,34 @@ class IamServiceTest {
         children,
         iamService.listResourceChildren(TEST_USER.getToken(), IamResourceType.DATASET, parentId));
   }
+
+  @Test
+  void getPolicyPublicV2() throws InterruptedException {
+    UUID resourceId = UUID.randomUUID();
+    when(iamProvider.getPolicyPublicV2(
+            TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, resourceId, IamRole.READER.name()))
+        .thenReturn(true);
+    assertEquals(
+        true,
+        iamService.getPolicyPublicV2(
+            TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, resourceId, IamRole.READER.name()));
+  }
+
+  @Test
+  void setPolicyPublicV2() throws InterruptedException {
+    UUID resourceId = UUID.randomUUID();
+    iamService.setPolicyPublicV2(
+        TEST_USER.getToken(),
+        IamResourceType.DATASNAPSHOT,
+        resourceId,
+        IamRole.READER.name(),
+        true);
+    verify(iamProvider)
+        .setPolicyPublicV2(
+            TEST_USER.getToken(),
+            IamResourceType.DATASNAPSHOT,
+            resourceId,
+            IamRole.READER.name(),
+            true);
+  }
 }

@@ -620,53 +620,53 @@ class DatasetsApiControllerTest {
     verifyAuthorizationCall(IamAction.SET_INHERIT_STEWARD);
   }
 
-//  // TODO - fix these tests
-//  @Test
-//  void adminInheritStewardNotAuthorized() throws Exception {
-//    boolean inheritSteward = true;
-//    mockValidators();
-//    mvc.perform(
-//            put(SET_INHERIT_STEWARD_ENDPOINT, DATASET_ID)
-//                .contentType(MediaType.APPLICATION_JSON)
-//                .content(TestUtils.mapToJson(inheritSteward)))
-//        .andExpect(status().isForbidden());
-//  }
-//
-//  @Test
-//  void adminInheritStewardInvalidId() throws Exception {
-//    boolean inheritSteward = true;
-//    mvc.perform(
-//            put(SET_INHERIT_STEWARD_ENDPOINT, "not a UUID")
-//                .contentType(MediaType.APPLICATION_JSON)
-//                .content(TestUtils.mapToJson(inheritSteward)))
-//        .andExpect(status().isBadRequest());
-//  }
-//
-//  @Test
-//  void adminInheritStewardDatasetNotFound() throws Exception {
-//    when(datasetService.retrieveDatasetSummary(DATASET_ID))
-//        .thenThrow(new DatasetNotFoundException("Dataset not found for id: " + DATASET_ID));
-//    boolean inheritSteward = true;
-//    mvc.perform(
-//            put(SET_INHERIT_STEWARD_ENDPOINT, DATASET_ID)
-//                .contentType(MediaType.APPLICATION_JSON)
-//                .content(TestUtils.mapToJson(inheritSteward)))
-//        .andExpect(status().isNotFound());
-//    verify(iamService)
-//        .verifyResourceTypeAdminAuthorized(
-//            TEST_USER, IamResourceType.DATASET, IamAction.SET_INHERIT_STEWARD, DATASET_ID);
-//  }
-//
-//  @Test
-//  void adminInheritStewardDatasetAlreadySet() throws Exception {
-//    when(datasetService.retrieveDatasetSummary(DATASET_ID))
-//        .thenReturn(new DatasetSummaryModel().id(DATASET_ID).inheritSteward(true));
-//    boolean inheritSteward = true;
-//    mvc.perform(
-//            put(SET_INHERIT_STEWARD_ENDPOINT, DATASET_ID)
-//                .contentType(MediaType.APPLICATION_JSON)
-//                .content(TestUtils.mapToJson(inheritSteward)))
-//        .andExpect(status().isNoContent());
-//    verifyAuthorizationsCall(List.of(IamAction.SET_INHERIT_STEWARD));
-//  }
+  //  // TODO - fix these tests
+  //  @Test
+  //  void adminInheritStewardNotAuthorized() throws Exception {
+  //    boolean inheritSteward = true;
+  //    mockValidators();
+  //    mvc.perform(
+  //            put(SET_INHERIT_STEWARD_ENDPOINT, DATASET_ID)
+  //                .contentType(MediaType.APPLICATION_JSON)
+  //                .content(TestUtils.mapToJson(inheritSteward)))
+  //        .andExpect(status().isForbidden());
+  //  }
+  //
+  //  @Test
+  //  void adminInheritStewardInvalidId() throws Exception {
+  //    boolean inheritSteward = true;
+  //    mvc.perform(
+  //            put(SET_INHERIT_STEWARD_ENDPOINT, "not a UUID")
+  //                .contentType(MediaType.APPLICATION_JSON)
+  //                .content(TestUtils.mapToJson(inheritSteward)))
+  //        .andExpect(status().isBadRequest());
+  //  }
+  //
+  //  @Test
+  //  void adminInheritStewardDatasetNotFound() throws Exception {
+  //    when(datasetService.retrieveDatasetSummary(DATASET_ID))
+  //        .thenThrow(new DatasetNotFoundException("Dataset not found for id: " + DATASET_ID));
+  //    boolean inheritSteward = true;
+  //    mvc.perform(
+  //            put(SET_INHERIT_STEWARD_ENDPOINT, DATASET_ID)
+  //                .contentType(MediaType.APPLICATION_JSON)
+  //                .content(TestUtils.mapToJson(inheritSteward)))
+  //        .andExpect(status().isNotFound());
+  //    verify(iamService)
+  //        .verifyResourceTypeAdminAuthorized(
+  //            TEST_USER, IamResourceType.DATASET, IamAction.SET_INHERIT_STEWARD, DATASET_ID);
+  //  }
+  //
+  //  @Test
+  //  void adminInheritStewardDatasetAlreadySet() throws Exception {
+  //    when(datasetService.retrieveDatasetSummary(DATASET_ID))
+  //        .thenReturn(new DatasetSummaryModel().id(DATASET_ID).inheritSteward(true));
+  //    boolean inheritSteward = true;
+  //    mvc.perform(
+  //            put(SET_INHERIT_STEWARD_ENDPOINT, DATASET_ID)
+  //                .contentType(MediaType.APPLICATION_JSON)
+  //                .content(TestUtils.mapToJson(inheritSteward)))
+  //        .andExpect(status().isNoContent());
+  //    verifyAuthorizationsCall(List.of(IamAction.SET_INHERIT_STEWARD));
+  //  }
 }

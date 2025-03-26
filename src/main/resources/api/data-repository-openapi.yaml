@@ -7261,7 +7261,9 @@ components:
           items:
             $ref: '#/components/schemas/InaccessibleWorkspacePolicyModel'
         inheritedStewards:
-            description: For a snapshot, the inherited stewards from the source dataset.
+            description: >
+              For a snapshot, the inherited stewards from the source dataset, if the requesting
+              user has permission to view the dataset.
             type: array
             items:
                 description: The steward's email address

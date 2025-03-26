@@ -215,7 +215,8 @@ class SetInheritStewardFlightTest {
     try (var mockStep =
         mockConstruction(
             UnlockDatasetStep.class,
-            (mock, context) -> assertThat(context.arguments(), contains(datasetService, false)))) {
+            (mock, context) ->
+                assertThat(context.arguments(), contains(datasetService, DATASET_ID, false)))) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
@@ -224,7 +225,7 @@ class SetInheritStewardFlightTest {
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
-  void setAuthTabluarAclStep(boolean inheritSteward) {
+  void setAuthTabularAclStep(boolean inheritSteward) {
     inputParameters.put(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward);
     try (var mockStep =
         mockConstruction(

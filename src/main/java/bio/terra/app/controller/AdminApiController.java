@@ -114,19 +114,4 @@ public class AdminApiController implements AdminApi {
     SnapshotModel snapshotModel = snapshotService.retrieveSnapshotModel(id, include, userReq);
     return ResponseEntity.ok(snapshotModel);
   }
-
-  @Override
-  public ResponseEntity<JobModel> adminInheritSteward(UUID id, Boolean inheritSteward) {
-    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    iamService.verifyResourceTypeAdminAuthorized(
-        userReq, IamResourceType.DATASET, IamAction.SET_INHERIT_STEWARD, id);
-
-    // dataset already has the requested value for inheritSteward
-    if (datasetService.retrieveDatasetSummary(id).isInheritSteward().equals(inheritSteward)) {
-      return ResponseEntity.noContent().build();
-    }
-
-    String jobId = datasetService.setInheritSteward(id, inheritSteward, userReq);
-    return ControllerUtils.jobToResponse(jobService.retrieveJob(jobId, userReq));
-  }
 }

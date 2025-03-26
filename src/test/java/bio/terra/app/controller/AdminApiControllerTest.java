@@ -4,12 +4,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
@@ -19,11 +16,7 @@ import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
-import bio.terra.service.auth.iam.IamAction;
-import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.DatasetService;
@@ -36,11 +29,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -67,8 +57,6 @@ class AdminApiControllerTest {
   private static final UUID MODEL_ID = UUID.randomUUID();
   private static final String ADMIN_DATASETS_ENDPOINT = "/api/admin/v1/datasets/{id}";
   private static final String ADMIN_SNAPSHOTS_ENDPOINT = "/api/admin/v1/snapshots/{id}";
-  private static final String ADMIN_INHERIT_STEWARD_ENDPOINT =
-      "/api/admin/v1/datasets/{id}/inheritSteward";
   private static final IamForbiddenException FORBIDDEN_EXCEPTION =
       new IamForbiddenException("Forbidden");
 
@@ -155,85 +143,5 @@ class AdminApiControllerTest {
         .when(snapshotService)
         .retrieveSnapshotModel(any(), any(), any());
     mvc.perform(get(ADMIN_SNAPSHOTS_ENDPOINT, MODEL_ID)).andExpect(status().isNotFound());
-  }
-
-  @ParameterizedTest
-  @ValueSource(booleans = {true, false})
-  void adminInheritSteward(boolean inheritSteward) throws Exception {
-    String jobId = "jobId";
-    when(datasetService.retrieveDatasetSummary(MODEL_ID))
-        .thenReturn(new DatasetSummaryModel().id(MODEL_ID).inheritSteward(!inheritSteward));
-    when(datasetService.setInheritSteward(MODEL_ID, inheritSteward, TEST_USER)).thenReturn(jobId);
-    JobModel jobModel = new JobModel().id(jobId).jobStatus(JobModel.JobStatusEnum.RUNNING);
-    when(jobService.retrieveJob(eq(jobId), any())).thenReturn(jobModel);
-
-    String json =
-        mvc.perform(
-                put(ADMIN_INHERIT_STEWARD_ENDPOINT, MODEL_ID)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(inheritSteward)))
-            .andExpect(status().is(202))
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-    JobModel model = TestUtils.mapFromJson(json, JobModel.class);
-    assertThat("Job ID is returned", model, equalTo(jobModel));
-    verify(iamService)
-        .verifyResourceTypeAdminAuthorized(
-            TEST_USER, IamResourceType.DATASET, IamAction.SET_INHERIT_STEWARD, MODEL_ID);
-  }
-
-  @Test
-  void adminInheritStewardNotAuthorized() throws Exception {
-    doThrow(FORBIDDEN_EXCEPTION)
-        .when(iamService)
-        .verifyResourceTypeAdminAuthorized(
-            TEST_USER, IamResourceType.DATASET, IamAction.SET_INHERIT_STEWARD, MODEL_ID);
-    boolean inheritSteward = true;
-    mvc.perform(
-            put(ADMIN_INHERIT_STEWARD_ENDPOINT, MODEL_ID)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(TestUtils.mapToJson(inheritSteward)))
-        .andExpect(status().isForbidden());
-  }
-
-  @Test
-  void adminInheritStewardInvalidId() throws Exception {
-    boolean inheritSteward = true;
-    mvc.perform(
-            put(ADMIN_INHERIT_STEWARD_ENDPOINT, "not a UUID")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(TestUtils.mapToJson(inheritSteward)))
-        .andExpect(status().isBadRequest());
-  }
-
-  @Test
-  void adminInheritStewardDatasetNotFound() throws Exception {
-    when(datasetService.retrieveDatasetSummary(MODEL_ID))
-        .thenThrow(new DatasetNotFoundException("Dataset not found for id: " + MODEL_ID));
-    boolean inheritSteward = true;
-    mvc.perform(
-            put(ADMIN_INHERIT_STEWARD_ENDPOINT, MODEL_ID)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(TestUtils.mapToJson(inheritSteward)))
-        .andExpect(status().isNotFound());
-    verify(iamService)
-        .verifyResourceTypeAdminAuthorized(
-            TEST_USER, IamResourceType.DATASET, IamAction.SET_INHERIT_STEWARD, MODEL_ID);
-  }
-
-  @Test
-  void adminInheritStewardDatasetAlreadySet() throws Exception {
-    when(datasetService.retrieveDatasetSummary(MODEL_ID))
-        .thenReturn(new DatasetSummaryModel().id(MODEL_ID).inheritSteward(true));
-    boolean inheritSteward = true;
-    mvc.perform(
-            put(ADMIN_INHERIT_STEWARD_ENDPOINT, MODEL_ID)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(TestUtils.mapToJson(inheritSteward)))
-        .andExpect(status().isNoContent());
-    verify(iamService)
-        .verifyResourceTypeAdminAuthorized(
-            TEST_USER, IamResourceType.DATASET, IamAction.SET_INHERIT_STEWARD, MODEL_ID);
   }
 }

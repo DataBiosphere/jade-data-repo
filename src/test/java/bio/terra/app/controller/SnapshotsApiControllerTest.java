@@ -471,6 +471,7 @@ class SnapshotsApiControllerTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void setSnapshotPublic(boolean setPublic) throws Exception {
+    mockValidators();
     when(iamService.getPolicyPublicV2(
             TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, SNAPSHOT_ID, IamRole.READER.name()))
         .thenReturn(!setPublic);
@@ -492,6 +493,7 @@ class SnapshotsApiControllerTest {
 
   @Test
   void setSnapshotPublicInvalidId() throws Exception {
+    mockValidators();
     mvc.perform(
             put(SET_SNAPSHOT_PUBLIC_ENDPOINT, "not a UUID")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -501,6 +503,7 @@ class SnapshotsApiControllerTest {
 
   @Test
   void setSnapshotPublicNotFound() throws Exception {
+    mockValidators();
     when(iamService.getPolicyPublicV2(
             TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, SNAPSHOT_ID, IamRole.READER.name()))
         .thenThrow(new NotFoundException("Resource not found"));

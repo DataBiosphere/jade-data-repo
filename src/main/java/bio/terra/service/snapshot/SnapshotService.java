@@ -965,6 +965,11 @@ public class SnapshotService {
     }
   }
 
+  public String setSnapshotPublic(
+      UUID id, boolean setPublic, AuthenticatedUserRequest authenticatedInfo) {
+    return "";
+  }
+
   public SnapshotPreviewModel retrievePreview(
       AuthenticatedUserRequest userRequest,
       UUID snapshotId,

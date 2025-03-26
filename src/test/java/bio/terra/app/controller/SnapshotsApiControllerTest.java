@@ -46,6 +46,7 @@ import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.AssetModelValidator;
@@ -67,6 +68,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
@@ -123,6 +125,7 @@ class SnapshotsApiControllerTest {
   private static final String UNLOCK_SNAPSHOT_ENDPOINT = SNAPSHOT_ID_ENDPOINT + "/unlock";
   private static final String QUERY_SNAPSHOT_DATA_ENDPOINT = SNAPSHOT_ID_ENDPOINT + "/data/{table}";
   private static final String EXPORT_SNAPSHOT_ENDPOINT = SNAPSHOT_ID_ENDPOINT + "/export";
+  private static final String SET_SNAPSHOT_PUBLIC_ENDPOINT = SNAPSHOT_ID_ENDPOINT + "/public";
   private static final String SNAPSHOT_BUILDER_SETTINGS_ENDPOINT =
       SNAPSHOT_ID_ENDPOINT + "/snapshotBuilder/settings";
 
@@ -463,6 +466,62 @@ class SnapshotsApiControllerTest {
     mvc.perform(delete(SNAPSHOT_ID_ENDPOINT, SNAPSHOT_ID)).andExpect(status().isForbidden());
 
     verifyAuthorizationCall(IamAction.DELETE);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void setSnapshotPublic(boolean setPublic) throws Exception {
+    when(iamService.getPolicyPublicV2(
+            TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, SNAPSHOT_ID, IamRole.READER.name()))
+        .thenReturn(!setPublic);
+    when(snapshotService.setSnapshotPublic(SNAPSHOT_ID, setPublic, TEST_USER)).thenReturn(JOB_ID);
+    when(jobService.retrieveJob(JOB_ID, TEST_USER)).thenReturn(JOB_MODEL);
+
+    String json =
+        mvc.perform(
+                put(SET_SNAPSHOT_PUBLIC_ENDPOINT, SNAPSHOT_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(setPublic)))
+            .andExpect(status().is(202))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    JobModel model = TestUtils.mapFromJson(json, JobModel.class);
+    assertThat("Job ID is returned", model, equalTo(JOB_MODEL));
+  }
+
+  @Test
+  void setSnapshotPublicInvalidId() throws Exception {
+    mvc.perform(
+            put(SET_SNAPSHOT_PUBLIC_ENDPOINT, "not a UUID")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(TestUtils.mapToJson(true)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void setSnapshotPublicNotFound() throws Exception {
+    when(iamService.getPolicyPublicV2(
+            TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, SNAPSHOT_ID, IamRole.READER.name()))
+        .thenThrow(new NotFoundException("Resource not found"));
+    mvc.perform(
+            put(SET_SNAPSHOT_PUBLIC_ENDPOINT, SNAPSHOT_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(TestUtils.mapToJson(true)))
+        .andExpect(status().isNotFound());
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void setSnapshotPublicAlreadySet(boolean setPublic) throws Exception {
+    when(iamService.getPolicyPublicV2(
+            TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, SNAPSHOT_ID, IamRole.READER.name()))
+        .thenReturn(setPublic);
+    mvc.perform(
+            put(SET_SNAPSHOT_PUBLIC_ENDPOINT, SNAPSHOT_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(TestUtils.mapToJson(setPublic)))
+        .andExpect(status().isNoContent());
   }
 
   @Test

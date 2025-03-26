@@ -37,7 +37,7 @@ public record AdjustStewardMembersStep(
         Objects.requireNonNull(
             inputParams.get(JobMapKeys.CUSTODIAN_USERS.getKeyName(), List.class));
     AddRemoveApi api =
-        inheritSteward ? iamService::addPolicyMember : iamService::deletePolicyMember;
+        inheritSteward ? iamService::deletePolicyMember : iamService::addPolicyMember;
     for (var snapshotId : snapshotIds) {
       for (var email : custodians) {
         api.addRemoveMember(

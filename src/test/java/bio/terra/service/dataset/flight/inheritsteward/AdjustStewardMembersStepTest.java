@@ -57,7 +57,7 @@ class AdjustStewardMembersStepTest {
     for (var snapshot : snapshots) {
       if (inheritSteward) {
         verify(iamService)
-            .addPolicyMember(
+            .deletePolicyMember(
                 TEST_USER,
                 IamResourceType.DATASNAPSHOT,
                 snapshot.getId(),
@@ -65,7 +65,7 @@ class AdjustStewardMembersStepTest {
                 custodianUser);
       } else {
         verify(iamService)
-            .deletePolicyMember(
+            .addPolicyMember(
                 TEST_USER,
                 IamResourceType.DATASNAPSHOT,
                 snapshot.getId(),

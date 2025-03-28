@@ -94,6 +94,7 @@ import bio.terra.service.snapshot.flight.authDomain.SnapshotAddDataAccessControl
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
+import bio.terra.service.snapshot.flight.setpublic.SnapshotSetPublicFlight;
 import bio.terra.service.snapshotbuilder.SnapshotAccessRequestModel;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
@@ -118,6 +119,8 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -1655,5 +1658,31 @@ class SnapshotServiceTest {
         .thenReturn(List.of("group1", "group2"));
     assertThat(
         service.retrieveAuthDomains(snapshotId, TEST_USER), containsInAnyOrder("group1", "group2"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void setSnapshotPublic(boolean setPublic) {
+    JobBuilder jobBuilder =
+        new JobBuilder("", SnapshotSetPublicFlight.class, null, TEST_USER, jobService);
+    when(jobService.newJob(
+            String.format(
+                "Set reader policy for snapshot %s to %s",
+                snapshotId, setPublic ? "public" : "private"),
+            SnapshotSetPublicFlight.class,
+            null,
+            TEST_USER))
+        .thenReturn(jobBuilder);
+    ArgumentCaptor<FlightMap> captor = ArgumentCaptor.forClass(FlightMap.class);
+    when(jobService.submit(eq(SnapshotSetPublicFlight.class), captor.capture()))
+        .thenReturn("JobId");
+    assertThat(
+        "Job is submitted and JobId is returned",
+        service.setSnapshotPublic(snapshotId, setPublic, TEST_USER),
+        equalTo("JobId"));
+    FlightMap flightMap = captor.getValue();
+    assertThat(flightMap.get(JobMapKeys.SNAPSHOT_ID.getKeyName(), UUID.class), equalTo(snapshotId));
+    assertThat(
+        flightMap.get(JobMapKeys.SET_PUBLIC.getKeyName(), Boolean.class), equalTo(setPublic));
   }
 }

@@ -517,6 +517,7 @@ class SnapshotsApiControllerTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void setSnapshotPublicAlreadySet(boolean setPublic) throws Exception {
+    mockValidators();
     when(iamService.getPolicyPublicV2(
             TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, SNAPSHOT_ID, IamRole.READER.name()))
         .thenReturn(setPublic);

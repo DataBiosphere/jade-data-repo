@@ -62,7 +62,7 @@ jobs:
           # checkout the most recently bumped semver tag.
           if [ ${{ github.ref_name }} == ${{ github.event.repository.default_branch }} ]; then
             echo "checkout_ref=${{ needs.bump_version.outputs.tag }}" >> $GITHUB_OUTPUT
-          else:
+          else
             echo "checkout_ref=${GITHUB_HEAD_REF}" >> $GITHUB_OUTPUT
           fi
       - name: Checkout jade-data-repo

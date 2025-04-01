@@ -2,6 +2,7 @@ package bio.terra.service.rawls;
 
 import bio.terra.app.configuration.RawlsConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.service.profile.exception.BillingProjectNotAccessibleException;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.List;
 import java.util.UUID;
@@ -14,6 +15,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @Component
@@ -59,30 +61,28 @@ public class RawlsClient {
     return String.format("%s/api/workspaces/id/%s", rawlsConfiguration.basePath(), workspaceId);
   }
 
-  public RawlsBillingProjectResponse getBillingProject(UUID billingProjectId, AuthenticatedUserRequest userRequest) {
+  public void verifyBillingProjectAction(
+      UUID billingProjectId, String action, AuthenticatedUserRequest userRequest) {
     HttpHeaders authedHeaders = new HttpHeaders(headers);
     authedHeaders.setBearerAuth(userRequest.getToken());
-    String userEmail = userRequest.getEmail();
     try {
-      ResponseEntity<RawlsBillingProjectResponse> workspaceCall =
-          restTemplate.exchange(
-              getBillingProjectById(billingProjectId),
-              HttpMethod.GET,
-              new HttpEntity<>(headers),
-              RawlsBillingProjectResponse.class);
-      if (!workspaceCall.getStatusCode().is2xxSuccessful()) {
-        logger.warn("Unsuccessful response retrieving rawls billing project {} by {}", billingProjectId, userEmail);
-      }
-      return workspaceCall.getBody();
-    } catch (Exception e) {
-      logger.warn("Error retrieving rawls billing project", e);
-      throw e;
+      restTemplate.exchange(
+          getBillingProjectById(billingProjectId, action),
+          HttpMethod.GET,
+          new HttpEntity<>(headers),
+          Void.class);
+    } catch (HttpClientErrorException e) {
+      // Client error (4xx)
+      throw new BillingProjectNotAccessibleException(
+          "Unable to verify " + action + " action for rawls billing project " + billingProjectId,
+          e);
     }
   }
 
-
   @VisibleForTesting
-  public String getBillingProjectById(UUID billingProjectId) {
-    return String.format("%s/api/billing/v2/id/%s", rawlsConfiguration.basePath(), billingProjectId);
+  public String getBillingProjectById(UUID billingProjectId, String action) {
+    return String.format(
+        "%s/api/billing/v2/id/%s/verifyAction/%s",
+        rawlsConfiguration.basePath(), billingProjectId, action);
   }
 }

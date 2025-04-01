@@ -11,9 +11,6 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.common.PerformRawlsBillingProjectStep;
-import bio.terra.service.common.PerformTDRBillingStep;
-import bio.terra.service.common.RetrieveBillingInfoStep;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.dataset.DatasetDao;
@@ -25,6 +22,10 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
+import bio.terra.service.profile.flight.AuthorizeRawlsBillingProjectsUseStep;
+import bio.terra.service.profile.flight.LocateBillingInfoStep;
+import bio.terra.service.profile.flight.PerformRawlsBillingProjectStep;
+import bio.terra.service.profile.flight.PerformTDRBillingStep;
 import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.rawls.RawlsService;
@@ -80,17 +81,21 @@ public class DatasetCreateFlight extends Flight {
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-    // Determine whether the billing profile lives in TDR or in rawls (Or doesn't exist!)
-    addStep(new RetrieveBillingInfoStep(rawlsService, profileService, datasetRequest.getDefaultProfileId(), userReq));
+    // Check if billing profile exists in TDR db
+    addStep(new LocateBillingInfoStep(profileService, datasetRequest.getDefaultProfileId()));
 
-    // If using TDR billing profile, Make sure this user is authorized to use the billing profile in SAM
-    addStep(new PerformTDRBillingStep(
-        new AuthorizeBillingProfileUseStep(
-            profileService, datasetRequest.getDefaultProfileId(), userReq)));
-    // If using Rawls billing project, Make sure this user is authorized to use the billing project in SAM
-    addStep(new PerformRawlsBillingProjectStep(
-        new AuthorizeBillingProfileUseStep(
-            profileService, datasetRequest.getDefaultProfileId(), userReq)));
+    // If using TDR billing profile, Make sure this user is authorized to use the billing profile in
+    // SAM
+    addStep(
+        new PerformTDRBillingStep(
+            new AuthorizeBillingProfileUseStep(
+                profileService, datasetRequest.getDefaultProfileId(), userReq)));
+    // If using Rawls billing project, Make sure this user is authorized to use the billing project
+    // in SAM
+    addStep(
+        new PerformRawlsBillingProjectStep(
+            new AuthorizeRawlsBillingProjectsUseStep(
+                rawlsService, datasetRequest.getDefaultProfileId(), userReq)));
 
     // Generate the dateset id and store it in the working map
     addStep(new CreateDatasetIdStep());

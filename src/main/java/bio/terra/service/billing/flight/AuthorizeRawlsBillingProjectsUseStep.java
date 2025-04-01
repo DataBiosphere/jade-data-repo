@@ -1,4 +1,4 @@
-package bio.terra.service.profile.flight;
+package bio.terra.service.billing.flight;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.DefaultUndoStep;

@@ -74,8 +74,7 @@ public class RawlsClient {
     } catch (HttpClientErrorException e) {
       // Client error (4xx)
       throw new BillingProjectNotAccessibleException(
-          "Unable to verify " + action + " action for rawls billing project " + billingProjectId,
-          e);
+          "Billing project does not exist in rawls or user does not have permission to perform 'link' action on billing project " + billingProjectId);
     }
   }
 

@@ -74,7 +74,10 @@ public class RawlsClient {
     } catch (HttpClientErrorException e) {
       // Client error (4xx)
       throw new BillingProjectNotAccessibleException(
-          "Billing project does not exist in rawls or user does not have permission to perform " + action + " action on billing project " + billingProjectId);
+          "Billing project does not exist in rawls or user does not have permission to perform "
+              + action
+              + " action on billing project "
+              + billingProjectId);
     }
   }
 

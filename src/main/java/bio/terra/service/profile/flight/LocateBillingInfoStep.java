@@ -27,6 +27,7 @@ public class LocateBillingInfoStep extends DefaultUndoStep {
     } catch (ProfileNotFoundException ex) {
       // Assume that the billing project lives in Rawls
       // AuthorizeRawlsBillingProjectsUseStep will return the relevant error message if not
+      workingMap.put(ProfileMapKeys.TDR_BILLING_PROFILE_FALLBACK, false);
     }
     return StepResult.getStepResultSuccess();
   }

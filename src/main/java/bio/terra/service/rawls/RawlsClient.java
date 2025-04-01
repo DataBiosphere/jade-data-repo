@@ -67,19 +67,19 @@ public class RawlsClient {
     authedHeaders.setBearerAuth(userRequest.getToken());
     try {
       restTemplate.exchange(
-          getBillingProjectById(billingProjectId, action),
+          verifyBillingProjectActionEndpoint(billingProjectId, action),
           HttpMethod.GET,
           new HttpEntity<>(headers),
           Void.class);
     } catch (HttpClientErrorException e) {
       // Client error (4xx)
       throw new BillingProjectNotAccessibleException(
-          "Billing project does not exist in rawls or user does not have permission to perform 'link' action on billing project " + billingProjectId);
+          "Billing project does not exist in rawls or user does not have permission to perform " + action + " action on billing project " + billingProjectId);
     }
   }
 
   @VisibleForTesting
-  public String getBillingProjectById(UUID billingProjectId, String action) {
+  public String verifyBillingProjectActionEndpoint(UUID billingProjectId, String action) {
     return String.format(
         "%s/api/billing/v2/id/%s/verifyAction/%s",
         rawlsConfiguration.basePath(), billingProjectId, action);

@@ -15,7 +15,7 @@ public class WebConfig implements WebMvcConfigurer {
   @Autowired private LoggerInterceptor loggerInterceptor;
   @Autowired private UserMetricsInterceptor metricsInterceptor;
 
-  public static final String SWAGGER_UI_VERSION = "5.20.1";
+  public static final String SWAGGER_UI_VERSION = "5.20.2";
 
   @Override
   public void addInterceptors(InterceptorRegistry registry) {

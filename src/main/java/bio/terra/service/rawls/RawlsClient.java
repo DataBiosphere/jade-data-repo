@@ -58,4 +58,31 @@ public class RawlsClient {
   String getWorkspaceEndpoint(UUID workspaceId) {
     return String.format("%s/api/workspaces/id/%s", rawlsConfiguration.basePath(), workspaceId);
   }
+
+  public RawlsBillingProjectResponse getBillingProject(UUID billingProjectId, AuthenticatedUserRequest userRequest) {
+    HttpHeaders authedHeaders = new HttpHeaders(headers);
+    authedHeaders.setBearerAuth(userRequest.getToken());
+    String userEmail = userRequest.getEmail();
+    try {
+      ResponseEntity<RawlsBillingProjectResponse> workspaceCall =
+          restTemplate.exchange(
+              getBillingProjectById(billingProjectId),
+              HttpMethod.GET,
+              new HttpEntity<>(headers),
+              RawlsBillingProjectResponse.class);
+      if (!workspaceCall.getStatusCode().is2xxSuccessful()) {
+        logger.warn("Unsuccessful response retrieving rawls billing project {} by {}", billingProjectId, userEmail);
+      }
+      return workspaceCall.getBody();
+    } catch (Exception e) {
+      logger.warn("Error retrieving rawls billing project", e);
+      throw e;
+    }
+  }
+
+
+  @VisibleForTesting
+  public String getBillingProjectById(UUID billingProjectId) {
+    return String.format("%s/api/billing/v2/id/%s", rawlsConfiguration.basePath(), billingProjectId);
+  }
 }

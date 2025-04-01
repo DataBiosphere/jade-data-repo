@@ -85,4 +85,12 @@ public class RawlsService {
     return "%s/#workspaces/%s/%s"
         .formatted(terraConfiguration.basePath(), workspace.namespace(), workspace.name());
   }
+
+  public boolean rawlsBillingProjectExists(UUID billingProjectId, AuthenticatedUserRequest userRequest) {
+    try {
+      return rawlsClient.getBillingProject(billingProjectId, userRequest) != null;
+    } catch (Exception ex) {
+      return false;
+    }
+  }
 }

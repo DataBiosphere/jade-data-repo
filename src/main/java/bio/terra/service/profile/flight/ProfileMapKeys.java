@@ -8,6 +8,7 @@ public final class ProfileMapKeys {
       "profileApplicationDeploymentIdList";
   public static final String PROFILE_UNIQUE_STORAGE_ACCOUNT_RESOURCE_LIST =
       "profileUniqueStorageAccountResourceList";
+  public static final String TDR_BILLING_PROFILE_FALLBACK = "tdrBillingProfileFallback";
 
   private ProfileMapKeys() {}
 }

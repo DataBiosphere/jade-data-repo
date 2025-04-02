@@ -20,7 +20,7 @@ public class LocateBillingInfoStep extends DefaultUndoStep {
   @Override
   public StepResult doStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
-    // Not auth check: Just a check if there is an entry in our db for this billing profile
+    // No auth check: Just a check if there is an entry in our db for this billing profile
     try {
       profileService.getProfileByIdNoCheck(profileId);
       workingMap.put(ProfileMapKeys.TDR_BILLING_PROFILE_FALLBACK, true);

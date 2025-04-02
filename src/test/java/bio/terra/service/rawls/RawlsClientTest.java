@@ -44,7 +44,7 @@ class RawlsClientTest {
   private static final String LINK_ACTION = IamAction.LINK.toString();
 
   @BeforeEach
-  public void beforeEach() {
+  void beforeEach() {
     var rawlsConfiguration = new RawlsConfiguration(BASE_PATH);
     rawlsClient = new RawlsClient(rawlsConfiguration, restTemplate);
   }

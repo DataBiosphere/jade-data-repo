@@ -13,7 +13,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamAction;
-import bio.terra.service.profile.exception.BillingProjectNotAccessibleException;
+import bio.terra.service.billing.exception.BillingProjectNotAccessibleException;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;

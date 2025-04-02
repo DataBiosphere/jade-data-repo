@@ -2,7 +2,7 @@ package bio.terra.service.rawls;
 
 import bio.terra.app.configuration.RawlsConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.service.profile.exception.BillingProjectNotAccessibleException;
+import bio.terra.service.billing.exception.BillingProjectNotAccessibleException;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.List;
 import java.util.UUID;

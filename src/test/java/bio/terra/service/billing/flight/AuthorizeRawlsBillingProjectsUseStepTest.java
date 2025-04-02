@@ -2,15 +2,14 @@ package bio.terra.service.billing.flight;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.service.profile.exception.BillingProjectNotAccessibleException;
 import bio.terra.service.rawls.RawlsService;
+import bio.terra.service.billing.exception.BillingProjectNotAccessibleException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;

@@ -38,6 +38,7 @@ public class DatasetSummary {
   private List<String> tags;
   private ResourceLocks resourceLocks;
   private boolean inheritSteward;
+  private int snapshotCount;
 
   public UUID getId() {
     return id;
@@ -263,6 +264,15 @@ public class DatasetSummary {
     return this;
   }
 
+  public int getSnapshotCount() {
+    return snapshotCount;
+  }
+
+  public DatasetSummary snapshotCount(int snapshotCount) {
+    this.snapshotCount = snapshotCount;
+    return this;
+  }
+
   public DatasetSummaryModel toModel() {
     return new DatasetSummaryModel()
         .id(getId())
@@ -280,7 +290,8 @@ public class DatasetSummary {
         .predictableFileIds(hasPredictableFileIds())
         .tags(getTags())
         .resourceLocks(getResourceLocks())
-        .inheritSteward(inheritSteward);
+        .inheritSteward(inheritSteward)
+        .snapshotCount(getSnapshotCount());
   }
 
   List<StorageResourceModel> toStorageResourceModel() {

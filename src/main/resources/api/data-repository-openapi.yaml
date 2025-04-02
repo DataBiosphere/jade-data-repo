@@ -5444,6 +5444,9 @@ components:
           description: >
             If true, all snapshots created from this dataset will grant dataset custodians
             the steward (owner) role on the snapshots.
+        snapshotCount:
+          type: integer
+          description: Number of snapshots created from this dataset
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -5501,6 +5504,9 @@ components:
           description: >
             If true, all snapshots created from this dataset will grant dataset custodians
             the steward (owner) role on the snapshots.
+        snapshotCount:
+          type: integer
+          description: Number of snapshots created from this dataset
       description: >
         Summary of a dataset.
     DatasetRequestModel:

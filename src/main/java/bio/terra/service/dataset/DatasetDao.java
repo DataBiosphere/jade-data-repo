@@ -101,6 +101,9 @@ public class DatasetDao implements TaggableResourceDao {
           + "'datasetId', dataset_id)) "
           + "FROM storage_resource WHERE dataset_id = dataset.id) AS storage, ";
 
+  private static final String snapshotCountQuery =
+      "(SELECT count(*) FROM snapshot_source WHERE dataset_id = dataset.id) AS snapshot_count, ";
+
   private static final String billingProfileQuery =
       "(SELECT json_agg(json_build_object("
           + "'id', id, "
@@ -552,6 +555,7 @@ public class DatasetDao implements TaggableResourceDao {
               + summaryQueryColumns
               + summaryCloudPlatformQuery
               + datasetStorageQuery
+              + snapshotCountQuery
               + billingProfileQuery
               + "FROM dataset "
               + "WHERE dataset.id = :id";
@@ -569,6 +573,7 @@ public class DatasetDao implements TaggableResourceDao {
               + summaryQueryColumns
               + summaryCloudPlatformQuery
               + datasetStorageQuery
+              + snapshotCountQuery
               + billingProfileQuery
               + "FROM dataset "
               + "WHERE dataset.name = :name";
@@ -647,6 +652,7 @@ public class DatasetDao implements TaggableResourceDao {
             + summaryQueryColumns
             + summaryCloudPlatformQuery
             + datasetStorageQuery
+            + snapshotCountQuery
             + billingProfileQuery
             + "FROM dataset "
             + whereSql
@@ -720,7 +726,8 @@ public class DatasetDao implements TaggableResourceDao {
           .tags(DaoUtils.getStringList(rs, "tags"))
           .resourceLocks(
               new ResourceLocks().exclusive(rs.getString("flightid")).shared(sharedLocks))
-          .inheritSteward(rs.getBoolean("inherit_steward"));
+          .inheritSteward(rs.getBoolean("inherit_steward"))
+          .snapshotCount(rs.getInt("snapshot_count"));
     }
   }
 

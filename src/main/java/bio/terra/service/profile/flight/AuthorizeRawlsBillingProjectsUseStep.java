@@ -1,9 +1,9 @@
-package bio.terra.service.billing.flight;
+package bio.terra.service.profile.flight;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.DefaultUndoStep;
+import bio.terra.service.profile.exception.BillingProjectNotAccessibleException;
 import bio.terra.service.rawls.RawlsService;
-import bio.terra.service.billing.exception.BillingProjectNotAccessibleException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;

@@ -1,4 +1,4 @@
-package bio.terra.service.billing.exception;
+package bio.terra.service.profile.exception;
 
 import bio.terra.common.exception.BadRequestException;
 

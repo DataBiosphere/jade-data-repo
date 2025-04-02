@@ -27,6 +27,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
+import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 import org.broadinstitute.dsde.workbench.client.sam.model.UserIdInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -158,8 +159,16 @@ public class IamService {
    * @throws IamForbiddenException if NOT authorized
    */
   public void verifyResourceTypeAdminAuthorized(
-      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action) {
+      AuthenticatedUserRequest userReq,
+      IamResourceType iamResourceType,
+      IamAction action,
+      UUID id) {
     String userEmail = userReq.getEmail();
+    logger.info(
+        "Verifying resource type admin authorization: {} for resource type: {} and resource id: {}",
+        userEmail,
+        iamResourceType,
+        id);
     if (!isResourceTypeAdminAuthorized(userReq, iamResourceType, action)) {
       throw new IamForbiddenException(
           String.format(
@@ -285,12 +294,17 @@ public class IamService {
    *
    * @param userReq authenticated user
    * @param snapshotId id of the snapshot
+   * @param parentDatasetId id of the snapshot's parent dataset
    * @param policies user emails to add as snapshot policy members
    * @return Map of policy group emails for the snapshot policies
    */
   public Map<IamRole, String> createSnapshotResource(
-      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies) {
-    return callProvider(() -> iamProvider.createSnapshotResource(userReq, snapshotId, policies));
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId,
+      UUID parentDatasetId,
+      SnapshotRequestModelPolicies policies) {
+    return callProvider(
+        () -> iamProvider.createSnapshotResource(userReq, snapshotId, parentDatasetId, policies));
   }
 
   /**
@@ -369,49 +383,60 @@ public class IamService {
         () -> iamProvider.retrievePolicyEmails(userReq, iamResourceType, resourceId));
   }
 
-  public PolicyModel addPolicyMember(
+  public void addPolicyMember(
       AuthenticatedUserRequest userReq,
       IamResourceType iamResourceType,
       UUID resourceId,
-      String policyName,
+      IamRole policy,
       String userEmail) {
-    return callProvider(
+    callProvider(
         () -> {
-          PolicyModel policy =
-              iamProvider.addPolicyMember(
-                  userReq, iamResourceType, resourceId, policyName, userEmail);
+          iamProvider.addPolicyMember(userReq, iamResourceType, resourceId, policy, userEmail);
           // Invalidate the cache
           authorizedMap.clear();
           journalService.recordUpdate(
               userReq,
               resourceId,
               iamResourceType,
-              String.format("Added %s to %s", userEmail, policyName),
+              String.format("Added %s to %s", userEmail, policy),
               null);
-          return policy;
         });
   }
 
-  public PolicyModel deletePolicyMember(
+  public void deletePolicyMember(
       AuthenticatedUserRequest userReq,
       IamResourceType iamResourceType,
       UUID resourceId,
-      String policyName,
+      IamRole policy,
       String userEmail) {
-    return callProvider(
+    callProvider(
         () -> {
-          PolicyModel policy =
-              iamProvider.deletePolicyMember(
-                  userReq, iamResourceType, resourceId, policyName, userEmail);
+          iamProvider.deletePolicyMember(userReq, iamResourceType, resourceId, policy, userEmail);
           // Invalidate the cache
           authorizedMap.clear();
           journalService.recordUpdate(
               userReq,
               resourceId,
               iamResourceType,
-              String.format("Removed %s from %s", userEmail, policyName),
+              String.format("Removed %s from %s", userEmail, policy),
               null);
-          return policy;
+        });
+  }
+
+  public PolicyModel retrievePolicy(
+      AuthenticatedUserRequest userReq,
+      IamResourceType iamResourceType,
+      UUID resourceId,
+      IamRole role) {
+    var policyName = role.toString();
+    return callProvider(
+        () -> {
+          var policies = iamProvider.retrievePolicies(userReq, iamResourceType, resourceId);
+          return policies.stream()
+              .filter(p -> p.getName().equals(policyName))
+              .map(p -> new PolicyModel().name(policyName).members(p.getMembers()))
+              .findFirst()
+              .orElseThrow();
         });
   }
 
@@ -564,5 +589,35 @@ public class IamService {
   public UserIdInfo getUserIds(String userEmail) {
     String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
     return callProvider(() -> iamProvider.getUserIds(tdrSaAccessToken, userEmail));
+  }
+
+  public void setResourceParent(
+      String accessToken,
+      IamResourceType childIamResourceType,
+      UUID childId,
+      IamResourceType parentIamResourceType,
+      UUID parentId) {
+    callProvider(
+        () ->
+            iamProvider.setResourceParent(
+                accessToken, childIamResourceType, childId, parentIamResourceType, parentId));
+  }
+
+  public FullyQualifiedResourceId getResourceParent(
+      String accessToken, IamResourceType childIamResourceType, UUID childId) {
+    return callProvider(
+        () -> iamProvider.getResourceParent(accessToken, childIamResourceType, childId));
+  }
+
+  public void deleteResourceParent(
+      String accessToken, IamResourceType childIamResourceType, UUID childId) {
+    callProvider(
+        () -> iamProvider.deleteResourceParent(accessToken, childIamResourceType, childId));
+  }
+
+  public List<FullyQualifiedResourceId> listResourceChildren(
+      String accessToken, IamResourceType parentIamResourceType, UUID parentId) {
+    return callProvider(
+        () -> iamProvider.listResourceChildren(accessToken, parentIamResourceType, parentId));
   }
 }

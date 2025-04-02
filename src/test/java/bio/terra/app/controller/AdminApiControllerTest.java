@@ -31,9 +31,9 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ActiveProfiles({"google", "unittest"})
@@ -44,13 +44,13 @@ class AdminApiControllerTest {
 
   @Autowired private MockMvc mvc;
 
-  @MockBean private JobService jobService;
-  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
-  @MockBean private DrsService drsService;
-  @MockBean private IamService iamService;
-  @MockBean private DatasetService datasetService;
-  @MockBean private SnapshotService snapshotService;
-  @MockBean private ApplicationConfiguration applicationConfiguration;
+  @MockitoBean private JobService jobService;
+  @MockitoBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockitoBean private DrsService drsService;
+  @MockitoBean private IamService iamService;
+  @MockitoBean private DatasetService datasetService;
+  @MockitoBean private SnapshotService snapshotService;
+  @MockitoBean private ApplicationConfiguration applicationConfiguration;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -90,7 +90,7 @@ class AdminApiControllerTest {
   void testAdminRetrieveDatasetNotAuthorized() throws Exception {
     doThrow(FORBIDDEN_EXCEPTION)
         .when(iamService)
-        .verifyResourceTypeAdminAuthorized(any(), any(), any());
+        .verifyResourceTypeAdminAuthorized(any(), any(), any(), any());
     int status =
         mvc.perform(get(ADMIN_DATASETS_ENDPOINT, MODEL_ID)).andReturn().getResponse().getStatus();
     assertThat(status, equalTo(FORBIDDEN_EXCEPTION.getStatusCode().value()));
@@ -125,7 +125,7 @@ class AdminApiControllerTest {
   void testAdminRetrieveSnapshotNotAuthorized() throws Exception {
     doThrow(FORBIDDEN_EXCEPTION)
         .when(iamService)
-        .verifyResourceTypeAdminAuthorized(any(), any(), any());
+        .verifyResourceTypeAdminAuthorized(any(), any(), any(), any());
     int status =
         mvc.perform(get(ADMIN_SNAPSHOTS_ENDPOINT, MODEL_ID)).andReturn().getResponse().getStatus();
     assertThat(status, equalTo(FORBIDDEN_EXCEPTION.getStatusCode().value()));

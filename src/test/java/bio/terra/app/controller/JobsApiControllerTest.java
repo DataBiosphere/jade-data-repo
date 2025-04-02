@@ -33,10 +33,10 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ContextConfiguration(classes = {JobsApiController.class, GlobalExceptionHandler.class})
@@ -59,15 +59,15 @@ class JobsApiControllerTest {
 
   @Autowired private MockMvc mvc;
 
-  @MockBean private JobService jobService;
+  @MockitoBean private JobService jobService;
 
-  @MockBean private BardClient bardClient;
-  @MockBean private DatasetRequestValidator datasetRequestValidator;
-  @MockBean private SnapshotRequestValidator snapshotRequestValidator;
-  @MockBean private IngestRequestValidator ingestRequestValidator;
-  @MockBean private PolicyMemberValidator policyMemberValidator;
-  @MockBean private AssetModelValidator assetModelValidator;
-  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockitoBean private BardClient bardClient;
+  @MockitoBean private DatasetRequestValidator datasetRequestValidator;
+  @MockitoBean private SnapshotRequestValidator snapshotRequestValidator;
+  @MockitoBean private IngestRequestValidator ingestRequestValidator;
+  @MockitoBean private PolicyMemberValidator policyMemberValidator;
+  @MockitoBean private AssetModelValidator assetModelValidator;
+  @MockitoBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
 
   @BeforeEach
   void beforeEach() {
@@ -133,7 +133,7 @@ class JobsApiControllerTest {
     record ResultClass(String value) {}
     ResultClass result = new ResultClass("fooResult");
     when(jobService.retrieveJobResult(anyString(), any(), any()))
-        .thenReturn(new JobResultWithStatus<>().result(result).statusCode(HttpStatus.OK));
+        .thenReturn(JobResultWithStatus.of(HttpStatus.OK, result));
     mvc.perform(get(RETRIEVE_JOB_RESULT_ENDPOINT, JOB_2.getId()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.value").value("fooResult"));

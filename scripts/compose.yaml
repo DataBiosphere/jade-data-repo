@@ -20,6 +20,7 @@ services:
       - GOOGLE_SA_CERT
       - RBS_POOLID
       - RBS_INSTANCEURL
+      - TDR_LOG_APPENDER
     ports:
       - "8080:8080"
     volumes:
@@ -27,7 +28,7 @@ services:
       - /tmp/jade-dev-account.json:/tmp/jade-dev-account.json
 
   database:
-    image: postgres:14
+    image: postgres:16.4
     environment:
       - POSTGRES_PASSWORD=drpasswd
     ports:

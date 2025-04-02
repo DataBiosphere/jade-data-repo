@@ -3,8 +3,6 @@ package bio.terra.common.configuration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -13,7 +11,6 @@ import org.springframework.stereotype.Component;
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "it")
 public class TestConfiguration {
-  private static Logger logger = LoggerFactory.getLogger(TestConfiguration.class);
   private String jadeApiUrl;
   private String jadePemFileName;
   private String jadeEmail;

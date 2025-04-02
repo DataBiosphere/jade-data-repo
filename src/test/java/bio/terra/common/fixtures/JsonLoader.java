@@ -16,12 +16,12 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class JsonLoader {
-  private ClassLoader classLoader;
-  private ObjectMapper objectMapper;
+  private final ClassLoader classLoader;
+  private final ObjectMapper objectMapper;
 
   @Autowired
   public JsonLoader(ObjectMapper objectMapper) {
-    this.classLoader = getClass().getClassLoader();
+    classLoader = getClass().getClassLoader();
     this.objectMapper = objectMapper;
   }
 
@@ -50,7 +50,7 @@ public class JsonLoader {
       final String resourcePath, final TypeReference<T> innerObjectTypeReference)
       throws IOException {
     return Arrays.stream(loadJson(resourcePath).split("\n"))
-        .map(json -> this.loadJson(json, innerObjectTypeReference))
+        .map(json -> loadJson(json, innerObjectTypeReference))
         .collect(Collectors.toList());
   }
 

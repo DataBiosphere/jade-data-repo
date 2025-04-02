@@ -37,10 +37,10 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ActiveProfiles({"google", "unittest"})
@@ -50,9 +50,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest
 class SnapshotAccessRequestApiControllerTest {
   @Autowired private MockMvc mvc;
-  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
-  @MockBean private SnapshotBuilderService snapshotBuilderService;
-  @MockBean private IamService iamService;
+  @MockitoBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockitoBean private SnapshotBuilderService snapshotBuilderService;
+  @MockitoBean private IamService iamService;
 
   private static final String ENDPOINT = "/api/repository/v1/snapshotAccessRequests";
   private static final String GET_ENDPOINT = ENDPOINT + "/{id}";

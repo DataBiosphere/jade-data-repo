@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
@@ -59,8 +60,8 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.stringtemplate.v4.ST;
 
@@ -97,7 +98,7 @@ public class BigQueryPdaoDatasetConnectedTest {
   @Autowired private GoogleResourceManagerService resourceManagerService;
   @Autowired private BufferService bufferService;
 
-  @MockBean private IamProviderInterface samService;
+  @MockitoBean private IamProviderInterface samService;
 
   private BillingProfileModel profileModel;
 
@@ -218,7 +219,7 @@ public class BigQueryPdaoDatasetConnectedTest {
             TestUtils.bigQueryProjectForDatasetName(datasetDao, dataset.getName());
         BigQueryProject bigQuerySnapshotProject =
             TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());
-        assertThat(snapshot.getTables().size(), is(equalTo(3)));
+        assertThat(snapshot.getTables(), hasSize(3));
         List<String> sampleIds =
             BigQueryPdaoTest.queryForIds(snapshot.getName(), "sample", bigQuerySnapshotProject);
 
@@ -247,7 +248,7 @@ public class BigQueryPdaoDatasetConnectedTest {
             connectedOperations.createSnapshot(
                 datasetSummaryModel, "ingest-test-snapshot.json", "");
         SnapshotModel snapshot2 = connectedOperations.getSnapshot(snapshotSummary.getId());
-        assertThat(snapshot2.getTables().size(), is(equalTo(3)));
+        assertThat(snapshot2.getTables(), hasSize(3));
 
         BigQueryProject bigQuerySnapshotProject2 =
             TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot2.getName());

@@ -102,7 +102,9 @@ public class DatasetCreateFlight extends Flight {
       // Create the service account to use to ingest data and register it in Terra
       if (datasetRequest.isDedicatedIngestServiceAccount()) {
         addStep(new CreateDatasetCreateIngestServiceAccountStep(resourceService, datasetRequest));
-        addStep(new CreateDatasetRegisterIngestServiceAccountStep(iamService));
+        addStep(
+            new CreateDatasetRegisterIngestServiceAccountStep(iamService),
+            getDefaultExponentialBackoffRetryRule());
       }
     }
 
@@ -110,7 +112,8 @@ public class DatasetCreateFlight extends Flight {
     if (platform.isAzure()) {
       addStep(
           new CreateDatasetGetOrCreateStorageAccountStep(
-              resourceService, datasetRequest, azureBlobStorePdao));
+              resourceService, datasetRequest, azureBlobStorePdao),
+          getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads()));
 
       // Create the top level container
       addStep(
@@ -128,7 +131,7 @@ public class DatasetCreateFlight extends Flight {
     // Create dataset metadata objects in postgres and lock the dataset
     addStep(
         new CreateDatasetMetadataStep(datasetDao, datasetRequest),
-        getDefaultExponentialBackoffRetryRule());
+        getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads()));
 
     // For azure backed datasets, add a link co connect the storage account to the dataset
     if (platform.isAzure()) {

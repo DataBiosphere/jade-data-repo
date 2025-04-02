@@ -15,12 +15,15 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThrows;
 
+import bio.terra.common.GcsUtils;
 import bio.terra.common.ParquetUtils;
 import bio.terra.common.auth.AuthService;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
-import bio.terra.integration.UsersBase;
+import bio.terra.integration.IntegrationTestConfiguration;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
@@ -33,8 +36,6 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.common.gcs.GcsUriUtils;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.resourcemanagement.google.GoogleBucketService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.AccessToken;
@@ -53,49 +54,55 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
-@AutoConfigureMockMvc
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@Category(Integration.class)
-public class SnapshotExportIntegrationTest extends UsersBase {
+@Tag(Integration.TAG)
+class SnapshotExportIntegrationTest {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
-  @Autowired private GcsPdao gcsPdao;
-  @Autowired private GoogleBucketService googleBucketService;
+  @Autowired private GcsUtils gcsUtils;
   @Autowired private AuthService authService;
+  @Autowired private ObjectMapper objectMapper;
+  @Autowired private Users users;
 
-  @Autowired
-  @Qualifier("objectMapper")
-  private ObjectMapper objectMapper;
-
-  private static final Logger logger = LoggerFactory.getLogger(SnapshotIntegrationTest.class);
+  private static final Logger logger = LoggerFactory.getLogger(SnapshotExportIntegrationTest.class);
+  private Users.TestUsers testUsers;
   private String stewardToken;
   private String readerToken;
   private UUID profileId;
   private final List<UUID> createdDatasetsIds = new ArrayList<>();
   private final List<UUID> createdSnapshotIds = new ArrayList<>();
 
-  @Before
+  private User steward() {
+    return testUsers.steward();
+  }
+
+  private User custodian() {
+    return testUsers.custodian();
+  }
+
+  private User reader() {
+    return testUsers.reader();
+  }
+
+  @BeforeEach
   public void setup() throws Exception {
-    super.setup();
+    testUsers = users.testUsers();
     stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
@@ -103,14 +110,13 @@ public class SnapshotExportIntegrationTest extends UsersBase {
         steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     for (UUID snapshotId : createdSnapshotIds) {
       try {
         dataRepoFixtures.deleteSnapshot(steward(), snapshotId);
       } catch (Exception ex) {
-        logger.warn("cleanup failed when deleting snapshot " + snapshotId);
-        ex.printStackTrace();
+        logger.warn("cleanup failed when deleting snapshot " + snapshotId, ex);
       }
     }
 
@@ -124,7 +130,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void snapshotExportTest() throws Exception {
+  void snapshotExportTest() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
     UUID datasetId = datasetSummaryModel.getId();
@@ -201,9 +207,8 @@ public class SnapshotExportIntegrationTest extends UsersBase {
       manifestBucket = manifestBlob.getBucket();
       String bucketProject = manifestBlob.getBucket().replace("-snapshot-export-bucket", "");
       manifestContentsRaw =
-          gcsPdao
-              .getBlobsLinesStream(parquet.getManifest(), bucketProject, null)
-              .collect(Collectors.joining("\n"));
+          new String(
+              gcsUtils.getBlobBytes(parquet.getManifest(), bucketProject), StandardCharsets.UTF_8);
     }
     TypeReference<SnapshotExportResponseModel> ref = new TypeReference<>() {};
     SnapshotExportResponseModel manifestContents =
@@ -221,7 +226,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
 
     Integer deleteAge = 1;
 
-    var lifecycleRules = googleBucketService.getCloudBucket(manifestBucket).getLifecycleRules();
+    var lifecycleRules = gcsUtils.getCloudBucket(manifestBucket).getLifecycleRules();
 
     var lifecycleRule = lifecycleRules.get(0);
     var lifecycleAction = lifecycleRule.getAction();
@@ -258,14 +263,15 @@ public class SnapshotExportIntegrationTest extends UsersBase {
         assertThat(
             "Signed URL is accessible and parquet isn't empty", bytes.length, greaterThan(0));
       } else {
-        Blob blob = authedStorage.get(GcsUriUtils.parseBlobUri(parquet.getManifest()));
+        BlobId blobId = GcsUriUtils.parseBlobUri(parquet.getManifest());
+        Blob blob = authedStorage.get(blobId);
         assertThat("Authorized user can read " + path, blob, notNullValue());
 
         StorageException notAuthorizedException =
             assertThrows(
                 "Unauthorized user cannot read " + path,
                 StorageException.class,
-                () -> unauthedStorage.get(GcsUriUtils.parseBlobUri(parquet.getManifest())));
+                () -> unauthedStorage.get(blobId));
 
         assertThat(
             "Unauthorized user cannot read " + path,
@@ -282,7 +288,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void snapshotGsPathExportTest() throws Exception {
+  void snapshotGsPathExportTest() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
     UUID datasetId = datasetSummaryModel.getId();
@@ -316,20 +322,20 @@ public class SnapshotExportIntegrationTest extends UsersBase {
     List<Map<String, Object>> records = new ArrayList<>();
     for (String path : sampleVcfTablePaths) {
       records.addAll(
-          ParquetUtils.readGcsParquetRecords(gcsPdao, path, snapshotSummary.getDataProject()));
+          ParquetUtils.readGcsParquetRecords(gcsUtils, path, snapshotSummary.getDataProject()));
     }
 
-    for (var record : records) {
-      final String vcfFileRef = (String) record.get("vcf_file_ref");
-      final List<String> vcfIndexFileRefs = (List<String>) record.get("vcf_index_file_ref");
-      if (record.get("sample_name").equals("NA12878_exome")) {
+    for (var parquetRecord : records) {
+      final String vcfFileRef = (String) parquetRecord.get("vcf_file_ref");
+      final List<String> vcfIndexFileRefs = (List<String>) parquetRecord.get("vcf_index_file_ref");
+      if (parquetRecord.get("sample_name").equals("NA12878_exome")) {
         assertThat(
             "fileref values with multiple elements are mapped as lists of gs-paths",
             vcfIndexFileRefs,
             iterableWithSize(2));
         isGsPath(vcfFileRef);
         vcfIndexFileRefs.forEach(SnapshotExportIntegrationTest::isGsPath);
-      } else if (record.get("sample_name").equals("nofile")) {
+      } else if (parquetRecord.get("sample_name").equals("nofile")) {
         assertThat("Null fileref values stay null", vcfFileRef, nullValue());
         assertThat("arrayOf fileref values have no elements", vcfIndexFileRefs, emptyIterable());
       } else {
@@ -340,7 +346,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void snapshotExportValidationTest() throws Exception {
+  void snapshotExportValidationTest() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
     UUID datasetId = datasetSummaryModel.getId();

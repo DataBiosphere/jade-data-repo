@@ -49,6 +49,7 @@ import bio.terra.model.TransactionModel;
 import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.DataDeletionRequestValidator;
@@ -64,7 +65,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -409,10 +409,13 @@ public class DatasetsApiController implements DatasetsApi {
       @PathVariable("policyName") String policyName,
       @Valid @RequestBody PolicyMemberRequest policyMember) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    PolicyModel policy =
-        iamService.addPolicyMember(
-            userReq, IamResourceType.DATASET, id, policyName, policyMember.getEmail());
-    PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
+    IamRole role = IamRole.fromValue(policyName);
+    if (role == null) {
+      throw new ValidationException("InvalidPolicyName");
+    }
+    iamService.addPolicyMember(userReq, IamResourceType.DATASET, id, role, policyMember.getEmail());
+    PolicyModel policy = iamService.retrievePolicy(userReq, IamResourceType.DATASET, id, role);
+    PolicyResponse response = new PolicyResponse().policies(List.of(policy));
     return ResponseEntity.ok(response);
   }
 
@@ -435,10 +438,13 @@ public class DatasetsApiController implements DatasetsApi {
     if (!ValidationUtils.isValidEmail(memberEmail)) {
       throw new ValidationException("InvalidMemberEmail");
     }
-    PolicyModel policy =
-        iamService.deletePolicyMember(
-            userReq, IamResourceType.DATASET, id, policyName, memberEmail);
-    PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
+    IamRole role = IamRole.fromValue(policyName);
+    if (role == null) {
+      throw new ValidationException("InvalidPolicyName");
+    }
+    iamService.deletePolicyMember(userReq, IamResourceType.DATASET, id, role, memberEmail);
+    PolicyModel policy = iamService.retrievePolicy(userReq, IamResourceType.DATASET, id, role);
+    PolicyResponse response = new PolicyResponse().policies(List.of(policy));
     return ResponseEntity.ok(response);
   }
 
@@ -500,6 +506,20 @@ public class DatasetsApiController implements DatasetsApi {
     var idsAndRoles =
         iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET);
     return ResponseEntity.ok(datasetService.getTags(idsAndRoles, filter, limit));
+  }
+
+  @Override
+  public ResponseEntity<JobModel> setInheritSteward(UUID id, Boolean inheritSteward) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.SET_INHERIT_STEWARD);
+
+    // dataset already has the requested value for inheritSteward
+    if (datasetService.retrieveDatasetSummary(id).isInheritSteward().equals(inheritSteward)) {
+      return ResponseEntity.noContent().build();
+    }
+
+    String jobId = datasetService.setInheritSteward(id, inheritSteward, userReq);
+    return ControllerUtils.jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {

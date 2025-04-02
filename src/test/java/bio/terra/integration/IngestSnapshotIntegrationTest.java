@@ -5,7 +5,9 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
@@ -20,34 +22,42 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@AutoConfigureMockMvc
-@Category(Integration.class)
-public class IngestSnapshotIntegrationTest extends UsersBase {
+@Tag(Integration.TAG)
+class IngestSnapshotIntegrationTest {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
+  @Autowired private Users users;
 
+  private Users.TestUsers testUsers;
   private DatasetSummaryModel datasetSummaryModel;
   private UUID datasetId;
   private UUID profileId;
   private final List<UUID> createdSnapshotIds = new ArrayList<>();
 
-  @Before
+  private User steward() {
+    return testUsers.steward();
+  }
+
+  private User custodian() {
+    return testUsers.custodian();
+  }
+
+  @BeforeEach
   public void setup() throws Exception {
-    super.setup();
+    testUsers = users.testUsers();
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     dataRepoFixtures.addPolicyMember(
         steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
@@ -59,7 +69,7 @@ public class IngestSnapshotIntegrationTest extends UsersBase {
         steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
   }
 
-  @After
+  @AfterEach
   public void teardown() throws Exception {
     for (UUID snapshotId : createdSnapshotIds) {
       dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotId);
@@ -75,7 +85,7 @@ public class IngestSnapshotIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void ingestBuildSnapshot() throws Exception {
+  void ingestBuildSnapshot() throws Exception {
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");

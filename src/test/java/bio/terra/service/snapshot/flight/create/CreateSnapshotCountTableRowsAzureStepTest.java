@@ -15,6 +15,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -22,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.CannotSerializeTransactionException;
+import org.springframework.dao.CannotAcquireLockException;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
@@ -31,8 +32,6 @@ class CreateSnapshotCountTableRowsAzureStepTest {
   @Mock private SnapshotDao snapshotDao;
   @Mock private FlightContext flightContext;
 
-  private FlightMap workingMap;
-
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();
   private static final Snapshot SNAPSHOT =
       new Snapshot().id(SNAPSHOT_ID).name("Snapshot-" + SNAPSHOT_ID);
@@ -40,14 +39,14 @@ class CreateSnapshotCountTableRowsAzureStepTest {
   private static final SnapshotRequestModel snapshotReq =
       new SnapshotRequestModel().name(SNAPSHOT.getName());
 
-  private HashMap<String, Long> tableRowCounts = new HashMap<>();
+  private final Map<String, Long> tableRowCounts = new HashMap<>();
   private CreateSnapshotCountTableRowsAzureStep step;
 
   @BeforeEach
   void setup() {
     when(snapshotDao.retrieveSnapshotByName(SNAPSHOT.getName())).thenReturn(SNAPSHOT);
-    tableRowCounts.put("table", (long) 5);
-    workingMap = new FlightMap();
+    tableRowCounts.put("table", 5L);
+    FlightMap workingMap = new FlightMap();
     workingMap.put(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, tableRowCounts);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
   }
@@ -62,7 +61,7 @@ class CreateSnapshotCountTableRowsAzureStepTest {
   @Test
   void testDoStepRetry() throws InterruptedException {
     step = new CreateSnapshotCountTableRowsAzureStep(snapshotDao, snapshotReq);
-    doThrow(CannotSerializeTransactionException.class)
+    doThrow(CannotAcquireLockException.class)
         .when(snapshotDao)
         .updateSnapshotTableRowCounts(SNAPSHOT, tableRowCounts);
 

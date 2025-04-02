@@ -14,14 +14,15 @@ import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.CannotSerializeTransactionException;
+import org.springframework.dao.TransientDataAccessException;
+import org.springframework.transaction.TransactionSystemException;
 
 public class CreateDatasetMetadataStep implements Step {
 
-  private DatasetDao datasetDao;
-  private DatasetRequestModel datasetRequest;
+  private final DatasetDao datasetDao;
+  private final DatasetRequestModel datasetRequest;
 
-  private static Logger logger = LoggerFactory.getLogger(CreateDatasetMetadataStep.class);
+  private static final Logger logger = LoggerFactory.getLogger(CreateDatasetMetadataStep.class);
 
   public CreateDatasetMetadataStep(DatasetDao datasetDao, DatasetRequestModel datasetRequest) {
     this.datasetDao = datasetDao;
@@ -46,7 +47,7 @@ public class CreateDatasetMetadataStep implements Step {
       return StepResult.getStepResultSuccess();
     } catch (InvalidDatasetException idEx) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, idEx);
-    } catch (CannotSerializeTransactionException ex) {
+    } catch (TransientDataAccessException | TransactionSystemException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
     } catch (Exception ex) {
       return new StepResult(

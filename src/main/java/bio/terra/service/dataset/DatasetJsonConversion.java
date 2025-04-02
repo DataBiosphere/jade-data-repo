@@ -88,7 +88,8 @@ public final class DatasetJsonConversion {
                 .selfHosted(datasetRequest.isExperimentalSelfHosted())
                 .properties(datasetRequest.getProperties())
                 .predictableFileIds(datasetRequest.isExperimentalPredictableFileIds())
-                .tags(TagUtils.sanitizeTags(datasetRequest.getTags())))
+                .tags(TagUtils.sanitizeTags(datasetRequest.getTags()))
+                .inheritSteward(datasetRequest.isInheritSteward()))
         .tables(new ArrayList<>(tablesMap.values()))
         .relationships(new ArrayList<>(relationshipsMap.values()))
         .assetSpecifications(assetSpecifications);
@@ -109,7 +110,8 @@ public final class DatasetJsonConversion {
             .selfHosted(dataset.isSelfHosted())
             .predictableFileIds(dataset.hasPredictableFileIds())
             .tags(dataset.getTags())
-            .resourceLocks(dataset.getResourceLocks());
+            .resourceLocks(dataset.getResourceLocks())
+            .inheritSteward(dataset.isInheritSteward());
 
     if (include.contains(DatasetRequestAccessIncludeModel.NONE)) {
       return datasetModel;

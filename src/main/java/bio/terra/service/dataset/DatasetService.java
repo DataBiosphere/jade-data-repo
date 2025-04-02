@@ -52,6 +52,7 @@ import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.dataset.flight.ingest.scratch.DatasetScratchFilePrepareFlight;
+import bio.terra.service.dataset.flight.inheritsteward.SetInheritStewardFlight;
 import bio.terra.service.dataset.flight.lock.DatasetLockFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionCommitFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
@@ -756,6 +757,26 @@ public class DatasetService {
       throw new RuntimeException("Dataset tags were not updated");
     }
     return datasetDao.retrieveSummaryById(id).toModel();
+  }
+
+  public String setInheritSteward(
+      UUID datasetId, boolean inheritSteward, AuthenticatedUserRequest userReq) {
+    String description =
+        String.format("Set inherit steward to %s for dataset %s", inheritSteward, datasetId);
+    var custodianPolicy =
+        iamService.retrievePolicies(userReq, IamResourceType.DATASET, datasetId).stream()
+            .filter(p -> p.getName().equals(IamRole.CUSTODIAN.toString()))
+            .findFirst()
+            .orElseThrow();
+    return jobService
+        .newJob(description, SetInheritStewardFlight.class, null, userReq)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD)
+        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), custodianPolicy.getEmail())
+        .addParameter(JobMapKeys.CUSTODIAN_USERS.getKeyName(), custodianPolicy.getMembers())
+        .addParameter(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward)
+        .submit();
   }
 
   private static List<DatasetRequestAccessIncludeModel> getDefaultIncludes() {

@@ -18,7 +18,8 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.snapshot.flight.create.SnapshotAuthzIamStep;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -27,7 +28,7 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -43,7 +44,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @Tag(Unit.TAG)
 class SnapshotAuthzIamStepTest {
   @Mock private IamService iamService;
-  @Mock private SnapshotService snapshotService;
   @Mock private FlightContext flightContext;
 
   private static final AuthenticatedUserRequest TEST_USER =
@@ -52,6 +52,7 @@ class SnapshotAuthzIamStepTest {
   private static final String DUOS_ID = "DUOS-123456";
   private static final DuosFirecloudGroupModel DUOS_FIRECLOUD_GROUP =
       DuosFixtures.createDbFirecloudGroup(DUOS_ID);
+  private static final Dataset SOURCE_DATASET = new Dataset().id(UUID.randomUUID());
   private static final String SNAPSHOT_FIRECLOUD_GROUP_EMAIL = UUID.randomUUID() + "-users";
 
   private SnapshotAuthzIamStep step;
@@ -61,6 +62,7 @@ class SnapshotAuthzIamStepTest {
   @BeforeEach
   void setup() {
     workingMap = new FlightMap();
+    when(flightContext.getWorkingMap()).thenReturn(workingMap);
     snapshotRequestModel = new SnapshotRequestModel();
     // Set mode to something other than byRequestId
     snapshotRequestModel.addContentsItem(
@@ -71,16 +73,19 @@ class SnapshotAuthzIamStepTest {
 
   @Test
   void testDoAndUndoStep() throws InterruptedException {
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    var sourceDataset =
+        new Dataset(new DatasetSummary().inheritSteward(true)).id(UUID.randomUUID());
     step =
         new SnapshotAuthzIamStep(
-            iamService, snapshotService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
+            iamService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID, sourceDataset);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
 
     ArgumentCaptor<SnapshotRequestModelPolicies> argument =
         ArgumentCaptor.forClass(SnapshotRequestModelPolicies.class);
-    verify(iamService).createSnapshotResource(eq(TEST_USER), eq(SNAPSHOT_ID), argument.capture());
+    verify(iamService)
+        .createSnapshotResource(
+            eq(TEST_USER), eq(SNAPSHOT_ID), eq(sourceDataset.getId()), argument.capture());
     List<String> readers = argument.getValue().getReaders();
     assertFalse(readers.contains(DUOS_FIRECLOUD_GROUP.getFirecloudGroupEmail()));
 
@@ -92,18 +97,18 @@ class SnapshotAuthzIamStepTest {
   @Test
   void testDoAndUndoStepWithDUOS() throws InterruptedException {
     workingMap.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, DUOS_FIRECLOUD_GROUP);
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
 
     snapshotRequestModel.duosId(DUOS_ID);
     step =
         new SnapshotAuthzIamStep(
-            iamService, snapshotService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
+            iamService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID, SOURCE_DATASET);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
 
     ArgumentCaptor<SnapshotRequestModelPolicies> argument =
         ArgumentCaptor.forClass(SnapshotRequestModelPolicies.class);
-    verify(iamService).createSnapshotResource(eq(TEST_USER), eq(SNAPSHOT_ID), argument.capture());
+    verify(iamService)
+        .createSnapshotResource(eq(TEST_USER), eq(SNAPSHOT_ID), eq(null), argument.capture());
     List<String> readers = argument.getValue().getReaders();
     assertTrue(readers.contains(DUOS_FIRECLOUD_GROUP.getFirecloudGroupEmail()));
 
@@ -116,17 +121,16 @@ class SnapshotAuthzIamStepTest {
   void testDoAndUndoWithSnapshotFirecloudGroup() throws InterruptedException {
     workingMap.put(
         SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, SNAPSHOT_FIRECLOUD_GROUP_EMAIL);
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
     overrideSnapshotRequestMode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID);
     var expectedPolicies =
         new SnapshotRequestModelPolicies().addReadersItem(SNAPSHOT_FIRECLOUD_GROUP_EMAIL);
-    Map<IamRole, String> expectedPoliciesMap = new HashMap<>();
+    Map<IamRole, String> expectedPoliciesMap = new EnumMap<>(IamRole.class);
     expectedPoliciesMap.put(IamRole.READER, SNAPSHOT_FIRECLOUD_GROUP_EMAIL);
-    when(iamService.createSnapshotResource(TEST_USER, SNAPSHOT_ID, expectedPolicies))
+    when(iamService.createSnapshotResource(TEST_USER, SNAPSHOT_ID, null, expectedPolicies))
         .thenReturn(expectedPoliciesMap);
     step =
         new SnapshotAuthzIamStep(
-            iamService, snapshotService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
+            iamService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID, SOURCE_DATASET);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     Map<IamRole, String> workingMapPolicies =

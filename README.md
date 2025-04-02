@@ -24,7 +24,7 @@ Follow our getting [started guide](docs/jade-getting-started.md) to get set up.
 If you are making code changes, run:
 `./scripts/run check`
 
-See [started guide](docs/jade-getting-started.md) for information on running connected and integraiton tests.
+See [started guide](docs/jade-getting-started.md) for information on running connected and integration tests.
 
 ### Run TDR locally
 
@@ -48,20 +48,6 @@ setting the environment variable:
 
 The swagger page is:
 http://localhost:8080
-
-### Verify Pact contracts
-
-To verify that TDR adheres to the contracts published by its consumers, run:
-```
-./src/test/render-pact-configs.sh
-# set environment variables
-export PACT_BROKER_USERNAME=$(cat /tmp/pact-ro-username.key)
-export PACT_BROKER_PASSWORD=$(cat /tmp/pact-ro-password.key)
-./gradlew verifyPacts     # verify contracts published with TDR as the provider
-```
-
-By default, this will fetch published contracts from the live Pact broker.
-Results of Pact verification are only published when running in a CI environment (not locally).
 
 ### SourceClear
 

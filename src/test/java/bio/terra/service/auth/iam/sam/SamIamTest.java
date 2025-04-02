@@ -7,9 +7,12 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -22,7 +25,6 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetRequestModelPolicies;
-import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
@@ -71,6 +73,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -222,7 +225,7 @@ class SamIamTest {
   }
 
   @Test
-  void testCreateSnapshotResourceRequestWithoutPolicySpecifications() throws ApiException {
+  void testCreateSnapshotResourceRequestWithoutPolicySpecifications() throws Exception {
     final String userSubjectId = "userid";
     final String userEmail = "a@a.com";
     mockUserInfo(userSubjectId, userEmail);
@@ -230,10 +233,10 @@ class SamIamTest {
     final UUID snapshotId = UUID.randomUUID();
 
     CreateResourceRequestV2 reqNullPolicies =
-        samIam.createSnapshotResourceRequest(TEST_USER, snapshotId, null);
+        samIam.createSnapshotResourceRequest(TEST_USER, snapshotId, null, null);
     CreateResourceRequestV2 reqEmptyPolicies =
         samIam.createSnapshotResourceRequest(
-            TEST_USER, snapshotId, new SnapshotRequestModelPolicies());
+            TEST_USER, snapshotId, null, new SnapshotRequestModelPolicies());
 
     for (CreateResourceRequestV2 req : List.of(reqNullPolicies, reqEmptyPolicies)) {
       assertThat(req.getResourceId(), is(snapshotId.toString()));
@@ -269,7 +272,7 @@ class SamIamTest {
   }
 
   @Test
-  void testCreateSnapshotResourceRequestWithPolicySpecifications() throws ApiException {
+  void testCreateSnapshotResourceRequestWithPolicySpecifications() throws Exception {
     final String userSubjectId = "userid";
     final String userEmail = "a@a.com";
     mockUserInfo(userSubjectId, userEmail);
@@ -287,7 +290,7 @@ class SamIamTest {
             .addReadersItem(readerEmail)
             .addDiscoverersItem(discovererEmail);
     CreateResourceRequestV2 req =
-        samIam.createSnapshotResourceRequest(TEST_USER, snapshotId, policySpecs);
+        samIam.createSnapshotResourceRequest(TEST_USER, snapshotId, null, policySpecs);
 
     assertThat(req.getResourceId(), is(snapshotId.toString()));
 
@@ -506,6 +509,7 @@ class SamIamTest {
               List.of(
                   new SamPolicyModel()
                       .name(IamRole.CUSTODIAN.toString())
+                      .email(policyEmail)
                       .addMembersItem(memberEmail)
                       .memberPolicies(List.of()))));
 
@@ -563,10 +567,41 @@ class SamIamTest {
       }
 
       assertThat(
-          samIam.createSnapshotResource(TEST_USER, snapshotId, null),
+          samIam.createSnapshotResource(TEST_USER, snapshotId, null, null),
           is(
               syncedPolicies.stream()
                   .collect(Collectors.toMap(p -> p, p -> "policygroup-" + p + "@firecloud.org"))));
+    }
+
+    @Test
+    void testCreateSnapshotWithParent() throws Exception {
+      mockSamGoogleApi();
+
+      UUID snapshotId = UUID.randomUUID();
+      UUID parentDatasetId = UUID.randomUUID();
+
+      when(samGoogleApi.syncPolicy(
+              eq(IamResourceType.DATASNAPSHOT.getSamResourceName()),
+              eq(snapshotId.toString()),
+              any(),
+              any()))
+          .thenReturn(Map.of("key", List.of()));
+      when(samResourceApi.resourceRolesV2(
+              IamResourceType.DATASET.toString(), parentDatasetId.toString()))
+          .thenReturn(List.of(IamRole.CUSTODIAN.toString()));
+
+      samIam.createSnapshotResource(TEST_USER, snapshotId, parentDatasetId, null);
+      var argument = ArgumentCaptor.forClass(CreateResourceRequestV2.class);
+      verify(samResourceApi)
+          .createResourceV2(eq(IamResourceType.DATASNAPSHOT.toString()), argument.capture());
+      CreateResourceRequestV2 request = argument.getValue();
+      assertThat(request.getParent().getResourceId(), is(parentDatasetId.toString()));
+      assertThat(request.getParent().getResourceTypeName(), is(IamResourceType.DATASET.toString()));
+      assertThat(request.getResourceId(), is(snapshotId.toString()));
+      var policies = request.getPolicies();
+      assertThat(policies.get(IamRole.STEWARD.toString()).getMemberEmails(), empty());
+      assertThat(
+          policies.get(IamRole.ADMIN.toString()).getMemberEmails(), is(List.of(ADMIN_EMAIL)));
     }
 
     @Test
@@ -631,22 +666,13 @@ class SamIamTest {
     void testAddPolicy() throws InterruptedException, ApiException {
       final UUID id = UUID.randomUUID();
       final String userEmail = "a@a.com";
-      when(samResourceApi.getPolicyV2(
-              IamResourceType.SPEND_PROFILE.getSamResourceName(),
-              id.toString(),
-              IamRole.OWNER.toString()))
-          .thenReturn(new AccessPolicyMembershipV2().memberEmails(List.of(userEmail)));
-      final PolicyModel policyModel =
-          samIam.addPolicyMember(
-              TEST_USER, IamResourceType.SPEND_PROFILE, id, IamRole.OWNER.toString(), userEmail);
-      assertThat(
-          policyModel,
-          is(new PolicyModel().name(IamRole.OWNER.toString()).addMembersItem(userEmail)));
-      verify(samResourceApi, times(1))
+      IamRole policy = IamRole.OWNER;
+      samIam.addPolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, id, policy, userEmail);
+      verify(samResourceApi)
           .addUserToPolicyV2(
               IamResourceType.SPEND_PROFILE.getSamResourceName(),
               id.toString(),
-              IamRole.OWNER.toString(),
+              policy.toString(),
               userEmail,
               null);
     }
@@ -655,21 +681,13 @@ class SamIamTest {
     void testDeletePolicy() throws InterruptedException, ApiException {
       final UUID id = UUID.randomUUID();
       final String userEmail = "a@a.com";
-      when(samResourceApi.getPolicyV2(
-              IamResourceType.SPEND_PROFILE.getSamResourceName(),
-              id.toString(),
-              IamRole.OWNER.toString()))
-          .thenReturn(new AccessPolicyMembershipV2().memberEmails(List.of()));
-      final PolicyModel policyModel =
-          samIam.deletePolicyMember(
-              TEST_USER, IamResourceType.SPEND_PROFILE, id, IamRole.OWNER.toString(), userEmail);
-      assertThat(
-          policyModel, is(new PolicyModel().name(IamRole.OWNER.toString()).members(List.of())));
-      verify(samResourceApi, times(1))
+      IamRole policy = IamRole.OWNER;
+      samIam.deletePolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, id, policy, userEmail);
+      verify(samResourceApi)
           .removeUserFromPolicyV2(
               IamResourceType.SPEND_PROFILE.getSamResourceName(),
               id.toString(),
-              IamRole.OWNER.toString(),
+              policy.toString(),
               userEmail);
     }
 
@@ -724,6 +742,130 @@ class SamIamTest {
       verify(samResourceApi)
           .patchAuthDomainV2(
               IamResourceType.DATASNAPSHOT.getSamResourceName(), snapshotId.toString(), authDomain);
+    }
+
+    @Test
+    void setResourceParent() throws Exception {
+      UUID childId = UUID.randomUUID();
+      UUID parentId = UUID.randomUUID();
+      samIam.setResourceParent(
+          TEST_USER.getToken(),
+          IamResourceType.DATASNAPSHOT,
+          childId,
+          IamResourceType.DATASET,
+          parentId);
+      verify(samResourceApi)
+          .setResourceParent(
+              IamResourceType.DATASNAPSHOT.getSamResourceName(),
+              childId.toString(),
+              new FullyQualifiedResourceId()
+                  .resourceTypeName(IamResourceType.DATASET.getSamResourceName())
+                  .resourceId(parentId.toString()));
+    }
+
+    @Test
+    void setResourceParentThrows() throws Exception {
+      UUID childId = UUID.randomUUID();
+      UUID parentId = UUID.randomUUID();
+      String accessToken = TEST_USER.getToken();
+      ApiException samEx =
+          new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Resource not found");
+      doThrow(samEx)
+          .when(samResourceApi)
+          .setResourceParent(
+              IamResourceType.DATASNAPSHOT.getSamResourceName(),
+              childId.toString(),
+              new FullyQualifiedResourceId()
+                  .resourceTypeName(IamResourceType.DATASET.getSamResourceName())
+                  .resourceId(parentId.toString()));
+      assertThrows(
+          IamNotFoundException.class,
+          () ->
+              samIam.setResourceParent(
+                  accessToken,
+                  IamResourceType.DATASNAPSHOT,
+                  childId,
+                  IamResourceType.DATASET,
+                  parentId));
+    }
+
+    @Test
+    void deleteResourceParent() throws Exception {
+      UUID childId = UUID.randomUUID();
+      samIam.deleteResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId);
+      verify(samResourceApi)
+          .deleteResourceParent(
+              IamResourceType.DATASNAPSHOT.getSamResourceName(), childId.toString());
+    }
+
+    @Test
+    void deleteResourceParentThrows() throws Exception {
+      UUID childId = UUID.randomUUID();
+      String accessToken = TEST_USER.getToken();
+      ApiException samEx =
+          new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Resource not found");
+      doThrow(samEx)
+          .when(samResourceApi)
+          .deleteResourceParent(
+              IamResourceType.DATASNAPSHOT.getSamResourceName(), childId.toString());
+      assertThrows(
+          IamNotFoundException.class,
+          () -> samIam.deleteResourceParent(accessToken, IamResourceType.DATASNAPSHOT, childId));
+    }
+
+    @Test
+    void getResourceParent() throws Exception {
+      UUID childId = UUID.randomUUID();
+      FullyQualifiedResourceId parent =
+          new FullyQualifiedResourceId()
+              .resourceTypeName(IamResourceType.DATASET.getSamResourceName())
+              .resourceId(UUID.randomUUID().toString());
+      when(samResourceApi.getResourceParent(
+              IamResourceType.DATASNAPSHOT.getSamResourceName(), childId.toString()))
+          .thenReturn(parent);
+      assertThat(
+          samIam.getResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId),
+          is(parent));
+    }
+
+    @Test
+    void getResourceParentThrows() throws Exception {
+      UUID childId = UUID.randomUUID();
+      String accessToken = TEST_USER.getToken();
+      ApiException samEx =
+          new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Resource parent not found");
+      doThrow(samEx)
+          .when(samResourceApi)
+          .getResourceParent(IamResourceType.DATASNAPSHOT.getSamResourceName(), childId.toString());
+      assertThrows(
+          IamNotFoundException.class,
+          () -> samIam.getResourceParent(accessToken, IamResourceType.DATASNAPSHOT, childId));
+    }
+
+    @Test
+    void listResourceChildren() throws Exception {
+      UUID parentId = UUID.randomUUID();
+      List<FullyQualifiedResourceId> children = List.of(new FullyQualifiedResourceId());
+      when(samResourceApi.listResourceChildren(
+              IamResourceType.DATASET.getSamResourceName(), parentId.toString()))
+          .thenReturn(children);
+      assertEquals(
+          children,
+          samIam.listResourceChildren(TEST_USER.getToken(), IamResourceType.DATASET, parentId));
+    }
+
+    @Test
+    void listResourceChildrenThrows() throws Exception {
+      UUID parentId = UUID.randomUUID();
+      String accessToken = TEST_USER.getToken();
+      ApiException samEx =
+          new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Resource not found");
+      doThrow(samEx)
+          .when(samResourceApi)
+          .listResourceChildren(IamResourceType.DATASET.getSamResourceName(), parentId.toString());
+      assertThrows(
+          IamNotFoundException.class,
+          () -> samIam.listResourceChildren(accessToken, IamResourceType.DATASET, parentId));
     }
   }
 

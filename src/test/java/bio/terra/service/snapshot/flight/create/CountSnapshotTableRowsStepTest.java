@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.CannotSerializeTransactionException;
+import org.springframework.dao.CannotAcquireLockException;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
@@ -30,7 +30,7 @@ class CountSnapshotTableRowsStepTest {
   @Mock private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   @Mock private SnapshotDao snapshotDao;
   @Mock private FlightContext flightContext;
-  //  private FlightMap workingMap;
+
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();
   private static final Snapshot SNAPSHOT =
       new Snapshot().id(SNAPSHOT_ID).name("Snapshot-" + SNAPSHOT_ID);
@@ -58,7 +58,7 @@ class CountSnapshotTableRowsStepTest {
   @Test
   void testDoStepRetry() throws InterruptedException {
     step = new CountSnapshotTableRowsStep(bigQuerySnapshotPdao, snapshotDao, snapshotReq);
-    doThrow(CannotSerializeTransactionException.class)
+    doThrow(CannotAcquireLockException.class)
         .when(snapshotDao)
         .updateSnapshotTableRowCounts(SNAPSHOT, tableRowCounts);
 

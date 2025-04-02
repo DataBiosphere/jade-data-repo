@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: dataset_inherit_steward_flag
+      author: pshapiro
+      changes:
+        - addColumn:
+            tableName: dataset
+            columns:
+              - column:
+                  name: inherit_steward
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

@@ -4,15 +4,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -58,27 +56,24 @@ import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
-@RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@Tag(Unit.TAG)
 @EmbeddedDatabaseTest
-public class AzureBlobStorePdaoTest {
+class AzureBlobStorePdaoTest {
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticatedUserRequest.builder()
           .setSubjectId("DatasetUnit")
@@ -117,31 +112,29 @@ public class AzureBlobStorePdaoTest {
   private BlobContainerClientFactory sourceBlobContainerFactory;
   private BlobContainerClientFactory targetBlobContainerFactory;
   private BlobCrl blobCrl;
-  @MockBean private ProfileDao profileDao;
-  @MockBean private AzureContainerPdao azureContainerPdao;
-  @MockBean private AzureResourceConfiguration resourceConfiguration;
-  @MockBean private AzureResourceDao azureResourceDao;
-  @MockBean private AzureAuthService azureAuthService;
-  @MockBean private GcsPdao gcsPdao;
-  @MockBean private GcsProjectFactory gcsProjectFactory;
-  @MockBean private AzureBlobService azureBlobService;
+  @MockitoBean private ProfileDao profileDao;
+  @MockitoBean private AzureContainerPdao azureContainerPdao;
+  @MockitoBean private AzureResourceConfiguration resourceConfiguration;
+  @MockitoBean private AzureResourceDao azureResourceDao;
+  @MockitoBean private AzureAuthService azureAuthService;
+  @MockitoBean private GcsPdao gcsPdao;
+  @MockitoBean private GcsProjectFactory gcsProjectFactory;
+  @MockitoBean private AzureBlobService azureBlobService;
 
-  @MockBean(name = AzureResourceConfiguration.TABLE_THREADPOOL_NAME)
+  @MockitoBean(name = AzureResourceConfiguration.TABLE_THREADPOOL_NAME)
   private AsyncTaskExecutor asyncTaskExecutor;
 
-  @Autowired private AzureBlobStorePdao dao;
+  @MockitoSpyBean private AzureBlobStorePdao dao;
 
-  @MockBean
+  @MockitoBean
   @Qualifier("synapseJdbcTemplate")
   private NamedParameterJdbcTemplate synapseJdbcTemplate;
 
   private FileLoadModel fileLoadModel;
   private Dataset dataset;
 
-  @Before
-  public void setUp() {
-    dao = spy(dao);
-
+  @BeforeEach
+  void setUp() {
     TokenCredential targetCredential = mock(TokenCredential.class);
     fileLoadModel =
         new FileLoadModel()
@@ -167,7 +160,7 @@ public class AzureBlobStorePdaoTest {
   }
 
   @Test
-  public void testCopyFile() {
+  void testCopyFile() {
     UUID fileId = UUID.randomUUID();
     fileLoadModel.sourcePath(SOURCE_PATH);
 
@@ -185,7 +178,7 @@ public class AzureBlobStorePdaoTest {
   }
 
   @Test
-  public void testCopyFileWithSas() {
+  void testCopyFileWithSas() {
     UUID fileId = UUID.randomUUID();
     fileLoadModel.sourcePath(
         SOURCE_PATH
@@ -206,7 +199,7 @@ public class AzureBlobStorePdaoTest {
   }
 
   @Test
-  public void testCopyFileWithGcsFile() {
+  void testCopyFileWithGcsFile() {
     UUID fileId = UUID.randomUUID();
     fileLoadModel.sourcePath(SOURCE_GCS_PATH);
 
@@ -225,7 +218,7 @@ public class AzureBlobStorePdaoTest {
   }
 
   @Test
-  public void testCopyFileWithGcsFileAndProject() {
+  void testCopyFileWithGcsFileAndProject() {
     UUID fileId = UUID.randomUUID();
     String userProject = "foo";
     String sourcePath = SOURCE_GCS_PATH + "?userProject=" + userProject;
@@ -245,7 +238,7 @@ public class AzureBlobStorePdaoTest {
   }
 
   @Test
-  public void testDeleteFile() {
+  void testDeleteFile() {
     UUID fileId = UUID.randomUUID();
     FSFileInfo fsFileInfo = mockFileCopy(fileId);
     when(blobCrl.deleteBlob("data/" + fileId + "/" + SOURCE_FILE_NAME)).thenReturn(true);
@@ -259,7 +252,7 @@ public class AzureBlobStorePdaoTest {
   }
 
   @Test
-  public void testDeleteFileNotFound() {
+  void testDeleteFileNotFound() {
     UUID fileId = UUID.randomUUID();
     FSFileInfo fsFileInfo = mockFileCopy(fileId);
     when(blobCrl.deleteBlob("data/" + fileId + "/" + SOURCE_FILE_NAME)).thenReturn(false);
@@ -273,7 +266,7 @@ public class AzureBlobStorePdaoTest {
   }
 
   @Test
-  public void testDeleteFileMismatchedStorageAccount() {
+  void testDeleteFileMismatchedStorageAccount() {
     UUID fileId = UUID.randomUUID();
     mockFileCopy(fileId);
 
@@ -291,7 +284,7 @@ public class AzureBlobStorePdaoTest {
   }
 
   @Test
-  public void testDeleteFileById() {
+  void testDeleteFileById() {
     UUID fileId = UUID.randomUUID();
     mockFileCopy(fileId);
     when(blobCrl.deleteBlob("data/" + fileId + "/" + SOURCE_FILE_NAME)).thenReturn(true);
@@ -303,7 +296,7 @@ public class AzureBlobStorePdaoTest {
   }
 
   @Test
-  public void testDeleteFileByIdNotFound() {
+  void testDeleteFileByIdNotFound() {
     UUID fileId = UUID.randomUUID();
     mockFileCopy(fileId);
     when(blobCrl.deleteBlob("data/" + fileId + "/" + SOURCE_FILE_NAME)).thenReturn(false);
@@ -315,8 +308,8 @@ public class AzureBlobStorePdaoTest {
   }
 
   @Test
-  public void testSasValidation() {
-    assertTrue(
+  void testSasValidation() {
+    assertThat(
         "is valid",
         AzureBlobStorePdao.isSignedUrl(
             BlobUrlParts.parse(
@@ -324,23 +317,23 @@ public class AzureBlobStorePdaoTest {
                     + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&"
                     + "sr=b&sig=mysig")));
     assertFalse(
-        "no sas token",
         AzureBlobStorePdao.isSignedUrl(
-            BlobUrlParts.parse("https://src.blob.core.windows.net/srcdata/src.txt")));
+            BlobUrlParts.parse("https://src.blob.core.windows.net/srcdata/src.txt")),
+        "no sas token");
     assertFalse(
-        "tld is wrong",
         AzureBlobStorePdao.isSignedUrl(
             BlobUrlParts.parse(
                 "https://src.foo.core.windows.net/srcdata/src.txt"
                     + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04"
-                    + "&sr=b&sig=mysig")));
+                    + "&sr=b&sig=mysig")),
+        "tld is wrong");
     assertFalse(
-        "missing fields (sr and sig are removed)",
         AzureBlobStorePdao.isSignedUrl(
             BlobUrlParts.parse(
                 "https://src.foo.core.windows.net/srcdata/src.txt"
-                    + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04")));
-    assertTrue(
+                    + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04")),
+        "missing fields (sr and sig are removed)");
+    assertThat(
         "extra fields don't hurt",
         AzureBlobStorePdao.isSignedUrl(
             BlobUrlParts.parse(
@@ -350,14 +343,14 @@ public class AzureBlobStorePdaoTest {
   }
 
   @Test
-  public void testValidateUserCanReadSimple() {
+  void testValidateUserCanReadSimple() {
     List<String> sourcePaths = List.of("gs://mybucket/myfile.txt");
     dao.validateUserCanRead(sourcePaths, null, TEST_USER, dataset);
     verify(gcsPdao).validateUserCanRead(sourcePaths, null, TEST_USER, dataset);
   }
 
   @Test
-  public void testValidateUserCanReadWithUserProject() {
+  void testValidateUserCanReadWithUserProject() {
     List<String> sourcePaths =
         List.of(
             "gs://mybucket/myfile1.txt?userProject=foo",
@@ -367,7 +360,7 @@ public class AzureBlobStorePdaoTest {
   }
 
   @Test
-  public void testValidateUserCanReadWithMultipleUserProjects() {
+  void testValidateUserCanReadWithMultipleUserProjects() {
     List<String> sourcePaths =
         List.of(
             "gs://mybucket/myfile1.txt?userProject=foo",
@@ -379,7 +372,7 @@ public class AzureBlobStorePdaoTest {
   }
 
   @Test
-  public void testListChildren() {
+  void testListChildren() {
     String baseBlobName = "metadata/parquet/my_table.parquet";
     String url = "https://src.blob.core.windows.net/snapid/%s".formatted(baseBlobName);
     String sasToken = "sp=r";

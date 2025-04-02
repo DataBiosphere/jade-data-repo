@@ -3,6 +3,7 @@ package bio.terra.service.auth.iam;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -16,6 +17,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
@@ -28,6 +30,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -83,35 +86,34 @@ class IamServiceTest {
 
   @Test
   void testAddPolicyMember() throws InterruptedException {
-    var policyModel = new PolicyModel();
-    String policyName = "policyName";
+    IamRole policy = IamRole.DISCOVERER;
     String email = "email";
-    when(iamProvider.addPolicyMember(
-            TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email))
-        .thenReturn(policyModel);
 
-    PolicyModel result =
-        iamService.addPolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
+    iamService.addPolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policy, email);
     verify(iamProvider)
-        .addPolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
-    assertEquals(policyModel, result);
+        .addPolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policy, email);
   }
 
   @Test
   void testDeletePolicyMember() throws InterruptedException {
-    var policyModel = new PolicyModel();
-    String policyName = "policyName";
+    IamRole policy = IamRole.DISCOVERER;
     String email = "email";
-    when(iamProvider.deletePolicyMember(
-            TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email))
-        .thenReturn(policyModel);
 
-    PolicyModel result =
-        iamService.deletePolicyMember(
-            TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
+    iamService.deletePolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policy, email);
     verify(iamProvider)
-        .deletePolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
-    assertEquals(policyModel, result);
+        .deletePolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policy, email);
+  }
+
+  @Test
+  void retrievePolicy() throws Exception {
+    IamRole policy = IamRole.DISCOVERER;
+    String email = "email";
+
+    when(iamProvider.retrievePolicies(TEST_USER, IamResourceType.SPEND_PROFILE, ID))
+        .thenReturn(List.of(new SamPolicyModel().name(policy.toString()).addMembersItem(email)));
+    var policyModel =
+        iamService.retrievePolicy(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policy);
+    assertThat(policyModel, is(new PolicyModel().name(policy.toString()).addMembersItem(email)));
   }
 
   @Test
@@ -189,6 +191,15 @@ class IamServiceTest {
   }
 
   @Test
+  void createSnapshotResource() throws Exception {
+    UUID snapshotId = UUID.randomUUID();
+    UUID parentDatasetId = UUID.randomUUID();
+    SnapshotRequestModelPolicies policies = new SnapshotRequestModelPolicies();
+    iamService.createSnapshotResource(TEST_USER, snapshotId, parentDatasetId, policies);
+    verify(iamProvider).createSnapshotResource(TEST_USER, snapshotId, parentDatasetId, policies);
+  }
+
+  @Test
   void testDeriveSnapshotPolicies() {
     assertThat(
         "Request without policies or readers returns new policy object",
@@ -227,17 +238,22 @@ class IamServiceTest {
 
   @Test
   void testVerifyResourceTypeAdminAuthorizedTrue() throws InterruptedException {
+    UUID id = UUID.randomUUID();
     when(iamProvider.getResourceTypeAdminPermission(
             TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION))
         .thenReturn(true);
     assertDoesNotThrow(
         () ->
             iamService.verifyResourceTypeAdminAuthorized(
-                TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION));
+                TEST_USER,
+                IamResourceType.DATASNAPSHOT,
+                IamAction.ADMIN_READ_SUMMARY_INFORMATION,
+                id));
   }
 
   @Test
   void testVerifyResourceTypeAdminAuthorizedFalse() throws InterruptedException {
+    UUID id = UUID.randomUUID();
     when(iamProvider.getResourceTypeAdminPermission(
             TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION))
         .thenReturn(false);
@@ -245,7 +261,10 @@ class IamServiceTest {
         IamForbiddenException.class,
         () ->
             iamService.verifyResourceTypeAdminAuthorized(
-                TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION));
+                TEST_USER,
+                IamResourceType.DATASNAPSHOT,
+                IamAction.ADMIN_READ_SUMMARY_INFORMATION,
+                id));
   }
 
   @Test
@@ -291,5 +310,54 @@ class IamServiceTest {
     when(iamProvider.removeGroupPolicyEmail(accessToken, groupName, policyName, email))
         .thenReturn(List.of());
     assertEquals(iamService.removeEmailFromGroup(groupName, policyName, email), List.of());
+  }
+
+  @Test
+  void setResourceParent() throws InterruptedException {
+    UUID childId = UUID.randomUUID();
+    UUID parentId = UUID.randomUUID();
+    iamService.setResourceParent(
+        TEST_USER.getToken(),
+        IamResourceType.DATASNAPSHOT,
+        childId,
+        IamResourceType.DATASET,
+        parentId);
+    verify(iamProvider)
+        .setResourceParent(
+            TEST_USER.getToken(),
+            IamResourceType.DATASNAPSHOT,
+            childId,
+            IamResourceType.DATASET,
+            parentId);
+  }
+
+  @Test
+  void deleteResourceParent() throws InterruptedException {
+    UUID childId = UUID.randomUUID();
+    iamService.deleteResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId);
+    verify(iamProvider)
+        .deleteResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId);
+  }
+
+  @Test
+  void getResourceParent() throws InterruptedException {
+    UUID childId = UUID.randomUUID();
+    FullyQualifiedResourceId parent = new FullyQualifiedResourceId();
+    when(iamProvider.getResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId))
+        .thenReturn(parent);
+    assertEquals(
+        parent,
+        iamService.getResourceParent(TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, childId));
+  }
+
+  @Test
+  void listResourceChildren() throws InterruptedException {
+    UUID parentId = UUID.randomUUID();
+    List<FullyQualifiedResourceId> children = List.of(new FullyQualifiedResourceId());
+    when(iamProvider.listResourceChildren(TEST_USER.getToken(), IamResourceType.DATASET, parentId))
+        .thenReturn(children);
+    assertEquals(
+        children,
+        iamService.listResourceChildren(TEST_USER.getToken(), IamResourceType.DATASET, parentId));
   }
 }

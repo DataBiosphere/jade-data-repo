@@ -11,22 +11,21 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.EnumerateBillingProfileModel;
+import bio.terra.model.EnumerateBillingProfileResourcesModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.PolicyMemberValidator;
 import bio.terra.service.job.JobService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -34,15 +33,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.InitBinder;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 @Api(tags = {"profiles"})
 public class ProfileApiController implements ProfilesApi {
 
-  private final ObjectMapper objectMapper;
   private final HttpServletRequest request;
   private final ProfileService profileService;
   private final ProfileRequestValidator billingProfileRequestValidator;
@@ -56,7 +51,6 @@ public class ProfileApiController implements ProfilesApi {
 
   @Autowired
   public ProfileApiController(
-      ObjectMapper objectMapper,
       HttpServletRequest request,
       ProfileService profileService,
       ProfileRequestValidator billingProfileRequestValidator,
@@ -66,7 +60,6 @@ public class ProfileApiController implements ProfilesApi {
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       IamService iamService,
       ApplicationConfiguration applicationConfiguration) {
-    this.objectMapper = objectMapper;
     this.request = request;
     this.profileService = profileService;
     this.billingProfileRequestValidator = billingProfileRequestValidator;
@@ -78,16 +71,6 @@ public class ProfileApiController implements ProfilesApi {
     this.applicationConfiguration = applicationConfiguration;
   }
 
-  @Override
-  public Optional<ObjectMapper> getObjectMapper() {
-    return Optional.ofNullable(objectMapper);
-  }
-
-  @Override
-  public Optional<HttpServletRequest> getRequest() {
-    return Optional.ofNullable(request);
-  }
-
   @InitBinder
   protected void initBinder(final WebDataBinder binder) {
     binder.addValidators(profileUpdateRequestValidator);
@@ -96,16 +79,14 @@ public class ProfileApiController implements ProfilesApi {
   }
 
   @Override
-  public ResponseEntity<JobModel> createProfile(
-      @RequestBody BillingProfileRequestModel billingProfileRequest) {
+  public ResponseEntity<JobModel> createProfile(BillingProfileRequestModel billingProfileRequest) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
     String jobId = profileService.createProfile(billingProfileRequest, user);
     return jobToResponse(jobService.retrieveJob(jobId, user));
   }
 
   @Override
-  public ResponseEntity<JobModel> updateProfile(
-      @Valid @RequestBody BillingProfileUpdateModel billingProfileRequest) {
+  public ResponseEntity<JobModel> updateProfile(BillingProfileUpdateModel billingProfileRequest) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
     verifyProfileAuthorization(
         user, billingProfileRequest.getId().toString(), IamAction.UPDATE_BILLING_ACCOUNT);
@@ -127,8 +108,7 @@ public class ProfileApiController implements ProfilesApi {
 
   @Override
   public ResponseEntity<EnumerateBillingProfileModel> enumerateProfiles(
-      @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-      @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+      Integer offset, Integer limit) {
     ControllerUtils.validateEnumerateParams(offset, limit);
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
     EnumerateBillingProfileModel ebpm = profileService.enumerateProfiles(offset, limit, user);
@@ -144,29 +124,26 @@ public class ProfileApiController implements ProfilesApi {
 
   @Override
   public ResponseEntity<PolicyResponse> addProfilePolicyMember(
-      @PathVariable("id") UUID id,
-      @PathVariable("policyName") String policyName,
-      @Valid @RequestBody PolicyMemberRequest policyMember) {
+      UUID id, String policyName, PolicyMemberRequest policyMember) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
-    PolicyModel policy = profileService.addProfilePolicyMember(id, policyName, policyMember, user);
+    IamRole role = IamRole.fromValue(policyName);
+    PolicyModel policy = profileService.addProfilePolicyMember(id, role, policyMember, user);
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 
   @Override
   public ResponseEntity<PolicyResponse> deleteProfilePolicyMember(
-      @PathVariable("id") UUID id,
-      @PathVariable("policyName") String policyName,
-      @PathVariable("memberEmail") String memberEmail) {
+      UUID id, String policyName, String memberEmail) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
-    PolicyModel policy =
-        profileService.deleteProfilePolicyMember(id, policyName, memberEmail, user);
+    IamRole role = IamRole.fromValue(policyName);
+    PolicyModel policy = profileService.deleteProfilePolicyMember(id, role, memberEmail, user);
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 
   @Override
-  public ResponseEntity<PolicyResponse> retrieveProfilePolicies(@PathVariable("id") UUID id) {
+  public ResponseEntity<PolicyResponse> retrieveProfilePolicies(UUID id) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
     List<PolicyModel> policies = profileService.retrieveProfilePolicies(id, user);
     PolicyResponse response = new PolicyResponse().policies(policies);
@@ -198,5 +175,15 @@ public class ProfileApiController implements ProfilesApi {
     profileService.getProfileByIdNoCheck(UUID.fromString(profileId));
     // Verify permissions
     iamService.verifyAuthorization(userReq, resourceType, resourceId, action);
+  }
+
+  @Override
+  public ResponseEntity<EnumerateBillingProfileResourcesModel> getProfileResources(UUID id) {
+    AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
+    var resources =
+        profileService.getProfileResources(id, user).stream()
+            .map(ProfileOwnedResource::toModel)
+            .toList();
+    return ResponseEntity.ok(new EnumerateBillingProfileResourcesModel().items(resources));
   }
 }

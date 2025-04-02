@@ -520,6 +520,42 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
 
+  /api/resources/v1/profiles/{id}/resources:
+    get:
+      tags:
+        - profiles
+        - resources
+      description: >
+        Given a profile ID, return the resources associated with that profile.
+      operationId: getProfileResources
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: List of resources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnumerateBillingProfileResourcesModel'
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to retreive resources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - profile id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
   /api/repository/v1/snapshots:
     get:
       tags:
@@ -3036,6 +3072,78 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/datasets/{id}/inheritSteward:
+    put:
+      tags:
+        - datasets
+        - repository
+      description: >
+        ADMIN ONLY - Set flag that allows the dataset custodians to inherit the steward role on all
+        snapshots made from this dataset
+      operationId: setInheritSteward
+      requestBody:
+        description: >
+          A boolean value indicating whether the dataset custodians should inherit the steward role
+          on all snapshots made from this dataset.
+        content:
+          application/json:
+            schema:
+              type: boolean
+        required: true
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: Redirect for dataset update inheritSteward result
+          headers:
+            location:
+              description: url for the job result
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        202:
+          description: Job status of dataset update inheritSteward job & url for polling in the response
+            header
+          headers:
+            location:
+              description: url for the job polling
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        204:
+          description: >
+            Nothing was changed. The inheritSteward value was already set to the requested value.
+          content: { }
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to update inheritSteward on this dataset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - dataset does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - dataset was not updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/snapshotAccessRequests:
     get:
       tags:
@@ -5245,6 +5353,33 @@ components:
             $ref: '#/components/schemas/BillingProfileModel'
       description: >
         The total number of billing profiles available and a page of profiles
+    EnumerateBillingProfileResourcesModel:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProfileOwnedResourceModel'
+      description: >
+        The resources created using this billing profile
+    ProfileOwnedResourceModel:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        name:
+          type: string
+          description: Name of the resource
+        description:
+          type: string
+          description: Description of the resource
+        createdDate:
+          type: string
+          description: Date the resource was created
+        type:
+          type: string
+          description: Type of the resource
+          enum: [ DATASET, SNAPSHOT ]
     DatasetModel:
       type: object
       properties:
@@ -5306,6 +5441,12 @@ components:
             $ref: '#/components/schemas/Tag'
         resourceLocks:
           $ref: '#/components/schemas/ResourceLocks'
+        inheritSteward:
+          type: boolean
+          default: false
+          description: >
+            If true, all snapshots created from this dataset will grant dataset custodians
+            the steward (owner) role on the snapshots.
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -5357,6 +5498,12 @@ components:
             $ref: '#/components/schemas/Tag'
         resourceLocks:
           $ref: '#/components/schemas/ResourceLocks'
+        inheritSteward:
+          type: boolean
+          default: false
+          description: >
+            If true, all snapshots created from this dataset will grant dataset custodians
+            the steward (owner) role on the snapshots.
       description: >
         Summary of a dataset.
     DatasetRequestModel:
@@ -5447,6 +5594,17 @@ components:
               type: array
               items:
                 type: string
+        inheritSteward:
+          type: boolean
+          default: false
+          description: >
+            If true, all snapshots created from this dataset will grant dataset custodians
+            the steward (owner) role on the snapshots. This is intended to be used in cases where
+            a dataset will have many (> 1000) snapshots and the user wants all dataset custodians
+            to have this role on all snapshots.
+
+            Using this flag is a more efficient way to grant this role, and will avoid using up
+            google resource quotas.
         tags:
           $ref: '#/components/schemas/ResourceCreateTags'
       description: >
@@ -7015,6 +7173,8 @@ components:
       type: object
       properties:
         name:
+          type: string
+        email:
           type: string
         members:
           type: array

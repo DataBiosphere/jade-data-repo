@@ -26,6 +26,6 @@ class ColumnTest {
     assertThat(
         "Columns with different IDs are not equal",
         new Column().id(id),
-        not(equalTo(new Column().id(UUID.randomUUID()))));
+        not(new Column().id(UUID.randomUUID())));
   }
 }

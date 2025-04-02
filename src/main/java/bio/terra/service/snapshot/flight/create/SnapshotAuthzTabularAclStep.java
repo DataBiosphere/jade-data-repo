@@ -4,8 +4,12 @@ import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_ACCESS_F
 
 import bio.terra.common.FlightUtils;
 import bio.terra.common.exception.PdaoException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -28,17 +32,26 @@ public class SnapshotAuthzTabularAclStep implements Step {
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotService snapshotService;
   private final ConfigurationService configService;
+  private final IamService iamService;
   private final UUID snapshotId;
+  private final AuthenticatedUserRequest userReq;
+  private final Dataset sourceDataset;
 
   public SnapshotAuthzTabularAclStep(
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotService snapshotService,
       ConfigurationService configService,
-      UUID snapshotId) {
+      IamService iamService,
+      UUID snapshotId,
+      AuthenticatedUserRequest userReq,
+      Dataset sourceDataset) {
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotService = snapshotService;
     this.configService = configService;
     this.snapshotId = snapshotId;
+    this.userReq = userReq;
+    this.iamService = iamService;
+    this.sourceDataset = sourceDataset;
   }
 
   @Override
@@ -52,6 +65,12 @@ public class SnapshotAuthzTabularAclStep implements Step {
     List<String> emails = new ArrayList<>();
     emails.add(policies.get(IamRole.STEWARD));
     emails.add(policies.get(IamRole.READER));
+
+    if (sourceDataset.isInheritSteward()) {
+      var datasetPolicyMap =
+          iamService.retrievePolicyEmails(userReq, IamResourceType.DATASET, sourceDataset.getId());
+      emails.add(datasetPolicyMap.get(IamRole.CUSTODIAN));
+    }
 
     try {
       if (configService.testInsertFault(SNAPSHOT_GRANT_ACCESS_FAULT)) {

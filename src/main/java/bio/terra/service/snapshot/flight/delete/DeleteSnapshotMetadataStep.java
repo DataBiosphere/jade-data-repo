@@ -9,8 +9,9 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
-import org.springframework.dao.CannotSerializeTransactionException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.TransactionSystemException;
 
 public class DeleteSnapshotMetadataStep extends DefaultUndoStep {
 
@@ -32,7 +33,7 @@ public class DeleteSnapshotMetadataStep extends DefaultUndoStep {
               : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
     } catch (SnapshotNotFoundException ex) {
       stateEnum = DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
-    } catch (CannotSerializeTransactionException ex) {
+    } catch (TransientDataAccessException | TransactionSystemException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
     }
 

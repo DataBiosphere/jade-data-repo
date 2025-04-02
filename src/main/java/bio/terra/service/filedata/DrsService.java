@@ -99,7 +99,7 @@ public class DrsService {
   private static final String ACCESS_ID_SEPARATOR = "*";
   private static final String DRS_OBJECT_VERSION = "0";
   @VisibleForTesting static final Duration URL_TTL = Duration.ofMinutes(15);
-
+  static final Duration AZURE_URL_TTL = Duration.ofMinutes(60);
   private final SnapshotService snapshotService;
   private final FileService fileService;
   private final DrsIdService drsIdService;
@@ -571,7 +571,7 @@ public class DrsService {
                 storageAccountResource,
                 ((FSFile) fsItem).getCloudPath(),
                 new BlobSasTokenOptions(
-                    URL_TTL,
+                    AZURE_URL_TTL,
                     new BlobSasPermission().setReadPermission(true),
                     authUser.getEmail())));
   }

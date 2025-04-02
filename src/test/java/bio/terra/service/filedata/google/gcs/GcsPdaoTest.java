@@ -43,8 +43,8 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
@@ -63,7 +63,7 @@ public class GcsPdaoTest {
           .build();
 
   @Autowired private ConnectedTestConfiguration testConfig;
-  @MockBean private GoogleResourceDao googleResourceDao;
+  @MockitoBean private GoogleResourceDao googleResourceDao;
   @Autowired private GcsPdao gcsPdao;
 
   private final Storage storage = StorageOptions.getDefaultInstance().getService();
@@ -213,7 +213,7 @@ public class GcsPdaoTest {
       assertThat(
           "times between copies is different since file was deleted",
           gcsPdao.copyFile(dataset, fileLoadModel, fileId, targetBucket).getCreatedDate(),
-          not(equalTo(initialTime)));
+          not(initialTime));
     } catch (InterruptedException e) {
       storage.delete(sourceBlob);
     } finally {

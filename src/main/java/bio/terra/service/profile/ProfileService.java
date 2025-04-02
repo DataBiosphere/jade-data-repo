@@ -14,6 +14,7 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.job.JobMapKeys;
@@ -220,28 +221,26 @@ public class ProfileService {
 
   public PolicyModel addProfilePolicyMember(
       UUID profileId,
-      String policyName,
+      IamRole policy,
       PolicyMemberRequest policyMember,
       AuthenticatedUserRequest user) {
-    return iamService.addPolicyMember(
-        user, IamResourceType.SPEND_PROFILE, profileId, policyName, policyMember.getEmail());
+    iamService.addPolicyMember(
+        user, IamResourceType.SPEND_PROFILE, profileId, policy, policyMember.getEmail());
+    return iamService.retrievePolicy(user, IamResourceType.SPEND_PROFILE, profileId, policy);
   }
 
   public PolicyModel deleteProfilePolicyMember(
-      UUID profileId, String policyName, String memberEmail, AuthenticatedUserRequest user) {
+      UUID profileId, IamRole policy, String memberEmail, AuthenticatedUserRequest user) {
     logger.info(
-        "id={} policy={} email={} authuser={}",
-        profileId,
-        policyName,
-        memberEmail,
-        user.getEmail());
+        "id={} policy={} email={} authuser={}", profileId, policy, memberEmail, user.getEmail());
     // member email can't be null since it is part of the URL
     if (!ValidationUtils.isValidEmail(memberEmail)) {
       throw new ValidationException("InvalidMemberEmail");
     }
 
-    return iamService.deletePolicyMember(
-        user, IamResourceType.SPEND_PROFILE, profileId, policyName, memberEmail);
+    iamService.deletePolicyMember(
+        user, IamResourceType.SPEND_PROFILE, profileId, policy, memberEmail);
+    return iamService.retrievePolicy(user, IamResourceType.SPEND_PROFILE, profileId, policy);
   }
 
   public List<PolicyModel> retrieveProfilePolicies(UUID profileId, AuthenticatedUserRequest user) {
@@ -302,5 +301,12 @@ public class ProfileService {
               + "' to perform the requested "
               + "operation");
     }
+  }
+
+  public List<ProfileOwnedResource> getProfileResources(
+      UUID profileId, AuthenticatedUserRequest user) {
+    iamService.verifyAuthorization(
+        user, IamResourceType.SPEND_PROFILE, profileId.toString(), IamAction.READ_SPEND_REPORT);
+    return profileDao.listProfileOwnedResources(profileId);
   }
 }

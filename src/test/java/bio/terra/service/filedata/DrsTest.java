@@ -1,35 +1,40 @@
 package bio.terra.service.filedata;
 
-import static bio.terra.service.resourcemanagement.ResourceService.BQ_JOB_USER_ROLE;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertNotNull;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
+import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
-import bio.terra.integration.UsersBase;
+import bio.terra.integration.IntegrationTestConfiguration;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessMethod.TypeEnum;
+import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
-import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.filedata.google.firestore.EncodeFixture;
+import bio.terra.service.resourcemanagement.ResourceService;
 import com.google.api.services.cloudresourcemanager.model.Binding;
 import com.google.cloud.storage.Acl;
 import java.io.IOException;
@@ -51,33 +56,30 @@ import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 /*
  * WARNING: if making any changes to these tests make sure to notify the #dsp-batch channel! Describe the change and
  * any consequences downstream to DRS clients.
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest
-@AutoConfigureMockMvc
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
-@Category(Integration.class)
-public class DrsTest extends UsersBase {
+@Tag(Integration.TAG)
+class DrsTest {
 
   private static final Logger logger = LoggerFactory.getLogger(DrsTest.class);
 
@@ -92,52 +94,66 @@ public class DrsTest extends UsersBase {
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private EncodeFixture encodeFixture;
   @Autowired private AuthService authService;
-  @Autowired private IamService iamService;
+  @Autowired private IamProviderInterface iamService;
+  @Autowired private Users users;
 
-  private String custodianToken;
+  private Users.TestUsers testUsers;
   private DatasetModel datasetModel;
   private SnapshotModel snapshotModel;
   private UUID profileId;
   private UUID datasetId;
   private Map<IamRole, String> datasetIamRoles;
   private Map<IamRole, String> snapshotIamRoles;
-  private AuthenticatedUserRequest authenticatedStewardRequest;
-  private AuthenticatedUserRequest authenticatedCustodianRequest;
 
-  @Before
+  private User steward() {
+    return testUsers.steward();
+  }
+
+  private User custodian() {
+    return testUsers.custodian();
+  }
+
+  private User reader() {
+    return testUsers.reader();
+  }
+
+  private User discoverer() {
+    return testUsers.discoverer();
+  }
+
+  @BeforeEach
   public void setup() throws Exception {
-    super.setup();
-    custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
+    testUsers = users.testUsers();
+    String custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
     String stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     EncodeFixture.SetupResult setupResult =
         encodeFixture.setupEncode(steward(), custodian(), reader(), SHOULD_ASSERT_BQ_ACCESSIBLE);
-    datasetModel = dataRepoFixtures.getDataset(steward(), setupResult.getDatasetId());
+    datasetModel = dataRepoFixtures.getDataset(steward(), setupResult.datasetId());
     snapshotModel =
-        dataRepoFixtures.getSnapshot(steward(), setupResult.getSummaryModel().getId(), null);
-    profileId = setupResult.getProfileId();
-    datasetId = setupResult.getDatasetId();
-    authenticatedStewardRequest =
+        dataRepoFixtures.getSnapshot(steward(), setupResult.summaryModel().getId(), null);
+    profileId = setupResult.profileId();
+    datasetId = setupResult.datasetId();
+    AuthenticatedUserRequest stewardUser =
         AuthenticatedUserRequest.builder()
             .setSubjectId("DRSIntegration")
             .setEmail(steward().getEmail())
             .setToken(stewardToken)
             .build();
-    authenticatedCustodianRequest =
+    AuthenticatedUserRequest custodianUser =
         AuthenticatedUserRequest.builder()
             .setSubjectId("DRSIntegration")
             .setEmail(custodian().getEmail())
             .setToken(custodianToken)
             .build();
     datasetIamRoles =
-        iamService.retrievePolicyEmails(
-            authenticatedStewardRequest, IamResourceType.DATASET, datasetId);
+        iamService.retrievePolicyEmails(stewardUser, IamResourceType.DATASET, datasetId);
     snapshotIamRoles =
         iamService.retrievePolicyEmails(
-            authenticatedCustodianRequest, IamResourceType.DATASNAPSHOT, snapshotModel.getId());
+            custodianUser, IamResourceType.DATASNAPSHOT, snapshotModel.getId());
     logger.info("setup complete");
   }
 
-  @After
+  @AfterEach
   public void teardown() throws Exception {
     try {
       dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotModel.getId());
@@ -158,7 +174,7 @@ public class DrsTest extends UsersBase {
   }
 
   @Test
-  public void drsHackyTest() throws Exception {
+  void drsHackyTest() throws Exception {
     // Get a DRS ID from the snapshot preview as a reader.
     String drsObjectId =
         dataRepoFixtures.retrieveDrsIdFromSnapshotPreview(
@@ -192,24 +208,24 @@ public class DrsTest extends UsersBase {
 
     Optional<DRSAccessMethod> drsAccessMethod =
         drsObjectFile.getAccessMethods().stream()
-            .filter(accessMethod -> accessMethod.getType().equals(TypeEnum.GS))
+            .filter(accessMethod -> accessMethod.getType() == TypeEnum.GS)
             .findFirst();
 
-    assertThat("DRS access method is present", drsAccessMethod.isPresent(), equalTo(true));
+    assertThat("DRS access method is present", drsAccessMethod.isPresent());
 
     String drsAccessId = drsAccessMethod.get().getAccessId();
-    DrsResponse<bio.terra.model.DRSAccessURL> drsAccessUrlResponse =
+    DrsResponse<DRSAccessURL> drsAccessUrlResponse =
         dataRepoFixtures.getObjectAccessUrl(custodian(), drsObjectId, drsAccessId);
 
     if (drsAccessUrlResponse.getResponseObject().isEmpty()) {
-      Assert.fail("Access URL response object is empty");
+      fail("Access URL response object is empty");
     }
 
-    bio.terra.model.DRSAccessURL drsAccessURL = drsAccessUrlResponse.getResponseObject().get();
+    DRSAccessURL drsAccessURL = drsAccessUrlResponse.getResponseObject().get();
 
     try (CloseableHttpClient client = HttpClients.createDefault()) {
       HttpUriRequest request = new HttpHead(drsAccessURL.getUrl());
-      try (CloseableHttpResponse response = client.execute(request); ) {
+      try (CloseableHttpResponse response = client.execute(request)) {
         assertThat(
             "Drs signed URL is accessible",
             response.getStatusLine().getStatusCode(),
@@ -232,8 +248,10 @@ public class DrsTest extends UsersBase {
     logger.info("DRS Object Id - dir: {}", dirObjectId);
 
     validateDrsObject(drsObjectDirectory, dirObjectId);
-    assertNotNull("Contents of directory is not null", drsObjectDirectory.getContents());
-    assertNull("Access method of directory is null", drsObjectDirectory.getAccessMethods());
+    assertThat(
+        "Contents of directory is not null", drsObjectDirectory.getContents(), notNullValue());
+    assertThat(
+        "Access method of directory is null", drsObjectDirectory.getAccessMethods(), nullValue());
 
     // When all is done, delete the snapshot and ensure that there are fewer acls
     dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotModel.getId());
@@ -266,7 +284,7 @@ public class DrsTest extends UsersBase {
   }
 
   @Test
-  public void testDrsErrorResponses() throws Exception {
+  void testDrsErrorResponses() throws Exception {
     // Get a DRS ID from the snapshot preview as a reader.
     String drsObjectId =
         dataRepoFixtures.retrieveDrsIdFromSnapshotPreview(
@@ -322,7 +340,7 @@ public class DrsTest extends UsersBase {
   }
 
   private void validateDrsObject(DRSObject drsObject, String drsObjectId) {
-    logger.info("DrsObject is:" + drsObject);
+    logger.info("DrsObject is: {}", drsObject);
     assertThat("DRS id matches", drsObject.getId(), equalTo(drsObjectId));
     assertThat(
         "Create and update dates match",
@@ -331,10 +349,10 @@ public class DrsTest extends UsersBase {
     assertThat("DRS version is right", drsObject.getVersion(), equalTo("0"));
 
     for (DRSChecksum checksum : drsObject.getChecksums()) {
-      assertTrue(
+      assertThat(
           "checksum is md5 or crc32c",
-          StringUtils.equals(checksum.getType(), "md5")
-              || StringUtils.equals(checksum.getType(), "crc32c"));
+          checksum.getType(),
+          anyOf(equalTo("md5"), equalTo("crc32c")));
     }
 
     if (drsObject.getAccessMethods() != null) {
@@ -403,7 +421,7 @@ public class DrsTest extends UsersBase {
     List<Binding> bindings = TestUtils.getPolicy(dataProject).getBindings();
     bindings.forEach(
         b -> {
-          if (Objects.equals(b.getRole(), BQ_JOB_USER_ROLE)) {
+          if (Objects.equals(b.getRole(), ResourceService.BQ_JOB_USER_ROLE)) {
             members.forEach(
                 m ->
                     assertThat(
@@ -422,7 +440,7 @@ public class DrsTest extends UsersBase {
     List<Binding> bindings = TestUtils.getPolicy(dataProject).getBindings();
     bindings.forEach(
         b -> {
-          if (Objects.equals(b.getRole(), BQ_JOB_USER_ROLE)) {
+          if (Objects.equals(b.getRole(), ResourceService.BQ_JOB_USER_ROLE)) {
             members.forEach(
                 m ->
                     assertThat(

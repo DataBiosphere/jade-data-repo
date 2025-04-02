@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.TerraConfiguration;
@@ -17,6 +18,7 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.ResourcePolicyModel;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.WorkspacePolicyModel;
+import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import java.util.List;
@@ -58,7 +60,7 @@ class RawlsServiceTest {
   }
 
   @Test
-  public void testGetWorkspaceLink() {
+  void testGetWorkspaceLink() {
     assertThat(
         "A workspace response with no workspace yields a null workspace link",
         rawlsService.getWorkspaceLink(new WorkspaceResponse(null)),
@@ -122,5 +124,13 @@ class RawlsServiceTest {
                 .addWorkspacePoliciesItem(
                     new PolicyModel().name(OWNER_NAME).addMembersItem(OWNER_EMAIL))
                 .error(new ErrorModel().message(inaccessibleWorkspaceException.getMessage()))));
+  }
+
+  @Test
+  void testAuthorizeBillingProjectLink() {
+    var billingProjectId = UUID.randomUUID();
+    rawlsService.authorizeBillingProjectLink(billingProjectId, TEST_USER);
+    verify(rawlsClient)
+        .verifyBillingProjectAction(billingProjectId, IamAction.LINK.toString(), TEST_USER);
   }
 }

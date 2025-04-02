@@ -2,9 +2,11 @@ package bio.terra.service.billing.flight;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.DefaultUndoStep;
+import bio.terra.service.profile.exception.BillingProjectNotAccessibleException;
 import bio.terra.service.rawls.RawlsService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 
 public class AuthorizeRawlsBillingProjectsUseStep extends DefaultUndoStep {
@@ -21,7 +23,11 @@ public class AuthorizeRawlsBillingProjectsUseStep extends DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) {
-    rawlsService.authorizeBillingProjectLink(profileId, user);
+    try {
+      rawlsService.authorizeBillingProjectLink(profileId, user);
+    } catch (BillingProjectNotAccessibleException ex) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
+    }
     return StepResult.getStepResultSuccess();
   }
 }

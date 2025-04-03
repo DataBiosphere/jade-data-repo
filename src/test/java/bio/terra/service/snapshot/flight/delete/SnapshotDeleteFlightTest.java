@@ -2,9 +2,11 @@ package bio.terra.service.snapshot.flight.delete;
 
 import static bio.terra.common.FlightTestUtils.mockFlightAppConfigSetup;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInRelativeOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
+import bio.terra.common.FlightTestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.flight.LockSnapshotStep;
@@ -47,5 +49,18 @@ class SnapshotDeleteFlightTest {
         "Snapshot lock step suppresses 'snapshot not found' exceptions",
         ((LockSnapshotStep) firstStep).shouldSuppressNotFoundException(),
         is(true));
+  }
+
+  @Test
+  void testSnapshotDeleteDeleteGroupAfterMetadata() {
+    var flight = new SnapshotDeleteFlight(inputParameters, context);
+
+    assertThat(
+        "Snapshot Delete right deletes the sam group before metadata delete, but after snapshot auth delete",
+        FlightTestUtils.getStepNames(flight),
+        containsInRelativeOrder(
+            "DeleteSnapshotAuthzResource",
+            "DeleteSnapshotDeleteSamGroupStep",
+            "DeleteSnapshotMetadataStep"));
   }
 }

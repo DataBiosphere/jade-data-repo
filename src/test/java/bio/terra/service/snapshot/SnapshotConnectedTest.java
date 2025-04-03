@@ -164,6 +164,9 @@ class SnapshotConnectedTest {
     // Verify that the parent id wasn't set on snapshot creation.
     verify(samService).createSnapshotResource(any(), eq(summaryModel.getId()), eq(null), any());
 
+    // Set the dataset snapshot count so that the snapshot count is accurate
+    datasetArraySummary.snapshotCount(1);
+
     SnapshotConnectedTestUtils.getTestSnapshot(
         mvc, objectMapper, summaryModel.getId(), snapshotRequest, datasetArraySummary);
 
@@ -313,6 +316,9 @@ class SnapshotConnectedTest {
     MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 
+    // Set the dataset snapshot count so that the snapshot count is accurate
+    datasetSummary.snapshotCount(1);
+
     // fetch the snapshot and confirm the metadata matches the request
     SnapshotModel snapshotModel =
         SnapshotConnectedTestUtils.getTestSnapshot(
@@ -361,6 +367,9 @@ class SnapshotConnectedTest {
     MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 
+    // Set the dataset snapshot count so that the snapshot count is accurate
+    datasetSummary.snapshotCount(1);
+
     // fetch the snapshot and confirm the metadata matches the request
     SnapshotModel snapshotModel =
         SnapshotConnectedTestUtils.getTestSnapshot(
@@ -401,6 +410,9 @@ class SnapshotConnectedTest {
             datasetSummary.getDefaultProfileId());
     MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
+
+    // Set the dataset snapshot count so that the snapshot count is accurate
+    datasetSummary.snapshotCount(1);
 
     // retrieve snapshot and store project id
     SnapshotModel snapshotModel =
@@ -458,6 +470,9 @@ class SnapshotConnectedTest {
 
     MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
+
+    // Set the dataset snapshot count so that the snapshot count is accurate
+    datasetSummary.snapshotCount(1);
 
     // fetch the snapshot and confirm the metadata matches the request
     SnapshotModel snapshotModel =

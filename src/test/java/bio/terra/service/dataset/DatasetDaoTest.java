@@ -1283,4 +1283,14 @@ class DatasetDaoTest {
     dataset = datasetDao.retrieve(datasetId);
     assertThat("Inherit steward is set", dataset.isInheritSteward());
   }
+
+  @Test
+  void testSnapshotCount() throws Exception {
+    UUID datasetId = createDataset("dataset-minimal.json");
+    Dataset dataset = datasetDao.retrieve(datasetId);
+    assertThat(
+        "Dataset should by default have snapshot count set to 0",
+        dataset.getSnapshotCount(),
+        equalTo(0));
+  }
 }

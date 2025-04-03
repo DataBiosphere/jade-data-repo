@@ -235,6 +235,11 @@ class SnapshotConnectedTest {
 
     assertThat("5 total snapshots created", snapshotList, hasSize(5));
 
+    // Check that the dataset summary was updated with the new snapshot count
+    var updatedSummary = datasetDao.retrieveSummaryById(datasetSummary.getId());
+    int snapshotCount = updatedSummary.getSnapshotCount();
+    assertThat("dataset snapshot count incremented", snapshotCount, equalTo(5));
+
     // Reverse the order of the array since the order we return the snapshots in by default is
     // descending order of creation
     Collections.reverse(snapshotList);

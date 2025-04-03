@@ -141,6 +141,7 @@ class SnapshotServiceTest {
   private static final String SNAPSHOT_NAME = "snapshotName";
   private static final String SNAPSHOT_DESCRIPTION = "snapshotDescription";
   private static final String DATASET_NAME = "datasetName";
+  private static final int DATASET_SNAPSHOT_COUNT = 0;
   private static final String SNAPSHOT_DATA_PROJECT = "tdrdataproject";
   private static final String SNAPSHOT_TABLE_NAME = "tableA";
   private static final String SNAPSHOT_COLUMN_NAME = "columnA";
@@ -213,7 +214,8 @@ class SnapshotServiceTest {
                                                     GoogleRegion.DEFAULT_GOOGLE_REGION.toString())
                                                 .cloudResource(
                                                     GoogleCloudResource.BUCKET.toString())
-                                                .cloudPlatform(CloudPlatform.GCP))))))
+                                                .cloudPlatform(CloudPlatform.GCP)))
+                                    .snapshotCount(DATASET_SNAPSHOT_COUNT))))
                 .tables(
                     List.of(
                         new TableModel()

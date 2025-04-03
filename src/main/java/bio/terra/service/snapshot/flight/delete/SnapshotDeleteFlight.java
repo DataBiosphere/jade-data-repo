@@ -108,6 +108,15 @@ public class SnapshotDeleteFlight extends Flight {
                 userReq,
                 tdrServiceAccountEmail)));
 
+    // Delete access control first so Readers and Discoverers can no longer see snapshot
+    // Google auto-magically removes the ACLs from BQ objects when SAM
+    // deletes the snapshot group, so no ACL cleanup is needed beyond that.
+    addStep(new DeleteSnapshotAuthzResource(iamClient, snapshotId, userReq));
+
+    // Now that we no longer have the resources in SAM, we can delete the underlying Sam group
+    // that was created for snapshots byRequestId
+    addStep(new DeleteSnapshotDeleteSamGroupStep(iamClient, snapshotRequestDao, snapshotId));
+
     // Primary Data Deletion
     // Note: Must delete primary data before metadata; it relies on being able to retrieve the
     // snapshot object from the metadata to know what to delete.
@@ -162,15 +171,12 @@ public class SnapshotDeleteFlight extends Flight {
 
     addStep(new PerformDatasetStep(new UnlockDatasetStep(datasetService, false)));
 
+    // Delete access control first so Readers and Discoverers can no longer see snapshot
     // Google auto-magically removes the ACLs from BQ objects when SAM
     // deletes the snapshot group, so no ACL cleanup is needed beyond that.
     // Perform this last so that SAM Resource still exists
     // if need to re-run flight due to partial failure
     addStep(new DeleteSnapshotAuthzResource(iamClient, snapshotId, userReq));
-
-    // Now that we no longer have the resources in SAM, we can delete the underlying Sam group
-    // that was created for snapshots byRequestId
-    addStep(new DeleteSnapshotDeleteSamGroupStep(iamClient, snapshotRequestDao, snapshotId));
 
     addStep(
         new JournalRecordDeleteEntryStep(

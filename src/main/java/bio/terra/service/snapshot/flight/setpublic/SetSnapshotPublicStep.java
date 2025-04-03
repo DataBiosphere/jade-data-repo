@@ -1,6 +1,5 @@
 package bio.terra.service.snapshot.flight.setpublic;
 
-import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
@@ -35,12 +34,6 @@ public class SetSnapshotPublicStep implements Step {
           IamRole.READER.name(),
           publicVal);
       return StepResult.getStepResultSuccess();
-    } catch (ForbiddenException e) {
-      return new StepResult(
-          StepStatus.STEP_RESULT_FAILURE_FATAL,
-          new ForbiddenException(
-              "User is not authorized to set this resource as public, contact Terra support for assistance.",
-              e));
     } catch (Exception e) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
     }

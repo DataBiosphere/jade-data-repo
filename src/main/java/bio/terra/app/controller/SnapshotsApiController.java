@@ -394,7 +394,7 @@ public class SnapshotsApiController implements SnapshotsApi {
     if (isPublic == setPublic) {
       return ResponseEntity.noContent().build();
     }
-    String jobId = snapshotService.setSnapshotPublic(id, setPublic, getAuthenticatedInfo());
+    String jobId = snapshotService.setSnapshotPublic(id, setPublic, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 

@@ -111,7 +111,8 @@ public final class DatasetJsonConversion {
             .predictableFileIds(dataset.hasPredictableFileIds())
             .tags(dataset.getTags())
             .resourceLocks(dataset.getResourceLocks())
-            .inheritSteward(dataset.isInheritSteward());
+            .inheritSteward(dataset.isInheritSteward())
+            .snapshotCount(dataset.getSnapshotCount());
 
     if (include.contains(DatasetRequestAccessIncludeModel.NONE)) {
       return datasetModel;

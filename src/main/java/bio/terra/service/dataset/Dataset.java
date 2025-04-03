@@ -390,6 +390,10 @@ public class Dataset implements FSContainerInterface, LogPrintable {
     return datasetSummary.isInheritSteward();
   }
 
+  public int getSnapshotCount() {
+    return datasetSummary.getSnapshotCount();
+  }
+
   @Override
   public String toLogString() {
     return String.format("%s (%s)", this.getName(), this.getId());

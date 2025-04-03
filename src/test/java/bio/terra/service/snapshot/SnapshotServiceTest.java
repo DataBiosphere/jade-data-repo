@@ -32,6 +32,7 @@ import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.category.Unit;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.fixtures.DuosFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -1362,6 +1363,27 @@ class SnapshotServiceTest {
     assertThat(
         flightMapCaptor.getValue().get(JobMapKeys.SNAPSHOT_ID.getKeyName(), String.class),
         equalTo(snapshotId.toString()));
+  }
+
+  @Test
+  void testPatchSnapshotAuthDomainThrows() {
+    when(service.retrieve(snapshotId))
+        .thenReturn(
+            new Snapshot()
+                .id(snapshotId)
+                .snapshotSources(
+                    List.of(
+                        new SnapshotSource()
+                            .dataset(new Dataset(new DatasetSummary().inheritSteward(true))))));
+    Exception ex =
+        assertThrows(
+            BadRequestException.class,
+            () ->
+                service.addSnapshotDataAccessControls(TEST_USER, snapshotId, List.of("testGroup")));
+    assertThat(
+        ex.getMessage(),
+        equalTo(
+            "Cannot add an auth domain to snapshot whose parent dataset has inherit steward enabled."));
   }
 
   @Test

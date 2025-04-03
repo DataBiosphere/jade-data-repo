@@ -52,6 +52,7 @@ class DatasetJsonConversionTest {
   private static final UUID DATASET_COLUMN_ID = UUID.randomUUID();
   private static final String DATASET_ASSET_NAME = "asset1";
   private static final UUID DATASET_ASSET_ID = UUID.randomUUID();
+  private static final int DATASET_SNAPSHOT_COUNT = 0;
 
   private DatasetJsonConversion datasetJsonConversion;
 
@@ -152,7 +153,8 @@ class DatasetJsonConversionTest {
                                 .rootTable(DATASET_TABLE_NAME)
                                 .rootColumn(DATASET_COLUMN_NAME)
                                 .follow(Collections.emptyList()))))
-            .dataProject(DATASET_DATA_PROJECT);
+            .dataProject(DATASET_DATA_PROJECT)
+            .snapshotCount(DATASET_SNAPSHOT_COUNT);
   }
 
   @Test

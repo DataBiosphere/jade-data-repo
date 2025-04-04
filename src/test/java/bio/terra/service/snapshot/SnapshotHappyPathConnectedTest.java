@@ -13,6 +13,7 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.DatasetDao;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
@@ -39,6 +40,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @EmbeddedDatabaseTest
 public class SnapshotHappyPathConnectedTest {
 
+  @Autowired private DatasetDao datasetDao;
   @Autowired ConfigurationService configService;
   @Autowired private MockMvc mvc;
   @Autowired private ObjectMapper objectMapper;
@@ -115,6 +117,9 @@ public class SnapshotHappyPathConnectedTest {
     SnapshotSummaryModel summaryModel =
         SnapshotConnectedTestUtils.validateSnapshotCreated(
             connectedOperations, snapshotRequest, response);
+
+    // Set the dataset snapshot count so that the snapshot count is accurate
+    datasetSummary = datasetDao.retrieveSummaryById(datasetSummary.getId()).toModel();
 
     SnapshotModel snapshotModel =
         SnapshotConnectedTestUtils.getTestSnapshot(

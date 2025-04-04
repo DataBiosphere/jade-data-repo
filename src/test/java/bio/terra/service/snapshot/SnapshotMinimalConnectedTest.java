@@ -108,6 +108,8 @@ public class SnapshotMinimalConnectedTest {
     SnapshotSummaryModel summaryModel =
         SnapshotConnectedTestUtils.validateSnapshotCreated(
             connectedOperations, snapshotRequest, response);
+    // Set the dataset snapshot count so that the snapshot count is accurate
+    datasetMinimalSummary = datasetDao.retrieveSummaryById(datasetMinimalSummary.getId()).toModel();
     SnapshotModel snapshotModel =
         SnapshotConnectedTestUtils.getTestSnapshot(
             mvc, objectMapper, summaryModel.getId(), snapshotRequest, datasetMinimalSummary);

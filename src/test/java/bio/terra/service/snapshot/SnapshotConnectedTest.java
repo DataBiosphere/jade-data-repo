@@ -165,7 +165,7 @@ class SnapshotConnectedTest {
     verify(samService).createSnapshotResource(any(), eq(summaryModel.getId()), eq(null), any());
 
     // Set the dataset snapshot count so that the snapshot count is accurate
-    datasetArraySummary.snapshotCount(1);
+    datasetArraySummary = datasetDao.retrieveSummaryById(datasetArraySummary.getId()).toModel();
 
     SnapshotConnectedTestUtils.getTestSnapshot(
         mvc, objectMapper, summaryModel.getId(), snapshotRequest, datasetArraySummary);
@@ -317,7 +317,7 @@ class SnapshotConnectedTest {
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 
     // Set the dataset snapshot count so that the snapshot count is accurate
-    datasetSummary.snapshotCount(1);
+    datasetSummary = datasetDao.retrieveSummaryById(datasetSummary.getId()).toModel();
 
     // fetch the snapshot and confirm the metadata matches the request
     SnapshotModel snapshotModel =
@@ -368,7 +368,7 @@ class SnapshotConnectedTest {
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 
     // Set the dataset snapshot count so that the snapshot count is accurate
-    datasetSummary.snapshotCount(1);
+    datasetSummary = datasetDao.retrieveSummaryById(datasetSummary.getId()).toModel();
 
     // fetch the snapshot and confirm the metadata matches the request
     SnapshotModel snapshotModel =
@@ -412,7 +412,7 @@ class SnapshotConnectedTest {
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 
     // Set the dataset snapshot count so that the snapshot count is accurate
-    datasetSummary.snapshotCount(1);
+    datasetSummary = datasetDao.retrieveSummaryById(datasetSummary.getId()).toModel();
 
     // retrieve snapshot and store project id
     SnapshotModel snapshotModel =
@@ -472,7 +472,7 @@ class SnapshotConnectedTest {
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 
     // Set the dataset snapshot count so that the snapshot count is accurate
-    datasetSummary.snapshotCount(1);
+    datasetSummary = datasetDao.retrieveSummaryById(datasetSummary.getId()).toModel();
 
     // fetch the snapshot and confirm the metadata matches the request
     SnapshotModel snapshotModel =

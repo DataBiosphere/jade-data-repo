@@ -1166,19 +1166,45 @@ class SnapshotServiceTest {
   }
 
   @Test
-  void testCreateSnapshotInheritSteward() {
+  void testCreateSnapshotInheritStewardAndAuthDomain() {
     Exception ex =
         assertThrows(
             BadRequestException.class,
             () ->
                 service.createSnapshot(
-                    new SnapshotRequestModel(),
+                    new SnapshotRequestModel().addDataAccessControlGroupsItem("authdomain"),
                     new Dataset(new DatasetSummary().inheritSteward(true)),
                     TEST_USER));
     assertThat(
         ex.getMessage(),
         equalTo(
-            "Cannot add an auth domain to snapshot whose parent dataset has inherit steward enabled."));
+            "Cannot create a snapshot with an auth domain whose parent dataset has inherit steward enabled."));
+  }
+
+  @Test
+  void testCreateSnapshotWithAuthDomainAndInheritStewardDisabled() {
+    // mock request
+    String sourceDatasetName = "TestSourceDataset";
+    Dataset sourceDataset = new Dataset().name(sourceDatasetName);
+    when(datasetService.retrieveByName(sourceDatasetName)).thenReturn(sourceDataset);
+    SnapshotRequestModel request =
+        new SnapshotRequestModel()
+            .name("TestSnapshot")
+            .profileId(UUID.randomUUID())
+            .addDataAccessControlGroupsItem("AuthDomain1")
+            .contents(List.of(new SnapshotRequestContentsModel().datasetName(sourceDatasetName)));
+
+    JobBuilder jobBuilder = mock(JobBuilder.class);
+    when(jobService.newJob(anyString(), eq(SnapshotCreateFlight.class), eq(request), eq(TEST_USER)))
+        .thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(any(), any())).thenReturn(jobBuilder);
+    String jobId = String.valueOf(UUID.randomUUID());
+    when(jobBuilder.submit()).thenReturn(jobId);
+
+    String result =
+        service.createSnapshot(
+            request, service.getSourceDatasetFromSnapshotRequest(request), TEST_USER);
+    assertThat("Job is submitted and id returned", result, equalTo(jobId));
   }
 
   @Test

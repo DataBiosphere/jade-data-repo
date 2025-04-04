@@ -881,7 +881,7 @@ class SamIamTest {
           .setPolicyPublicV2(
               IamResourceType.DATASNAPSHOT.getSamResourceName(),
               resourceId.toString(),
-              IamRole.READER.name(),
+              IamRole.READER.name().toLowerCase(),
               true);
     }
 
@@ -896,7 +896,7 @@ class SamIamTest {
           .setPolicyPublicV2(
               IamResourceType.DATASNAPSHOT.getSamResourceName(),
               resourceId.toString(),
-              IamRole.READER.name(),
+              IamRole.READER.name().toLowerCase(),
               true);
       assertThrows(
           IamNotFoundException.class,

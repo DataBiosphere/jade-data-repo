@@ -1019,7 +1019,10 @@ public class SamIam implements IamProviderInterface {
       throws ApiException {
     ResourcesApi samResourceApi = samApiService.resourcesApi(accessToken);
     samResourceApi.setPolicyPublicV2(
-        resourceType.getSamResourceName(), resourceId.toString(), policyName, setPublic);
+        resourceType.getSamResourceName(),
+        resourceId.toString(),
+        policyName.toLowerCase(),
+        setPublic);
   }
 
   /**

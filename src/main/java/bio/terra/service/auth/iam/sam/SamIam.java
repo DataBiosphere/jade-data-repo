@@ -1018,6 +1018,7 @@ public class SamIam implements IamProviderInterface {
       boolean setPublic)
       throws ApiException {
     ResourcesApi samResourceApi = samApiService.resourcesApi(accessToken);
+    // for this endpoint, Sam requires the policy name to be lower case
     samResourceApi.setPolicyPublicV2(
         resourceType.getSamResourceName(),
         resourceId.toString(),

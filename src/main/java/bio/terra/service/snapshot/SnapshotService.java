@@ -214,6 +214,10 @@ public class SnapshotService {
       SnapshotRequestModel snapshotRequestModel,
       Dataset dataset,
       AuthenticatedUserRequest userReq) {
+    if (dataset.isInheritSteward()) {
+      throw new BadRequestException(
+          "Cannot add an auth domain to snapshot whose parent dataset has inherit steward enabled.");
+    }
     snapshotRequestModel.setName(getSnapshotName(snapshotRequestModel));
     if (snapshotRequestModel.getProfileId() == null) {
       snapshotRequestModel.setProfileId(dataset.getDefaultProfileId());
@@ -789,6 +793,7 @@ public class SnapshotService {
       throw new BadRequestException(
           "Cannot add an auth domain to snapshot whose parent dataset has inherit steward enabled.");
     }
+
     String userGroupsString = StringUtils.join(userGroups, ", ");
     String description =
         "Add data access control groups " + userGroupsString + " to snapshot " + snapshotId;

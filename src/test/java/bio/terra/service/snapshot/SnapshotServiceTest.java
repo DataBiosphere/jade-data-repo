@@ -1166,6 +1166,22 @@ class SnapshotServiceTest {
   }
 
   @Test
+  void testCreateSnapshotInheritSteward() {
+    Exception ex =
+        assertThrows(
+            BadRequestException.class,
+            () ->
+                service.createSnapshot(
+                    new SnapshotRequestModel(),
+                    new Dataset(new DatasetSummary().inheritSteward(true)),
+                    TEST_USER));
+    assertThat(
+        ex.getMessage(),
+        equalTo(
+            "Cannot add an auth domain to snapshot whose parent dataset has inherit steward enabled."));
+  }
+
+  @Test
   void testUpdateSnapshotDuosDataset() {
     mockSnapshotWithDuosDataset();
 

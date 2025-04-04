@@ -1356,6 +1356,7 @@ class SnapshotServiceTest {
     when(jobService.submitAndWait(
             eq(flightClass), flightMapCaptor.capture(), eq(AddAuthDomainResponseModel.class)))
         .thenReturn(jobResponse);
+    mockRetrieveSnapshotSourceWithInheritSteward(false);
 
     AddAuthDomainResponseModel result =
         service.addSnapshotDataAccessControls(TEST_USER, snapshotId, userGroups);
@@ -1367,14 +1368,7 @@ class SnapshotServiceTest {
 
   @Test
   void testPatchSnapshotAuthDomainThrows() {
-    when(service.retrieve(snapshotId))
-        .thenReturn(
-            new Snapshot()
-                .id(snapshotId)
-                .snapshotSources(
-                    List.of(
-                        new SnapshotSource()
-                            .dataset(new Dataset(new DatasetSummary().inheritSteward(true))))));
+    mockRetrieveSnapshotSourceWithInheritSteward(true);
     Exception ex =
         assertThrows(
             BadRequestException.class,
@@ -1384,6 +1378,19 @@ class SnapshotServiceTest {
         ex.getMessage(),
         equalTo(
             "Cannot add an auth domain to snapshot whose parent dataset has inherit steward enabled."));
+  }
+
+  private void mockRetrieveSnapshotSourceWithInheritSteward(boolean inheritSteward) {
+    when(service.retrieve(snapshotId))
+        .thenReturn(
+            new Snapshot()
+                .id(snapshotId)
+                .snapshotSources(
+                    List.of(
+                        new SnapshotSource()
+                            .dataset(
+                                new Dataset(
+                                    new DatasetSummary().inheritSteward(inheritSteward))))));
   }
 
   @Test

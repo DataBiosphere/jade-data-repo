@@ -1167,6 +1167,8 @@ class SnapshotServiceTest {
 
   @Test
   void testCreateSnapshotInheritStewardAndAuthDomain() {
+    // Expect an exception when trying to create a snapshot with an auth domain and inherit steward
+    // enabled
     Exception ex =
         assertThrows(
             BadRequestException.class,
@@ -1183,10 +1185,13 @@ class SnapshotServiceTest {
 
   @Test
   void testCreateSnapshotWithAuthDomainAndInheritStewardDisabled() {
-    // mock request
+    // build request with parameters to test auth domain/inherit steward
     String sourceDatasetName = "TestSourceDataset";
-    Dataset sourceDataset = new Dataset().name(sourceDatasetName);
+    // inherit steward = false
+    Dataset sourceDataset =
+        new Dataset(new DatasetSummary().inheritSteward(false)).name(sourceDatasetName);
     when(datasetService.retrieveByName(sourceDatasetName)).thenReturn(sourceDataset);
+    // auth domain is included in snapshot request
     SnapshotRequestModel request =
         new SnapshotRequestModel()
             .name("TestSnapshot")
@@ -1194,6 +1199,28 @@ class SnapshotServiceTest {
             .addDataAccessControlGroupsItem("AuthDomain1")
             .contents(List.of(new SnapshotRequestContentsModel().datasetName(sourceDatasetName)));
 
+    mockCreateSnapshot(request);
+  }
+
+  @Test
+  void testCreateSnapshotInheritStewardEnabled() {
+    // build request with parameters to test auth domain/inherit steward
+    String sourceDatasetName = "TestSourceDataset";
+    // inherit steward = true
+    Dataset sourceDataset =
+        new Dataset(new DatasetSummary().inheritSteward(true)).name(sourceDatasetName);
+    when(datasetService.retrieveByName(sourceDatasetName)).thenReturn(sourceDataset);
+    // no auth domain included
+    SnapshotRequestModel request =
+        new SnapshotRequestModel()
+            .name("TestSnapshot")
+            .profileId(UUID.randomUUID())
+            .contents(List.of(new SnapshotRequestContentsModel().datasetName(sourceDatasetName)));
+
+    mockCreateSnapshot(request);
+  }
+
+  private void mockCreateSnapshot(SnapshotRequestModel request) {
     JobBuilder jobBuilder = mock(JobBuilder.class);
     when(jobService.newJob(anyString(), eq(SnapshotCreateFlight.class), eq(request), eq(TEST_USER)))
         .thenReturn(jobBuilder);

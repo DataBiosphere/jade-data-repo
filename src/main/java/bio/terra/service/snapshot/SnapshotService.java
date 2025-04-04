@@ -215,6 +215,7 @@ public class SnapshotService {
       Dataset dataset,
       AuthenticatedUserRequest userReq) {
     if (dataset.isInheritSteward()
+        && snapshotRequestModel.getDataAccessControlGroups() != null
         && !snapshotRequestModel.getDataAccessControlGroups().isEmpty()) {
       throw new BadRequestException(
           "Cannot create a snapshot with an auth domain whose parent dataset has inherit steward enabled.");

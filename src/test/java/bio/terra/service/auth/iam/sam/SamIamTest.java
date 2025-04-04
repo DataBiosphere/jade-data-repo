@@ -889,6 +889,7 @@ class SamIamTest {
     void setPolicyPublicV2Throws() throws Exception {
       UUID resourceId = UUID.randomUUID();
       String accessToken = TEST_USER.getToken();
+      String reader = IamRole.READER.name();
       ApiException samEx =
           new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Resource not found");
       doThrow(samEx)
@@ -896,17 +897,13 @@ class SamIamTest {
           .setPolicyPublicV2(
               IamResourceType.DATASNAPSHOT.getSamResourceName(),
               resourceId.toString(),
-              IamRole.READER.name().toLowerCase(),
+              reader.toLowerCase(),
               true);
       assertThrows(
           IamNotFoundException.class,
           () ->
               samIam.setPolicyPublicV2(
-                  accessToken,
-                  IamResourceType.DATASNAPSHOT,
-                  resourceId,
-                  IamRole.READER.name(),
-                  true));
+                  accessToken, IamResourceType.DATASNAPSHOT, resourceId, reader, true));
     }
 
     @Test
@@ -930,19 +927,18 @@ class SamIamTest {
     void getPublicPolicyV2Throws() throws Exception {
       UUID resourceId = UUID.randomUUID();
       String accessToken = TEST_USER.getToken();
+      String reader = IamRole.READER.name();
       ApiException samEx =
           new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Resource not found");
       doThrow(samEx)
           .when(samResourceApi)
           .getPolicyPublicV2(
-              IamResourceType.DATASNAPSHOT.getSamResourceName(),
-              resourceId.toString(),
-              IamRole.READER.name());
+              IamResourceType.DATASNAPSHOT.getSamResourceName(), resourceId.toString(), reader);
       assertThrows(
           IamNotFoundException.class,
           () ->
               samIam.getPolicyPublicV2(
-                  accessToken, IamResourceType.DATASNAPSHOT, resourceId, IamRole.READER.name()));
+                  accessToken, IamResourceType.DATASNAPSHOT, resourceId, reader));
     }
   }
 

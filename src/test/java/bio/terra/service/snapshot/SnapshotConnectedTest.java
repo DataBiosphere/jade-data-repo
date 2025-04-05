@@ -164,7 +164,7 @@ class SnapshotConnectedTest {
     // Verify that the parent id wasn't set on snapshot creation.
     verify(samService).createSnapshotResource(any(), eq(summaryModel.getId()), eq(null), any());
 
-    // Set the dataset snapshot count so that the snapshot count is accurate
+    // Get the dataset summary again for the updated snapshot count
     datasetArraySummary = datasetDao.retrieveSummaryById(datasetArraySummary.getId()).toModel();
 
     SnapshotConnectedTestUtils.getTestSnapshot(
@@ -316,7 +316,7 @@ class SnapshotConnectedTest {
     MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 
-    // Set the dataset snapshot count so that the snapshot count is accurate
+    // Get the dataset summary again for the updated snapshot count
     datasetSummary = datasetDao.retrieveSummaryById(datasetSummary.getId()).toModel();
 
     // fetch the snapshot and confirm the metadata matches the request
@@ -367,7 +367,7 @@ class SnapshotConnectedTest {
     MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 
-    // Set the dataset snapshot count so that the snapshot count is accurate
+    // Get the dataset summary again for the updated snapshot count
     datasetSummary = datasetDao.retrieveSummaryById(datasetSummary.getId()).toModel();
 
     // fetch the snapshot and confirm the metadata matches the request
@@ -411,7 +411,7 @@ class SnapshotConnectedTest {
     MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 
-    // Set the dataset snapshot count so that the snapshot count is accurate
+    // Get the dataset summary again for the updated snapshot count
     datasetSummary = datasetDao.retrieveSummaryById(datasetSummary.getId()).toModel();
 
     // retrieve snapshot and store project id
@@ -471,7 +471,7 @@ class SnapshotConnectedTest {
     MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 
-    // Set the dataset snapshot count so that the snapshot count is accurate
+    // Get the dataset summary again for the updated snapshot count
     datasetSummary = datasetDao.retrieveSummaryById(datasetSummary.getId()).toModel();
 
     // fetch the snapshot and confirm the metadata matches the request

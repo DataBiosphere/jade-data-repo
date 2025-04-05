@@ -109,7 +109,7 @@ public class SnapshotScaleConnectedTest {
         SnapshotConnectedTestUtils.validateSnapshotCreated(
             connectedOperations, snapshotRequestScale, response);
 
-    // Set the dataset snapshot count so that the snapshot count is accurate
+    // Get the dataset summary again for the updated snapshot count
     datasetSummary = datasetDao.retrieveSummaryById(datasetSummary.getId()).toModel();
 
     SnapshotModel snapshotModel =

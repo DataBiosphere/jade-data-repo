@@ -118,7 +118,7 @@ public class SnapshotHappyPathConnectedTest {
         SnapshotConnectedTestUtils.validateSnapshotCreated(
             connectedOperations, snapshotRequest, response);
 
-    // Set the dataset snapshot count so that the snapshot count is accurate
+    // Get the dataset summary again for the updated snapshot count
     datasetSummary = datasetDao.retrieveSummaryById(datasetSummary.getId()).toModel();
 
     SnapshotModel snapshotModel =

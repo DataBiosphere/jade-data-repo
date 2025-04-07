@@ -2,7 +2,6 @@ package bio.terra.service.dataset.flight.create;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInRelativeOrder;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
@@ -31,7 +30,6 @@ class DatasetCreateFlightTest {
   void beforeEach() {
     when(context.getBean(ApplicationConfiguration.class))
         .thenReturn(new ApplicationConfiguration());
-    when(context.getBean(ApplicationConfiguration.class)).thenReturn(appConfig);
 
     inputParameters = new FlightMap();
   }

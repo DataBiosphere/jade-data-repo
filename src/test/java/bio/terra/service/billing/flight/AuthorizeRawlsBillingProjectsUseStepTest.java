@@ -54,6 +54,7 @@ class AuthorizeRawlsBillingProjectsUseStepTest {
         "Fatal step result", StepStatus.STEP_RESULT_FAILURE_FATAL, equalTo(result.getStepStatus()));
     assertThat(
         "Correct exception returned",
-        result.getException().get() instanceof BillingProjectNotAccessibleException);
+        result.getException().orElseThrow(),
+        instanceOf(BillingProjectNotAccessibleException.class));
   }
 }

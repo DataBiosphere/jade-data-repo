@@ -978,6 +978,54 @@ public class SamIam implements IamProviderInterface {
         parentIamResourceType.toString(), parentId.toString());
   }
 
+  @Override
+  public boolean getPolicyPublicV2(
+      String accessToken, IamResourceType iamResourceType, UUID resourceId, String policyName)
+      throws InterruptedException {
+    return SamRetry.retry(
+        configurationService,
+        () -> getPolicyPublicV2Inner(accessToken, iamResourceType, resourceId, policyName));
+  }
+
+  private boolean getPolicyPublicV2Inner(
+      String accessToken, IamResourceType resourceType, UUID resourceId, String policyName)
+      throws ApiException {
+    ResourcesApi samResourceApi = samApiService.resourcesApi(accessToken);
+    return samResourceApi.getPolicyPublicV2(
+        resourceType.getSamResourceName(), resourceId.toString(), policyName);
+  }
+
+  @Override
+  public void setPolicyPublicV2(
+      String accessToken,
+      IamResourceType iamResourceType,
+      UUID resourceId,
+      String policyName,
+      boolean setPublic)
+      throws InterruptedException {
+    SamRetry.retry(
+        configurationService,
+        () ->
+            setPolicyPublicV2Inner(
+                accessToken, iamResourceType, resourceId, policyName, setPublic));
+  }
+
+  private void setPolicyPublicV2Inner(
+      String accessToken,
+      IamResourceType resourceType,
+      UUID resourceId,
+      String policyName,
+      boolean setPublic)
+      throws ApiException {
+    ResourcesApi samResourceApi = samApiService.resourcesApi(accessToken);
+    // for this endpoint, Sam requires the policy name to be lower case
+    samResourceApi.setPolicyPublicV2(
+        resourceType.getSamResourceName(),
+        resourceId.toString(),
+        policyName.toLowerCase(),
+        setPublic);
+  }
+
   /**
    * Syncing a policy with SAM results in a Google group being created that is tied to that policy.
    * The response is an object with one key that is the policy group email and a value that is a

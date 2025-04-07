@@ -1544,6 +1544,60 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshots/{id}/public:
+    put:
+      tags:
+          - snapshots
+          - repository
+      description: >
+        Sets the reader policy on the snapshot public for the specified snapshot if request body
+        is true. Makes the reader policy on the snapshot private if the request body is false.
+      operationId: setSnapshotPublic
+      requestBody:
+        description: A boolean value indicating whether the reader policy on the snapshot is
+          being set public.
+        content:
+          application/json:
+            schema:
+              type: boolean
+        required: true
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        202:
+          description: Job status of snapshot set public job & url for polling in the response
+            header
+          headers:
+            location:
+              description: url for the job polling
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        204:
+          description: >
+            Nothing was changed. The public value was already set to the requested value.
+          content: { }
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - snapshot id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - snapshot was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/snapshots/{id}/linkDuosDataset/{duosId}:
     put:
       tags:

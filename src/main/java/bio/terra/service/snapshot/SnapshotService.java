@@ -94,6 +94,7 @@ import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
 import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.snapshot.flight.lock.SnapshotLockFlight;
+import bio.terra.service.snapshot.flight.setpublic.SnapshotSetPublicFlight;
 import bio.terra.service.snapshot.flight.unlock.SnapshotUnlockFlight;
 import bio.terra.service.snapshotbuilder.SnapshotAccessRequestModel;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
@@ -975,6 +976,17 @@ public class SnapshotService {
         throw new ForbiddenException("Error accessing snapshot: see errorDetails", causes);
       }
     }
+  }
+
+  public String setSnapshotPublic(UUID id, boolean setPublic, AuthenticatedUserRequest userReq) {
+    String description =
+        String.format(
+            "Set reader policy for snapshot %s to %s", id, setPublic ? "public" : "private");
+    return jobService
+        .newJob(description, SnapshotSetPublicFlight.class, null, userReq)
+        .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.SET_PUBLIC.getKeyName(), setPublic)
+        .submit();
   }
 
   public SnapshotPreviewModel retrievePreview(

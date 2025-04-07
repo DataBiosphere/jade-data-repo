@@ -620,4 +620,22 @@ public class IamService {
     return callProvider(
         () -> iamProvider.listResourceChildren(accessToken, parentIamResourceType, parentId));
   }
+
+  public boolean getPolicyPublicV2(
+      String token, IamResourceType iamResourceType, UUID resourceId, String policyName) {
+    return callProvider(
+        () -> iamProvider.getPolicyPublicV2(token, iamResourceType, resourceId, policyName));
+  }
+
+  public void setPolicyPublicV2(
+      String token,
+      IamResourceType iamResourceType,
+      UUID resourceId,
+      String policyName,
+      boolean setPublic) {
+    callProvider(
+        () ->
+            iamProvider.setPolicyPublicV2(
+                token, iamResourceType, resourceId, policyName, setPublic));
+  }
 }

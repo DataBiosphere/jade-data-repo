@@ -26,7 +26,8 @@ public enum JobMapKeys {
   BUCKET_NAME("bucketName"),
   CUSTODIAN_EMAIL("custodianEmail"),
   CUSTODIAN_USERS("custodianUsers"),
-  INHERIT_STEWARD("inheritSteward");
+  INHERIT_STEWARD("inheritSteward"),
+  SET_PUBLIC("setPublic");
 
   private final String keyName;
 

@@ -386,6 +386,19 @@ public class SnapshotsApiController implements SnapshotsApi {
   }
 
   @Override
+  public ResponseEntity<JobModel> setSnapshotPublic(UUID id, Boolean setPublic) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    boolean isPublic =
+        iamService.getPolicyPublicV2(
+            userReq.getToken(), IamResourceType.DATASNAPSHOT, id, IamRole.READER.name());
+    if (isPublic == setPublic) {
+      return ResponseEntity.noContent().build();
+    }
+    String jobId = snapshotService.setSnapshotPublic(id, setPublic, userReq);
+    return jobToResponse(jobService.retrieveJob(jobId, userReq));
+  }
+
+  @Override
   public ResponseEntity<SnapshotLinkDuosDatasetResponse> linkDuosDatasetToSnapshot(
       UUID id, String duosId) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();

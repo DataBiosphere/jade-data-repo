@@ -42,7 +42,7 @@ class AuthorizeRawlsBillingProjectsUseStepTest {
   void doStep() {
     StepResult result = step.doStep(context);
     verify(rawlsService).authorizeBillingProjectLink(PROFILE_ID, TEST_USER);
-    assertThat("Successful step result", StepResult.getStepResultSuccess(), equalTo(result));
+    assertThat("Successful step result", result, equalTo(StepResult.getStepResultSuccess()));
   }
 
   @Test
@@ -52,7 +52,7 @@ class AuthorizeRawlsBillingProjectsUseStepTest {
         .authorizeBillingProjectLink(PROFILE_ID, TEST_USER);
     StepResult result = step.doStep(context);
     assertThat(
-        "Fatal step result", StepStatus.STEP_RESULT_FAILURE_FATAL, equalTo(result.getStepStatus()));
+        "Fatal step result", result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_FAILURE_FATAL));
     assertThat(
         "Correct exception returned",
         result.getException().orElseThrow(),

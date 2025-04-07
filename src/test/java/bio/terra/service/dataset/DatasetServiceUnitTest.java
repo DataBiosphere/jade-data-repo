@@ -30,6 +30,7 @@ import bio.terra.model.ColumnStatisticsTextModel;
 import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetPatchRequestModel;
+import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
@@ -40,6 +41,7 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
+import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
 import bio.terra.service.dataset.flight.inheritsteward.SetInheritStewardFlight;
 import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
@@ -52,6 +54,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.profile.ProfileService;
+import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.tabulardata.azure.StorageTableService;
@@ -466,5 +469,38 @@ class DatasetServiceUnitTest {
     assertThat("Job is submitted and ResourceLocks returned", actual, equalTo(expected));
     // Dataset ID is supplied as an input parameter
     verify(jobBuilder).addParameter(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void createDataset(boolean isTDRBillingProfile) {
+    var defaultBillingProfile = UUID.randomUUID();
+    var datasetName = "datasetName";
+    DatasetRequestModel datasetRequestModel =
+        new DatasetRequestModel().name(datasetName).defaultProfileId(defaultBillingProfile);
+    JobBuilder jobBuilder =
+        new JobBuilder("", DatasetCreateFlight.class, datasetRequestModel, TEST_USER, jobService);
+    when(jobService.newJob(
+            String.format("Create dataset %s", datasetName),
+            DatasetCreateFlight.class,
+            datasetRequestModel,
+            TEST_USER))
+        .thenReturn(jobBuilder);
+
+    if (!isTDRBillingProfile) {
+      when(profileService.getProfileByIdNoCheck(defaultBillingProfile))
+          .thenThrow(new ProfileNotFoundException("Profile not found"));
+    }
+
+    ArgumentCaptor<FlightMap> captor = ArgumentCaptor.forClass(FlightMap.class);
+    when(jobService.submit(eq(DatasetCreateFlight.class), captor.capture())).thenReturn("JobId");
+
+    datasetService.createDataset(datasetRequestModel, TEST_USER);
+    verify(profileService).getProfileByIdNoCheck(defaultBillingProfile);
+
+    FlightMap flightMap = captor.getValue();
+    assertThat(
+        flightMap.get(JobMapKeys.TDR_BILLING_PROFILE_FALLBACK.getKeyName(), Boolean.class),
+        equalTo(isTDRBillingProfile));
   }
 }

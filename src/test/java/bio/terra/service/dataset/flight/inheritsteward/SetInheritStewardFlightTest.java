@@ -82,8 +82,9 @@ class SetInheritStewardFlightTest {
         steps,
         contains(
             "LockDatasetStep",
-            "SetInheritStewardFlagStep",
             "GetSnapshotIdsStep",
+            "CheckChildSnapshotAuthDomainStep",
+            "SetInheritStewardFlagStep",
             "SetParentOnSnapshotsStep",
             "SetAuthGcpUserRolesStep",
             "SetAuthTabularAclStep",

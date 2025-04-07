@@ -12,6 +12,7 @@ import bio.terra.common.Relationship;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.Table;
 import bio.terra.common.ValidationUtils;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -213,6 +214,12 @@ public class SnapshotService {
       SnapshotRequestModel snapshotRequestModel,
       Dataset dataset,
       AuthenticatedUserRequest userReq) {
+    if (dataset.isInheritSteward()
+        && snapshotRequestModel.getDataAccessControlGroups() != null
+        && !snapshotRequestModel.getDataAccessControlGroups().isEmpty()) {
+      throw new BadRequestException(
+          "Cannot create a snapshot with an auth domain whose parent dataset has inherit steward enabled.");
+    }
     snapshotRequestModel.setName(getSnapshotName(snapshotRequestModel));
     if (snapshotRequestModel.getProfileId() == null) {
       snapshotRequestModel.setProfileId(dataset.getDefaultProfileId());
@@ -784,6 +791,11 @@ public class SnapshotService {
 
   public AddAuthDomainResponseModel addSnapshotDataAccessControls(
       AuthenticatedUserRequest userReq, UUID snapshotId, List<String> userGroups) {
+    if (retrieve(snapshotId).getFirstSnapshotSource().getDataset().isInheritSteward()) {
+      throw new BadRequestException(
+          "Cannot add an auth domain to snapshot whose parent dataset has inherit steward enabled.");
+    }
+
     String userGroupsString = StringUtils.join(userGroups, ", ");
     String description =
         "Add data access control groups " + userGroupsString + " to snapshot " + snapshotId;

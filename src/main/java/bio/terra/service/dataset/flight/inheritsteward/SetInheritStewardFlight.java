@@ -44,11 +44,14 @@ public class SetInheritStewardFlight extends Flight {
     boolean inheritSteward =
         inputParameters.get(JobMapKeys.INHERIT_STEWARD.getKeyName(), Boolean.class);
     addStep(new LockDatasetStep(datasetService, datasetId, false));
+    addStep(new GetSnapshotIdsStep(snapshotDao, iamService, userReq, datasetId, inheritSteward));
     if (inheritSteward) {
+      // Make sure no child snapshot have auth domains
+      addStep(new CheckChildSnapshotAuthDomainStep(snapshotService, userReq));
       // If we are setting inherit steward to true, we want to set the flag first
       addStep(new SetInheritStewardFlagStep(datasetDao, datasetId, inheritSteward));
     }
-    addStep(new GetSnapshotIdsStep(snapshotDao, iamService, userReq, datasetId, inheritSteward));
+
     addStep(new SetParentOnSnapshotsStep(iamService, datasetId, userReq, inheritSteward));
     addStep(
         new SetAuthGcpUserRolesStep(

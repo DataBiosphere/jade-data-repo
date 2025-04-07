@@ -168,13 +168,12 @@ public class DatasetService {
 
     // Locate billing profile in TDR or Rawls
     // No auth check: Just a check if there is an entry in our db for this billing profile
-    boolean isTdrBillingProfile = false;
+    final boolean isTdrBillingProfile;
     try {
       profileService.getProfileByIdNoCheck(defaultProfileId);
       isTdrBillingProfile = true;
     } catch (ProfileNotFoundException ex) {
-      // Assume that the billing project lives in Rawls
-      // AuthorizeRawlsBillingProjectsUseStep will return the relevant error message if not
+      isTdrBillingProfile = false;
     }
 
     return jobService

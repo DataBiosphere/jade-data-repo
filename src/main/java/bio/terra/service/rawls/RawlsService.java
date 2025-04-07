@@ -89,7 +89,6 @@ public class RawlsService {
 
   public void authorizeBillingProjectLink(
       UUID billingProjectId, AuthenticatedUserRequest userRequest) {
-    rawlsClient.verifyBillingProjectAction(
-        billingProjectId, IamAction.LINK.toString(), userRequest);
+    rawlsClient.verifyBillingProjectAction(billingProjectId, IamAction.LINK, userRequest);
   }
 }

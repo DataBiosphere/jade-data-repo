@@ -41,7 +41,7 @@ class RawlsClientTest {
   private static final String NAMESPACE = "namespace";
   private static final String NAME = "name";
   private static final UUID BILLING_PROJECT_ID = UUID.randomUUID();
-  private static final String LINK_ACTION = IamAction.LINK.toString();
+  private static final IamAction LINK_ACTION = IamAction.LINK;
 
   @BeforeEach
   void beforeEach() {

@@ -130,7 +130,6 @@ class RawlsServiceTest {
   void testAuthorizeBillingProjectLink() {
     var billingProjectId = UUID.randomUUID();
     rawlsService.authorizeBillingProjectLink(billingProjectId, TEST_USER);
-    verify(rawlsClient)
-        .verifyBillingProjectAction(billingProjectId, IamAction.LINK.toString(), TEST_USER);
+    verify(rawlsClient).verifyBillingProjectAction(billingProjectId, IamAction.LINK, TEST_USER);
   }
 }

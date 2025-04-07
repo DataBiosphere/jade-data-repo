@@ -2,6 +2,7 @@ package bio.terra.service.rawls;
 
 import bio.terra.app.configuration.RawlsConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.profile.exception.BillingProjectNotAccessibleException;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.List;
@@ -62,7 +63,7 @@ public class RawlsClient {
   }
 
   public void verifyBillingProjectAction(
-      UUID billingProjectId, String action, AuthenticatedUserRequest userRequest) {
+      UUID billingProjectId, IamAction action, AuthenticatedUserRequest userRequest) {
     HttpHeaders authedHeaders = new HttpHeaders(headers);
     authedHeaders.setBearerAuth(userRequest.getToken());
     try {
@@ -82,7 +83,7 @@ public class RawlsClient {
   }
 
   @VisibleForTesting
-  public String verifyBillingProjectActionEndpoint(UUID billingProjectId, String action) {
+  public String verifyBillingProjectActionEndpoint(UUID billingProjectId, IamAction action) {
     return String.format(
         "%s/api/billing/v2/id/%s/verifyAction/%s",
         rawlsConfiguration.basePath(), billingProjectId, action);

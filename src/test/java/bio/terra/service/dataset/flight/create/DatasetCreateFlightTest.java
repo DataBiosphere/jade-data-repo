@@ -29,8 +29,8 @@ class DatasetCreateFlightTest {
 
   @BeforeEach
   void beforeEach() {
-    ApplicationConfiguration appConfig = mock(ApplicationConfiguration.class);
-    when(appConfig.getMaxStairwayThreads()).thenReturn(1);
+    when(context.getBean(ApplicationConfiguration.class))
+        .thenReturn(new ApplicationConfiguration());
     when(context.getBean(ApplicationConfiguration.class)).thenReturn(appConfig);
 
     inputParameters = new FlightMap();

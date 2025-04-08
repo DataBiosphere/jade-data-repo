@@ -170,32 +170,6 @@ public class GoogleProjectService {
       CollectionType collectionType)
       throws InterruptedException {
 
-    boolean shouldInitializeProject =
-        shouldInitializeProject(googleProjectId, billingProfileId);
-    if (!shouldInitializeProject) {
-      return resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
-    }
-    // Otherwise this project needs to be initialized
-    Project project = resourceManagerService.getProject(googleProjectId);
-    if (project == null) {
-      throw new GoogleResourceException("Could not get project after handout");
-    }
-    return initializeProject(project, billingProfileId, region, labels, collectionType);
-  }
-
-  public void assignGoogleProjectBilling(String googleProjectId, BillingProfileModel billingProfile) {
-    boolean shouldInitializeProject =
-        shouldInitializeProject(googleProjectId, billingProfile.getId());
-    if (shouldInitializeProject) {
-      // The billing profile has already been authorized so we do no further checking here
-      billingService.assignProjectBilling(billingProfile, googleProjectResource);
-    }
-  }
-
-
-  @VisibleForTesting
-  boolean shouldInitializeProject(String googleProjectId,
-                                         UUID billingProfileId) {
     try {
       // If we already have a DR record for this project, return the project resource
       // Should only happen if this step is retried or files are ingested in an existing dataset
@@ -204,7 +178,7 @@ public class GoogleProjectService {
           resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
       UUID resourceProfileId = projectResource.getProfileId();
       if (resourceProfileId.equals(billingProfileId)) {
-        return false;
+        return projectResource;
       }
       throw new MismatchedBillingProfilesException(
           "Cannot reuse existing project "
@@ -217,7 +191,13 @@ public class GoogleProjectService {
       logger.info(
           "no project resource found for projectId: {}, initializing one instead", googleProjectId);
     }
-    return true;
+
+    // Otherwise this project needs to be initialized
+    Project project = resourceManagerService.getProject(googleProjectId);
+    if (project == null) {
+      throw new GoogleResourceException("Could not get project after handout");
+    }
+    return initializeProject(project, billingProfileId, region, labels, collectionType);
   }
 
   public GoogleProjectResource getProjectResourceById(UUID id) {
@@ -263,6 +243,8 @@ public class GoogleProjectService {
             .googleProjectId(googleProjectId)
             .googleProjectNumber(googleProjectNumber);
 
+    // The billing profile has already been authorized so we do no further checking here
+    // billingService.assignProjectBilling(billingProfile, googleProjectResource);
 
     enableServices(googleProjectResource, region);
     resourceManagerService.addLabelsToProject(googleProjectResource.getGoogleProjectId(), labels);

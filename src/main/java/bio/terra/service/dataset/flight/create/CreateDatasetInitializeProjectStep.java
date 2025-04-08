@@ -1,8 +1,10 @@
 package bio.terra.service.dataset.flight.create;
 
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
+import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.stairway.FlightContext;
@@ -26,6 +28,8 @@ public class CreateDatasetInitializeProjectStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
+    BillingProfileModel profileModel =
+        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     String projectId = workingMap.get(DatasetWorkingMapKeys.GOOGLE_PROJECT_ID, String.class);
     GoogleRegion region = GoogleRegion.fromValueWithDefault(datasetRequestModel.getRegion());
 
@@ -37,11 +41,7 @@ public class CreateDatasetInitializeProjectStep implements Step {
     try {
       projectResourceId =
           resourceService.getOrCreateDatasetProject(
-              datasetRequestModel.getDefaultProfileId(),
-              projectId,
-              region,
-              datasetRequestModel.getName(),
-              datasetId);
+              profileModel, projectId, region, datasetRequestModel.getName(), datasetId);
     } catch (GoogleResourceException e) {
       if (e.getCause().getMessage().contains("500 Internal Server Error")) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);

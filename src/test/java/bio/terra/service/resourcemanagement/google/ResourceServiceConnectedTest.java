@@ -57,7 +57,7 @@ public class ResourceServiceConnectedTest {
     GoogleProjectResource projectResource =
         projectService.initializeGoogleProject(
             projectId,
-            profile.getId(),
+            profile,
             GoogleRegion.DEFAULT_GOOGLE_REGION,
             Map.of("test-name", "resource-service-connected-test"),
             CollectionType.DATASET);

@@ -172,7 +172,6 @@ public class FileIngestBulkFlight extends Flight {
       addStep(new VerifyBillingAccountAccessStep(googleBillingService));
       if (!dataset.isSelfHosted()) {
         addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
-        // TODO - Add step to assign billing
         addStep(new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
         addStep(
             new IngestFilePrimaryDataLocationStep(userReq, resourceService, dataset, iamService),

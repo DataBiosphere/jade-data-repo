@@ -144,7 +144,6 @@ public class FileIngestFlight extends FileIngestTypeFlight {
       addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
       if (!dataset.isSelfHosted()) {
         addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
-        // TODO - add step to assign billing
         addStep(new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
         addStep(
             new IngestFilePrimaryDataLocationStep(userReq, resourceService, dataset, iamService),

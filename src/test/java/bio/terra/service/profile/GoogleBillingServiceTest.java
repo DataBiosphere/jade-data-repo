@@ -143,7 +143,7 @@ public class GoogleBillingServiceTest {
     // create project metadata
     return projectService.initializeGoogleProject(
         resourceInfo.getCloudResourceUid().getGoogleProjectUid().getProjectId(),
-        profile.getId(),
+        profile,
         GoogleRegion.DEFAULT_GOOGLE_REGION,
         Map.of("test-name", "google-billing-service-test"),
         CollectionType.DATASET);

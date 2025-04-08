@@ -1,8 +1,10 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.job.DefaultUndoStep;
+import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
@@ -26,12 +28,14 @@ public class IngestFileInitializeProjectStep extends DefaultUndoStep {
     FlightMap workingMap = context.getWorkingMap();
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
-      // retrieve or create a bucket in the context of that profile and the dataset.
+      // Retrieve the already authorized billing profile from the working map and retrieve
+      // or create a bucket in the context of that profile and the dataset.
+      BillingProfileModel billingProfile =
+          workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
       String projectId = workingMap.get(FileMapKeys.GOOGLE_PROJECT_ID, String.class);
       try {
         GoogleProjectResource projectResource =
-            resourceService.initializeProjectForBucket(
-                dataset, dataset.getDefaultProfileId(), projectId);
+            resourceService.initializeProjectForBucket(dataset, billingProfile, projectId);
         workingMap.put(FileMapKeys.PROJECT_RESOURCE, projectResource);
       } catch (BucketLockException blEx) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, blEx);

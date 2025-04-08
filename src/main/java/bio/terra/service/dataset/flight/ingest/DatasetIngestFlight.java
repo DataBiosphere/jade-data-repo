@@ -390,7 +390,6 @@ public class DatasetIngestFlight extends Flight {
       // Get or create a Google project for files to be ingested into.
       addOptionalCombinedIngestStep(new IngestFileGetProjectStep(dataset, projectService));
 
-      // TODO - add step to assign billing
       // Initialize the Google project for ingest use.
       addOptionalCombinedIngestStep(
           new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);

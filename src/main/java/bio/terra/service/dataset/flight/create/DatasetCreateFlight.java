@@ -110,6 +110,7 @@ public class DatasetCreateFlight extends Flight {
           getDefaultExponentialBackoffRetryRule());
 
       // Get or initialize the project where the dataset resources will be created
+      // Add step to assign billing
       addStep(
           new CreateDatasetInitializeProjectStep(resourceService, datasetRequest),
           getDefaultExponentialBackoffRetryRule());

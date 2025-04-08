@@ -1,8 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -18,23 +16,24 @@ public class CreateSnapshotInitializeProjectStep implements Step {
   private final Dataset sourceDataset;
   private final String snapshotName;
   private final UUID snapshotId;
+  private final UUID billingProfileId;
 
   public CreateSnapshotInitializeProjectStep(
       ResourceService resourceService,
       Dataset sourceDataset,
       String snapshotName,
-      UUID snapshotId) {
+      UUID snapshotId,
+      UUID billingProfileId) {
     this.resourceService = resourceService;
     this.sourceDataset = sourceDataset;
     this.snapshotName = snapshotName;
     this.snapshotId = snapshotId;
+    this.billingProfileId = billingProfileId;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    BillingProfileModel profileModel =
-        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     String projectId = workingMap.get(SnapshotWorkingMapKeys.GOOGLE_PROJECT_ID, String.class);
 
     // Since we find projects by their names, this is idempotent. If this step fails and is rerun,
@@ -43,7 +42,7 @@ public class CreateSnapshotInitializeProjectStep implements Step {
     try {
       projectResourceId =
           resourceService.initializeSnapshotProject(
-              profileModel, projectId, sourceDataset, snapshotName, snapshotId);
+              billingProfileId, projectId, sourceDataset, snapshotName, snapshotId);
     } catch (GoogleResourceException e) {
       if (e.getCause().getMessage().contains("500 Internal Server Error")) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);

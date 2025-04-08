@@ -156,7 +156,7 @@ public class GoogleProjectService {
    * attempting to use it here
    *
    * @param googleProjectId google's id of the project
-   * @param billingProfile previously authorized billing profile
+   * @param billingProfileId previously authorized billing profile Id
    * @param region region of dataset/snapshot
    * @param labels labels to add to the project
    * @return project resource object
@@ -164,7 +164,7 @@ public class GoogleProjectService {
    */
   public GoogleProjectResource initializeGoogleProject(
       String googleProjectId,
-      BillingProfileModel billingProfile,
+      UUID billingProfileId,
       GoogleRegion region,
       Map<String, String> labels,
       CollectionType collectionType)
@@ -177,7 +177,7 @@ public class GoogleProjectService {
       GoogleProjectResource projectResource =
           resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
       UUID resourceProfileId = projectResource.getProfileId();
-      if (resourceProfileId.equals(billingProfile.getId())) {
+      if (resourceProfileId.equals(billingProfileId)) {
         return projectResource;
       }
       throw new MismatchedBillingProfilesException(
@@ -186,7 +186,7 @@ public class GoogleProjectService {
               + " from profile "
               + resourceProfileId
               + " with a different profile "
-              + billingProfile.getId());
+              + billingProfileId);
     } catch (GoogleResourceNotFoundException e) {
       logger.info(
           "no project resource found for projectId: {}, initializing one instead", googleProjectId);
@@ -197,7 +197,7 @@ public class GoogleProjectService {
     if (project == null) {
       throw new GoogleResourceException("Could not get project after handout");
     }
-    return initializeProject(project, billingProfile, region, labels, collectionType);
+    return initializeProject(project, billingProfileId, region, labels, collectionType);
   }
 
   public GoogleProjectResource getProjectResourceById(UUID id) {
@@ -226,7 +226,7 @@ public class GoogleProjectService {
   // projects and are missing the metadata for them.
   private GoogleProjectResource initializeProject(
       Project project,
-      BillingProfileModel billingProfile,
+      UUID billingProfileId,
       GoogleRegion region,
       Map<String, String> labels,
       CollectionType collectionType)
@@ -238,12 +238,13 @@ public class GoogleProjectService {
 
     GoogleProjectResource googleProjectResource =
         new GoogleProjectResource()
-            .profileId(billingProfile.getId())
+            // Still can use the billing project id
+            .profileId(billingProfileId)
             .googleProjectId(googleProjectId)
             .googleProjectNumber(googleProjectNumber);
 
     // The billing profile has already been authorized so we do no further checking here
-    billingService.assignProjectBilling(billingProfile, googleProjectResource);
+    // billingService.assignProjectBilling(billingProfile, googleProjectResource);
 
     enableServices(googleProjectResource, region);
     resourceManagerService.addLabelsToProject(googleProjectResource.getGoogleProjectId(), labels);

@@ -160,9 +160,10 @@ public class SnapshotCreateFlight extends Flight {
           getDefaultExponentialBackoffRetryRule());
 
       // Get or initialize the project where the snapshot resources will be created
+      // TODO - add assign billing step
       addStep(
           new CreateSnapshotInitializeProjectStep(
-              resourceService, sourceDataset, snapshotName, snapshotId),
+              resourceService, sourceDataset, snapshotName, snapshotId, snapshotReq.getProfileId()),
           getDefaultExponentialBackoffRetryRule());
     }
 

@@ -172,7 +172,7 @@ public class ProfileServiceTest {
     // create project metadata
     return googleProjectService.initializeGoogleProject(
         resourceInfo.getCloudResourceUid().getGoogleProjectUid().getProjectId(),
-        profile,
+        profile.getId(),
         GoogleRegion.DEFAULT_GOOGLE_REGION,
         Map.of("test-name", "profile-service-test"),
         CollectionType.DATASET);

@@ -574,7 +574,7 @@ public class BucketResourceTest {
     // create project metadata
     return projectService.initializeGoogleProject(
         resourceInfo.getCloudResourceUid().getGoogleProjectUid().getProjectId(),
-        profile,
+        profile.getId(),
         GoogleRegion.DEFAULT_GOOGLE_REGION,
         Map.of("test-name", "bucket-resource-test"),
         CollectionType.DATASET);

@@ -98,12 +98,12 @@ public class ResourceService {
    * Fetch/create a project
    *
    * @param dataset
-   * @param billingProfile authorized profile for billing account information case we need to create
-   *     a project
+   * @param billingProfileId authorized profile for billing account information case we need to
+   *     create a project
    * @return a reference to the project as a POJO GoogleProjectResource
    */
   public GoogleProjectResource initializeProjectForBucket(
-      Dataset dataset, BillingProfileModel billingProfile, String projectId)
+      Dataset dataset, UUID billingProfileId, String projectId)
       throws GoogleResourceException, InterruptedException {
 
     Map<String, String> labels =
@@ -117,7 +117,7 @@ public class ResourceService {
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
     // Every bucket needs to live in a project, so we get or create a project first
     return projectService.initializeGoogleProject(
-        projectId, billingProfile, region, labels, CollectionType.DATASET);
+        projectId, billingProfileId, region, labels, CollectionType.DATASET);
   }
 
   /**
@@ -510,11 +510,11 @@ public class ResourceService {
   /**
    * Create a new project for a snapshot, if none exists already.
    *
-   * @param billingProfile authorized billing profile to pay for the project
+   * @param billingProfileId authorized billing profile to pay for the project
    * @return project resource id
    */
   public UUID initializeSnapshotProject(
-      BillingProfileModel billingProfile,
+      UUID billingProfileId,
       String projectId,
       Dataset sourceDataset,
       String snapshotName,
@@ -537,7 +537,7 @@ public class ResourceService {
 
     GoogleProjectResource googleProjectResource =
         projectService.initializeGoogleProject(
-            projectId, billingProfile, region, labels, CollectionType.SNAPSHOT);
+            projectId, billingProfileId, region, labels, CollectionType.SNAPSHOT);
 
     return googleProjectResource.getId();
   }
@@ -545,12 +545,12 @@ public class ResourceService {
   /**
    * Create a new project for a dataset, if none exists already.
    *
-   * @param billingProfile authorized billing profile to pay for the project
+   * @param billingProfileId authorized billing profile Id to pay for the project
    * @param region the region to create the project in
    * @return project resource id
    */
   public UUID getOrCreateDatasetProject(
-      BillingProfileModel billingProfile,
+      UUID billingProfileId,
       String projectId,
       GoogleRegion region,
       String datasetName,
@@ -564,7 +564,7 @@ public class ResourceService {
 
     GoogleProjectResource googleProjectResource =
         projectService.initializeGoogleProject(
-            projectId, billingProfile, region, labels, CollectionType.DATASET);
+            projectId, billingProfileId, region, labels, CollectionType.DATASET);
 
     return googleProjectResource.getId();
   }

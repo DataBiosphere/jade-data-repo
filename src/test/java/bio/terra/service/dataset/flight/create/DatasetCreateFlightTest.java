@@ -44,12 +44,14 @@ class DatasetCreateFlightTest {
       assertThat(
           "Dataset creation flight locates the billing info and then has two optional steps",
           FlightTestUtils.getStepNames(flight),
-          containsInRelativeOrder("AuthorizeBillingProfileUseStep"));
+          containsInRelativeOrder(
+              "AuthorizeBillingProfileUseStep", "CreateDatasetInitializeProjectStep"));
     } else {
       assertThat(
           "Dataset creation flight locates the billing info and then has two optional steps",
           FlightTestUtils.getStepNames(flight),
-          containsInRelativeOrder("AuthorizeRawlsBillingProjectsUseStep"));
+          containsInRelativeOrder(
+              "AuthorizeRawlsBillingProjectsUseStep", "CreateDatasetInitializeProjectV2Step"));
     }
   }
 }

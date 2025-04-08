@@ -49,6 +49,7 @@ class ResourceServiceTest {
   private ResourceService resourceService;
 
   @Mock private GoogleBucketService bucketService;
+  @Mock private GoogleProjectService projectService;
 
   @Mock private AzureStorageAccountService storageAccountService;
 
@@ -99,7 +100,7 @@ class ResourceServiceTest {
     resourceService =
         new ResourceService(
             mock(AzureDataLocationSelector.class),
-            mock(GoogleProjectService.class),
+            projectService,
             bucketService,
             applicationDeploymentService,
             storageAccountService,
@@ -175,5 +176,22 @@ class ResourceServiceTest {
                         && arg.containsKey(SNAPSHOT_GCP_IAM_ROLES.get(1))),
             eq(dataProject),
             eq(GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS));
+  }
+
+  @Test
+  void getOrCreateDatasetProjectV2() throws InterruptedException {
+    var projectId = UUID.randomUUID();
+    var projectResource = new GoogleProjectResource().id(projectId);
+    when(projectService.initializeGoogleProjectV2(any(), any(), any(), any(), any()))
+        .thenReturn(projectResource);
+    assertThat(
+        "project id is returned",
+        resourceService.getOrCreateDatasetProjectV2(
+            UUID.randomUUID(),
+            "project",
+            GoogleRegion.DEFAULT_GOOGLE_REGION,
+            "datasetName",
+            datasetId),
+        is(projectId));
   }
 }

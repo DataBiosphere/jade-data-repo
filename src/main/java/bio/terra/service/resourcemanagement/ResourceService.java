@@ -570,6 +570,33 @@ public class ResourceService {
   }
 
   /**
+   * Create a new project for a dataset, if none exists already.
+   *
+   * @param billingProfileId authorized billing profile Id to pay for the project
+   * @param region the region to create the project in
+   * @return project resource id
+   */
+  public UUID getOrCreateDatasetProjectV2(
+      UUID billingProfileId,
+      String projectId,
+      GoogleRegion region,
+      String datasetName,
+      UUID datasetId)
+      throws InterruptedException {
+
+    Map<String, String> labels = new HashMap<>();
+    labels.put("dataset-name", datasetName);
+    labels.put("dataset-id", datasetId.toString());
+    labels.put("project-usage", "dataset");
+
+    GoogleProjectResource googleProjectResource =
+        projectService.initializeGoogleProjectV2(
+            projectId, billingProfileId, region, labels, CollectionType.DATASET);
+
+    return googleProjectResource.getId();
+  }
+
+  /**
    * Create a new service account for a dataset to be used to ingest.
    *
    * @param projectId the Google id of the project to create the SA for

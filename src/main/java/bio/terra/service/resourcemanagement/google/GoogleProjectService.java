@@ -170,26 +170,9 @@ public class GoogleProjectService {
       CollectionType collectionType)
       throws InterruptedException {
 
-    try {
-      // If we already have a DR record for this project, return the project resource
-      // Should only happen if this step is retried or files are ingested in an existing dataset
-      // project
-      GoogleProjectResource projectResource =
-          resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
-      UUID resourceProfileId = projectResource.getProfileId();
-      if (resourceProfileId.equals(billingProfile.getId())) {
-        return projectResource;
-      }
-      throw new MismatchedBillingProfilesException(
-          "Cannot reuse existing project "
-              + projectResource.getGoogleProjectId()
-              + " from profile "
-              + resourceProfileId
-              + " with a different profile "
-              + billingProfile.getId());
-    } catch (GoogleResourceNotFoundException e) {
-      logger.info(
-          "no project resource found for projectId: {}, initializing one instead", googleProjectId);
+    var projectResource = checkIfProjectAlreadyExists(googleProjectId, billingProfile.getId());
+    if (projectResource != null) {
+      return projectResource;
     }
 
     // Otherwise this project needs to be initialized
@@ -198,6 +181,63 @@ public class GoogleProjectService {
       throw new GoogleResourceException("Could not get project after handout");
     }
     return initializeProject(project, billingProfile, region, labels, collectionType);
+  }
+
+  /**
+   * V2 - Billing will be assigned in Rawls, so we do not assign it here.
+   *
+   * @param googleProjectId google's id of the project
+   * @param billingProfileId previously authorized billing profile
+   * @param region region of dataset/snapshot
+   * @param labels labels to add to the project
+   * @return project resource object
+   * @throws InterruptedException if shutting down
+   */
+  public GoogleProjectResource initializeGoogleProjectV2(
+      String googleProjectId,
+      UUID billingProfileId,
+      GoogleRegion region,
+      Map<String, String> labels,
+      CollectionType collectionType)
+      throws InterruptedException {
+
+    var projectResource = checkIfProjectAlreadyExists(googleProjectId, billingProfileId);
+    if (projectResource != null) {
+      return projectResource;
+    }
+
+    // Otherwise this project needs to be initialized
+    Project project = resourceManagerService.getProject(googleProjectId);
+    if (project == null) {
+      throw new GoogleResourceException("Could not get project after handout");
+    }
+    return initializeProjectV2(project, billingProfileId, region, labels, collectionType);
+  }
+
+  public GoogleProjectResource checkIfProjectAlreadyExists(
+      String googleProjectId, UUID billingProfileId) {
+    try {
+      // If we already have a DR record for this project, return the project resource
+      // Should only happen if this step is retried or files are ingested in an existing dataset
+      // project
+      GoogleProjectResource projectResource =
+          resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
+      UUID resourceProfileId = projectResource.getProfileId();
+      if (resourceProfileId.equals(billingProfileId)) {
+        return projectResource;
+      }
+      throw new MismatchedBillingProfilesException(
+          "Cannot reuse existing project "
+              + projectResource.getGoogleProjectId()
+              + " from profile "
+              + resourceProfileId
+              + " with a different profile "
+              + billingProfileId);
+    } catch (GoogleResourceNotFoundException e) {
+      logger.info(
+          "no project resource found for projectId: {}, initializing one instead", googleProjectId);
+    }
+    return null;
   }
 
   public GoogleProjectResource getProjectResourceById(UUID id) {
@@ -244,6 +284,44 @@ public class GoogleProjectService {
 
     // The billing profile has already been authorized so we do no further checking here
     billingService.assignProjectBilling(billingProfile, googleProjectResource);
+
+    enableServices(googleProjectResource, region);
+    resourceManagerService.addLabelsToProject(googleProjectResource.getGoogleProjectId(), labels);
+
+    String projectName;
+    switch (collectionType) {
+      case DATASET -> projectName = "TDR Dataset Project";
+      case SNAPSHOT -> projectName = "TDR Snapshot Project";
+      default -> throw new IllegalArgumentException("Invalid collection type");
+    }
+    resourceManagerService.addOrEditNameOfProject(
+        googleProjectResource.getGoogleProjectId(), projectName);
+
+    UUID id = resourceDao.createProject(googleProjectResource);
+    googleProjectResource.id(id);
+    return googleProjectResource;
+  }
+
+  // Common project initialization for new projects, in the case where we are reusing
+  // projects and are missing the metadata for them.
+  // V2 - No longer assigns billing account to the project. Rawls will do this instead.
+  private GoogleProjectResource initializeProjectV2(
+      Project project,
+      UUID billingProfileId,
+      GoogleRegion region,
+      Map<String, String> labels,
+      CollectionType collectionType)
+      throws InterruptedException {
+
+    String googleProjectNumber = project.getProjectNumber().toString();
+    String googleProjectId = project.getProjectId();
+    logger.info("google project id: " + googleProjectId);
+
+    GoogleProjectResource googleProjectResource =
+        new GoogleProjectResource()
+            .profileId(billingProfileId)
+            .googleProjectId(googleProjectId)
+            .googleProjectNumber(googleProjectNumber);
 
     enableServices(googleProjectResource, region);
     resourceManagerService.addLabelsToProject(googleProjectResource.getGoogleProjectId(), labels);

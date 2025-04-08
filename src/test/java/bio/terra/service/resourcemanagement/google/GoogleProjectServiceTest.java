@@ -1,24 +1,54 @@
 package bio.terra.service.resourcemanagement.google;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
+import bio.terra.service.dataset.DatasetBucketDao;
+import bio.terra.service.profile.google.GoogleBillingService;
+import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.exception.AppengineException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
+import bio.terra.service.resourcemanagement.exception.MismatchedBillingProfilesException;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
 class GoogleProjectServiceTest {
 
   private static final UUID RANDOM_UUID = UUID.randomUUID();
   private static final String APP_ID = "my-project";
+
+  private GoogleProjectService googleProjectService;
+  @Mock private GoogleResourceDao googleResourceDao;
+
+  @BeforeEach
+  void setup() {
+    googleProjectService =
+        new GoogleProjectService(
+            googleResourceDao,
+            mock(GoogleResourceConfiguration.class),
+            mock(GoogleBillingService.class),
+            mock(GoogleResourceManagerService.class),
+            mock(BufferService.class),
+            mock(DatasetBucketDao.class));
+  }
 
   @Test
   void testVerifyProjectId() {
@@ -76,10 +106,9 @@ class GoogleProjectServiceTest {
   @MethodSource
   void extractOperationIdFromName_successful(String opId) {
     assertThat(
-            GoogleProjectService.extractOperationIdFromName(
-                APP_ID, String.format("apps/%s/operations/%s", APP_ID, opId)))
-        .as("works as expected")
-        .isEqualTo(opId);
+        GoogleProjectService.extractOperationIdFromName(
+            APP_ID, String.format("apps/%s/operations/%s", APP_ID, opId)),
+        equalTo(opId));
   }
 
   private static Stream<Arguments> extractOperationIdFromName_unexpectedPrefix() {
@@ -125,5 +154,50 @@ class GoogleProjectServiceTest {
         "Original Project label should no longer contain non-valid characters",
         expectedCleanedName,
         cleanedName);
+  }
+
+  //  @Test
+  //  void initializeGoogleProjectV2() {
+  //  }
+
+  @Test
+  void checkIfProjectAlreadyExists_projectExists() {
+    var projectId = "project123";
+    var billingProfileId = UUID.randomUUID();
+    var projectResource = new GoogleProjectResource().profileId(billingProfileId);
+    when(googleResourceDao.retrieveProjectByGoogleProjectId(projectId)).thenReturn(projectResource);
+
+    assertThat(
+        "project resource is returned",
+        googleProjectService.checkIfProjectAlreadyExists(projectId, billingProfileId),
+        equalTo(projectResource));
+  }
+
+  @Test
+  void checkIfProjectAlreadyExists_projectExists_mismatchedBilling() {
+    var projectId = "project123";
+    var requestedBillingProfileId = UUID.randomUUID();
+    var existingProjectBillingProfileId = UUID.randomUUID();
+    var projectResource = new GoogleProjectResource().profileId(existingProjectBillingProfileId);
+    when(googleResourceDao.retrieveProjectByGoogleProjectId(projectId)).thenReturn(projectResource);
+
+    assertThrows(
+        MismatchedBillingProfilesException.class,
+        () ->
+            googleProjectService.checkIfProjectAlreadyExists(projectId, requestedBillingProfileId));
+  }
+
+  @Test
+  void checkIfProjectAlreadyExists_noProject() {
+    var projectId = "project123";
+    var billingProfileId = UUID.randomUUID();
+
+    when(googleResourceDao.retrieveProjectByGoogleProjectId(projectId))
+        .thenThrow(new GoogleResourceNotFoundException(""));
+
+    assertThat(
+        "project resource is returned",
+        googleProjectService.checkIfProjectAlreadyExists(projectId, billingProfileId),
+        nullValue());
   }
 }

@@ -110,9 +110,15 @@ public class DatasetCreateFlight extends Flight {
           getDefaultExponentialBackoffRetryRule());
 
       // Get or initialize the project where the dataset resources will be created
-      addStep(
-          new CreateDatasetInitializeProjectStep(resourceService, datasetRequest),
-          getDefaultExponentialBackoffRetryRule());
+      if (isTdrBillingProfile) {
+        addStep(
+            new CreateDatasetInitializeProjectStep(resourceService, datasetRequest),
+            getDefaultExponentialBackoffRetryRule());
+      } else {
+        addStep(
+            new CreateDatasetInitializeProjectV2Step(resourceService, datasetRequest),
+            getDefaultExponentialBackoffRetryRule());
+      }
 
       // Create the service account to use to ingest data and register it in Terra
       if (datasetRequest.isDedicatedIngestServiceAccount()) {

@@ -6,16 +6,25 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.CollectionType;
 import bio.terra.common.category.Unit;
 import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.exception.AppengineException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.exception.MismatchedBillingProfilesException;
+import com.google.api.services.cloudresourcemanager.model.Project;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +35,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,6 +47,7 @@ class GoogleProjectServiceTest {
 
   private GoogleProjectService googleProjectService;
   @Mock private GoogleResourceDao googleResourceDao;
+  @Mock private GoogleResourceManagerService googleResourceManagerService;
 
   @BeforeEach
   void setup() {
@@ -45,7 +56,7 @@ class GoogleProjectServiceTest {
             googleResourceDao,
             mock(GoogleResourceConfiguration.class),
             mock(GoogleBillingService.class),
-            mock(GoogleResourceManagerService.class),
+            googleResourceManagerService,
             mock(BufferService.class),
             mock(DatasetBucketDao.class));
   }
@@ -199,5 +210,95 @@ class GoogleProjectServiceTest {
         "project resource is returned",
         googleProjectService.checkIfProjectAlreadyExists(projectId, billingProfileId),
         nullValue());
+  }
+
+  @Test
+  void initializeGoogleProjectV2() throws InterruptedException {
+    var projectId = "project123";
+    var billingProfileId = UUID.randomUUID();
+    Project project = new Project().setProjectId(projectId);
+    GoogleProjectResource projectResource = new GoogleProjectResource();
+
+    when(googleResourceDao.retrieveProjectByGoogleProjectId(projectId))
+        .thenThrow(new GoogleResourceNotFoundException(""));
+    when(googleResourceManagerService.getProject(projectId)).thenReturn(project);
+    GoogleProjectService spyGoogleProjectService = Mockito.spy(googleProjectService);
+    doReturn(projectResource)
+        .when(spyGoogleProjectService)
+        .initializeProjectV2(
+            project,
+            billingProfileId,
+            GoogleRegion.DEFAULT_GOOGLE_REGION,
+            new HashMap<>(),
+            CollectionType.DATASET);
+
+    assertThat(
+        "project resource is returned",
+        spyGoogleProjectService.initializeGoogleProjectV2(
+            projectId,
+            billingProfileId,
+            GoogleRegion.DEFAULT_GOOGLE_REGION,
+            new HashMap<>(),
+            CollectionType.DATASET),
+        equalTo(projectResource));
+  }
+
+  @Test
+  void initializeGoogleProjectV2_NoProjectFound() {
+    var projectId = "project123";
+    var billingProfileId = UUID.randomUUID();
+
+    when(googleResourceDao.retrieveProjectByGoogleProjectId(projectId))
+        .thenThrow(new GoogleResourceNotFoundException(""));
+    when(googleResourceManagerService.getProject(projectId)).thenReturn(null);
+
+    assertThrows(
+        GoogleResourceException.class,
+        () ->
+            googleProjectService.initializeGoogleProjectV2(
+                projectId,
+                billingProfileId,
+                GoogleRegion.DEFAULT_GOOGLE_REGION,
+                new HashMap<>(),
+                CollectionType.DATASET));
+  }
+
+  @Test
+  void initializeProjectV2() throws InterruptedException {
+    var projectId = "project123";
+    var billingProfileId = UUID.randomUUID();
+    Map<String, String> labels = new HashMap<>();
+    Long projectNumber = 1234L;
+    Project project =
+        new Project()
+            .setProjectId(projectId)
+            .setProjectNumber(projectNumber)
+            .setName("TDR Dataset Project");
+    GoogleProjectResource projectResource =
+        new GoogleProjectResource()
+            .googleProjectId(projectId)
+            .id(UUID.randomUUID())
+            .profileId(billingProfileId)
+            .googleProjectNumber(projectNumber.toString());
+
+    GoogleProjectService spyGoogleProjectService = Mockito.spy(googleProjectService);
+    doNothing().when(spyGoogleProjectService).enableServices(any(), any());
+    doNothing()
+        .when(googleResourceManagerService)
+        .addLabelsToProject(project.getProjectId(), labels);
+    doNothing().when(googleResourceManagerService).addOrEditNameOfProject(any(), any());
+    when(googleResourceDao.createProject(any())).thenReturn(projectResource.getId());
+
+    var actualProjectResource =
+        spyGoogleProjectService.initializeProjectV2(
+            project,
+            billingProfileId,
+            GoogleRegion.DEFAULT_GOOGLE_REGION,
+            labels,
+            CollectionType.DATASET);
+    assertThat(
+        "project resource is returned",
+        actualProjectResource.getGoogleProjectId(),
+        equalTo(projectResource.getGoogleProjectId()));
   }
 }

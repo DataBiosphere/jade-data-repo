@@ -305,7 +305,8 @@ public class GoogleProjectService {
   // Common project initialization for new projects, in the case where we are reusing
   // projects and are missing the metadata for them.
   // V2 - No longer assigns billing account to the project. Rawls will do this instead.
-  private GoogleProjectResource initializeProjectV2(
+  @VisibleForTesting
+  GoogleProjectResource initializeProjectV2(
       Project project,
       UUID billingProfileId,
       GoogleRegion region,

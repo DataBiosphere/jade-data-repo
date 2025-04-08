@@ -99,9 +99,7 @@ public class DatasetCreateFlight extends Flight {
     addStep(new CreateDatasetIdStep());
 
     if (platform.isGcp()) {
-      if (isTdrBillingProfile) {
-        addStep(new VerifyBillingAccountAccessStep(googleBillingService));
-      }
+      addStep(new VerifyBillingAccountAccessStep(googleBillingService));
 
       // Get a new google project from RBS and store it in the working map
       addStep(

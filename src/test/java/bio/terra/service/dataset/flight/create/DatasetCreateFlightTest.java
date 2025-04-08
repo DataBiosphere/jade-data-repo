@@ -10,7 +10,6 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightMap;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,12 +36,7 @@ class DatasetCreateFlightTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void testDatasetCreateFlightAuthorizeBillingSteps(boolean isTDRBillingProfile) {
-    DatasetRequestModel request =
-        new DatasetRequestModel()
-            .name("test-dataset")
-            .defaultProfileId(UUID.randomUUID())
-            .description("test-description");
-    inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
+    inputParameters.put(JobMapKeys.REQUEST.getKeyName(), new DatasetRequestModel());
     inputParameters.put(JobMapKeys.TDR_BILLING_PROFILE_FALLBACK.getKeyName(), isTDRBillingProfile);
     var flight = new DatasetCreateFlight(inputParameters, context);
 

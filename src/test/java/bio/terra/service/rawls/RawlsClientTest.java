@@ -12,6 +12,8 @@ import bio.terra.common.HttpEntityUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.profile.exception.BillingProjectNotAccessibleException;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -38,6 +40,8 @@ class RawlsClientTest {
   private static final UUID WORKSPACE_ID = UUID.randomUUID();
   private static final String NAMESPACE = "namespace";
   private static final String NAME = "name";
+  private static final UUID BILLING_PROJECT_ID = UUID.randomUUID();
+  private static final IamAction LINK_ACTION = IamAction.LINK;
 
   @BeforeEach
   void beforeEach() {
@@ -77,6 +81,33 @@ class RawlsClientTest {
             HttpClientErrorException.class,
             () -> rawlsClient.getWorkspace(WORKSPACE_ID, TEST_USER));
     assertThat(thrown, equalTo(expectedEx));
+  }
+
+  @Test
+  void verifyBillingProjectAction() {
+    when(restTemplate.exchange(
+            eq(rawlsClient.verifyBillingProjectActionEndpoint(BILLING_PROJECT_ID, LINK_ACTION)),
+            eq(HttpMethod.GET),
+            argThat(RawlsClientTest::hasUserToken),
+            eq(Void.class)))
+        .thenReturn(ResponseEntity.ok().build());
+
+    rawlsClient.verifyBillingProjectAction(BILLING_PROJECT_ID, LINK_ACTION, TEST_USER);
+  }
+
+  @Test
+  void verifyBillingProjectAction_NoAccess() {
+    var expectedEx = new HttpClientErrorException(HttpStatus.NOT_FOUND);
+    when(restTemplate.exchange(
+            eq(rawlsClient.verifyBillingProjectActionEndpoint(BILLING_PROJECT_ID, LINK_ACTION)),
+            eq(HttpMethod.GET),
+            argThat(RawlsClientTest::hasUserToken),
+            eq(Void.class)))
+        .thenThrow(expectedEx);
+
+    assertThrows(
+        BillingProjectNotAccessibleException.class,
+        () -> rawlsClient.verifyBillingProjectAction(BILLING_PROJECT_ID, LINK_ACTION, TEST_USER));
   }
 
   private static <T> boolean hasUserToken(HttpEntity<T> httpEntity) {

@@ -2,6 +2,8 @@ package bio.terra.service.rawls;
 
 import bio.terra.app.configuration.RawlsConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.profile.exception.BillingProjectNotAccessibleException;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.List;
 import java.util.UUID;
@@ -14,6 +16,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @Component
@@ -57,5 +60,32 @@ public class RawlsClient {
   @VisibleForTesting
   String getWorkspaceEndpoint(UUID workspaceId) {
     return String.format("%s/api/workspaces/id/%s", rawlsConfiguration.basePath(), workspaceId);
+  }
+
+  public void verifyBillingProjectAction(
+      UUID billingProjectId, IamAction action, AuthenticatedUserRequest userRequest) {
+    HttpHeaders authedHeaders = new HttpHeaders(headers);
+    authedHeaders.setBearerAuth(userRequest.getToken());
+    try {
+      restTemplate.exchange(
+          verifyBillingProjectActionEndpoint(billingProjectId, action),
+          HttpMethod.GET,
+          new HttpEntity<>(headers),
+          Void.class);
+    } catch (HttpClientErrorException e) {
+      // Client error (4xx)
+      throw new BillingProjectNotAccessibleException(
+          "Billing project does not exist in rawls or user does not have permission to perform "
+              + action
+              + " action on billing project "
+              + billingProjectId);
+    }
+  }
+
+  @VisibleForTesting
+  public String verifyBillingProjectActionEndpoint(UUID billingProjectId, IamAction action) {
+    return String.format(
+        "%s/api/billing/v2/id/%s/verifyAction/%s",
+        rawlsConfiguration.basePath(), billingProjectId, action);
   }
 }

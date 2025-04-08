@@ -165,11 +165,23 @@ public class DatasetService {
     String description = "Create dataset " + datasetRequest.getName();
     UUID defaultProfileId = datasetRequest.getDefaultProfileId();
     loggingMetrics.set(BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, defaultProfileId);
+
+    // Locate billing profile in TDR or Rawls
+    // No auth check: Just a check if there is an entry in our db for this billing profile
+    boolean isTdrBillingProfile;
+    try {
+      profileService.getProfileByIdNoCheck(defaultProfileId);
+      isTdrBillingProfile = true;
+    } catch (ProfileNotFoundException ex) {
+      isTdrBillingProfile = false;
+    }
+
     return jobService
         .newJob(description, DatasetCreateFlight.class, datasetRequest, userReq)
         .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.SPEND_PROFILE)
         .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), defaultProfileId)
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.LINK)
+        .addParameter(JobMapKeys.TDR_BILLING_PROFILE_FALLBACK.getKeyName(), isTdrBillingProfile)
         .submit();
   }
 

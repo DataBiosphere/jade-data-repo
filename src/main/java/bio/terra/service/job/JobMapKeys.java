@@ -27,6 +27,7 @@ public enum JobMapKeys {
   CUSTODIAN_EMAIL("custodianEmail"),
   CUSTODIAN_USERS("custodianUsers"),
   INHERIT_STEWARD("inheritSteward"),
+  TDR_BILLING_PROFILE_FALLBACK("tdrBillingProfileFallback"),
   SET_PUBLIC("setPublic");
 
   private final String keyName;

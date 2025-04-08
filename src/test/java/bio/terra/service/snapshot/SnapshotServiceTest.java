@@ -86,6 +86,7 @@ import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobBuilder;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
+import bio.terra.service.profile.ProfileService;
 import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -115,6 +116,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -165,6 +167,7 @@ class SnapshotServiceTest {
   @Mock private RawlsService rawlsService;
   @Mock private DuosClient duosClient;
   @Mock private SnapshotBuilderSettingsDao settingsDao;
+  @Mock private ProfileService profileService;
   private final UUID snapshotId = UUID.randomUUID();
   private final UUID datasetId = UUID.randomUUID();
   private final UUID snapshotTableId = UUID.randomUUID();
@@ -192,7 +195,8 @@ class SnapshotServiceTest {
             azureSynapsePdao,
             rawlsService,
             duosClient,
-            settingsDao);
+            settingsDao,
+            profileService);
   }
 
   @Test
@@ -1085,42 +1089,15 @@ class SnapshotServiceTest {
   @Test
   void testCreateSnapshotWithoutDuosDataset() {
     SnapshotRequestModel request = getDuosSnapshotRequestModel(null);
-    JobBuilder jobBuilder = mock(JobBuilder.class);
-    when(jobService.newJob(anyString(), eq(SnapshotCreateFlight.class), eq(request), eq(TEST_USER)))
-        .thenReturn(jobBuilder);
-    when(jobBuilder.addParameter(any(), any())).thenReturn(jobBuilder);
-    String jobId = String.valueOf(UUID.randomUUID());
-    when(jobBuilder.submit()).thenReturn(jobId);
-
-    String result =
-        service.createSnapshot(
-            request, service.getSourceDatasetFromSnapshotRequest(request), TEST_USER);
-    assertThat("Job is submitted and id returned", result, equalTo(jobId));
+    mockCreateSnapshot(request);
     verify(duosClient, never()).getDataset(DUOS_ID, TEST_USER);
-    verify(jobBuilder).submit();
   }
 
   @Test
   void testCreateSnapshotWithDuosDataset() {
     SnapshotRequestModel request = getDuosSnapshotRequestModel(DUOS_ID);
-    JobBuilder jobBuilder = mock(JobBuilder.class);
-    String jobId = mockJobService(request, jobBuilder);
-
-    String result =
-        service.createSnapshot(
-            request, service.getSourceDatasetFromSnapshotRequest(request), TEST_USER);
-    assertThat("Job is submitted and id returned", result, equalTo(jobId));
+    mockCreateSnapshot(request);
     verify(duosClient).getDataset(DUOS_ID, TEST_USER);
-    verify(jobBuilder).submit();
-  }
-
-  private String mockJobService(SnapshotRequestModel request, JobBuilder jobBuilder) {
-    when(jobService.newJob(anyString(), eq(SnapshotCreateFlight.class), eq(request), eq(TEST_USER)))
-        .thenReturn(jobBuilder);
-    when(jobBuilder.addParameter(any(), any())).thenReturn(jobBuilder);
-    String jobId = String.valueOf(UUID.randomUUID());
-    when(jobBuilder.submit()).thenReturn(jobId);
-    return jobId;
   }
 
   @Test
@@ -1144,19 +1121,13 @@ class SnapshotServiceTest {
         makeByRequestIdContentsModel(snapshotAccessRequestId);
     SnapshotRequestModel request = new SnapshotRequestModel().contents(List.of(contentsModel));
     request.profileId(UUID.randomUUID());
-    JobBuilder jobBuilder = mock(JobBuilder.class);
-    String jobId = mockJobService(request, jobBuilder);
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(snapshotAccessRequest);
     when(snapshotDao.retrieveSnapshot(snapshotAccessRequest.sourceSnapshotId()))
         .thenReturn(
             new Snapshot()
                 .snapshotSources(
                     List.of(new SnapshotSource().dataset(new Dataset().id(UUID.randomUUID())))));
-
-    String result =
-        service.createSnapshot(
-            request, service.getSourceDatasetFromSnapshotRequest(request), TEST_USER);
-    assertThat("Job is submitted and id returned", result, equalTo(jobId));
+    mockCreateSnapshot(request);
   }
 
   private void mockSnapshotWithDuosDataset() {
@@ -1201,7 +1172,6 @@ class SnapshotServiceTest {
             .profileId(UUID.randomUUID())
             .addDataAccessControlGroupsItem("AuthDomain1")
             .contents(List.of(new SnapshotRequestContentsModel().datasetName(sourceDatasetName)));
-
     mockCreateSnapshot(request);
   }
 
@@ -1219,17 +1189,60 @@ class SnapshotServiceTest {
             .name("TestSnapshot")
             .profileId(UUID.randomUUID())
             .contents(List.of(new SnapshotRequestContentsModel().datasetName(sourceDatasetName)));
-
     mockCreateSnapshot(request);
   }
 
-  private void mockCreateSnapshot(SnapshotRequestModel request) {
-    JobBuilder jobBuilder = mock(JobBuilder.class);
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void createSnapshot(boolean isTDRBillingProfile) {
+    UUID profileId = UUID.randomUUID();
+    UUID datasetId = UUID.randomUUID();
+    String jobId = UUID.randomUUID().toString();
+    SnapshotRequestModel snapshotRequestModel =
+        new SnapshotRequestModel()
+            .name("TestSnapshot")
+            .profileId(profileId)
+            .contents(List.of(new SnapshotRequestContentsModel().datasetName("TestSourceDataset")));
+    Dataset sourceDataset = new Dataset(new DatasetSummary().id(datasetId));
+
+    when(profileService.isTdrBillingProfile(profileId)).thenReturn(isTDRBillingProfile);
+    ArgumentCaptor<FlightMap> captor = mockJobServiceWithCaptor(snapshotRequestModel, jobId);
+
+    assertThat(
+        service.createSnapshot(snapshotRequestModel, sourceDataset, TEST_USER), equalTo(jobId));
+    FlightMap flightMap = captor.getValue();
+    assertThat(flightMap.get(JobMapKeys.DATASET_ID.getKeyName(), UUID.class), equalTo(datasetId));
+    assertThat(
+        flightMap.get(JobMapKeys.TDR_BILLING_PROFILE_FALLBACK.getKeyName(), Boolean.class),
+        equalTo(isTDRBillingProfile));
+  }
+
+  @NotNull
+  private ArgumentCaptor<FlightMap> mockJobServiceWithCaptor(
+      SnapshotRequestModel snapshotRequestModel, String jobId) {
+    JobBuilder jobBuilder =
+        new JobBuilder("", SnapshotCreateFlight.class, snapshotRequestModel, TEST_USER, jobService);
+    when(jobService.newJob(
+            anyString(), eq(SnapshotCreateFlight.class), eq(snapshotRequestModel), eq(TEST_USER)))
+        .thenReturn(jobBuilder);
+    ArgumentCaptor<FlightMap> captor = ArgumentCaptor.forClass(FlightMap.class);
+    when(jobService.submit(eq(SnapshotCreateFlight.class), captor.capture())).thenReturn(jobId);
+    return captor;
+  }
+
+  private String mockJobService(SnapshotRequestModel request, JobBuilder jobBuilder) {
     when(jobService.newJob(anyString(), eq(SnapshotCreateFlight.class), eq(request), eq(TEST_USER)))
         .thenReturn(jobBuilder);
     when(jobBuilder.addParameter(any(), any())).thenReturn(jobBuilder);
     String jobId = String.valueOf(UUID.randomUUID());
     when(jobBuilder.submit()).thenReturn(jobId);
+    return jobId;
+  }
+
+  private void mockCreateSnapshot(SnapshotRequestModel request) {
+    JobBuilder jobBuilder = mock(JobBuilder.class);
+    String jobId = mockJobService(request, jobBuilder);
+    when(profileService.isTdrBillingProfile(request.getProfileId())).thenReturn(false);
 
     String result =
         service.createSnapshot(

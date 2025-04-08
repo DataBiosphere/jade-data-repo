@@ -54,7 +54,6 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.profile.ProfileService;
-import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.tabulardata.azure.StorageTableService;
@@ -486,17 +485,12 @@ class DatasetServiceUnitTest {
             datasetRequestModel,
             TEST_USER))
         .thenReturn(jobBuilder);
-
-    if (!isTDRBillingProfile) {
-      when(profileService.getProfileByIdNoCheck(defaultBillingProfile))
-          .thenThrow(new ProfileNotFoundException("Profile not found"));
-    }
+    when(profileService.isTdrBillingProfile(defaultBillingProfile)).thenReturn(isTDRBillingProfile);
 
     ArgumentCaptor<FlightMap> captor = ArgumentCaptor.forClass(FlightMap.class);
     when(jobService.submit(eq(DatasetCreateFlight.class), captor.capture())).thenReturn("JobId");
 
     datasetService.createDataset(datasetRequestModel, TEST_USER);
-    verify(profileService).getProfileByIdNoCheck(defaultBillingProfile);
 
     FlightMap flightMap = captor.getValue();
     assertThat(

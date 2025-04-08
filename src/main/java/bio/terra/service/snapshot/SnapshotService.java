@@ -82,6 +82,7 @@ import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
+import bio.terra.service.profile.ProfileService;
 import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
@@ -144,6 +145,7 @@ public class SnapshotService {
   private final RawlsService rawlsService;
   private final DuosClient duosClient;
   private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
+  private final ProfileService profileService;
 
   public SnapshotService(
       JobService jobService,
@@ -159,7 +161,8 @@ public class SnapshotService {
       AzureSynapsePdao azureSynapsePdao,
       RawlsService rawlsService,
       DuosClient duosClient,
-      SnapshotBuilderSettingsDao snapshotBuilderSettingsDao) {
+      SnapshotBuilderSettingsDao snapshotBuilderSettingsDao,
+      ProfileService profileService) {
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;
@@ -174,6 +177,7 @@ public class SnapshotService {
     this.rawlsService = rawlsService;
     this.duosClient = duosClient;
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
+    this.profileService = profileService;
   }
 
   public String getSnapshotName(SnapshotRequestModel model) {
@@ -248,11 +252,15 @@ public class SnapshotService {
             .map(model -> model.datasetName(dataset.getName()))
             .toList());
 
+    boolean isTdrBillingProfile =
+        profileService.isTdrBillingProfile(snapshotRequestModel.getProfileId());
+
     return jobService
         .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)
         .addParameter(CommonMapKeys.CREATED_AT, Instant.now().toEpochMilli())
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), dataset.getId())
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId.toString())
+        .addParameter(JobMapKeys.TDR_BILLING_PROFILE_FALLBACK.getKeyName(), isTdrBillingProfile)
         .submit();
   }
 

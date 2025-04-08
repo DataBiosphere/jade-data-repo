@@ -34,8 +34,10 @@ import bio.terra.service.journal.JournalService;
 import bio.terra.service.policy.PolicyService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
+import bio.terra.service.profile.flight.AuthorizeRawlsBillingProjectsUseStep;
 import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
 import bio.terra.service.profile.google.GoogleBillingService;
+import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
@@ -109,6 +111,7 @@ public class SnapshotCreateFlight extends Flight {
     SnapshotBuilderService snapshotBuilderService =
         appContext.getBean(SnapshotBuilderService.class);
     IamService iamService = appContext.getBean(IamService.class);
+    RawlsService rawlsService = appContext.getBean(RawlsService.class);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -140,13 +143,25 @@ public class SnapshotCreateFlight extends Flight {
     var platform =
         CloudPlatformWrapper.of(sourceDataset.getDatasetSummary().getStorageCloudPlatform());
 
+    boolean isTdrBillingProfile =
+        inputParameters.get(JobMapKeys.TDR_BILLING_PROFILE_FALLBACK.getKeyName(), Boolean.class);
+
     // Take out a shared lock on the source dataset, to guard against it being deleted out from
     // under us (for example)
     addStep(new LockDatasetStep(datasetService, datasetId, true), randomBackoffRetry);
 
-    // Make sure this user is authorized to use the billing profile in SAM
-    addStep(
-        new AuthorizeBillingProfileUseStep(profileService, snapshotReq.getProfileId(), userReq));
+    if (isTdrBillingProfile) {
+      // If using TDR billing profile, make sure this user is authorized to use the billing profile
+      // in Sam
+      addStep(
+          new AuthorizeBillingProfileUseStep(profileService, snapshotReq.getProfileId(), userReq));
+    } else {
+      // If using Rawls billing project, make sure this user is authorized to use the billing
+      // project in Sam
+      addStep(
+          new AuthorizeRawlsBillingProjectsUseStep(
+              rawlsService, snapshotReq.getProfileId(), userReq));
+    }
 
     if (platform.isGcp()) {
       addStep(new VerifyBillingAccountAccessStep(googleBillingService));

@@ -1,7 +1,9 @@
 package bio.terra.service.profile;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -24,6 +26,7 @@ import bio.terra.service.job.JobBuilder;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.azure.AzureAuthzService;
+import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.profile.flight.create.ProfileCreateFlight;
 import bio.terra.service.profile.flight.delete.ProfileDeleteFlight;
@@ -190,5 +193,18 @@ class ProfileServiceUnitTest {
             IamResourceType.SPEND_PROFILE,
             PROFILE_ID.toString(),
             IamAction.READ_SPEND_REPORT);
+  }
+
+  @Test
+  void isTdrBillingProfileIdTrue() {
+    when(profileDao.getBillingProfileById(PROFILE_ID)).thenReturn(new BillingProfileModel());
+    assertTrue(profileService.isTdrBillingProfile(PROFILE_ID));
+  }
+
+  @Test
+  void isTdrBillingProfileIdFalse() {
+    when(profileDao.getBillingProfileById(PROFILE_ID))
+        .thenThrow(new ProfileNotFoundException("Profile not found"));
+    assertFalse(profileService.isTdrBillingProfile(PROFILE_ID));
   }
 }

@@ -199,6 +199,19 @@ public class ProfileService {
     return profileDao.getBillingProfileById(id);
   }
 
+  public boolean isTdrBillingProfile(UUID defaultProfileId) {
+    // Locate billing profile in TDR or Rawls
+    // No auth check: Just a check if there is an entry in our db for this billing profile
+    boolean isTdrBillingProfile;
+    try {
+      getProfileByIdNoCheck(defaultProfileId);
+      isTdrBillingProfile = true;
+    } catch (ProfileNotFoundException ex) {
+      isTdrBillingProfile = false;
+    }
+    return isTdrBillingProfile;
+  }
+
   // The idea is to use this call from create snapshot and create asset to validate that the
   // billing account is usable by the calling user
 

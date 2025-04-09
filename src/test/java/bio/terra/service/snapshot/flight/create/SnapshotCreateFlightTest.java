@@ -67,6 +67,7 @@ class SnapshotCreateFlightTest {
 
     inputParameters.put(JobMapKeys.DATASET_ID.getKeyName(), datasetId);
     inputParameters.put(JobMapKeys.SNAPSHOT_ID.getKeyName(), UUID.randomUUID());
+    inputParameters.put(JobMapKeys.TDR_BILLING_PROFILE_FALLBACK.getKeyName(), true);
   }
 
   @Test

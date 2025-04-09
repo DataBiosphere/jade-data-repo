@@ -1,7 +1,7 @@
 package bio.terra.service.dataset.flight.create;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInRelativeOrder;
+import static org.hamcrest.Matchers.contains;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
@@ -10,6 +10,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightMap;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,18 +41,49 @@ class DatasetCreateFlightTest {
     inputParameters.put(JobMapKeys.TDR_BILLING_PROFILE_FALLBACK.getKeyName(), isTDRBillingProfile);
     var flight = new DatasetCreateFlight(inputParameters, context);
 
+    List<String> stepNames = FlightTestUtils.getStepNames(flight);
+
     if (isTDRBillingProfile) {
       assertThat(
-          "Dataset creation flight locates the billing info and then has two optional steps",
-          FlightTestUtils.getStepNames(flight),
-          containsInRelativeOrder(
-              "AuthorizeBillingProfileUseStep", "CreateDatasetInitializeProjectStep"));
+          stepNames,
+          contains(
+              "AuthorizeBillingProfileUseStep",
+              "CreateDatasetIdStep",
+              "VerifyBillingAccountAccessStep",
+              "GetResourceBufferProjectStep",
+              "CreateDatasetInitializeProjectStep",
+              "CreateDatasetCreateIngestServiceAccountStep",
+              "CreateDatasetRegisterIngestServiceAccountStep",
+              "CreateDatasetMetadataStep",
+              "CreateDatasetAuthzIamStep",
+              "CreateDatasetPrimaryDataStep",
+              "CreateDatasetAuthzPrimaryDataStep",
+              "CreateDatasetAuthzBqJobUserStep",
+              "CreateDatasetGetOrCreateBucketStep",
+              "DatasetCreateMakeBucketLinkStep",
+              "UnlockDatasetStep",
+              "CreateDatasetSetResponseStep",
+              "CreateDatasetJournalEntryStep"));
     } else {
       assertThat(
-          "Dataset creation flight locates the billing info and then has two optional steps",
-          FlightTestUtils.getStepNames(flight),
-          containsInRelativeOrder(
-              "AuthorizeRawlsBillingProjectsUseStep", "CreateDatasetInitializeProjectV2Step"));
+          stepNames,
+          contains(
+              "AuthorizeRawlsBillingProjectsUseStep",
+              "CreateDatasetIdStep",
+              "GetResourceBufferProjectStep",
+              "CreateDatasetInitializeProjectV2Step",
+              "CreateDatasetCreateIngestServiceAccountStep",
+              "CreateDatasetRegisterIngestServiceAccountStep",
+              "CreateDatasetMetadataStep",
+              "CreateDatasetAuthzIamStep",
+              "CreateDatasetPrimaryDataStep",
+              "CreateDatasetAuthzPrimaryDataStep",
+              "CreateDatasetAuthzBqJobUserStep",
+              "CreateDatasetGetOrCreateBucketStep",
+              "DatasetCreateMakeBucketLinkStep",
+              "UnlockDatasetStep",
+              "CreateDatasetSetResponseStep",
+              "CreateDatasetJournalEntryStep"));
     }
   }
 }

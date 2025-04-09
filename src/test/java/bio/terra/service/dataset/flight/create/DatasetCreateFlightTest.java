@@ -1,8 +1,7 @@
 package bio.terra.service.dataset.flight.create;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInRelativeOrder;
-import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.contains;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
@@ -46,22 +45,45 @@ class DatasetCreateFlightTest {
 
     if (isTDRBillingProfile) {
       assertThat(
-          "Dataset creation flight locates the billing info and then has two optional steps",
           stepNames,
-          containsInRelativeOrder("AuthorizeBillingProfileUseStep"));
-      assertThat(
-          "Dataset creation flight with TDR billing profile on GCP includes VerifyBillingAccountAccessStep",
-          stepNames,
-          containsInRelativeOrder("VerifyBillingAccountAccessStep"));
+          contains(
+              "AuthorizeBillingProfileUseStep",
+              "CreateDatasetIdStep",
+              "VerifyBillingAccountAccessStep",
+              "GetResourceBufferProjectStep",
+              "CreateDatasetInitializeProjectStep",
+              "CreateDatasetCreateIngestServiceAccountStep",
+              "CreateDatasetRegisterIngestServiceAccountStep",
+              "CreateDatasetMetadataStep",
+              "CreateDatasetAuthzIamStep",
+              "CreateDatasetPrimaryDataStep",
+              "CreateDatasetAuthzPrimaryDataStep",
+              "CreateDatasetAuthzBqJobUserStep",
+              "CreateDatasetGetOrCreateBucketStep",
+              "DatasetCreateMakeBucketLinkStep",
+              "UnlockDatasetStep",
+              "CreateDatasetSetResponseStep",
+              "CreateDatasetJournalEntryStep"));
     } else {
       assertThat(
-          "Dataset creation flight locates the billing info and then has two optional steps",
           stepNames,
-          containsInRelativeOrder("AuthorizeRawlsBillingProjectsUseStep"));
-      assertThat(
-          "Dataset creation flight without TDR billing profile on GCP does not include VerifyBillingAccountAccessStep",
-          stepNames,
-          not(containsInRelativeOrder("VerifyBillingAccountAccessStep")));
+          contains(
+              "AuthorizeRawlsBillingProjectsUseStep",
+              "CreateDatasetIdStep",
+              "GetResourceBufferProjectStep",
+              "CreateDatasetInitializeProjectStep",
+              "CreateDatasetCreateIngestServiceAccountStep",
+              "CreateDatasetRegisterIngestServiceAccountStep",
+              "CreateDatasetMetadataStep",
+              "CreateDatasetAuthzIamStep",
+              "CreateDatasetPrimaryDataStep",
+              "CreateDatasetAuthzPrimaryDataStep",
+              "CreateDatasetAuthzBqJobUserStep",
+              "CreateDatasetGetOrCreateBucketStep",
+              "DatasetCreateMakeBucketLinkStep",
+              "UnlockDatasetStep",
+              "CreateDatasetSetResponseStep",
+              "CreateDatasetJournalEntryStep"));
     }
   }
 }

@@ -13,7 +13,8 @@ public enum IamResourceType {
   SPEND_PROFILE("spend-profile", IamResourceTypeEnum.SPEND_PROFILE),
   SNAPSHOT_BUILDER_REQUEST(
       "snapshot-builder-request", IamResourceTypeEnum.SNAPSHOT_BUILDER_REQUEST),
-  WORKSPACE("workspace", IamResourceTypeEnum.WORKSPACE);
+  WORKSPACE("workspace", IamResourceTypeEnum.WORKSPACE),
+  GOOGLE_PROJECT("datarepo-google-project", IamResourceTypeEnum.GOOGLE_PROJECT);
 
   private final String samResourceName;
   private final IamResourceTypeEnum iamResourceTypeEnum;

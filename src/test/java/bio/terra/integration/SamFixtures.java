@@ -8,7 +8,6 @@ import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
@@ -16,7 +15,6 @@ import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.AdminApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.GroupApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
-import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembershipRequest;
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
@@ -154,23 +152,15 @@ public class SamFixtures {
 
   public void createResource(TestConfiguration.User user, Resource resource, Resource parent) {
     try {
-      var request =
-          new CreateResourceRequestV2()
-              .resourceId(resource.id)
-              .policies(
-                  Map.of(
-                      IamRole.STEWARD.toString(),
-                      new AccessPolicyMembershipRequest()
-                          .roles(List.of(IamRole.STEWARD.toString()))
-                          .memberEmails(List.of(user.getEmail()))));
+      CreateResourceRequestV2 request = null;
       if (parent != null) {
-        request.setParent(parent.toFQRI());
+        request = new CreateResourceRequestV2().parent(parent.toFQRI());
       }
       ResourcesApi samResourcesApi = getResourcesApi(user);
-      samResourcesApi.createResourceV2(resource.type.toString(), request);
+      samResourcesApi.createResourceWithDefaultsV2(resource.type.toString(), resource.id, request);
       logger.info("Created {}", resource);
     } catch (ApiException e) {
-      throw new RuntimeException("Error creating Sam resource: %s".formatted(resource), e);
+      throw new RuntimeException("Error creating %s".formatted(resource), e);
     }
   }
 
@@ -180,18 +170,28 @@ public class SamFixtures {
       samResourcesApi.deleteResourceV2(resource.type.toString(), resource.id);
       logger.info("Deleted {}", resource);
     } catch (ApiException e) {
-      throw new RuntimeException("Error deleting Sam resource: %s".formatted(resource), e);
+      throw new RuntimeException("Error deleting %s".formatted(resource), e);
     }
   }
 
-  public void addUserToResource(TestConfiguration.User user, Resource resource, IamRole role) {
+  public void addUserToResource(
+      TestConfiguration.User owner, Resource resource, TestConfiguration.User user, IamRole role) {
     try {
-      ResourcesApi samResourcesApi = getResourcesApi(user);
+      ResourcesApi samResourcesApi = getResourcesApi(owner);
       samResourcesApi.addUserToPolicyV2(
-          resource.type.toString(), resource.id, role.toString(), user.getEmail(), null);
+          resource.type.toString(), resource.id, role.toString(), user.email(), null);
       logger.info("Added user {} with role {} to {}", user, role, resource);
     } catch (ApiException e) {
       throw new RuntimeException("Error adding user to Sam resource: %s".formatted(resource), e);
+    }
+  }
+
+  public List<String> getResourceActions(TestConfiguration.User user, Resource resource) {
+    try {
+      ResourcesApi samResourcesApi = getResourcesApi(user);
+      return samResourcesApi.resourceActionsV2(resource.type.toString(), resource.id);
+    } catch (ApiException e) {
+      throw new RuntimeException("Error retrieving resource actions: %s".formatted(resource), e);
     }
   }
 
@@ -218,8 +218,8 @@ public class SamFixtures {
 
   private HttpHeaders getHeaders(TestConfiguration.User user) {
     HttpHeaders copy = new HttpHeaders(headers);
-    copy.setBearerAuth(authService.getAuthToken(user.getEmail()));
-    copy.set("From", user.getEmail());
+    copy.setBearerAuth(authService.getAuthToken(user.email()));
+    copy.set("From", user.email());
     return copy;
   }
 }

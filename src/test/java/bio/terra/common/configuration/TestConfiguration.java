@@ -26,44 +26,7 @@ public class TestConfiguration {
   private String sourceStorageAccountName;
   private String ingestRequestContainer;
 
-  public static class User {
-    private String role;
-    private String name;
-    private String email;
-    private String subjectId;
-
-    public String getRole() {
-      return role;
-    }
-
-    public void setRole(String role) {
-      this.role = role;
-    }
-
-    public String getName() {
-      return name;
-    }
-
-    public void setName(String name) {
-      this.name = name;
-    }
-
-    public String getEmail() {
-      return email;
-    }
-
-    public void setEmail(String email) {
-      this.email = email;
-    }
-
-    public String getSubjectId() {
-      return subjectId;
-    }
-
-    public void setSubjectId(String subjectId) {
-      this.subjectId = subjectId;
-    }
-  }
+  public record User(String role, String name, String email, String subjectId) {}
 
   public String getJadeApiUrl() {
     return jadeApiUrl;

@@ -1,15 +1,17 @@
 package bio.terra.integration;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasItem;
 
 import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.integration.SamFixtures.Resource;
+import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Stack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -36,22 +38,21 @@ class SamResourcesTest {
   @Autowired private SamFixtures samFixtures;
   @Autowired private Users users;
 
-  private final ThreadLocal<List<SamFixtures.Resource>> tlResources =
-      ThreadLocal.withInitial(ArrayList::new);
+  private final ThreadLocal<Stack<Resource>> tlResources = ThreadLocal.withInitial(Stack::new);
 
-  private void addResource(SamFixtures.Resource resource) {
-    tlResources.get().add(resource);
+  private void addResource(Resource resource) {
+    tlResources.get().push(resource);
   }
 
-  private TestConfiguration.User steward() {
+  private TestConfiguration.User owner() {
     return testUsers.get().steward();
   }
 
-  private TestConfiguration.User custodian() {
+  private TestConfiguration.User owner2() {
     return testUsers.get().custodian();
   }
 
-  private TestConfiguration.User reader() {
+  private TestConfiguration.User collaborator() {
     return testUsers.get().reader();
   }
 
@@ -60,84 +61,99 @@ class SamResourcesTest {
 
   @AfterEach
   void afterEach() {
-    tlResources
-        .get()
-        .forEach(
-            resource -> {
-              try {
-                samFixtures.deleteResource(steward(), resource);
-              } catch (Exception e) {
-                logger.warn("Failed to delete resource: " + resource, e);
-              }
-            });
+    var resources = tlResources.get();
+    while (!resources.isEmpty()) {
+      var resource = resources.pop();
+      try {
+        samFixtures.deleteResource(owner(), resource);
+      } catch (Exception e) {
+        logger.warn("Failed to delete resource: " + resource, e);
+      }
+    }
   }
 
   /** verify permissions for CRUD operations on datarepo-google-project */
   @Test
   void verifyGoogleProjectCrud() {
     // create datarepo-google-project, verify permissions
-    var project = new SamFixtures.Resource(IamResourceType.GOOGLE_PROJECT);
+    var project = new Resource(IamResourceType.GOOGLE_PROJECT);
     addResource(project);
-    samFixtures.createResource(steward(), project);
+    samFixtures.createResource(owner(), project);
 
-    assertThrows(Exception.class, () -> samFixtures.deleteResource(reader(), project));
+    assertThat(samFixtures.getResourceActions(owner(), project), hasItem(IamAction.LINK.toString()));
+    assertThat(samFixtures.getResourceActions(collaborator(), project), empty());
   }
 
   /* create dataset, create child datarepo-google-project, verify permission inheritance */
   @Test
   void verifyDataset() {
-    var dataset = new SamFixtures.Resource(IamResourceType.DATASET);
+    var dataset = new Resource(IamResourceType.DATASET);
     addResource(dataset);
-    samFixtures.createResource(steward(), dataset);
+    samFixtures.createResource(owner(), dataset);
 
-    var project = new SamFixtures.Resource(IamResourceType.GOOGLE_PROJECT);
+    var project = new Resource(IamResourceType.GOOGLE_PROJECT);
     addResource(project);
-    samFixtures.createResource(steward(), project, dataset);
-    assertThrows(Exception.class, () -> samFixtures.deleteResource(reader(), project));
+    samFixtures.createResource(owner(), project, dataset);
+    var actions = samFixtures.getResourceActions(collaborator(), project);
+    assertThat(actions, empty());
 
-    samFixtures.addUserToResource(reader(), dataset, IamRole.STEWARD);
+    samFixtures.addUserToResource(owner(), dataset, collaborator(), IamRole.STEWARD);
 
-    assertDoesNotThrow(() -> samFixtures.deleteResource(reader(), project));
-    tlResources.get().remove(project);
+    actions = samFixtures.getResourceActions(collaborator(), dataset);
+    assertThat(actions, hasItem(IamAction.LINK.toString()));
+
+    actions = samFixtures.getResourceActions(collaborator(), project);
+    assertThat(actions, hasItem(IamAction.LINK.toString()));
   }
 
   // create snapshot, create child datarepo-google-project, verify permission inheritance
   @Test
   void verifySnapshot() {
-    var snapshot = new SamFixtures.Resource(IamResourceType.DATASNAPSHOT);
+    var snapshot = new Resource(IamResourceType.DATASNAPSHOT);
     addResource(snapshot);
-    samFixtures.createResource(steward(), snapshot);
+    samFixtures.createResource(owner(), snapshot);
 
-    var project = new SamFixtures.Resource(IamResourceType.GOOGLE_PROJECT);
+    var project = new Resource(IamResourceType.GOOGLE_PROJECT);
     addResource(project);
-    samFixtures.createResource(steward(), project, snapshot);
-    assertThrows(Exception.class, () -> samFixtures.deleteResource(reader(), project));
+    samFixtures.createResource(owner(), project, snapshot);
+    var actions = samFixtures.getResourceActions(collaborator(), project);
+    assertThat(actions, empty());
 
-    samFixtures.addUserToResource(reader(), snapshot, IamRole.STEWARD);
+    samFixtures.addUserToResource(owner(), snapshot, collaborator(), IamRole.STEWARD);
 
-    assertDoesNotThrow(() -> samFixtures.deleteResource(reader(), project));
-    tlResources.get().remove(project);
+    actions = samFixtures.getResourceActions(collaborator(), snapshot);
+    assertThat(actions, hasItem(IamAction.LINK.toString()));
+
+    actions = samFixtures.getResourceActions(collaborator(), project);
+    assertThat(actions, hasItem(IamAction.LINK.toString()));
   }
 
   // verify permission inheritance when snapshot is also a child of dataset
   @Test
   void verifyChildSnapshot() {
-    var dataset = new SamFixtures.Resource(IamResourceType.DATASET);
+    var dataset = new Resource(IamResourceType.DATASET);
     addResource(dataset);
-    samFixtures.createResource(steward(), dataset);
+    samFixtures.createResource(owner(), dataset);
 
-    var snapshot = new SamFixtures.Resource(IamResourceType.DATASNAPSHOT);
+    var snapshot = new Resource(IamResourceType.DATASNAPSHOT);
     addResource(snapshot);
-    samFixtures.createResource(reader(), snapshot, dataset);
+    samFixtures.createResource(collaborator(), snapshot, dataset);
 
-    var project = new SamFixtures.Resource(IamResourceType.GOOGLE_PROJECT);
+    var project = new Resource(IamResourceType.GOOGLE_PROJECT);
     addResource(project);
-    samFixtures.createResource(custodian(), project, snapshot);
-    assertThrows(Exception.class, () -> samFixtures.deleteResource(reader(), project));
+    samFixtures.createResource(owner2(), project, snapshot);
+    var actions = samFixtures.getResourceActions(collaborator(), project);
+    assertThat(actions, empty());
 
-    samFixtures.addUserToResource(reader(), dataset, IamRole.STEWARD);
+    samFixtures.addUserToResource(owner(), dataset, collaborator(), IamRole.STEWARD);
 
-    assertDoesNotThrow(() -> samFixtures.deleteResource(reader(), project));
-    tlResources.get().remove(project);
+    actions = samFixtures.getResourceActions(collaborator(), dataset);
+    assertThat(actions, hasItem(IamAction.LINK.toString()));
+
+    actions = samFixtures.getResourceActions(collaborator(), snapshot);
+    assertThat(actions, hasItem(IamAction.LINK.toString()));
+
+    actions = samFixtures.getResourceActions(collaborator(), project);
+    assertThat(actions, hasItem(IamAction.LINK.toString()));
   }
 }

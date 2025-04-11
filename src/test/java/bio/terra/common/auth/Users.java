@@ -29,13 +29,13 @@ public class Users {
 
   @Autowired
   public Users(TestConfiguration testConfig) {
-    usersByRole = testConfig.getUsers().stream().collect(Collectors.groupingBy(User::getRole));
+    usersByRole = testConfig.getUsers().stream().collect(Collectors.groupingBy(User::role));
   }
 
   private User getUserForRole(String name, String role) {
     var usersForRole = usersByRole.get(role);
     return usersForRole.stream()
-        .filter(u -> u.getName().equals(name))
+        .filter(u -> u.name().equals(name))
         .findFirst()
         .orElseThrow(
             () ->
@@ -44,9 +44,7 @@ public class Users {
                         "User %s with role %s was not found.  Available are: [%s]",
                         name,
                         role,
-                        usersForRole.stream()
-                            .map(User::getName)
-                            .collect(Collectors.joining(", ")))));
+                        usersForRole.stream().map(User::name).collect(Collectors.joining(", ")))));
   }
 
   private User getUserForRole(String role) {
@@ -98,11 +96,11 @@ public class Users {
     TestUsers testUsers = new TestUsers(admin(), steward(), custodian(), reader(), discoverer());
     logger.info(
         "admin: {}; steward: {}; custodian: {}; reader: {}; discoverer: {}",
-        testUsers.admin().getName(),
-        testUsers.steward().getName(),
-        testUsers.custodian().getName(),
-        testUsers.reader().getName(),
-        testUsers.discoverer().getName());
+        testUsers.admin().name(),
+        testUsers.steward().name(),
+        testUsers.custodian().name(),
+        testUsers.reader().name(),
+        testUsers.discoverer().name());
     return testUsers;
   }
 }

@@ -80,16 +80,16 @@ class SnapshotPermissionsIntegrationTest {
   @BeforeEach
   public void setup() throws Exception {
     testUsers = users.testUsers();
-    stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
+    stewardToken = authService.getDirectAccessAuthToken(steward().email());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     dataRepoFixtures.addPolicyMember(
-        steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
+        steward(), profileId, IamRole.USER, custodian().email(), IamResourceType.SPEND_PROFILE);
 
     datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
     datasetId = datasetSummaryModel.getId();
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().email());
 
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest(

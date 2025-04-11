@@ -80,7 +80,8 @@ class SamResourcesTest {
     addResource(project);
     samFixtures.createResource(owner(), project);
 
-    assertThat(samFixtures.getResourceActions(owner(), project), hasItem(IamAction.LINK.toString()));
+    assertThat(
+        samFixtures.getResourceActions(owner(), project), hasItem(IamAction.LINK.toString()));
     assertThat(samFixtures.getResourceActions(collaborator(), project), empty());
   }
 
@@ -137,7 +138,7 @@ class SamResourcesTest {
 
     var snapshot = new Resource(IamResourceType.DATASNAPSHOT);
     addResource(snapshot);
-    samFixtures.createResource(collaborator(), snapshot, dataset);
+    samFixtures.createResource(owner(), snapshot, dataset);
 
     var project = new Resource(IamResourceType.GOOGLE_PROJECT);
     addResource(project);

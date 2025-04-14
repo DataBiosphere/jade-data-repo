@@ -8,13 +8,16 @@ import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.AdminApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.GroupApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
+import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembershipRequest;
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
@@ -150,14 +153,44 @@ public class SamFixtures {
     createResource(user, resource, null);
   }
 
+  private static final Map<IamResourceType, IamRole> OWNER_ROLE =
+      Map.of(
+          IamResourceType.DATASET, IamRole.STEWARD,
+          IamResourceType.DATASNAPSHOT, IamRole.STEWARD,
+          IamResourceType.GOOGLE_PROJECT, IamRole.OWNER);
+
+  private static final Map<IamResourceType, List<IamRole>> POLICIES =
+      Map.of(
+          IamResourceType.DATASET, List.of(IamRole.CUSTODIAN, IamRole.STEWARD),
+          IamResourceType.DATASNAPSHOT, List.of(IamRole.CUSTODIAN, IamRole.STEWARD),
+          IamResourceType.GOOGLE_PROJECT, List.of(IamRole.OWNER));
+
+  private Map<String, AccessPolicyMembershipRequest> toMap(IamResourceType type, String owner) {
+    return POLICIES.get(type).stream()
+        .collect(
+            Collectors.toMap(
+                IamRole::toString,
+                role -> {
+                  var policies =
+                      new AccessPolicyMembershipRequest().roles(List.of(role.toString()));
+                  if (role == OWNER_ROLE.get(type)) {
+                    policies.setMemberEmails(List.of(owner));
+                  }
+                  return policies;
+                }));
+  }
+
   public void createResource(TestConfiguration.User user, Resource resource, Resource parent) {
     try {
-      CreateResourceRequestV2 request = null;
+      CreateResourceRequestV2 request =
+          new CreateResourceRequestV2()
+              .policies(toMap(resource.type, user.email()))
+              .resourceId(resource.id);
       if (parent != null) {
-        request = new CreateResourceRequestV2().parent(parent.toFQRI());
+        request.setParent(parent.toFQRI());
       }
       ResourcesApi samResourcesApi = getResourcesApi(user);
-      samResourcesApi.createResourceWithDefaultsV2(resource.type.toString(), resource.id, request);
+      samResourcesApi.createResourceV2(resource.type.toString(), request);
       logger.info("Created {}", resource);
     } catch (ApiException e) {
       throw new RuntimeException("Error creating %s".formatted(resource), e);

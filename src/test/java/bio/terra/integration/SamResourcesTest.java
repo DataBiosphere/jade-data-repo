@@ -48,10 +48,6 @@ class SamResourcesTest {
     return testUsers.get().steward();
   }
 
-  private TestConfiguration.User owner2() {
-    return testUsers.get().custodian();
-  }
-
   private TestConfiguration.User collaborator() {
     return testUsers.get().reader();
   }
@@ -101,7 +97,7 @@ class SamResourcesTest {
     samFixtures.addUserToResource(owner(), dataset, collaborator(), IamRole.STEWARD);
 
     actions = samFixtures.getResourceActions(collaborator(), dataset);
-    assertThat(actions, hasItem(IamAction.LINK.toString()));
+    assertThat(actions, hasItem(IamAction.INGEST_DATA.toString()));
 
     actions = samFixtures.getResourceActions(collaborator(), project);
     assertThat(actions, hasItem(IamAction.LINK.toString()));
@@ -123,7 +119,7 @@ class SamResourcesTest {
     samFixtures.addUserToResource(owner(), snapshot, collaborator(), IamRole.STEWARD);
 
     actions = samFixtures.getResourceActions(collaborator(), snapshot);
-    assertThat(actions, hasItem(IamAction.LINK.toString()));
+    assertThat(actions, hasItem(IamAction.DELETE.toString()));
 
     actions = samFixtures.getResourceActions(collaborator(), project);
     assertThat(actions, hasItem(IamAction.LINK.toString()));
@@ -142,17 +138,16 @@ class SamResourcesTest {
 
     var project = new Resource(IamResourceType.GOOGLE_PROJECT);
     addResource(project);
-    samFixtures.createResource(owner2(), project, snapshot);
     var actions = samFixtures.getResourceActions(collaborator(), project);
     assertThat(actions, empty());
 
     samFixtures.addUserToResource(owner(), dataset, collaborator(), IamRole.STEWARD);
 
     actions = samFixtures.getResourceActions(collaborator(), dataset);
-    assertThat(actions, hasItem(IamAction.LINK.toString()));
+    assertThat(actions, hasItem(IamAction.INGEST_DATA.toString()));
 
     actions = samFixtures.getResourceActions(collaborator(), snapshot);
-    assertThat(actions, hasItem(IamAction.LINK.toString()));
+    assertThat(actions, hasItem(IamAction.VIEW_JOURNAL.toString()));
 
     actions = samFixtures.getResourceActions(collaborator(), project);
     assertThat(actions, hasItem(IamAction.LINK.toString()));

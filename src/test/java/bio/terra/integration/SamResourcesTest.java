@@ -138,6 +138,7 @@ class SamResourcesTest {
 
     var project = new Resource(IamResourceType.GOOGLE_PROJECT);
     addResource(project);
+    samFixtures.createResource(owner(), project, snapshot);
     var actions = samFixtures.getResourceActions(collaborator(), project);
     assertThat(actions, empty());
 

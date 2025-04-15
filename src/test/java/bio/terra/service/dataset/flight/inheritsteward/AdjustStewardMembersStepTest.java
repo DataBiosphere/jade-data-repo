@@ -17,7 +17,7 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -44,33 +44,37 @@ class AdjustStewardMembersStepTest {
   private void verifyAdjustMembers(DoOrUndo doOrUndo, boolean inheritSteward) throws Exception {
     var snapshots =
         List.of(new Snapshot().id(UUID.randomUUID()), new Snapshot().id(UUID.randomUUID()));
-    var custodianUser = "user";
+    List<String> datasetPolicyEmails = new ArrayList<>(List.of("custodianEmail", "stewardEmail"));
     FlightMap workingMap = new FlightMap();
     workingMap.put(
         DatasetWorkingMapKeys.SNAPSHOT_IDS,
         snapshots.stream().map(Snapshot::getId).collect(Collectors.toList()));
     FlightMap inputParameters = new FlightMap();
-    inputParameters.put(JobMapKeys.CUSTODIAN_USERS.getKeyName(), Arrays.asList(custodianUser));
+    inputParameters.put(JobMapKeys.DATASET_POLICY_EMAILS.getKeyName(), datasetPolicyEmails);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     when(flightContext.getInputParameters()).thenReturn(inputParameters);
     assertThat(doOrUndo.apply(flightContext), is(StepResult.getStepResultSuccess()));
     for (var snapshot : snapshots) {
       if (inheritSteward) {
-        verify(iamService)
-            .deletePolicyMember(
-                TEST_USER,
-                IamResourceType.DATASNAPSHOT,
-                snapshot.getId(),
-                IamRole.STEWARD,
-                custodianUser);
+        datasetPolicyEmails.forEach(
+            email ->
+                verify(iamService)
+                    .deletePolicyMember(
+                        TEST_USER,
+                        IamResourceType.DATASNAPSHOT,
+                        snapshot.getId(),
+                        IamRole.STEWARD,
+                        email));
       } else {
-        verify(iamService)
-            .addPolicyMember(
-                TEST_USER,
-                IamResourceType.DATASNAPSHOT,
-                snapshot.getId(),
-                IamRole.STEWARD,
-                custodianUser);
+        datasetPolicyEmails.forEach(
+            email ->
+                verify(iamService)
+                    .addPolicyMember(
+                        TEST_USER,
+                        IamResourceType.DATASNAPSHOT,
+                        snapshot.getId(),
+                        IamRole.STEWARD,
+                        email));
       }
     }
   }

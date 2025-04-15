@@ -31,7 +31,7 @@ class SetAuthTabularAclStepTest {
   @Mock private SnapshotService snapshotService;
   @Mock private FlightContext flightContext;
 
-  private final String custodianEmail = "custodianEmail";
+  private final List<String> datasetPolicyEmails = List.of("custodianEmail", "stewardEmail");
 
   interface DoOrUndo {
     StepResult apply(FlightContext t) throws Exception;
@@ -50,12 +50,11 @@ class SetAuthTabularAclStepTest {
     }
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     assertThat(doOrUndo.apply(flightContext), is(StepResult.getStepResultSuccess()));
-    List<String> emails = List.of(custodianEmail);
     for (var snapshot : snapshots) {
       if (grantPolicy) {
-        verify(bigQuerySnapshotPdao).grantReadAccessToSnapshot(snapshot, emails);
+        verify(bigQuerySnapshotPdao).grantReadAccessToSnapshot(snapshot, datasetPolicyEmails);
       } else {
-        verify(bigQuerySnapshotPdao).revokeReadAccessToSnapshot(snapshot, emails);
+        verify(bigQuerySnapshotPdao).revokeReadAccessToSnapshot(snapshot, datasetPolicyEmails);
       }
     }
   }
@@ -65,7 +64,7 @@ class SetAuthTabularAclStepTest {
   void doStep(boolean inheritSteward) throws Exception {
     SetAuthTabularAclStep step =
         new SetAuthTabularAclStep(
-            bigQuerySnapshotPdao, snapshotService, custodianEmail, inheritSteward);
+            bigQuerySnapshotPdao, snapshotService, datasetPolicyEmails, inheritSteward);
     verifySetAuth(step::doStep, inheritSteward);
     verifySetAuth(step::undoStep, !inheritSteward);
   }

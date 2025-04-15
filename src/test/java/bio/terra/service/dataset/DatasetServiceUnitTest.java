@@ -72,6 +72,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -403,14 +404,20 @@ class DatasetServiceUnitTest {
             TEST_USER))
         .thenReturn(jobBuilder);
     var custodianEmail = "custodianEmail";
+    var stewardEmail = "stewardEmail";
     var members = Arrays.asList("member");
+    var stewardMembers = Arrays.asList("member2");
     when(iamService.retrievePolicies(TEST_USER, IamResourceType.DATASET, DATASET_ID))
         .thenReturn(
             List.of(
                 new SamPolicyModel()
                     .name(IamRole.CUSTODIAN.toString())
                     .email(custodianEmail)
-                    .members(members)));
+                    .members(members),
+                new SamPolicyModel()
+                    .name(IamRole.STEWARD.toString())
+                    .email(stewardEmail)
+                    .members(stewardMembers)));
     ArgumentCaptor<FlightMap> captor = ArgumentCaptor.forClass(FlightMap.class);
     when(jobService.submit(eq(SetInheritStewardFlight.class), captor.capture()))
         .thenReturn("JobId");
@@ -426,11 +433,12 @@ class DatasetServiceUnitTest {
     assertThat(
         flightMap.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class),
         equalTo(IamAction.SET_INHERIT_STEWARD));
+    List<String> datasetPolicyEmails =
+        flightMap.get(JobMapKeys.DATASET_POLICY_EMAILS.getKeyName(), List.class);
+    assertThat(datasetPolicyEmails, equalTo(Arrays.asList(custodianEmail, stewardEmail)));
     assertThat(
-        flightMap.get(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), String.class),
-        equalTo(custodianEmail));
-    assertThat(
-        flightMap.get(JobMapKeys.CUSTODIAN_USERS.getKeyName(), List.class), equalTo(members));
+        flightMap.get(JobMapKeys.DATASET_POLICY_USERS.getKeyName(), List.class),
+        equalTo(Stream.of(members, stewardMembers).flatMap(List::stream).toList()));
     assertThat(
         flightMap.get(JobMapKeys.INHERIT_STEWARD.getKeyName(), Boolean.class),
         equalTo(inheritSteward));

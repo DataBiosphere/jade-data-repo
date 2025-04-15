@@ -15,7 +15,7 @@ import java.util.UUID;
 public record SetAuthTabularAclStep(
     BigQuerySnapshotPdao bigQuerySnapshotPdao,
     SnapshotService snapshotService,
-    String custodianEmail,
+    List<String> datasetPolicyEmails,
     boolean inheritSteward)
     implements Step {
 
@@ -30,13 +30,12 @@ public record SetAuthTabularAclStep(
   private void setAuth(FlightContext context, boolean inheritSteward) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     List<UUID> snapshotIds = workingMap.get(DatasetWorkingMapKeys.SNAPSHOT_IDS, List.class);
-    List<String> policyEmails = List.of(custodianEmail);
     for (var snapshotId : Objects.requireNonNull(snapshotIds)) {
       Snapshot snapshot = snapshotService.retrieve(snapshotId);
       if (inheritSteward) {
-        bigQuerySnapshotPdao.grantReadAccessToSnapshot(snapshot, policyEmails);
+        bigQuerySnapshotPdao.grantReadAccessToSnapshot(snapshot, datasetPolicyEmails);
       } else {
-        bigQuerySnapshotPdao.revokeReadAccessToSnapshot(snapshot, policyEmails);
+        bigQuerySnapshotPdao.revokeReadAccessToSnapshot(snapshot, datasetPolicyEmails);
       }
     }
   }

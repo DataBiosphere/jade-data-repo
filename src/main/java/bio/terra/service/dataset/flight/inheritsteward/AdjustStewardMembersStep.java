@@ -35,7 +35,7 @@ public record AdjustStewardMembersStep(
     FlightMap inputParams = context.getInputParameters();
     List<String> custodians =
         Objects.requireNonNull(
-            inputParams.get(JobMapKeys.CUSTODIAN_USERS.getKeyName(), List.class));
+            inputParams.get(JobMapKeys.DATASET_POLICY_EMAILS.getKeyName(), List.class));
     AddRemoveApi api =
         inheritSteward ? iamService::deletePolicyMember : iamService::addPolicyMember;
     for (var snapshotId : snapshotIds) {

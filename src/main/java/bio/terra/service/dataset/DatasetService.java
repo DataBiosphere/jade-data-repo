@@ -29,6 +29,7 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.ResourceLocks;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.model.TagCount;
 import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TagUpdateRequestModel;
@@ -84,6 +85,7 @@ import bio.terra.stairway.ShortUUID;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -775,18 +777,30 @@ public class DatasetService {
       UUID datasetId, boolean inheritSteward, AuthenticatedUserRequest userReq) {
     String description =
         String.format("Set inherit steward to %s for dataset %s", inheritSteward, datasetId);
-    var custodianPolicy =
+    List<SamPolicyModel> datasetPolicies =
         iamService.retrievePolicies(userReq, IamResourceType.DATASET, datasetId).stream()
-            .filter(p -> p.getName().equals(IamRole.CUSTODIAN.toString()))
-            .findFirst()
-            .orElseThrow();
+            .filter(
+                p ->
+                    List.of(IamRole.CUSTODIAN.toString(), IamRole.STEWARD.toString())
+                        .contains(p.getName()))
+            .toList();
+    List<String> datasetPolicyEmails = new ArrayList<>();
+    datasetPolicies.stream()
+        .map(SamPolicyModel::getEmail)
+        .distinct()
+        .forEach(datasetPolicyEmails::add);
+    List<String> datasetPolicyMembers = new ArrayList<>();
+    datasetPolicies.stream().map(SamPolicyModel::getMembers).toList().stream()
+        .flatMap(List::stream)
+        .distinct()
+        .forEach(datasetPolicyMembers::add);
     return jobService
         .newJob(description, SetInheritStewardFlight.class, null, userReq)
         .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
-        .addParameter(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), custodianPolicy.getEmail())
-        .addParameter(JobMapKeys.CUSTODIAN_USERS.getKeyName(), custodianPolicy.getMembers())
+        .addParameter(JobMapKeys.DATASET_POLICY_EMAILS.getKeyName(), datasetPolicyEmails)
+        .addParameter(JobMapKeys.DATASET_POLICY_USERS.getKeyName(), datasetPolicyMembers)
         .addParameter(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward)
         .submit();
   }

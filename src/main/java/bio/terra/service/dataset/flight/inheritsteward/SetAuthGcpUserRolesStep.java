@@ -15,7 +15,7 @@ import java.util.UUID;
 public record SetAuthGcpUserRolesStep(
     ResourceService resourceService,
     SnapshotService snapshotService,
-    String custodianEmail,
+    List<String> datasetPolicyEmails,
     boolean inheritSteward)
     implements Step {
 
@@ -27,9 +27,9 @@ public record SetAuthGcpUserRolesStep(
       String projectId =
           snapshotService.retrieve(snapshotId).getProjectResource().getGoogleProjectId();
       if (inheritSteward) {
-        resourceService.assignRolesForSnapshot(projectId, List.of(custodianEmail));
+        resourceService.assignRolesForSnapshot(projectId, datasetPolicyEmails);
       } else {
-        resourceService.revokeRolesForSnapshot(projectId, List.of(custodianEmail));
+        resourceService.revokeRolesForSnapshot(projectId, datasetPolicyEmails);
       }
     }
     return StepResult.getStepResultSuccess();

@@ -16,6 +16,7 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
@@ -36,8 +37,8 @@ public class SetInheritStewardFlight extends Flight {
 
     // Get the input parameters
     UUID datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), UUID.class);
-    String custodianEmail =
-        inputParameters.get(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), String.class);
+    List<String> datasetPolicyEmails =
+        inputParameters.get(JobMapKeys.DATASET_POLICY_EMAILS.getKeyName(), List.class);
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
@@ -55,10 +56,10 @@ public class SetInheritStewardFlight extends Flight {
     addStep(new SetParentOnSnapshotsStep(iamService, datasetId, userReq, inheritSteward));
     addStep(
         new SetAuthGcpUserRolesStep(
-            resourceService, snapshotService, custodianEmail, inheritSteward));
+            resourceService, snapshotService, datasetPolicyEmails, inheritSteward));
     addStep(
         new SetAuthTabularAclStep(
-            bigQuerySnapshotPdao, snapshotService, custodianEmail, inheritSteward));
+            bigQuerySnapshotPdao, snapshotService, datasetPolicyEmails, inheritSteward));
     addStep(new AdjustStewardMembersStep(userReq, iamService, inheritSteward));
     if (!inheritSteward) {
       // If we are setting inherit steward to false, we want to set the flag last

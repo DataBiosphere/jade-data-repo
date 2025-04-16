@@ -50,7 +50,7 @@ class AdjustStewardMembersStepTest {
         DatasetWorkingMapKeys.SNAPSHOT_IDS,
         snapshots.stream().map(Snapshot::getId).collect(Collectors.toList()));
     FlightMap inputParameters = new FlightMap();
-    inputParameters.put(JobMapKeys.DATASET_POLICY_EMAILS.getKeyName(), datasetPolicyEmails);
+    inputParameters.put(JobMapKeys.DATASET_POLICY_USERS.getKeyName(), datasetPolicyEmails);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     when(flightContext.getInputParameters()).thenReturn(inputParameters);
     assertThat(doOrUndo.apply(flightContext), is(StepResult.getStepResultSuccess()));

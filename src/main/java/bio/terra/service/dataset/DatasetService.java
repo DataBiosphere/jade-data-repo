@@ -784,16 +784,14 @@ public class DatasetService {
                     List.of(IamRole.CUSTODIAN.toString(), IamRole.STEWARD.toString())
                         .contains(p.getName()))
             .toList();
-    List<String> datasetPolicyEmails = new ArrayList<>();
-    datasetPolicies.stream()
-        .map(SamPolicyModel::getEmail)
-        .distinct()
-        .forEach(datasetPolicyEmails::add);
-    List<String> datasetPolicyMembers = new ArrayList<>();
-    datasetPolicies.stream().map(SamPolicyModel::getMembers).toList().stream()
-        .flatMap(List::stream)
-        .distinct()
-        .forEach(datasetPolicyMembers::add);
+    List<String> datasetPolicyEmails =
+        new ArrayList<>(datasetPolicies.stream().map(SamPolicyModel::getEmail).distinct().toList());
+    List<String> datasetPolicyMembers =
+        new ArrayList<>(
+            datasetPolicies.stream()
+                .flatMap(policy -> policy.getMembers().stream())
+                .distinct()
+                .toList());
     return jobService
         .newJob(description, SetInheritStewardFlight.class, null, userReq)
         .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)

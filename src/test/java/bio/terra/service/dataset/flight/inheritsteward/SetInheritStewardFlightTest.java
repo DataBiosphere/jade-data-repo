@@ -55,7 +55,8 @@ class SetInheritStewardFlightTest {
 
   private static final String CUSTODIAN_EMAIL = "custodian email";
   private static final String STEWARD_EMAIL = "steward email";
-  private static final List<String> DATASET_POLICY_EMAILS = new ArrayList<>();
+  private static final List<String> DATASET_POLICY_EMAILS =
+      new ArrayList<>(List.of(CUSTODIAN_EMAIL, STEWARD_EMAIL));
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -66,8 +67,6 @@ class SetInheritStewardFlightTest {
     inputParameters.put(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID);
     inputParameters.put(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD);
     inputParameters.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), TEST_USER);
-    DATASET_POLICY_EMAILS.add(CUSTODIAN_EMAIL);
-    DATASET_POLICY_EMAILS.add(STEWARD_EMAIL);
     inputParameters.put(JobMapKeys.DATASET_POLICY_EMAILS.getKeyName(), DATASET_POLICY_EMAILS);
     when(context.getBean(DatasetDao.class)).thenReturn(datasetDao);
     when(context.getBean(SnapshotDao.class)).thenReturn(snapshotDao);

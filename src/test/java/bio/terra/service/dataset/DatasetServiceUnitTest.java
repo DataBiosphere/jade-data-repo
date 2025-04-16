@@ -433,9 +433,9 @@ class DatasetServiceUnitTest {
     assertThat(
         flightMap.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class),
         equalTo(IamAction.SET_INHERIT_STEWARD));
-    List<String> datasetPolicyEmails =
-        flightMap.get(JobMapKeys.DATASET_POLICY_EMAILS.getKeyName(), List.class);
-    assertThat(datasetPolicyEmails, equalTo(Arrays.asList(custodianEmail, stewardEmail)));
+    assertThat(
+        flightMap.get(JobMapKeys.DATASET_POLICY_EMAILS.getKeyName(), List.class),
+        equalTo(Arrays.asList(custodianEmail, stewardEmail)));
     assertThat(
         flightMap.get(JobMapKeys.DATASET_POLICY_USERS.getKeyName(), List.class),
         equalTo(Stream.of(members, stewardMembers).flatMap(List::stream).toList()));

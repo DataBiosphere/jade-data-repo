@@ -5,7 +5,6 @@ import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_ACCESS_F
 import bio.terra.common.FlightUtils;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.configuration.ConfigurationService;
@@ -67,9 +66,14 @@ public class SnapshotAuthzTabularAclStep implements Step {
     emails.add(policies.get(IamRole.READER));
 
     if (sourceDataset.isInheritSteward()) {
-      var datasetPolicyMap =
-          iamService.retrievePolicyEmails(userReq, IamResourceType.DATASET, sourceDataset.getId());
-      emails.add(datasetPolicyMap.get(IamRole.CUSTODIAN));
+      Map<IamRole, String> sourceDatasetPolicyMap =
+          workingMap.get(
+              SnapshotWorkingMapKeys.SOURCE_DATASET_POLICY_MAP, new TypeReference<>() {});
+      // Allow the dataset stewards and custodians to make queries in the snapshot project.
+      emails.addAll(
+          List.of(
+              sourceDatasetPolicyMap.get(IamRole.CUSTODIAN),
+              sourceDatasetPolicyMap.get(IamRole.STEWARD)));
     }
 
     try {

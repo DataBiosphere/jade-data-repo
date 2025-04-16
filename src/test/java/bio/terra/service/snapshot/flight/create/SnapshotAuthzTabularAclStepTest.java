@@ -9,8 +9,6 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.AuthenticationFixtures;
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.configuration.ConfigurationService;
@@ -46,11 +44,7 @@ class SnapshotAuthzTabularAclStepTest {
   @Mock private ConfigurationService configService;
   @Mock private IamService iamService;
   @Mock private FlightContext flightContext;
-
-  private static final AuthenticatedUserRequest TEST_USER =
-      AuthenticationFixtures.randomUserRequest();
   private static final Snapshot SNAPSHOT = new Snapshot().id(UUID.randomUUID());
-
   private SnapshotAuthzTabularAclStep step;
 
   @BeforeEach
@@ -71,13 +65,7 @@ class SnapshotAuthzTabularAclStepTest {
     when(snapshotService.retrieve(SNAPSHOT.getId())).thenReturn(SNAPSHOT);
     step =
         new SnapshotAuthzTabularAclStep(
-            bigQuerySnapshotPdao,
-            snapshotService,
-            configService,
-            iamService,
-            SNAPSHOT.getId(),
-            TEST_USER,
-            new Dataset());
+            bigQuerySnapshotPdao, snapshotService, configService, SNAPSHOT.getId(), new Dataset());
   }
 
   @Test
@@ -94,13 +82,7 @@ class SnapshotAuthzTabularAclStepTest {
         new Dataset(new DatasetSummary().inheritSteward(inheritSteward)).id(UUID.randomUUID());
     step =
         new SnapshotAuthzTabularAclStep(
-            bigQuerySnapshotPdao,
-            snapshotService,
-            configService,
-            iamService,
-            SNAPSHOT.getId(),
-            TEST_USER,
-            sourceDataset);
+            bigQuerySnapshotPdao, snapshotService, configService, SNAPSHOT.getId(), sourceDataset);
     assertThat(step.doStep(flightContext), is(StepResult.getStepResultSuccess()));
     if (inheritSteward) {
       verify(bigQuerySnapshotPdao)

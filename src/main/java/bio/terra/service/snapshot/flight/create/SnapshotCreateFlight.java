@@ -350,13 +350,7 @@ public class SnapshotCreateFlight extends Flight {
       // Apply the IAM readers to the BQ dataset
       addStep(
           new SnapshotAuthzTabularAclStep(
-              bigQuerySnapshotPdao,
-              snapshotService,
-              configService,
-              iamService,
-              snapshotId,
-              userReq,
-              sourceDataset),
+              bigQuerySnapshotPdao, snapshotService, configService, snapshotId, sourceDataset),
           pdaoAclRetryRule);
 
       // Apply the IAM readers to the GCS files

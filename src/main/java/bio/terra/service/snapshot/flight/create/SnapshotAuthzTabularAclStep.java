@@ -4,9 +4,7 @@ import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_ACCESS_F
 
 import bio.terra.common.FlightUtils;
 import bio.terra.common.exception.PdaoException;
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamRole;
-import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
@@ -31,25 +29,19 @@ public class SnapshotAuthzTabularAclStep implements Step {
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotService snapshotService;
   private final ConfigurationService configService;
-  private final IamService iamService;
   private final UUID snapshotId;
-  private final AuthenticatedUserRequest userReq;
   private final Dataset sourceDataset;
 
   public SnapshotAuthzTabularAclStep(
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotService snapshotService,
       ConfigurationService configService,
-      IamService iamService,
       UUID snapshotId,
-      AuthenticatedUserRequest userReq,
       Dataset sourceDataset) {
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotService = snapshotService;
     this.configService = configService;
     this.snapshotId = snapshotId;
-    this.userReq = userReq;
-    this.iamService = iamService;
     this.sourceDataset = sourceDataset;
   }
 

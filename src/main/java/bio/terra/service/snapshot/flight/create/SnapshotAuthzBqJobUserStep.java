@@ -48,8 +48,11 @@ public class SnapshotAuthzBqJobUserStep implements Step {
       Map<IamRole, String> sourceDatasetPolicyMap =
           workingMap.get(
               SnapshotWorkingMapKeys.SOURCE_DATASET_POLICY_MAP, new TypeReference<>() {});
-      // Allow the custodian to make queries in this project.
-      policyEmails.add(sourceDatasetPolicyMap.get(IamRole.CUSTODIAN));
+      // Allow the dataset stewards and custodians to make queries in the snapshot project.
+      policyEmails.addAll(
+          List.of(
+              sourceDatasetPolicyMap.get(IamRole.CUSTODIAN),
+              sourceDatasetPolicyMap.get(IamRole.STEWARD)));
     }
     // The underlying service provides retries so we do not need to retry this operation
     resourceService.grantPoliciesBqJobUser(googleProjectId, policyEmails);

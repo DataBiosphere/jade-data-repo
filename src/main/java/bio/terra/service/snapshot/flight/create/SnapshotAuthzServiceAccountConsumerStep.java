@@ -60,8 +60,11 @@ public class SnapshotAuthzServiceAccountConsumerStep implements Step {
       Map<IamRole, String> sourceDatasetPolicyMap =
           workingMap.get(
               SnapshotWorkingMapKeys.SOURCE_DATASET_POLICY_MAP, new TypeReference<>() {});
-      // Allow the custodian to make queries in this project.
-      principalsToAdd.add(sourceDatasetPolicyMap.get(IamRole.CUSTODIAN));
+      // Allow dataset stewards and custodians to make queries in the snapshot project.
+      principalsToAdd.addAll(
+          List.of(
+              sourceDatasetPolicyMap.get(IamRole.CUSTODIAN),
+              sourceDatasetPolicyMap.get(IamRole.STEWARD)));
     }
     resourceService.grantPoliciesServiceUsageConsumer(
         snapshot.getProjectResource().getGoogleProjectId(), principalsToAdd);

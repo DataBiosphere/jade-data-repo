@@ -5,14 +5,21 @@ import static bio.terra.service.auth.iam.sam.SamIam.convertSamExToDataRepoEx;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamRole;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.AdminApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.GroupApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
+import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembershipRequest;
+import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
+import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,16 +89,9 @@ public class SamFixtures {
 
   public void deleteSnapshotAccessRequest(
       TestConfiguration.User user, UUID snapshotAccessRequestId) {
-    try {
-      HttpHeaders authedHeader = getHeaders(user);
-      String accessToken = getAccessToken(authedHeader);
-      ResourcesApi samResourcesApi = new ResourcesApi(getApiClient(accessToken));
-      samResourcesApi.deleteResourceV2(
-          "snapshot-builder-request", snapshotAccessRequestId.toString());
-      logger.info("Deleted snapshot access request {}", snapshotAccessRequestId);
-    } catch (ApiException e) {
-      throw new RuntimeException("Error deleting snapshot access request: %s", e);
-    }
+    deleteResource(
+        user,
+        new Resource(IamResourceType.SNAPSHOT_BUILDER_REQUEST, snapshotAccessRequestId.toString()));
   }
 
   public void addGroup(TestConfiguration.User user, String groupName) {
@@ -109,9 +109,7 @@ public class SamFixtures {
   public List<String> getAuthDomainForResource(
       TestConfiguration.User user, String resourceType, String resourceId) {
     try {
-      HttpHeaders authedHeader = getHeaders(user);
-      String accessToken = getAccessToken(authedHeader);
-      ResourcesApi samResourcesApi = new ResourcesApi(getApiClient(accessToken));
+      ResourcesApi samResourcesApi = getResourcesApi(user);
       return samResourcesApi.getAuthDomainV2(resourceType, resourceId);
     } catch (ApiException e) {
       throw new RuntimeException("Error retrieving Data Access Controls: %s", e);
@@ -141,6 +139,99 @@ public class SamFixtures {
     }
   }
 
+  public record Resource(IamResourceType type, String id) {
+    Resource(IamResourceType type) {
+      this(type, UUID.randomUUID().toString());
+    }
+
+    FullyQualifiedResourceId toFQRI() {
+      return new FullyQualifiedResourceId().resourceTypeName(type.toString()).resourceId(id);
+    }
+  }
+
+  public void createResource(TestConfiguration.User user, Resource resource) {
+    createResource(user, resource, null);
+  }
+
+  private static final Map<IamResourceType, IamRole> OWNER_ROLE =
+      Map.of(
+          IamResourceType.DATASET, IamRole.STEWARD,
+          IamResourceType.DATASNAPSHOT, IamRole.STEWARD,
+          IamResourceType.GOOGLE_PROJECT, IamRole.OWNER);
+
+  private static final Map<IamResourceType, List<IamRole>> POLICIES =
+      Map.of(
+          IamResourceType.DATASET, List.of(IamRole.CUSTODIAN, IamRole.STEWARD),
+          IamResourceType.DATASNAPSHOT, List.of(IamRole.CUSTODIAN, IamRole.STEWARD),
+          IamResourceType.GOOGLE_PROJECT, List.of(IamRole.OWNER));
+
+  private Map<String, AccessPolicyMembershipRequest> toMap(IamResourceType type, String owner) {
+    return POLICIES.get(type).stream()
+        .collect(
+            Collectors.toMap(
+                IamRole::toString,
+                role -> {
+                  var policies =
+                      new AccessPolicyMembershipRequest().roles(List.of(role.toString()));
+                  if (role == OWNER_ROLE.get(type)) {
+                    policies.setMemberEmails(List.of(owner));
+                  }
+                  return policies;
+                }));
+  }
+
+  public void createResource(TestConfiguration.User user, Resource resource, Resource parent) {
+    try {
+      CreateResourceRequestV2 request =
+          new CreateResourceRequestV2()
+              .policies(toMap(resource.type, user.email()))
+              .resourceId(resource.id);
+      if (parent != null) {
+        request.setParent(parent.toFQRI());
+      }
+      ResourcesApi samResourcesApi = getResourcesApi(user);
+      samResourcesApi.createResourceV2(resource.type.toString(), request);
+      logger.info("Created {}", resource);
+    } catch (ApiException e) {
+      throw new RuntimeException("Error creating %s".formatted(resource), e);
+    }
+  }
+
+  public void deleteResource(TestConfiguration.User user, Resource resource) {
+    try {
+      ResourcesApi samResourcesApi = getResourcesApi(user);
+      samResourcesApi.deleteResourceV2(resource.type.toString(), resource.id);
+      logger.info("Deleted {}", resource);
+    } catch (ApiException e) {
+      throw new RuntimeException("Error deleting %s".formatted(resource), e);
+    }
+  }
+
+  public void addUserToResource(
+      TestConfiguration.User owner, Resource resource, TestConfiguration.User user, IamRole role) {
+    try {
+      ResourcesApi samResourcesApi = getResourcesApi(owner);
+      samResourcesApi.addUserToPolicyV2(
+          resource.type.toString(), resource.id, role.toString(), user.email(), null);
+      logger.info("Added user {} with role {} to {}", user, role, resource);
+    } catch (ApiException e) {
+      throw new RuntimeException("Error adding user to Sam resource: %s".formatted(resource), e);
+    }
+  }
+
+  public List<String> getResourceActions(TestConfiguration.User user, Resource resource) {
+    try {
+      ResourcesApi samResourcesApi = getResourcesApi(user);
+      return samResourcesApi.resourceActionsV2(resource.type.toString(), resource.id);
+    } catch (ApiException e) {
+      throw new RuntimeException("Error retrieving resource actions: %s".formatted(resource), e);
+    }
+  }
+
+  private ResourcesApi getResourcesApi(TestConfiguration.User user) {
+    return new ResourcesApi(getApiClient(getAccessToken(getHeaders(user))));
+  }
+
   private String getAccessToken(HttpHeaders authedHeader) {
     return Optional.ofNullable(
             Optional.ofNullable(authedHeader.get(HttpHeaders.AUTHORIZATION))
@@ -160,8 +251,8 @@ public class SamFixtures {
 
   private HttpHeaders getHeaders(TestConfiguration.User user) {
     HttpHeaders copy = new HttpHeaders(headers);
-    copy.setBearerAuth(authService.getAuthToken(user.getEmail()));
-    copy.set("From", user.getEmail());
+    copy.setBearerAuth(authService.getAuthToken(user.email()));
+    copy.set("From", user.email());
     return copy;
   }
 }

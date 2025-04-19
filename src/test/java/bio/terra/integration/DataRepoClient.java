@@ -271,7 +271,7 @@ public class DataRepoClient {
         "api request: method={} path={} user={} body={}",
         method.toString(),
         path,
-        user.getName(),
+        user.name(),
         entity.getBody());
 
     ResponseEntity<String> response =
@@ -305,13 +305,13 @@ public class DataRepoClient {
 
   private HttpHeaders getHeaders(TestConfiguration.User user) {
     HttpHeaders copy = new HttpHeaders(headers.get());
-    copy.setBearerAuth(authService.getAuthToken(user.getEmail()));
+    copy.setBearerAuth(authService.getAuthToken(user.email()));
     return copy;
   }
 
   private HttpHeaders getHeadersForPet(TestConfiguration.User user) {
     HttpHeaders copy = new HttpHeaders(headers.get());
-    copy.setBearerAuth(authService.getPetAccountAuthToken(user.getEmail()));
+    copy.setBearerAuth(authService.getPetAccountAuthToken(user.email()));
     return copy;
   }
 }

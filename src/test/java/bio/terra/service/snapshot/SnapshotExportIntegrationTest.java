@@ -103,11 +103,11 @@ class SnapshotExportIntegrationTest {
   @BeforeEach
   public void setup() throws Exception {
     testUsers = users.testUsers();
-    stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
-    readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
+    stewardToken = authService.getDirectAccessAuthToken(steward().email());
+    readerToken = authService.getDirectAccessAuthToken(reader().email());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     dataRepoFixtures.addPolicyMember(
-        steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
+        steward(), profileId, IamRole.USER, custodian().email(), IamResourceType.SPEND_PROFILE);
   }
 
   @AfterEach
@@ -136,7 +136,7 @@ class SnapshotExportIntegrationTest {
     UUID datasetId = datasetSummaryModel.getId();
     createdDatasetsIds.add(datasetId);
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().email());
 
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest(
@@ -352,7 +352,7 @@ class SnapshotExportIntegrationTest {
     UUID datasetId = datasetSummaryModel.getId();
     createdDatasetsIds.add(datasetId);
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().email());
 
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest(

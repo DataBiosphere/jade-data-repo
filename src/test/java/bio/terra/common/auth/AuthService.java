@@ -3,7 +3,6 @@ package bio.terra.common.auth;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamProviderInterface;
-import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -108,8 +107,6 @@ public class AuthService {
       GoogleCredential cred = buildCredential(userEmail, scopes);
       cred.refreshToken();
       return cred;
-    } catch (TokenResponseException e) {
-      logger.error("Encountered " + e.getStatusCode() + " error getting access token.");
     } catch (Exception ioe) {
       logger.error("Error getting access token with error message. ", ioe);
     }

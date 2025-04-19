@@ -83,14 +83,14 @@ class IngestTest {
     var profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     tlProfileId.set(profileId);
     dataRepoFixtures.addPolicyMember(
-        steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
+        steward(), profileId, IamRole.USER, custodian().email(), IamResourceType.SPEND_PROFILE);
 
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
     var datasetId = datasetSummaryModel.getId();
     tlDatasetId.set(datasetId);
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().email());
   }
 
   @AfterEach

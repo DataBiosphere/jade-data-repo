@@ -441,7 +441,7 @@ class AzureIntegrationTest {
         jsonLoader.loadObject("omop/release-snapshot-request.json", SnapshotRequestModel.class);
     requestSnapshotRelease.getContents().get(0).datasetName(summaryModel.getName());
     requestSnapshotRelease.setPolicies(
-        new SnapshotRequestModelPolicies().addAggregateDataReadersItem(researcher.getEmail()));
+        new SnapshotRequestModelPolicies().addAggregateDataReadersItem(researcher.email()));
 
     SnapshotSummaryModel snapshotSummaryAll =
         dataRepoFixtures.createSnapshotWithRequest(
@@ -1992,7 +1992,7 @@ class AzureIntegrationTest {
     assertThat(
         "Signed url contains user",
         blobUrlParts.getCommonSasQueryParameters().getContentDisposition(),
-        equalTo(user.getEmail()));
+        equalTo(user.email()));
     assertThat(
         "Signed url only contains expected permissions",
         blobUrlParts.getCommonSasQueryParameters().getPermissions(),

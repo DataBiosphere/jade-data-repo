@@ -92,7 +92,7 @@ class SelfHostedDatasetIntegrationTest {
 
   @BeforeEach
   public void setup() throws Exception {
-    stewardToken.set(authService.getDirectAccessAuthToken(steward().getEmail()));
+    stewardToken.set(authService.getDirectAccessAuthToken(steward().email()));
     dataRepoFixtures.resetConfig(steward());
     tlProfileId.set(dataRepoFixtures.createBillingProfile(steward()).getId());
   }

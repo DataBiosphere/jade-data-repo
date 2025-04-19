@@ -96,14 +96,14 @@ class SnapshotIntegrationTest {
     var profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     tlProfileId.set(profileId);
     dataRepoFixtures.addPolicyMember(
-        steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
+        steward(), profileId, IamRole.USER, custodian().email(), IamResourceType.SPEND_PROFILE);
 
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
     var datasetId = datasetSummaryModel.getId();
     tlDatasetId.set(datasetId);
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().email());
 
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest(
@@ -460,10 +460,10 @@ class SnapshotIntegrationTest {
     // swap in the correct dataset name (with the id at the end)
     requestModel.getContents().get(0).setDatasetName(datasetName);
 
-    List<String> stewards = List.of(steward().getEmail(), admin().getEmail());
-    String readerEmail = reader().getEmail();
+    List<String> stewards = List.of(steward().email(), admin().email());
+    String readerEmail = reader().email();
     List<String> readersWithDuplicates = List.of(readerEmail, readerEmail);
-    String discovererEmail = discoverer().getEmail();
+    String discovererEmail = discoverer().email();
     SnapshotRequestModelPolicies policiesRequest =
         new SnapshotRequestModelPolicies()
             .stewards(stewards)

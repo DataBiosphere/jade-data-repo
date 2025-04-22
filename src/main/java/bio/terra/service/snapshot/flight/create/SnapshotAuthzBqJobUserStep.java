@@ -7,14 +7,15 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class SnapshotAuthzBqJobUserStep
-    implements AddSourceDatasetPolicyEmailsIfInheritStewardStep {
+public class SnapshotAuthzBqJobUserStep extends AddSourceDatasetPolicyEmailsIfInheritStewardStep
+    implements Step {
   private final SnapshotService snapshotService;
   private final ResourceService resourceService;
   private final String snapshotName;
@@ -44,7 +45,7 @@ public class SnapshotAuthzBqJobUserStep
     List<String> policyEmails =
         new ArrayList<>(List.of(policyMap.get(IamRole.STEWARD), policyMap.get(IamRole.READER)));
 
-    addSourceDatasetPolicyEmailsIfInheritSteward(workingMap, policyEmails, sourceDataset);
+    policyEmails.addAll(addSourceDatasetPolicyEmailsIfInheritSteward(workingMap, sourceDataset));
 
     // The underlying service provides retries, so we do not need to retry this operation
     resourceService.grantPoliciesBqJobUser(googleProjectId, policyEmails);

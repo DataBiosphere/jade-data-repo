@@ -8,6 +8,7 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 public class SnapshotAuthzServiceAccountConsumerStep
-    implements AddSourceDatasetPolicyEmailsIfInheritStewardStep {
+    extends AddSourceDatasetPolicyEmailsIfInheritStewardStep implements Step {
   private final SnapshotService snapshotService;
   private final ResourceService resourceService;
   private final String snapshotName;
@@ -56,7 +57,7 @@ public class SnapshotAuthzServiceAccountConsumerStep
       principalsToAdd.add(snapshot.getSourceDataset().getProjectResource().getServiceAccount());
     }
 
-    addSourceDatasetPolicyEmailsIfInheritSteward(workingMap, principalsToAdd, sourceDataset);
+    principalsToAdd.addAll(addSourceDatasetPolicyEmailsIfInheritSteward(workingMap, sourceDataset));
 
     resourceService.grantPoliciesServiceUsageConsumer(
         snapshot.getProjectResource().getGoogleProjectId(), principalsToAdd);

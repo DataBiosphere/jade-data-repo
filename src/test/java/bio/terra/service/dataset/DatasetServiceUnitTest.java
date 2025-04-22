@@ -518,7 +518,7 @@ class DatasetServiceUnitTest {
   @ParameterizedTest
   @MethodSource("provideIamRoleName")
   void testIsInherited(String role, boolean isInherited) {
-    assertThat(datasetService.isInheritedRole(role), is(isInherited));
+    assertThat(DatasetService.isInheritedRole(role), is(isInherited));
   }
 
   private static Stream<Arguments> provideIamRoleName() {
@@ -535,7 +535,7 @@ class DatasetServiceUnitTest {
   @ParameterizedTest
   @MethodSource("provideIamRoles")
   void testIsInherited(IamRole role, boolean isInherited) {
-    assertThat(datasetService.isInheritedRole(role), is(isInherited));
+    assertThat(DatasetService.isInheritedRole(role), is(isInherited));
   }
 
   private static Stream<Arguments> provideIamRoles() {

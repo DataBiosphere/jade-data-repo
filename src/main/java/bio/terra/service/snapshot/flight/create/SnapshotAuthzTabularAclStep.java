@@ -13,6 +13,7 @@ import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -23,8 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class SnapshotAuthzTabularAclStep
-    implements AddSourceDatasetPolicyEmailsIfInheritStewardStep {
+public class SnapshotAuthzTabularAclStep extends AddSourceDatasetPolicyEmailsIfInheritStewardStep
+    implements Step {
 
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotService snapshotService;
@@ -57,7 +58,7 @@ public class SnapshotAuthzTabularAclStep
     emails.add(policies.get(IamRole.STEWARD));
     emails.add(policies.get(IamRole.READER));
 
-    addSourceDatasetPolicyEmailsIfInheritSteward(workingMap, emails, sourceDataset);
+    emails.addAll(addSourceDatasetPolicyEmailsIfInheritSteward(workingMap, sourceDataset));
 
     try {
       if (configService.testInsertFault(SNAPSHOT_GRANT_ACCESS_FAULT)) {

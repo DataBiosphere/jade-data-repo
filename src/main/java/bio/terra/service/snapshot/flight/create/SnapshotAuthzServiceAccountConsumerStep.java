@@ -8,14 +8,14 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class SnapshotAuthzServiceAccountConsumerStep implements Step {
+public class SnapshotAuthzServiceAccountConsumerStep
+    implements AddSourceDatasetPolicyEmailsIfInheritStewardStep {
   private final SnapshotService snapshotService;
   private final ResourceService resourceService;
   private final String snapshotName;
@@ -56,16 +56,8 @@ public class SnapshotAuthzServiceAccountConsumerStep implements Step {
       principalsToAdd.add(snapshot.getSourceDataset().getProjectResource().getServiceAccount());
     }
 
-    if (sourceDataset.isInheritSteward()) {
-      Map<IamRole, String> sourceDatasetPolicyMap =
-          workingMap.get(
-              SnapshotWorkingMapKeys.SOURCE_DATASET_POLICY_MAP, new TypeReference<>() {});
-      // Allow dataset stewards and custodians to make queries in the snapshot project.
-      principalsToAdd.addAll(
-          List.of(
-              sourceDatasetPolicyMap.get(IamRole.CUSTODIAN),
-              sourceDatasetPolicyMap.get(IamRole.STEWARD)));
-    }
+    addSourceDatasetPolicyEmailsIfInheritSteward(workingMap, principalsToAdd, sourceDataset);
+
     resourceService.grantPoliciesServiceUsageConsumer(
         snapshot.getProjectResource().getGoogleProjectId(), principalsToAdd);
 

@@ -87,7 +87,7 @@ class SnapshotAuthzTabularAclStepTest {
     if (inheritSteward) {
       verify(bigQuerySnapshotPdao)
           .grantReadAccessToSnapshot(
-              SNAPSHOT, List.of("steward", "reader", "datasetCustodian", "datasetSteward"));
+              SNAPSHOT, List.of("steward", "reader", "datasetSteward", "datasetCustodian"));
     } else {
       verify(bigQuerySnapshotPdao)
           .grantReadAccessToSnapshot(SNAPSHOT, List.of("steward", "reader"));

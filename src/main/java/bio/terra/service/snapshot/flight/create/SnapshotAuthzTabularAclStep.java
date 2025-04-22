@@ -13,7 +13,6 @@ import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -24,7 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class SnapshotAuthzTabularAclStep implements Step {
+public class SnapshotAuthzTabularAclStep
+    implements AddSourceDatasetPolicyEmailsIfInheritStewardStep {
 
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotService snapshotService;
@@ -57,16 +57,7 @@ public class SnapshotAuthzTabularAclStep implements Step {
     emails.add(policies.get(IamRole.STEWARD));
     emails.add(policies.get(IamRole.READER));
 
-    if (sourceDataset.isInheritSteward()) {
-      Map<IamRole, String> sourceDatasetPolicyMap =
-          workingMap.get(
-              SnapshotWorkingMapKeys.SOURCE_DATASET_POLICY_MAP, new TypeReference<>() {});
-      // Allow the dataset stewards and custodians to make queries in the snapshot project.
-      emails.addAll(
-          List.of(
-              sourceDatasetPolicyMap.get(IamRole.CUSTODIAN),
-              sourceDatasetPolicyMap.get(IamRole.STEWARD)));
-    }
+    addSourceDatasetPolicyEmailsIfInheritSteward(workingMap, emails, sourceDataset);
 
     try {
       if (configService.testInsertFault(SNAPSHOT_GRANT_ACCESS_FAULT)) {

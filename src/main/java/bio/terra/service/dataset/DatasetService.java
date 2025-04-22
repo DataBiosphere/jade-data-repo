@@ -773,16 +773,22 @@ public class DatasetService {
     return datasetDao.retrieveSummaryById(id).toModel();
   }
 
+  public static boolean isInheritedRole(IamRole role) {
+    return isInheritedRole(role.toString());
+  }
+
+  public static boolean isInheritedRole(String roleName) {
+    return List.of(IamRole.STEWARD.toString(), IamRole.CUSTODIAN.toString())
+        .contains(roleName.toLowerCase());
+  }
+
   public String setInheritSteward(
       UUID datasetId, boolean inheritSteward, AuthenticatedUserRequest userReq) {
     String description =
         String.format("Set inherit steward to %s for dataset %s", inheritSteward, datasetId);
     List<SamPolicyModel> datasetPolicies =
         iamService.retrievePolicies(userReq, IamResourceType.DATASET, datasetId).stream()
-            .filter(
-                p ->
-                    List.of(IamRole.CUSTODIAN.toString(), IamRole.STEWARD.toString())
-                        .contains(p.getName()))
+            .filter(p -> isInheritedRole(p.getName()))
             .toList();
     List<String> datasetPolicyEmails =
         new ArrayList<>(datasetPolicies.stream().map(SamPolicyModel::getEmail).distinct().toList());

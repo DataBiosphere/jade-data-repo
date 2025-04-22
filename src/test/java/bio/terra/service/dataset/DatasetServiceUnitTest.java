@@ -5,6 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -78,6 +79,8 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -510,5 +513,35 @@ class DatasetServiceUnitTest {
     assertThat(
         flightMap.get(JobMapKeys.TDR_BILLING_PROFILE_FALLBACK.getKeyName(), Boolean.class),
         equalTo(isTDRBillingProfile));
+  }
+
+  @ParameterizedTest
+  @MethodSource("provideIamRoleName")
+  void testIsInherited(String role, boolean isInherited) {
+    assertThat(datasetService.isInheritedRole(role), is(isInherited));
+  }
+
+  private static Stream<Arguments> provideIamRoleName() {
+    return Stream.of(
+        Arguments.of("custodian", true),
+        Arguments.of("steward", true),
+        Arguments.of("reader", false),
+        Arguments.of("CUSTODIAN", true),
+        Arguments.of("STEWARD", true),
+        Arguments.of("READER", false),
+        Arguments.of("12345", false));
+  }
+
+  @ParameterizedTest
+  @MethodSource("provideIamRoles")
+  void testIsInherited(IamRole role, boolean isInherited) {
+    assertThat(datasetService.isInheritedRole(role), is(isInherited));
+  }
+
+  private static Stream<Arguments> provideIamRoles() {
+    return Stream.of(
+        Arguments.of(IamRole.CUSTODIAN, true),
+        Arguments.of(IamRole.STEWARD, true),
+        Arguments.of(IamRole.READER, false));
   }
 }

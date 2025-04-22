@@ -29,6 +29,7 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.ResourceLocks;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.model.TagCount;
 import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TagUpdateRequestModel;
@@ -771,22 +772,40 @@ public class DatasetService {
     return datasetDao.retrieveSummaryById(id).toModel();
   }
 
+  public static boolean isInheritedRole(IamRole role) {
+    return isInheritedRole(role.toString());
+  }
+
+  public static boolean isInheritedRole(String roleName) {
+    return List.of(IamRole.STEWARD.toString(), IamRole.CUSTODIAN.toString())
+        .contains(roleName.toLowerCase());
+  }
+
   public String setInheritSteward(
       UUID datasetId, boolean inheritSteward, AuthenticatedUserRequest userReq) {
     String description =
         String.format("Set inherit steward to %s for dataset %s", inheritSteward, datasetId);
-    var custodianPolicy =
+    List<SamPolicyModel> datasetPolicies =
         iamService.retrievePolicies(userReq, IamResourceType.DATASET, datasetId).stream()
-            .filter(p -> p.getName().equals(IamRole.CUSTODIAN.toString()))
-            .findFirst()
-            .orElseThrow();
+            .filter(p -> isInheritedRole(p.getName()))
+            .toList();
+    List<String> datasetPolicyEmails =
+        datasetPolicies.stream()
+            .map(SamPolicyModel::getEmail)
+            .distinct()
+            .collect(Collectors.toList());
+    List<String> datasetPolicyMembers =
+        datasetPolicies.stream()
+            .flatMap(policy -> policy.getMembers().stream())
+            .distinct()
+            .collect(Collectors.toList());
     return jobService
         .newJob(description, SetInheritStewardFlight.class, null, userReq)
         .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
-        .addParameter(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), custodianPolicy.getEmail())
-        .addParameter(JobMapKeys.CUSTODIAN_USERS.getKeyName(), custodianPolicy.getMembers())
+        .addParameter(JobMapKeys.DATASET_POLICY_EMAILS.getKeyName(), datasetPolicyEmails)
+        .addParameter(JobMapKeys.DATASET_POLICY_USERS.getKeyName(), datasetPolicyMembers)
         .addParameter(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward)
         .submit();
   }

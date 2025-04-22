@@ -32,7 +32,7 @@ class SetAuthGcpUserRolesStepTest {
   @Mock private SnapshotService snapshotService;
   @Mock private FlightContext flightContext;
 
-  private final String custodianEmail = "custodianEmail";
+  private final List<String> datasetPolicyEmails = List.of("custodianEmail", "stewardEmail");
 
   interface DoOrUndo {
     StepResult apply(FlightContext t) throws Exception;
@@ -56,14 +56,15 @@ class SetAuthGcpUserRolesStepTest {
       when(snapshotService.retrieve(snapshot.getId())).thenReturn(snapshot);
     }
     assertThat(doOrUndo.apply(flightContext), is(StepResult.getStepResultSuccess()));
-    var emails = List.of(custodianEmail);
     for (var snapshot : snapshots) {
       if (grantPolicy) {
         verify(resourceService)
-            .assignRolesForSnapshot(snapshot.getProjectResource().getGoogleProjectId(), emails);
+            .assignRolesForSnapshot(
+                snapshot.getProjectResource().getGoogleProjectId(), datasetPolicyEmails);
       } else {
         verify(resourceService)
-            .revokeRolesForSnapshot(snapshot.getProjectResource().getGoogleProjectId(), emails);
+            .revokeRolesForSnapshot(
+                snapshot.getProjectResource().getGoogleProjectId(), datasetPolicyEmails);
       }
     }
   }
@@ -73,7 +74,7 @@ class SetAuthGcpUserRolesStepTest {
   void doAndUndoStep(boolean inheritSteward) throws Exception {
     SetAuthGcpUserRolesStep step =
         new SetAuthGcpUserRolesStep(
-            resourceService, snapshotService, custodianEmail, inheritSteward);
+            resourceService, snapshotService, datasetPolicyEmails, inheritSteward);
     verifySetAuth(step::doStep, inheritSteward);
     verifySetAuth(step::undoStep, !inheritSteward);
   }

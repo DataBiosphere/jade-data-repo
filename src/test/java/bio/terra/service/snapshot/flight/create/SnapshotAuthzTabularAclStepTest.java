@@ -9,9 +9,6 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.AuthenticationFixtures;
-import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.configuration.ConfigurationService;
@@ -29,12 +26,13 @@ import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -46,11 +44,7 @@ class SnapshotAuthzTabularAclStepTest {
   @Mock private ConfigurationService configService;
   @Mock private IamService iamService;
   @Mock private FlightContext flightContext;
-
-  private static final AuthenticatedUserRequest TEST_USER =
-      AuthenticationFixtures.randomUserRequest();
   private static final Snapshot SNAPSHOT = new Snapshot().id(UUID.randomUUID());
-
   private SnapshotAuthzTabularAclStep step;
 
   @BeforeEach
@@ -63,16 +57,15 @@ class SnapshotAuthzTabularAclStepTest {
     policyMap.put(IamRole.READER, "reader");
     workingMap.put(SnapshotWorkingMapKeys.POLICY_MAP, policyMap);
 
+    var sourceDatasetPolicyMap = new EnumMap<>(IamRole.class);
+    sourceDatasetPolicyMap.put(IamRole.STEWARD, "datasetSteward");
+    sourceDatasetPolicyMap.put(IamRole.CUSTODIAN, "datasetCustodian");
+    workingMap.put(SnapshotWorkingMapKeys.SOURCE_DATASET_POLICY_MAP, sourceDatasetPolicyMap);
+
     when(snapshotService.retrieve(SNAPSHOT.getId())).thenReturn(SNAPSHOT);
     step =
         new SnapshotAuthzTabularAclStep(
-            bigQuerySnapshotPdao,
-            snapshotService,
-            configService,
-            iamService,
-            SNAPSHOT.getId(),
-            TEST_USER,
-            new Dataset());
+            bigQuerySnapshotPdao, snapshotService, configService, SNAPSHOT.getId(), new Dataset());
   }
 
   @Test
@@ -82,24 +75,23 @@ class SnapshotAuthzTabularAclStepTest {
     verifyNoInteractions(iamService);
   }
 
-  @Test
-  void doStepInheritEnabled() throws Exception {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void doStepInheritEnabled(boolean inheritSteward) throws Exception {
     Dataset sourceDataset =
-        new Dataset(new DatasetSummary().inheritSteward(true)).id(UUID.randomUUID());
+        new Dataset(new DatasetSummary().inheritSteward(inheritSteward)).id(UUID.randomUUID());
     step =
         new SnapshotAuthzTabularAclStep(
-            bigQuerySnapshotPdao,
-            snapshotService,
-            configService,
-            iamService,
-            SNAPSHOT.getId(),
-            TEST_USER,
-            sourceDataset);
-    when(iamService.retrievePolicyEmails(TEST_USER, IamResourceType.DATASET, sourceDataset.getId()))
-        .thenReturn(Map.of(IamRole.CUSTODIAN, "custodian"));
+            bigQuerySnapshotPdao, snapshotService, configService, SNAPSHOT.getId(), sourceDataset);
     assertThat(step.doStep(flightContext), is(StepResult.getStepResultSuccess()));
-    verify(bigQuerySnapshotPdao)
-        .grantReadAccessToSnapshot(SNAPSHOT, List.of("steward", "reader", "custodian"));
+    if (inheritSteward) {
+      verify(bigQuerySnapshotPdao)
+          .grantReadAccessToSnapshot(
+              SNAPSHOT, List.of("steward", "reader", "datasetSteward", "datasetCustodian"));
+    } else {
+      verify(bigQuerySnapshotPdao)
+          .grantReadAccessToSnapshot(SNAPSHOT, List.of("steward", "reader"));
+    }
   }
 
   @Test

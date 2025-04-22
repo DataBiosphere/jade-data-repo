@@ -14,7 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class SnapshotAuthzBqJobUserStep implements Step {
+public class SnapshotAuthzBqJobUserStep extends AddSourceDatasetPolicyEmailsIfInheritStewardStep
+    implements Step {
   private final SnapshotService snapshotService;
   private final ResourceService resourceService;
   private final String snapshotName;
@@ -44,14 +45,9 @@ public class SnapshotAuthzBqJobUserStep implements Step {
     List<String> policyEmails =
         new ArrayList<>(List.of(policyMap.get(IamRole.STEWARD), policyMap.get(IamRole.READER)));
 
-    if (sourceDataset.isInheritSteward()) {
-      Map<IamRole, String> sourceDatasetPolicyMap =
-          workingMap.get(
-              SnapshotWorkingMapKeys.SOURCE_DATASET_POLICY_MAP, new TypeReference<>() {});
-      // Allow the custodian to make queries in this project.
-      policyEmails.add(sourceDatasetPolicyMap.get(IamRole.CUSTODIAN));
-    }
-    // The underlying service provides retries so we do not need to retry this operation
+    policyEmails.addAll(addSourceDatasetPolicyEmailsIfInheritSteward(workingMap, sourceDataset));
+
+    // The underlying service provides retries, so we do not need to retry this operation
     resourceService.grantPoliciesBqJobUser(googleProjectId, policyEmails);
 
     return StepResult.getStepResultSuccess();

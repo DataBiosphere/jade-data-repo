@@ -29,6 +29,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -69,7 +71,8 @@ class SnapshotAuthzServiceAccountConsumerStepTest {
     workingMap.put(SnapshotWorkingMapKeys.POLICY_MAP, policyMap);
 
     var sourceDatasetPolicyMap = new EnumMap<>(IamRole.class);
-    sourceDatasetPolicyMap.put(IamRole.CUSTODIAN, "custodian");
+    sourceDatasetPolicyMap.put(IamRole.CUSTODIAN, "datasetCustodian");
+    sourceDatasetPolicyMap.put(IamRole.STEWARD, "datasetSteward");
     workingMap.put(SnapshotWorkingMapKeys.SOURCE_DATASET_POLICY_MAP, sourceDatasetPolicyMap);
     when(snapshotService.retrieveByName(SNAPSHOT_NAME)).thenReturn(SNAPSHOT);
 
@@ -127,10 +130,11 @@ class SnapshotAuthzServiceAccountConsumerStepTest {
     verifyNoInteractions(iamService);
   }
 
-  @Test
-  void doStepInheritEnabled() throws Exception {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void doStepInheritSteward(boolean inheritSteward) throws Exception {
     var sourceDataset =
-        new Dataset(new DatasetSummary().inheritSteward(true)).id(UUID.randomUUID());
+        new Dataset(new DatasetSummary().inheritSteward(inheritSteward)).id(UUID.randomUUID());
     step =
         new SnapshotAuthzServiceAccountConsumerStep(
             snapshotService,
@@ -139,7 +143,13 @@ class SnapshotAuthzServiceAccountConsumerStepTest {
             TDR_SERVICE_ACCOUNT_EMAIL,
             sourceDataset);
     assertThat(step.doStep(flightContext), is(StepResult.getStepResultSuccess()));
-    assertThat(addedEmails, containsInAnyOrder("steward", "reader", "custodian"));
+    if (inheritSteward) {
+      assertThat(
+          addedEmails,
+          containsInAnyOrder("steward", "reader", "datasetCustodian", "datasetSteward"));
+    } else {
+      assertThat(addedEmails, containsInAnyOrder("steward", "reader"));
+    }
   }
 
   @Test

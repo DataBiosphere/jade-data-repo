@@ -5,6 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -72,11 +73,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -403,14 +407,20 @@ class DatasetServiceUnitTest {
             TEST_USER))
         .thenReturn(jobBuilder);
     var custodianEmail = "custodianEmail";
+    var stewardEmail = "stewardEmail";
     var members = Arrays.asList("member");
+    var stewardMembers = Arrays.asList("member2");
     when(iamService.retrievePolicies(TEST_USER, IamResourceType.DATASET, DATASET_ID))
         .thenReturn(
             List.of(
                 new SamPolicyModel()
                     .name(IamRole.CUSTODIAN.toString())
                     .email(custodianEmail)
-                    .members(members)));
+                    .members(members),
+                new SamPolicyModel()
+                    .name(IamRole.STEWARD.toString())
+                    .email(stewardEmail)
+                    .members(stewardMembers)));
     ArgumentCaptor<FlightMap> captor = ArgumentCaptor.forClass(FlightMap.class);
     when(jobService.submit(eq(SetInheritStewardFlight.class), captor.capture()))
         .thenReturn("JobId");
@@ -427,10 +437,11 @@ class DatasetServiceUnitTest {
         flightMap.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class),
         equalTo(IamAction.SET_INHERIT_STEWARD));
     assertThat(
-        flightMap.get(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), String.class),
-        equalTo(custodianEmail));
+        flightMap.get(JobMapKeys.DATASET_POLICY_EMAILS.getKeyName(), List.class),
+        equalTo(Arrays.asList(custodianEmail, stewardEmail)));
     assertThat(
-        flightMap.get(JobMapKeys.CUSTODIAN_USERS.getKeyName(), List.class), equalTo(members));
+        flightMap.get(JobMapKeys.DATASET_POLICY_USERS.getKeyName(), List.class),
+        equalTo(Stream.of(members, stewardMembers).flatMap(List::stream).toList()));
     assertThat(
         flightMap.get(JobMapKeys.INHERIT_STEWARD.getKeyName(), Boolean.class),
         equalTo(inheritSteward));
@@ -502,5 +513,35 @@ class DatasetServiceUnitTest {
     assertThat(
         flightMap.get(JobMapKeys.TDR_BILLING_PROFILE_FALLBACK.getKeyName(), Boolean.class),
         equalTo(isTDRBillingProfile));
+  }
+
+  @ParameterizedTest
+  @MethodSource("provideIamRoleName")
+  void testIsInherited(String role, boolean isInherited) {
+    assertThat(DatasetService.isInheritedRole(role), is(isInherited));
+  }
+
+  private static Stream<Arguments> provideIamRoleName() {
+    return Stream.of(
+        Arguments.of("custodian", true),
+        Arguments.of("steward", true),
+        Arguments.of("reader", false),
+        Arguments.of("CUSTODIAN", true),
+        Arguments.of("STEWARD", true),
+        Arguments.of("READER", false),
+        Arguments.of("12345", false));
+  }
+
+  @ParameterizedTest
+  @MethodSource("provideIamRoles")
+  void testIsInherited(IamRole role, boolean isInherited) {
+    assertThat(DatasetService.isInheritedRole(role), is(isInherited));
+  }
+
+  private static Stream<Arguments> provideIamRoles() {
+    return Stream.of(
+        Arguments.of(IamRole.CUSTODIAN, true),
+        Arguments.of(IamRole.STEWARD, true),
+        Arguments.of(IamRole.READER, false));
   }
 }

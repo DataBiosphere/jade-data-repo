@@ -25,6 +25,8 @@ import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightMap;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -52,6 +54,9 @@ class SetInheritStewardFlightTest {
   private final FlightMap inputParameters = new FlightMap();
 
   private static final String CUSTODIAN_EMAIL = "custodian email";
+  private static final String STEWARD_EMAIL = "steward email";
+  private static final List<String> DATASET_POLICY_EMAILS =
+      Arrays.asList(CUSTODIAN_EMAIL, STEWARD_EMAIL);
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -62,7 +67,7 @@ class SetInheritStewardFlightTest {
     inputParameters.put(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID);
     inputParameters.put(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD);
     inputParameters.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), TEST_USER);
-    inputParameters.put(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), CUSTODIAN_EMAIL);
+    inputParameters.put(JobMapKeys.DATASET_POLICY_EMAILS.getKeyName(), DATASET_POLICY_EMAILS);
     when(context.getBean(DatasetDao.class)).thenReturn(datasetDao);
     when(context.getBean(SnapshotDao.class)).thenReturn(snapshotDao);
     when(context.getBean(DatasetService.class)).thenReturn(datasetService);
@@ -187,7 +192,11 @@ class SetInheritStewardFlightTest {
             (mock, context) ->
                 assertThat(
                     context.arguments(),
-                    contains(resourceService, snapshotService, CUSTODIAN_EMAIL, inheritSteward)))) {
+                    contains(
+                        resourceService,
+                        snapshotService,
+                        DATASET_POLICY_EMAILS,
+                        inheritSteward)))) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));
@@ -235,7 +244,10 @@ class SetInheritStewardFlightTest {
                 assertThat(
                     context.arguments(),
                     contains(
-                        bigQuerySnapshotPdao, snapshotService, CUSTODIAN_EMAIL, inheritSteward)))) {
+                        bigQuerySnapshotPdao,
+                        snapshotService,
+                        DATASET_POLICY_EMAILS,
+                        inheritSteward)))) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));

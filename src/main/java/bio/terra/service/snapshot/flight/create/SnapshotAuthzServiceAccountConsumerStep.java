@@ -15,7 +15,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class SnapshotAuthzServiceAccountConsumerStep implements Step {
+public class SnapshotAuthzServiceAccountConsumerStep
+    extends AddSourceDatasetPolicyEmailsIfInheritStewardStep implements Step {
   private final SnapshotService snapshotService;
   private final ResourceService resourceService;
   private final String snapshotName;
@@ -56,13 +57,8 @@ public class SnapshotAuthzServiceAccountConsumerStep implements Step {
       principalsToAdd.add(snapshot.getSourceDataset().getProjectResource().getServiceAccount());
     }
 
-    if (sourceDataset.isInheritSteward()) {
-      Map<IamRole, String> sourceDatasetPolicyMap =
-          workingMap.get(
-              SnapshotWorkingMapKeys.SOURCE_DATASET_POLICY_MAP, new TypeReference<>() {});
-      // Allow the custodian to make queries in this project.
-      principalsToAdd.add(sourceDatasetPolicyMap.get(IamRole.CUSTODIAN));
-    }
+    principalsToAdd.addAll(addSourceDatasetPolicyEmailsIfInheritSteward(workingMap, sourceDataset));
+
     resourceService.grantPoliciesServiceUsageConsumer(
         snapshot.getProjectResource().getGoogleProjectId(), principalsToAdd);
 

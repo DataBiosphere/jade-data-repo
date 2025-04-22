@@ -46,7 +46,7 @@ public class SnapshotAuthzBqJobUserStep
 
     addSourceDatasetPolicyEmailsIfInheritSteward(workingMap, policyEmails, sourceDataset);
 
-    // The underlying service provides retries so we do not need to retry this operation
+    // The underlying service provides retries, so we do not need to retry this operation
     resourceService.grantPoliciesBqJobUser(googleProjectId, policyEmails);
 
     return StepResult.getStepResultSuccess();

@@ -85,7 +85,6 @@ import bio.terra.stairway.ShortUUID;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -791,13 +790,15 @@ public class DatasetService {
             .filter(p -> isInheritedRole(p.getName()))
             .toList();
     List<String> datasetPolicyEmails =
-        new ArrayList<>(datasetPolicies.stream().map(SamPolicyModel::getEmail).distinct().toList());
+        datasetPolicies.stream()
+            .map(SamPolicyModel::getEmail)
+            .distinct()
+            .collect(Collectors.toList());
     List<String> datasetPolicyMembers =
-        new ArrayList<>(
-            datasetPolicies.stream()
-                .flatMap(policy -> policy.getMembers().stream())
-                .distinct()
-                .toList());
+        datasetPolicies.stream()
+            .flatMap(policy -> policy.getMembers().stream())
+            .distinct()
+            .collect(Collectors.toList());
     return jobService
         .newJob(description, SetInheritStewardFlight.class, null, userReq)
         .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)

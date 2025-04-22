@@ -25,7 +25,7 @@ import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightMap;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +56,7 @@ class SetInheritStewardFlightTest {
   private static final String CUSTODIAN_EMAIL = "custodian email";
   private static final String STEWARD_EMAIL = "steward email";
   private static final List<String> DATASET_POLICY_EMAILS =
-      new ArrayList<>(List.of(CUSTODIAN_EMAIL, STEWARD_EMAIL));
+      Arrays.asList(CUSTODIAN_EMAIL, STEWARD_EMAIL);
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();

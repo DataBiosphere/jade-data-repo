@@ -17,7 +17,7 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -44,7 +44,7 @@ class AdjustStewardMembersStepTest {
   private void verifyAdjustMembers(DoOrUndo doOrUndo, boolean inheritSteward) throws Exception {
     var snapshots =
         List.of(new Snapshot().id(UUID.randomUUID()), new Snapshot().id(UUID.randomUUID()));
-    List<String> datasetPolicyEmails = new ArrayList<>(List.of("custodianEmail", "stewardEmail"));
+    List<String> datasetPolicyEmails = Arrays.asList("custodianEmail", "stewardEmail");
     FlightMap workingMap = new FlightMap();
     workingMap.put(
         DatasetWorkingMapKeys.SNAPSHOT_IDS,

@@ -70,7 +70,7 @@ public class LoggerInterceptor implements HandlerInterceptor {
     String srcIpAddress = request.getRemoteAddr();
     String destIPAddress = request.getLocalAddr();
     String destPort = Integer.toString(request.getLocalPort());
-    String sessionId = request.getRequestedSessionId();
+    String sessionId = request.getSession().getId();
     String userAgent = request.getHeader("User-Agent");
     String url = request.getRequestURL().toString();
     String contentType = request.getContentType();

@@ -8,6 +8,9 @@ import re
 import csv
 import datetime
 
+from google.cloud import bigquery
+from google.cloud import secretmanager
+
 from data_repo_client import (
     Configuration,
     ApiClient,
@@ -66,6 +69,14 @@ def get_raw_logs(filename):
     with open(os.path.join("rawLogs", filename)) as f:
         return json.load(f)
 
+class UserDetails:
+    def __init__(self, user_id=None, email=None, first_name=None, last_name=None, institute=None, country=None):
+        self.user_id = user_id
+        self.email = email
+        self.first_name = first_name
+        self.last_name = last_name
+        self.institute = institute
+        self.country = country
 
 class Log:
     def __init__(self):
@@ -125,7 +136,7 @@ def main():
 
     # Collect users and dataset/snapshot ids
     populatedNewLogs = []
-    user_ids = set()
+    emails = set()
     dataset_ids = set()
     snapshot_ids = set()
     for log in get_raw_logs(raw_logs_location):
@@ -135,9 +146,7 @@ def main():
         for item in log_message.split(","):
             item = item.strip()
             if item.startswith("userId"):
-                user_id = item.split(":")[1].strip()
-                newLog.user_id = user_id
-                user_ids.add(user_id)
+                newLog.user_id = item.split(":")[1].strip()
             elif item.startswith("url"):
                 url = item.split(":", 1)[1].strip()
                 newLog.url = url
@@ -155,7 +164,9 @@ def main():
                     newLog.snapshot_id = snapshot_id
                 # TODO - custom event types
             elif item.startswith("email"):
-                 newLog.user_email = item.split(":")[1].strip()
+                 email = item.split(":")[1].strip()
+                 newLog.user_email = email
+                 emails.add(email)
             elif item.startswith("institute"):
                 newLog.user_org = item.split(":")[1].strip()
             elif item.startswith("status"):
@@ -178,13 +189,65 @@ def main():
                 newLog.duration = item.split(":")[1].strip()
         populatedNewLogs.append(newLog)
 
-
-
     # Get user details from Bard
-    user_name = ""
-    user_country_name = ""
+    bq_client = bigquery.Client()
+    sm_client = secretmanager.SecretManagerServiceClient()
+    # Build the resource name of the secret.
+    name = f"projects/terra-datarepo-production/secrets/warehouse-db-name/versions/latest"
+    response = sm_client.access_secret_version(request={"name": name})
+    WAREHOUSE_DB_NAME = response.payload.data.decode("UTF-8")
 
+    # # Perform a query.
+    QUERY = (
+        f"""
+        SELECT t.USER_ID, e.email, t.Key, t.Value FROM `{WAREHOUSE_DB_NAME}.thurloe` t
+       JOIN `{WAREHOUSE_DB_NAME}.email` e ON t.USER_ID = e.USER_ID
+        WHERE t.KEY IN ("firstName", "lastName", "institute", "programLocationCountry")
+        AND t.USER_ID IN(
+            SELECT USER_ID FROM `{WAREHOUSE_DB_NAME}.email`
+            WHERE email IN UNNEST(@emails)
+        )
+        ORDER BY t.USER_ID
+        """
+    )
+    print(QUERY)
+    #
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ArrayQueryParameter("emails", "STRING", emails)
+        ]
+    )
 
+    query_job = bq_client.query(QUERY, job_config=job_config)  # API request
+    rows = query_job.result()  # Waits for query to finish
+
+    first_names = {}
+    last_names = {}
+    institutes = {}
+    countries = {}
+    user_ids = {}
+    for row in rows:
+        user_ids[row.email] = row.USER_ID
+        if (row.Key == "firstName"):
+            first_names[row.email] = row.Value
+        elif (row.Key == "lastName"):
+            last_names[row.email] = row.Value
+        elif (row.Key == "institute"):
+            institutes[row.email] = row.Value
+        elif (row.Key == "programLocationCountry"):
+            countries[row.email] = row.Value
+
+    for log in populatedNewLogs:
+        if log.user_email != "N/A":
+            if log.user_email in first_names:
+                log.user_name = first_names[log.user_email] + " " + last_names[log.user_email]
+                log.user_country_name = countries[log.user_email]
+                log.user_id = user_ids[log.user_email]
+                if institutes[log.user_email] is not None:
+                    log.user_org = institutes[log.user_email]
+            else:
+                log.user_name = ""
+                log.user_country_name = ""
 
     # For Snapshots, get auth domains and source datasets from TDR
     user_permission_group = ""

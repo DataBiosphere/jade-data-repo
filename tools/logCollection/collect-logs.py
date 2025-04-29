@@ -78,7 +78,7 @@ class Log:
         self.user_id_provider = "Terra"
         self.session_id = None
         self.url = None
-        self.app = None
+        self.app = "TDR"
         self.http_user_agent = None
         self.status = None
         self.http_content_type = None
@@ -93,6 +93,8 @@ class Log:
         self.eRA_commons_id = None
         self.user_permission_group = None
         self.event_type = None
+        self.dataset_id = None
+        self.snapshot_id = None
 
     def __str__(self):
         return f"{self._time}, {self.src_ip}, {self.dest_ip}, {self.dest_port}, {self.user_name}, {self.user_id}, {self.user_id_provider}, {self.session_id}, {self.url}, {self.app}, {self.http_user_agent}, {self.status}, {self.http_content_type}, {self.bytes}, {self.duration}, {self.nih_ico}, {self.cadr_name}, {self.user_country_name}, {self.user_org}, {self.user_email}, {self.associated_study}, {self.eRA_commons_id}, {self.user_permission_group}, {self.event_type}"
@@ -137,18 +139,18 @@ def main():
                 newLog.user_id = user_id
                 user_ids.add(user_id)
             elif item.startswith("url"):
-                url = item.split(":")[1].strip()
+                url = item.split(":", 1)[1].strip()
                 newLog.url = url
                 # regex that matches /datasets/{UUID}
                 regexp = re.compile(r'datasets/[0-9a-fA-F-]{36}')
                 if regexp.search(url):
-                    dataset_id = regexp.search(url).group(0)
+                    dataset_id = regexp.search(url).group(0).split("/")[1]
                     dataset_ids.add(dataset_id)
                     newLog.dataset_id = dataset_id
                 # regex that matches /snapshots/{UUID}
                 regexp = re.compile(r'snapshots/[0-9a-fA-F-]{36}')
                 if regexp.search(url):
-                    snapshot_id = regexp.search(url).group(0)
+                    snapshot_id = regexp.search(url).group(0).split("/")[1]
                     snapshot_ids.add(snapshot_id)
                     newLog.snapshot_id = snapshot_id
                 # TODO - custom event types
@@ -178,8 +180,6 @@ def main():
 
 
 
-
-
     # Get user details from Bard
     user_name = ""
     user_country_name = ""
@@ -202,9 +202,9 @@ def main():
 
     # Write to desired format
     outputs = []
-    outputs.append(["_time", "src_ip", "dest_ip", "dest_port", "user_name", "user_id", "user_id_provider", "session_id", "url", "app", "http_user_agent", "status", "http_content_type", "bytes", "duration", "nih_ico", "cadr_name", "user_country_name", "user_org", "user_email", "associated_study", "eRA_commons_id", "user_permission_group", "event_type"])
+    outputs.append(["_time", "src_ip", "dest_ip", "dest_port", "user_name", "user_id", "user_id_provider", "session_id", "url", "app", "http_user_agent", "status", "http_content_type", "bytes", "duration", "nih_ico", "cadr_name", "user_country_name", "user_org", "user_email", "associated_study", "eRA_commons_id", "user_permission_group", "event_type", "dataset_id", "snapshot_id"])
     for log in populatedNewLogs:
-        outputs.append([log._time, log.src_ip, log.dest_ip, log.dest_port, log.user_name, log.user_id, user_id_provider, log.session_id, log.url, log.app, log.http_user_agent, log.status, log.http_content_type, log.bytes, log.duration, log.nih_ico, log.cadr_name, log.user_country_name, log.user_org, log.user_email, log.associated_study, log.eRA_commons_id, log.user_permission_group, log.event_type])
+        outputs.append([log._time, log.src_ip, log.dest_ip, log.dest_port, log.user_name, log.user_id, user_id_provider, log.session_id, log.url, log.app, log.http_user_agent, log.status, log.http_content_type, log.bytes, log.duration, log.nih_ico, log.cadr_name, log.user_country_name, log.user_org, log.user_email, log.associated_study, log.eRA_commons_id, log.user_permission_group, log.event_type, log.dataset_id, log.snapshot_id])
 
     output_filename = f"output/{os.path.basename(args.raw_logs_location).split('.')[0]}_{datetime.datetime.now()}.csv"
 

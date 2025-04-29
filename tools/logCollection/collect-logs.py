@@ -101,7 +101,7 @@ class Log:
         self.user_org = None
         self.user_email = None
         self.associated_study = None
-        self.eRA_commons_id = None
+        self.eRA_commons_id = "N/A"
         self.user_permission_group = None
         self.event_type = None
         self.dataset_id = None
@@ -189,7 +189,7 @@ def main():
                 newLog.duration = item.split(":")[1].strip()
         populatedNewLogs.append(newLog)
 
-    # Get user details from Bard
+    # Get user details from Thurloe/data warehouse
     bq_client = bigquery.Client()
     sm_client = secretmanager.SecretManagerServiceClient()
     # Build the resource name of the secret.
@@ -210,8 +210,7 @@ def main():
         ORDER BY t.USER_ID
         """
     )
-    print(QUERY)
-    #
+
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
             bigquery.ArrayQueryParameter("emails", "STRING", emails)
@@ -251,13 +250,17 @@ def main():
 
     # For Snapshots, get auth domains and source datasets from TDR
     user_permission_group = ""
+    # Can access via the snapshot policies endpoint
+    # Can enumerate snapshots and filter by snapshotIds to get source dataset
 
     # For Datasets, get PHSIds from TDR
     associated_study = ""
+    # Will need to use the enumerate datasets endpoint and filter by datasetIds
 
 
     # Pull ERA commmons id
     eRA_commons_id = ""
+    # Not yet relevant
 
     # Build manual map
     event_type = ""
@@ -275,6 +278,9 @@ def main():
         writer = csv.writer(csvfile)
         for row in outputs:
             writer.writerow(row)
+
+
+    print(f"\n\n\nDONE. Logs written to {output_filename}")
 
 
 if __name__ == "__main__":

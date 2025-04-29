@@ -33,7 +33,7 @@ plugins {
     id 'org.gradle.test-retry' version '1.6.2'
     id 'antlr'
     id 'org.hidetake.swagger.generator' version '2.19.2'
-    id 'org.springframework.boot' version '3.4.4'
+    id 'org.springframework.boot' version '3.4.5'
     id 'idea'
     id 'java'
     id 'io.spring.dependency-management' version '1.1.7'
@@ -223,14 +223,14 @@ dependencies {
 
     // Azure related dependencies
     implementation 'com.azure:azure-identity:1.15.4'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.49.0'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.50.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'
     implementation 'com.azure:azure-storage-common:12.29.0'
     implementation 'com.azure:azure-storage-file-datalake:12.23.0'
     implementation 'com.azure:azure-data-tables:12.5.3'
 
-    implementation platform('io.sentry:sentry-bom:8.8.0') //import bom
+    implementation platform('io.sentry:sentry-bom:8.10.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')
     implementation('io.sentry:sentry-logback')
 

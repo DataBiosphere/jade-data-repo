@@ -7,6 +7,7 @@ import uuid
 import re
 import csv
 import datetime
+from enum import Enum
 
 from google.cloud import bigquery
 from google.cloud import secretmanager
@@ -69,6 +70,79 @@ def get_raw_logs(filename):
     with open(os.path.join("rawLogs", filename)) as f:
         return json.load(f)
 
+
+class EventType(Enum):
+    DATA_ACCESS = 1
+    DATA_UPLOAD = 2
+    DATA_DELETION = 3
+    OTHER = 4
+def event_type_from_url(url, method):
+    """
+    Given a URL, determine the event type.
+    Data Access:
+    :check_green: /api/repository/v1/datasets/{id}/data/{table}
+    :check_green: /api/repository/v1/datasets/{id}/data/{table}/statistics/{column}
+    GET /api/repository/v1/datasets/{id}/files
+    GET /api/repository/v1/datasets/{id}/files/{fileid}
+    /api/repository/v1/datasets/{id}/filesystem/objects
+
+    :check_green: /api/repository/v1/snapshots/{id}/data/{table}
+    /api/repository/v1/snapshots/{id}/files
+    /api/repository/v1/snapshots/{id}/export
+    /api/repository/v1/snapshots/{id}/files/{fileid}
+    /api/repository/v1/snapshots/{id}/filesystem/objects
+
+
+    /ga4gh/drs/v1/objects/{object_id}
+    /ga4gh/drs/v1/objects/{object_id}/access/{access_id}
+
+    Data Uploads:
+    /api/repository/v1/datasets/{id}/ingest
+    POST /api/repository/v1/datasets/{id}/files
+    /api/repository/v1/datasets/{id}/files/bulk
+    /api/repository/v1/datasets/{id}/files/bulk/array
+
+    Data Deletion:
+    DELETE /api/repository/v1/snapshots/{id}
+    POST /api/repository/v1/datasets/{id}/deletes
+    DELETE /api/repository/v1/datasets/{id}
+    DELETE /api/repository/v1/datasets/{id}/files/{fileid}
+    """
+    dataset_regex = re.compile(r'datasets/[0-9a-fA-F-]{36}$')
+    snapshot_regex = re.compile(r'snapshots/[0-9a-fA-F-]{36}$')
+
+    if "/data/" in url:
+        return EventType.DATA_ACCESS
+    elif "/ga4gh/drs/v1/objects/" in url and (method == "GET" or method == "POST"):
+        return EventType.DATA_ACCESS
+    elif "/files" in url:
+        if "/bulk/array" in url:
+            return EventType.DATA_UPLOAD
+        # don't match on load tag endpoints
+        regexp = re.compile(r'/files/bulk/[A-Za-z]+$')
+        if regexp.search(url):
+            return "Other"
+        elif method == "DELETE":
+            return EventType.DATA_DELETION
+        elif method == "POST":
+            return EventType.DATA_UPLOAD
+        elif method == "GET":
+            return EventType.DATA_ACCESS
+    elif "filesystem/objects" in url:
+        return EventType.DATA_ACCESS
+    elif "/export" in url:
+        return EventType.DATA_ACCESS
+    elif "/ingest" in url:
+        return EventType.DATA_UPLOAD
+    elif dataset_regex.search(url) and method == "DELETE":
+        return EventType.DATA_DELETION
+    elif snapshot_regex.search(url) and method == "DELETE":
+        return EventType.DATA_DELETION
+    elif "/deletes" in url and method == "POST":
+        return EventType.DATA_DELETION
+    else:
+        return EventType.OTHER
+
 class UserDetails:
     def __init__(self, user_id=None, email=None, first_name=None, last_name=None, institute=None, country=None):
         self.user_id = user_id
@@ -106,6 +180,7 @@ class Log:
         self.event_type = None
         self.dataset_id = None
         self.snapshot_id = None
+        self.method = None
 
     def __str__(self):
         return f"{self._time}, {self.src_ip}, {self.dest_ip}, {self.dest_port}, {self.user_name}, {self.user_id}, {self.user_id_provider}, {self.session_id}, {self.url}, {self.app}, {self.http_user_agent}, {self.status}, {self.http_content_type}, {self.bytes}, {self.duration}, {self.nih_ico}, {self.cadr_name}, {self.user_country_name}, {self.user_org}, {self.user_email}, {self.associated_study}, {self.eRA_commons_id}, {self.user_permission_group}, {self.event_type}"
@@ -162,7 +237,6 @@ def main():
                     snapshot_id = regexp.search(url).group(0).split("/")[1]
                     snapshot_ids.add(snapshot_id)
                     newLog.snapshot_id = snapshot_id
-                # TODO - custom event types
             elif item.startswith("email"):
                  email = item.split(":")[1].strip()
                  newLog.user_email = email
@@ -187,6 +261,9 @@ def main():
                 newLog.bytes = item.split(":")[1].strip()
             elif item.startswith("duration"):
                 newLog.duration = item.split(":")[1].strip()
+            elif item.startswith("method"):
+                newLog.method = item.split(":")[1].strip()
+        newLog.event_type = event_type_from_url(newLog.url, newLog.method).name
         populatedNewLogs.append(newLog)
 
     # Get user details from Thurloe/data warehouse
@@ -268,9 +345,9 @@ def main():
 
     # Write to desired format
     outputs = []
-    outputs.append(["_time", "src_ip", "dest_ip", "dest_port", "user_name", "user_id", "user_id_provider", "session_id", "url", "app", "http_user_agent", "status", "http_content_type", "bytes", "duration", "nih_ico", "cadr_name", "user_country_name", "user_org", "user_email", "associated_study", "eRA_commons_id", "user_permission_group", "event_type", "dataset_id", "snapshot_id"])
+    outputs.append(["_time", "src_ip", "dest_ip", "dest_port", "user_name", "user_id", "user_id_provider", "session_id", "method", "url", "app", "http_user_agent", "status", "http_content_type", "bytes", "duration", "nih_ico", "cadr_name", "user_country_name", "user_org", "user_email", "associated_study", "eRA_commons_id", "user_permission_group", "event_type", "dataset_id", "snapshot_id"])
     for log in populatedNewLogs:
-        outputs.append([log._time, log.src_ip, log.dest_ip, log.dest_port, log.user_name, log.user_id, user_id_provider, log.session_id, log.url, log.app, log.http_user_agent, log.status, log.http_content_type, log.bytes, log.duration, log.nih_ico, log.cadr_name, log.user_country_name, log.user_org, log.user_email, log.associated_study, log.eRA_commons_id, log.user_permission_group, log.event_type, log.dataset_id, log.snapshot_id])
+        outputs.append([log._time, log.src_ip, log.dest_ip, log.dest_port, log.user_name, log.user_id, user_id_provider, log.session_id, log.method, log.url, log.app, log.http_user_agent, log.status, log.http_content_type, log.bytes, log.duration, log.nih_ico, log.cadr_name, log.user_country_name, log.user_org, log.user_email, log.associated_study, log.eRA_commons_id, log.user_permission_group, log.event_type, log.dataset_id, log.snapshot_id])
 
     output_filename = f"output/{os.path.basename(args.raw_logs_location).split('.')[0]}_{datetime.datetime.now()}.csv"
 

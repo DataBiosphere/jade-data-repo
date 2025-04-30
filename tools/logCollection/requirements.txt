@@ -1,3 +1,4 @@
 data-repo-client>=2.280.0
 google-cloud-bigquery
 google-cloud-secret-manager
+parameterized

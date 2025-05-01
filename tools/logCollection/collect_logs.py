@@ -1,64 +1,11 @@
 import argparse
 import os
-import subprocess
-import time
 import csv
 import datetime
 
 from src.parse_gcp_log import parse_gcp_log
 from src.populate_user_details_from_data_warehouse import populate_user_details
-
-from data_repo_client import (
-    Configuration,
-    ApiClient,
-    ProfilesApi,
-    DatasetsApi,
-    SnapshotsApi,
-    JobsApi,
-    SnapshotAccessRequestApi,
-)
-
-
-class Clients:
-    def __init__(self, host):
-        config = Configuration()
-        config.host = host
-        token_output = subprocess.run(
-            ["gcloud", "auth", "print-access-token"], capture_output=True
-        )
-        config.access_token = token_output.stdout.decode("UTF-8").strip()
-        self.api_client = ApiClient(configuration=config)
-
-        self.profiles_api = ProfilesApi(api_client=self.api_client)
-        self.datasets_api = DatasetsApi(api_client=self.api_client)
-        self.snapshots_api = SnapshotsApi(api_client=self.api_client)
-        self.jobs_api = JobsApi(api_client=self.api_client)
-        self.snapshot_request_api = SnapshotAccessRequestApi(api_client=self.api_client)
-
-
-def wait_for_job(clients, job_model):
-    result = clients.jobs_api.retrieve_job(job_model.id)
-    while True:
-        if result is None or result.job_status == "running":
-            time.sleep(10)
-            print(f"Waiting for job {job_model.id} to finish")
-            result = clients.jobs_api.retrieve_job(job_model.id)
-        elif result.job_status == "failed":
-            result = clients.jobs_api.retrieve_job_result(job_model.id)
-            raise Exception(
-                f"Could not complete job with id {job_model.id}, got result {result}"
-            )
-        elif result.job_status == "succeeded":
-            print(f"Job succeeded {job_model.id}: {job_model.description}")
-            result = clients.jobs_api.retrieve_job_result(job_model.id)
-            return result
-        else:
-            raise "Unrecognized job state %s" % result.job_status
-
-
-def wait_for_jobs(clients, jobs):
-    for job in jobs:
-        wait_for_job(clients, job)
+from src.populate_tdr_details import populate_snapshot_user_permission_group_and_studies, populate_dataset_studies
 
 
 def main():
@@ -76,8 +23,8 @@ def main():
              + ", ".join(os.listdir("./rawLogs/")),
     )
     args = parser.parse_args()
-    clients = Clients(args.host)
     raw_logs_location = args.raw_logs_location
+    host = args.host
 
     emails = set()
     dataset_ids = set()
@@ -87,15 +34,12 @@ def main():
     # Get user details from Thurloe/data warehouse
     populate_user_details(populated_new_logs, emails)
 
-    # For Snapshots, get auth domains and source datasets from TDR
-    user_permission_group = ""
-    # Can access via the snapshot policies endpoint
-    # Can enumerate snapshots and filter by snapshotIds to get source dataset
+    # For Snapshots, get auth domains from TDR to populate the `user_permission_group` field
+    # and get PHSIds and DUOS Ids from TDR to populate the `associated_study` field
+    populate_snapshot_user_permission_group_and_studies(populated_new_logs, snapshot_ids, host)
 
     # For Datasets, get PHSIds from TDR
-    associated_study = ""
-    # Will need to use the enumerate datasets endpoint and filter by datasetIds
-
+    populate_dataset_studies(populated_new_logs, dataset_ids, host)
 
     # Pull ERA commmons id
     eRA_commons_id = ""

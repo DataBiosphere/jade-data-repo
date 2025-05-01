@@ -1,10 +1,10 @@
 import unittest
-from collect_logs import event_type_from_url, EventType
+from ..categorize_event_type import event_type_from_url, EventType
 import uuid
 from parameterized import parameterized
 
 # Run tests with the following command:
-# `python3 -m unittest tests/event_type_test.py`
+# `python3 -m unittest src/tests/event_type_test.py`
 
 id = uuid.uuid4()
 table_name = "tableName123"

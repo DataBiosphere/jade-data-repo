@@ -201,14 +201,14 @@ dependencies {
     implementation 'com.microsoft.sqlserver:mssql-jdbc:12.3.0.jre17-preview'
 
     // For distributed locking of Spring @Scheduled tasks across multiple instances
-    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.4.0'
-    implementation 'net.javacrumbs.shedlock:shedlock-spring:6.4.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.6.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:6.6.0'
 
-    implementation 'bio.terra:terra-common-lib:1.1.40-SNAPSHOT'
+    implementation 'bio.terra:terra-common-lib:1.1.41-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.241'
     implementation 'bio.terra:terra-policy-client:1.0.18-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'
-    implementation 'bio.terra:externalcreds-client-resttemplate:1.95.0-SNAPSHOT'
+    implementation 'bio.terra:externalcreds-client-resttemplate:1.96.0-SNAPSHOT'
 
     implementation 'org.glassfish.jersey.inject:jersey-hk2'
 
@@ -230,7 +230,7 @@ dependencies {
     implementation 'com.azure:azure-storage-file-datalake:12.23.0'
     implementation 'com.azure:azure-data-tables:12.5.3'
 
-    implementation platform('io.sentry:sentry-bom:8.10.0') //import bom
+    implementation platform('io.sentry:sentry-bom:8.11.1') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')
     implementation('io.sentry:sentry-logback')
 
@@ -238,11 +238,11 @@ dependencies {
     implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.15.0'
     implementation 'io.opentelemetry:opentelemetry-sdk-extension-autoconfigure'
 
-    testImplementation 'org.apache.parquet:parquet-common:1.15.1'
-    testImplementation 'org.apache.parquet:parquet-hadoop:1.15.1'
-    testImplementation 'org.apache.parquet:parquet-hadoop-bundle:1.15.1'
-    testImplementation 'org.apache.parquet:parquet-encoding:1.15.1'
-    testImplementation 'org.apache.parquet:parquet-column:1.15.1'
+    testImplementation 'org.apache.parquet:parquet-common:1.15.2'
+    testImplementation 'org.apache.parquet:parquet-hadoop:1.15.2'
+    testImplementation 'org.apache.parquet:parquet-hadoop-bundle:1.15.2'
+    testImplementation 'org.apache.parquet:parquet-encoding:1.15.2'
+    testImplementation 'org.apache.parquet:parquet-column:1.15.2'
     testImplementation ('org.apache.hadoop:hadoop-common:3.4.1')  {
         exclude group: 'com.sun.jersey', module: 'jersey-core'
         exclude group: 'com.sun.jersey', module: 'jersey-servlet'

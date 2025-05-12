@@ -71,6 +71,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -928,7 +929,7 @@ public class DrsService {
             // Extract singleton values
             .id(extractUniqueDrsObjectValue(drsObjects, DRSObject::getId))
             .name(extractUniqueDrsObjectValue(drsObjects, DRSObject::getName))
-            .description(extractUniqueDrsObjectValue(drsObjects, DRSObject::getDescription))
+            .description(extractFirstDrsObjectValue(drsObjects, DRSObject::getDescription))
             .size(extractUniqueDrsObjectValue(drsObjects, DRSObject::getSize))
             .selfUri(extractUniqueDrsObjectValue(drsObjects, DRSObject::getSelfUri))
             .mimeType(extractUniqueDrsObjectValue(drsObjects, DRSObject::getMimeType))
@@ -1007,6 +1008,17 @@ public class DrsService {
       return CollectionUtils.extractSingleton(values);
     } catch (IllegalArgumentException e) {
       throw new InvalidDrsObjectException("Found duplicate values: %s".formatted(values), e);
+    }
+  }
+
+  /** Given a list of DRSObjects, extract the first value and fail if there are no values */
+  @VisibleForTesting
+  static <R> R extractFirstDrsObjectValue(
+      List<DRSObject> drsObjects, Function<DRSObject, ? extends R> mapper) {
+    try {
+      return drsObjects.stream().map(mapper).findFirst().orElseThrow();
+    } catch (NoSuchElementException | NullPointerException e) {
+      throw new InvalidDrsObjectException("No value present", e);
     }
   }
 

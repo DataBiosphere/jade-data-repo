@@ -1095,60 +1095,18 @@ class DrsServiceTest {
   }
 
   @Test
-  void testExtractFirstDrsObjectValue() {
-    DRSObject drsObject1 =
-        createFileDrsObject(
-            "v2_file1",
-            "/my/path/file1.txt",
-            123L,
-            "foomd5",
-            CloudPlatform.GCP,
-            GoogleRegion.ASIA_SOUTH1,
-            Instant.parse("2025-01-01T00:00:00.00Z"));
-    drsObject1.setDescription("description1");
-    DRSObject drsObject2 =
-        createFileDrsObject(
-            "v2_file1",
-            "/my/path/file1.txt",
-            123L,
-            "foomd5",
-            CloudPlatform.GCP,
-            GoogleRegion.ASIA_SOUTH1,
-            Instant.parse("2025-01-01T00:00:00.00Z"));
-    drsObject2.setDescription("description2");
+  void testExtractDrsFileConcatenatedStringValues() {
+    DRSObject drsObject1 = new DRSObject().description("description1");
+    DRSObject drsObject2 = new DRSObject().description("description2");
     List<DRSObject> drsObjects = List.of(drsObject1, drsObject2);
     assertThat(
-        "value from first object is correctly returned",
-        DrsService.extractFirstDrsObjectValue(drsObjects, DRSObject::getDescription),
-        equalTo(drsObject1.getDescription()));
-  }
-
-  @Test
-  void testExtractFirstDrsObjectValueNullValues() {
-    DRSObject drsObject1 =
-        createFileDrsObject(
-            "v2_file1",
-            "/my/path/file1.txt",
-            123L,
-            "foomd5",
-            CloudPlatform.GCP,
-            GoogleRegion.ASIA_SOUTH1,
-            Instant.parse("2025-01-01T00:00:00.00Z"));
-    drsObject1.setDescription(null);
-    DRSObject drsObject2 =
-        createFileDrsObject(
-            "v2_file1",
-            "/my/path/file1.txt",
-            123L,
-            "foomd5",
-            CloudPlatform.GCP,
-            GoogleRegion.ASIA_SOUTH1,
-            Instant.parse("2025-01-01T00:00:00.00Z"));
-    drsObject2.setDescription(null);
-    List<DRSObject> drsObjects = List.of(drsObject1, drsObject2);
-    assertThrows(
-        InvalidDrsObjectException.class,
-        () -> DrsService.extractFirstDrsObjectValue(drsObjects, DRSObject::getDescription));
+        "value from each object is correctly returned",
+        DrsService.extractDrsFileConcatenatedStringValues(drsObjects, DRSObject::getDescription),
+        containsString(drsObject1.getDescription()));
+    assertThat(
+        "value from each object is correctly returned",
+        DrsService.extractDrsFileConcatenatedStringValues(drsObjects, DRSObject::getDescription),
+        containsString(drsObject2.getDescription()));
   }
 
   @Test

@@ -71,13 +71,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
@@ -929,7 +929,8 @@ public class DrsService {
             // Extract singleton values
             .id(extractUniqueDrsObjectValue(drsObjects, DRSObject::getId))
             .name(extractUniqueDrsObjectValue(drsObjects, DRSObject::getName))
-            .description(extractFirstDrsObjectValue(drsObjects, DRSObject::getDescription))
+            .description(
+                extractDrsFileConcatenatedStringValues(drsObjects, DRSObject::getDescription))
             .size(extractUniqueDrsObjectValue(drsObjects, DRSObject::getSize))
             .selfUri(extractUniqueDrsObjectValue(drsObjects, DRSObject::getSelfUri))
             .mimeType(extractUniqueDrsObjectValue(drsObjects, DRSObject::getMimeType))
@@ -1011,15 +1012,18 @@ public class DrsService {
     }
   }
 
-  /** Given a list of DRSObjects, extract the first value and fail if there are no values */
+  /** Given a list of DRSObjects, concatenate the string values of the mapped field */
   @VisibleForTesting
-  static <R> R extractFirstDrsObjectValue(
+  static <R> String extractDrsFileConcatenatedStringValues(
       List<DRSObject> drsObjects, Function<DRSObject, ? extends R> mapper) {
-    try {
-      return drsObjects.stream().map(mapper).findFirst().orElseThrow();
-    } catch (NoSuchElementException | NullPointerException e) {
-      throw new InvalidDrsObjectException("No value present", e);
-    }
+    return drsObjects.stream()
+        .map(mapper)
+        .filter(Objects::nonNull)
+        .map(Objects::toString)
+        .map(String::trim)
+        .distinct()
+        .filter(Predicate.not(String::isEmpty))
+        .collect(Collectors.joining(", "));
   }
 
   /** Given a list of DRSObjects, extract a list of distinct values sorted by the comparator. */

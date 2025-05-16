@@ -12,6 +12,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -1032,6 +1033,37 @@ class DrsServiceTest {
 
     List<DRSObject> drsObjects = List.of(drsObject1, drsObject2);
     assertThrows(InvalidDrsObjectException.class, () -> drsService.mergeDRSObjects(drsObjects));
+  }
+
+  @Test
+  void testMergeDrsObjectsWithMultipleDescriptions() {
+    DRSObject drsObject1 =
+        createFileDrsObject(
+                "v2_file1",
+                "/my/path/file1.txt",
+                123L,
+                "foomd5",
+                CloudPlatform.GCP,
+                GoogleRegion.ASIA_SOUTH1,
+                Instant.parse("2022-01-01T00:00:00.00Z"))
+            .description("description1");
+    DRSObject drsObject2 =
+        createFileDrsObject(
+                "v2_file1",
+                "/my/path/file1.txt",
+                123L,
+                "foomd5",
+                CloudPlatform.GCP,
+                GoogleRegion.US_CENTRAL1,
+                Instant.parse("2022-01-02T00:00:00.00Z"))
+            .description("description2");
+    List<DRSObject> drsObjects = List.of(drsObject1, drsObject2);
+    assertDoesNotThrow(
+        () -> {
+          DRSObject drsObject = drsService.mergeDRSObjects(drsObjects);
+          assertThat(drsObject.getDescription(), containsString(drsObject1.getDescription()));
+          assertThat(drsObject.getDescription(), containsString(drsObject2.getDescription()));
+        });
   }
 
   @Test

@@ -1014,13 +1014,12 @@ public class DrsService {
 
   /** Given a list of DRSObjects, concatenate the string values of the mapped field */
   @VisibleForTesting
-  static <R> String extractDrsFileConcatenatedStringValues(
-      List<DRSObject> drsObjects, Function<DRSObject, ? extends R> mapper) {
+  static String extractDrsFileConcatenatedStringValues(
+      List<DRSObject> drsObjects, Function<DRSObject, String> mapper) {
     return drsObjects.stream()
         .map(mapper)
         .filter(Objects::nonNull)
         .map(Objects::toString)
-        .map(String::trim)
         .distinct()
         .filter(Predicate.not(String::isEmpty))
         .collect(Collectors.joining(", "));

@@ -4,6 +4,7 @@ import static bio.terra.service.filedata.DrsService.URL_TTL;
 import static bio.terra.service.filedata.google.gcs.GcsConstants.REQUESTED_BY_QUERY_PARAM;
 import static bio.terra.service.filedata.google.gcs.GcsConstants.USER_PROJECT_QUERY_PARAM;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -12,7 +13,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -1058,12 +1058,12 @@ class DrsServiceTest {
                 Instant.parse("2022-01-02T00:00:00.00Z"))
             .description("description2");
     List<DRSObject> drsObjects = List.of(drsObject1, drsObject2);
-    assertDoesNotThrow(
-        () -> {
-          DRSObject drsObject = drsService.mergeDRSObjects(drsObjects);
-          assertThat(drsObject.getDescription(), containsString(drsObject1.getDescription()));
-          assertThat(drsObject.getDescription(), containsString(drsObject2.getDescription()));
-        });
+    DRSObject drsObject = drsService.mergeDRSObjects(drsObjects);
+    assertThat(
+        drsObject.getDescription(),
+        allOf(
+            containsString(drsObject1.getDescription()),
+            containsString(drsObject2.getDescription())));
   }
 
   @Test
@@ -1134,11 +1134,9 @@ class DrsServiceTest {
     assertThat(
         "value from each object is correctly returned",
         DrsService.extractDrsFileConcatenatedStringValues(drsObjects, DRSObject::getDescription),
-        containsString(drsObject1.getDescription()));
-    assertThat(
-        "value from each object is correctly returned",
-        DrsService.extractDrsFileConcatenatedStringValues(drsObjects, DRSObject::getDescription),
-        containsString(drsObject2.getDescription()));
+        allOf(
+            containsString(drsObject1.getDescription()),
+            containsString(drsObject2.getDescription())));
   }
 
   @Test

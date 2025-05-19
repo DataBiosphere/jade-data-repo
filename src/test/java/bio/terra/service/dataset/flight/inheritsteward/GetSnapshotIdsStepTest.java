@@ -9,7 +9,6 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -48,7 +47,8 @@ class GetSnapshotIdsStepTest {
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
 
     if (inheritSteward) {
-      when(snapshotService.enumerateSnapshotIdsForDataset(DATASET_ID, TEST_USER)).thenReturn(snapshotIds);
+      when(snapshotService.enumerateSnapshotIdsForDataset(DATASET_ID, TEST_USER))
+          .thenReturn(snapshotIds);
     } else {
       List<FullyQualifiedResourceId> children =
           List.of(

@@ -11,7 +11,6 @@ import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.Flight;
@@ -44,7 +43,8 @@ public class SetInheritStewardFlight extends Flight {
     boolean inheritSteward =
         inputParameters.get(JobMapKeys.INHERIT_STEWARD.getKeyName(), Boolean.class);
     addStep(new LockDatasetStep(datasetService, datasetId, false));
-    addStep(new GetSnapshotIdsStep(snapshotService, iamService, userReq, datasetId, inheritSteward));
+    addStep(
+        new GetSnapshotIdsStep(snapshotService, iamService, userReq, datasetId, inheritSteward));
     if (inheritSteward) {
       // Make sure no child snapshot have auth domains
       addStep(new CheckChildSnapshotAuthDomainStep(snapshotService, userReq));

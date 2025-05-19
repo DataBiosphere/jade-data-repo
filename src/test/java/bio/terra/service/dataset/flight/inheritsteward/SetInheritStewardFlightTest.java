@@ -21,7 +21,6 @@ import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightMap;
@@ -44,7 +43,6 @@ class SetInheritStewardFlightTest {
 
   @Mock private ApplicationContext context;
   @Mock private DatasetDao datasetDao;
-  @Mock private SnapshotDao snapshotDao;
   @Mock private ResourceService resourceService;
   @Mock private SnapshotService snapshotService;
   @Mock private BigQuerySnapshotPdao bigQuerySnapshotPdao;
@@ -69,7 +67,6 @@ class SetInheritStewardFlightTest {
     inputParameters.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), TEST_USER);
     inputParameters.put(JobMapKeys.DATASET_POLICY_EMAILS.getKeyName(), DATASET_POLICY_EMAILS);
     when(context.getBean(DatasetDao.class)).thenReturn(datasetDao);
-    when(context.getBean(SnapshotDao.class)).thenReturn(snapshotDao);
     when(context.getBean(DatasetService.class)).thenReturn(datasetService);
     when(context.getBean(ResourceService.class)).thenReturn(resourceService);
     when(context.getBean(SnapshotService.class)).thenReturn(snapshotService);
@@ -158,7 +155,8 @@ class SetInheritStewardFlightTest {
             (mock, context) ->
                 assertThat(
                     context.arguments(),
-                    contains(snapshotDao, iamService, TEST_USER, DATASET_ID, inheritSteward)))) {
+                    contains(
+                        snapshotService, iamService, TEST_USER, DATASET_ID, inheritSteward)))) {
       //noinspection ResultOfObjectAllocationIgnored
       new SetInheritStewardFlight(inputParameters, context);
       assertThat(mockStep.constructed(), hasSize(1));

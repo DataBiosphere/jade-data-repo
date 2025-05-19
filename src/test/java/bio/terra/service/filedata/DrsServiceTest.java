@@ -4,6 +4,7 @@ import static bio.terra.service.filedata.DrsService.URL_TTL;
 import static bio.terra.service.filedata.google.gcs.GcsConstants.REQUESTED_BY_QUERY_PARAM;
 import static bio.terra.service.filedata.google.gcs.GcsConstants.USER_PROJECT_QUERY_PARAM;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -1035,6 +1036,37 @@ class DrsServiceTest {
   }
 
   @Test
+  void testMergeDrsObjectsWithMultipleDescriptions() {
+    DRSObject drsObject1 =
+        createFileDrsObject(
+                "v2_file1",
+                "/my/path/file1.txt",
+                123L,
+                "foomd5",
+                CloudPlatform.GCP,
+                GoogleRegion.ASIA_SOUTH1,
+                Instant.parse("2022-01-01T00:00:00.00Z"))
+            .description("description1");
+    DRSObject drsObject2 =
+        createFileDrsObject(
+                "v2_file1",
+                "/my/path/file1.txt",
+                123L,
+                "foomd5",
+                CloudPlatform.GCP,
+                GoogleRegion.US_CENTRAL1,
+                Instant.parse("2022-01-02T00:00:00.00Z"))
+            .description("description2");
+    List<DRSObject> drsObjects = List.of(drsObject1, drsObject2);
+    DRSObject drsObject = drsService.mergeDRSObjects(drsObjects);
+    assertThat(
+        drsObject.getDescription(),
+        allOf(
+            containsString(drsObject1.getDescription()),
+            containsString(drsObject2.getDescription())));
+  }
+
+  @Test
   void testDateMerging() {
     DRSObject drsObject1 =
         createFileDrsObject(
@@ -1092,6 +1124,19 @@ class DrsServiceTest {
     assertThrows(
         InvalidDrsObjectException.class,
         () -> DrsService.extractUniqueDrsObjectValue(drsObjects, DRSObject::getSize));
+  }
+
+  @Test
+  void testExtractDrsFileConcatenatedStringValues() {
+    DRSObject drsObject1 = new DRSObject().description("description1");
+    DRSObject drsObject2 = new DRSObject().description("description2");
+    List<DRSObject> drsObjects = List.of(drsObject1, drsObject2);
+    assertThat(
+        "value from each object is correctly returned",
+        DrsService.extractDrsFileConcatenatedStringValues(drsObjects, DRSObject::getDescription),
+        allOf(
+            containsString(drsObject1.getDescription()),
+            containsString(drsObject2.getDescription())));
   }
 
   @Test

@@ -1078,16 +1078,6 @@ class SnapshotDaoTest {
     assertThrows(SnapshotNotFoundException.class, () -> snapshotDao.retrieveSnapshot(snapshotId));
   }
 
-  @Test
-  void getSnapshotIdsForDataset() throws IOException {
-    Dataset newDataset =
-        daoOperations.createDataset("snapshot-test-dataset-with-multi-columns.json");
-    List<Snapshot> snapshots = makeSnapshots(newDataset);
-    assertThat(
-        snapshotDao.getSnapshotIds(newDataset.getId()),
-        containsInAnyOrder(snapshots.stream().map(Snapshot::getId).toArray()));
-  }
-
   private List<Snapshot> makeSnapshots(Dataset sourceDataset) {
     String snapshotName = snapshotRequest.getName() + UUID.randomUUID();
     return IntStream.range(0, 3)

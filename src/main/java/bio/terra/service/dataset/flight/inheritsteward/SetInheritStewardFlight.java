@@ -27,7 +27,6 @@ public class SetInheritStewardFlight extends Flight {
     // Get the required DAOs and services to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
-    SnapshotDao snapshotDao = appContext.getBean(SnapshotDao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
     BigQuerySnapshotPdao bigQuerySnapshotPdao = appContext.getBean(BigQuerySnapshotPdao.class);
@@ -45,7 +44,7 @@ public class SetInheritStewardFlight extends Flight {
     boolean inheritSteward =
         inputParameters.get(JobMapKeys.INHERIT_STEWARD.getKeyName(), Boolean.class);
     addStep(new LockDatasetStep(datasetService, datasetId, false));
-    addStep(new GetSnapshotIdsStep(snapshotDao, iamService, userReq, datasetId, inheritSteward));
+    addStep(new GetSnapshotIdsStep(snapshotService, iamService, userReq, datasetId, inheritSteward));
     if (inheritSteward) {
       // Make sure no child snapshot have auth domains
       addStep(new CheckChildSnapshotAuthDomainStep(snapshotService, userReq));

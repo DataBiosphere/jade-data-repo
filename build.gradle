@@ -44,7 +44,7 @@ plugins {
     id 'com.dorongold.task-tree' version '4.0.1'
     // enables release info in sentry events
     id 'com.gorylenko.gradle-git-properties' version '2.5.0'
-    id 'org.sonarqube' version '6.1.0.5360'
+    id 'org.sonarqube' version '6.2.0.5505'
     id 'com.srcclr.gradle' version '3.1.12'
 }
 
@@ -63,7 +63,7 @@ allprojects {
             mavenBom SpringBootPlugin.BOM_COORDINATES
         }
         dependencies {
-            dependency 'io.swagger.core.v3:swagger-annotations:2.2.30'
+            dependency 'io.swagger.core.v3:swagger-annotations:2.2.32'
             dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.68'
         }
     }
@@ -171,7 +171,7 @@ dependencies {
     implementation 'com.google.cloud:google-cloud-storage'
     implementation 'com.google.cloud:google-cloud-firestore'
     implementation 'com.google.cloud:google-cloud-pubsub'
-    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:6.1.1'
+    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:6.2.0'
     implementation 'com.google.http-client:google-http-client'
 
     implementation 'org.apache.commons:commons-compress:1.27.1' // For srcclr, jib plugin conflict
@@ -222,7 +222,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     // Azure related dependencies
-    implementation 'com.azure:azure-identity:1.16.0'
+    implementation 'com.azure:azure-identity:1.16.1'
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.50.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'
@@ -230,12 +230,12 @@ dependencies {
     implementation 'com.azure:azure-storage-file-datalake:12.23.0'
     implementation 'com.azure:azure-data-tables:12.5.3'
 
-    implementation platform('io.sentry:sentry-bom:8.11.1') //import bom
+    implementation platform('io.sentry:sentry-bom:8.12.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')
     implementation('io.sentry:sentry-logback')
 
     // OpenTelemetry @WithSpan annotations:
-    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.15.0'
+    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.16.0'
     implementation 'io.opentelemetry:opentelemetry-sdk-extension-autoconfigure'
 
     testImplementation 'org.apache.parquet:parquet-common:1.15.2'

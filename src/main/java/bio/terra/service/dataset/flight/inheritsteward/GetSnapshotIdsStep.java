@@ -5,7 +5,7 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.job.DefaultUndoStep;
-import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
@@ -14,19 +14,19 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class GetSnapshotIdsStep extends DefaultUndoStep {
-  private final SnapshotDao snapshotDao;
+  private final SnapshotService snapshotService;
   private final IamService iamService;
   private final AuthenticatedUserRequest userReq;
   private final UUID datasetId;
   private final boolean inheritSteward;
 
   public GetSnapshotIdsStep(
-      SnapshotDao snapshotDao,
+      SnapshotService snapshotService,
       IamService iamService,
       AuthenticatedUserRequest userReq,
       UUID datasetId,
       boolean inheritSteward) {
-    this.snapshotDao = snapshotDao;
+    this.snapshotService = snapshotService;
     this.iamService = iamService;
     this.userReq = userReq;
     this.datasetId = datasetId;
@@ -37,7 +37,7 @@ public class GetSnapshotIdsStep extends DefaultUndoStep {
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     List<UUID> snapshotIds;
     if (inheritSteward) {
-      snapshotIds = snapshotDao.getSnapshotIds(datasetId);
+      snapshotIds = snapshotService.enumerateSnapshotIdsForDataset(datasetId, userReq);
     } else {
       snapshotIds =
           iamService

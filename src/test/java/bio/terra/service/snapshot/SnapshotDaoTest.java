@@ -52,7 +52,6 @@ import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotUpdateException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -1076,16 +1075,6 @@ class SnapshotDaoTest {
   void testRetrieveSnapshotNotFound() {
     UUID snapshotId = UUID.randomUUID();
     assertThrows(SnapshotNotFoundException.class, () -> snapshotDao.retrieveSnapshot(snapshotId));
-  }
-
-  @Test
-  void getSnapshotIdsForDataset() throws IOException {
-    Dataset newDataset =
-        daoOperations.createDataset("snapshot-test-dataset-with-multi-columns.json");
-    List<Snapshot> snapshots = makeSnapshots(newDataset);
-    assertThat(
-        snapshotDao.getSnapshotIds(newDataset.getId()),
-        containsInAnyOrder(snapshots.stream().map(Snapshot::getId).toArray()));
   }
 
   private List<Snapshot> makeSnapshots(Dataset sourceDataset) {

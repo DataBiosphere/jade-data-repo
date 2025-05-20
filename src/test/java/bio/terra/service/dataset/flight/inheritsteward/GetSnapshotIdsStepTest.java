@@ -9,7 +9,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
@@ -28,7 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @Tag(Unit.TAG)
 class GetSnapshotIdsStepTest {
 
-  @Mock private SnapshotDao snapshotDao;
+  @Mock private SnapshotService snapshotService;
   @Mock private IamService iamService;
   @Mock private FlightContext flightContext;
   private static final UUID DATASET_ID = UUID.randomUUID();
@@ -41,13 +41,14 @@ class GetSnapshotIdsStepTest {
   @ValueSource(booleans = {true, false})
   void doStep(boolean inheritSteward) throws Exception {
     GetSnapshotIdsStep step =
-        new GetSnapshotIdsStep(snapshotDao, iamService, TEST_USER, DATASET_ID, inheritSteward);
+        new GetSnapshotIdsStep(snapshotService, iamService, TEST_USER, DATASET_ID, inheritSteward);
     FlightMap workingMap = new FlightMap();
     List<UUID> snapshotIds = Arrays.asList(SNAPSHOT_1, SNAPSHOT_2);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
 
     if (inheritSteward) {
-      when(snapshotDao.getSnapshotIds(DATASET_ID)).thenReturn(snapshotIds);
+      when(snapshotService.enumerateSnapshotIdsForDataset(DATASET_ID, TEST_USER))
+          .thenReturn(snapshotIds);
     } else {
       List<FullyQualifiedResourceId> children =
           List.of(

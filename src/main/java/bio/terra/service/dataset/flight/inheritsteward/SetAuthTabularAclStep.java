@@ -30,7 +30,8 @@ public record SetAuthTabularAclStep(
    */
   private void setAuth(FlightContext context, boolean inheritSteward) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    List<UUID> snapshotIds = workingMap.get(DatasetWorkingMapKeys.SNAPSHOT_IDS, new TypeReference<>() {});
+    List<UUID> snapshotIds =
+        workingMap.get(DatasetWorkingMapKeys.SNAPSHOT_IDS, new TypeReference<>() {});
     for (var snapshotId : Objects.requireNonNull(snapshotIds)) {
       Snapshot snapshot = snapshotService.retrieve(snapshotId);
       if (inheritSteward) {

@@ -23,7 +23,8 @@ public record SetAuthGcpUserRolesStep(
   private StepResult setAuth(FlightContext flightContext, boolean inheritSteward)
       throws InterruptedException {
     FlightMap workingMap = flightContext.getWorkingMap();
-    List<UUID> snapshotIds = workingMap.get(DatasetWorkingMapKeys.SNAPSHOT_IDS, new TypeReference<>() {});
+    List<UUID> snapshotIds =
+        workingMap.get(DatasetWorkingMapKeys.SNAPSHOT_IDS, new TypeReference<>() {});
     for (var snapshotId : Objects.requireNonNull(snapshotIds)) {
       String projectId =
           snapshotService.retrieve(snapshotId).getProjectResource().getGoogleProjectId();

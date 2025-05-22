@@ -7,6 +7,7 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.ws.rs.BadRequestException;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +28,7 @@ public class CheckChildSnapshotAuthDomainStep extends DefaultUndoStep {
   public StepResult doStep(FlightContext context) {
     List<UUID> snapshotsWithAuthDomains = new ArrayList<>();
     List<UUID> snapshots =
-        context.getWorkingMap().get(DatasetWorkingMapKeys.SNAPSHOT_IDS, List.class);
+        context.getWorkingMap().get(DatasetWorkingMapKeys.SNAPSHOT_IDS, new TypeReference<>() {});
     Objects.requireNonNull(snapshots)
         .forEach(
             snapshotId -> {

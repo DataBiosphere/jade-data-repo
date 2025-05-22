@@ -11,6 +11,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -31,7 +32,7 @@ public record AdjustStewardMembersStep(
   private void addRemoveStewardMembers(FlightContext context, boolean inheritSteward) {
     FlightMap workingMap = context.getWorkingMap();
     List<UUID> snapshotIds =
-        Objects.requireNonNull(workingMap.get(DatasetWorkingMapKeys.SNAPSHOT_IDS, List.class));
+        Objects.requireNonNull(workingMap.get(DatasetWorkingMapKeys.SNAPSHOT_IDS, new TypeReference<>() {}));
     FlightMap inputParams = context.getInputParameters();
     List<String> custodians =
         Objects.requireNonNull(

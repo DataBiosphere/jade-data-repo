@@ -8,7 +8,6 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -31,7 +30,7 @@ public record SetAuthTabularAclStep(
   private void setAuth(FlightContext context, boolean inheritSteward) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     List<UUID> snapshotIds =
-        workingMap.get(DatasetWorkingMapKeys.SNAPSHOT_IDS, new TypeReference<>() {});
+        workingMap.get(DatasetWorkingMapKeys.SNAPSHOT_IDS, List.class);
     for (var snapshotId : Objects.requireNonNull(snapshotIds)) {
       Snapshot snapshot = snapshotService.retrieve(snapshotId);
       if (inheritSteward) {

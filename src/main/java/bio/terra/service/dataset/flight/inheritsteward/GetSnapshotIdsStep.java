@@ -38,7 +38,8 @@ public class GetSnapshotIdsStep extends DefaultUndoStep {
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     List<UUID> snapshotIds;
     if (inheritSteward) {
-      snapshotIds = new ArrayList<>(snapshotService.enumerateSnapshotIdsForDataset(datasetId, userReq));
+      snapshotIds =
+          new ArrayList<>(snapshotService.enumerateSnapshotIdsForDataset(datasetId, userReq));
     } else {
       snapshotIds =
           iamService

@@ -31,8 +31,7 @@ public record AdjustStewardMembersStep(
   private void addRemoveStewardMembers(FlightContext context, boolean inheritSteward) {
     FlightMap workingMap = context.getWorkingMap();
     List<UUID> snapshotIds =
-        Objects.requireNonNull(
-            workingMap.get(DatasetWorkingMapKeys.SNAPSHOT_IDS, List.class));
+        Objects.requireNonNull(workingMap.get(DatasetWorkingMapKeys.SNAPSHOT_IDS, List.class));
     FlightMap inputParams = context.getInputParameters();
     List<String> custodians =
         Objects.requireNonNull(

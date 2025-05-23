@@ -9,6 +9,7 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -37,7 +38,8 @@ public class GetSnapshotIdsStep extends DefaultUndoStep {
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     List<UUID> snapshotIds;
     if (inheritSteward) {
-      snapshotIds = snapshotService.enumerateSnapshotIdsForDataset(datasetId, userReq);
+      snapshotIds =
+          new ArrayList<>(snapshotService.enumerateSnapshotIdsForDataset(datasetId, userReq));
     } else {
       snapshotIds =
           iamService

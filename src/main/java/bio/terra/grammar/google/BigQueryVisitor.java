@@ -18,9 +18,10 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
 
   public String generateAlias(String datasetName, String tableName) {
     if (datasetName == null || tableName == null) {
-      throw new InvalidQueryException("All column and table names must be qualified with a dataset/table name. " +
-          "Please ensure that your query uses the format `dataset.table.column` for columns and `dataset.table` for tables. " +
-          "For example, use `my_dataset.my_table.my_column` instead of just `my_column` and `my_dataset.my_table` instead of just `my_table`.");
+      throw new InvalidQueryException(
+          "All column and table names must be qualified with a dataset/table name. "
+              + "Please ensure that your query uses the format `dataset.table.column` for columns and `dataset.table` for tables. "
+              + "For example, use `my_dataset.my_table.my_column` instead of just `my_column` and `my_dataset.my_table` instead of just `my_table`.");
     }
     return "alias" + Math.abs(Objects.hash(datasetName, tableName));
   }

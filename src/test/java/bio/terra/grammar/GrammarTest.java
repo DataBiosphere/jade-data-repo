@@ -3,6 +3,7 @@ package bio.terra.grammar;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -235,6 +236,42 @@ class GrammarTest {
                 + "` WHERE `"
                 + aliasedTableName
                 + "`.x = 'string'"));
+  }
+
+  @ParameterizedTest
+  @MethodSource
+  void testRequiredQualifiedNameOnQueryTranslation(
+      String testQuery, boolean queryHasQualifiedNames) {
+    BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
+    Query parsedQuery = Query.parse(testQuery);
+    if (!queryHasQualifiedNames) {
+      assertThrows(
+          InvalidQueryException.class,
+          () -> parsedQuery.translateSql(bqVisitor),
+          "All column and table names must be qualified with a dataset/table name. "
+              + "Please ensure that your query uses the format `dataset.table.column` for columns and `dataset.table` for tables. "
+              + "For example, use `my_dataset.my_table.my_column` instead of just `my_column` and `my_dataset.my_table` instead of just `my_table`.");
+    } else {
+      String bqDatasetName = PdaoConstant.PDAO_PREFIX + "dataset";
+      String tableName = "table";
+      String translated = parsedQuery.translateSql(bqVisitor);
+      String aliasedTableName = bqVisitor.generateAlias(bqDatasetName, tableName);
+      assertThat(
+          "query translates to valid bigquery syntax",
+          translated,
+          containsString(aliasedTableName));
+    }
+  }
+
+  static Stream<Arguments> testRequiredQualifiedNameOnQueryTranslation() {
+    return Stream.of(
+        Arguments.of(
+            "SELECT dataset.table.datarepo_row_id FROM dataset.table WHERE dataset.table.x = 'string'",
+            true),
+        Arguments.of(
+            "SELECT datarepo_row_id FROM dataset.table WHERE dataset.table.x = 'string'", false),
+        Arguments.of("SELECT * FROM dataset.table WHERE dataset.table.x = 'string'", true),
+        Arguments.of("SELECT datarepo_row_id FROM dataset.table WHERE x = 'string'", false));
   }
 
   @Test

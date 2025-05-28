@@ -33,7 +33,7 @@ plugins {
     id 'org.gradle.test-retry' version '1.6.2'
     id 'antlr'
     id 'org.hidetake.swagger.generator' version '2.19.2'
-    id 'org.springframework.boot' version '3.4.5'
+    id 'org.springframework.boot' version '3.5.0'
     id 'idea'
     id 'java'
     id 'io.spring.dependency-management' version '1.1.7'
@@ -164,14 +164,14 @@ dependencies {
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
 
-    implementation platform('com.google.cloud:libraries-bom:26.60.0')
+    implementation platform('com.google.cloud:libraries-bom:26.61.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
     implementation 'com.google.cloud:google-cloud-bigquery'
     implementation 'com.google.cloud:google-cloud-storage'
     implementation 'com.google.cloud:google-cloud-firestore'
     implementation 'com.google.cloud:google-cloud-pubsub'
-    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:6.2.0'
+    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:6.2.1'
     implementation 'com.google.http-client:google-http-client'
 
     implementation 'org.apache.commons:commons-compress:1.27.1' // For srcclr, jib plugin conflict
@@ -201,8 +201,8 @@ dependencies {
     implementation 'com.microsoft.sqlserver:mssql-jdbc:12.3.0.jre17-preview'
 
     // For distributed locking of Spring @Scheduled tasks across multiple instances
-    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.6.1'
-    implementation 'net.javacrumbs.shedlock:shedlock-spring:6.6.1'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.7.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:6.7.0'
 
     implementation 'bio.terra:terra-common-lib:1.1.42-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.241'
@@ -268,7 +268,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'io.zonky.test:embedded-database-spring-test:2.6.0'
     testImplementation 'io.zonky.test:embedded-postgres:2.1.0'
-    implementation enforcedPlatform('io.zonky.test.postgres:embedded-postgres-binaries-bom:16.8.0')
+    implementation enforcedPlatform('io.zonky.test.postgres:embedded-postgres-binaries-bom:16.9.0')
 
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'
     // boot-starter-validation required for jakarta.validation.Valid references, @Valid tags
@@ -276,7 +276,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.webjars:webjars-locator-core'
     // NOTE: If this version is changed, the version in WebConfig.addResourceHandlers must be updated as well.
-    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.21.0'
+    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.22.0'
     generatedCompile 'io.swagger.core.v3:swagger-annotations'
 
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'

@@ -7,6 +7,7 @@ import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.Map;
 import java.util.Objects;
 
@@ -16,6 +17,7 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
     super(datasetMap);
   }
 
+  @VisibleForTesting
   public String generateAlias(String datasetName, String tableName) {
     return "alias" + Math.abs(Objects.hash(datasetName, tableName));
   }

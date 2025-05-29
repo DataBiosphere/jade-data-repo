@@ -248,9 +248,7 @@ class GrammarTest {
       assertThrows(
           InvalidQueryException.class,
           () -> parsedQuery.translateSql(bqVisitor),
-          "All column and table names must be qualified with a dataset/table name. "
-              + "Please ensure that your query uses the format `dataset.table.column` for columns and `dataset.table` for tables. "
-              + "For example, use `my_dataset.my_table.my_column` instead of just `my_column` and `my_dataset.my_table` instead of just `my_table`.");
+          "All column names must be qualified with a dataset and table name. ");
     } else {
       String bqDatasetName = PdaoConstant.PDAO_PREFIX + "dataset";
       String tableName = "table";
@@ -272,6 +270,16 @@ class GrammarTest {
             "SELECT datarepo_row_id FROM dataset.table WHERE dataset.table.x = 'string'", false),
         Arguments.of("SELECT * FROM dataset.table WHERE dataset.table.x = 'string'", true),
         Arguments.of("SELECT datarepo_row_id FROM dataset.table WHERE x = 'string'", false));
+  }
+
+  @Test
+  void testRequiredQualifiedDatasetName() {
+    assertThrows(
+        InvalidQueryException.class,
+        () ->
+            Query.parse(
+                "SELECT dataset.table.datarepo_row_id FROM table WHERE dataset.table.x = 'string'"),
+        "All table names must be qualified with a dataset name.");
   }
 
   @Test

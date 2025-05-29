@@ -17,12 +17,6 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
   }
 
   public String generateAlias(String datasetName, String tableName) {
-    if (datasetName == null || tableName == null) {
-      throw new InvalidQueryException(
-          "All column and table names must be qualified with a dataset/table name. "
-              + "Please ensure that your query uses the format `dataset.table.column` for columns and `dataset.table` for tables. "
-              + "For example, use `my_dataset.my_table.my_column` instead of just `my_column` and `my_dataset.my_table` instead of just `my_table`.");
-    }
     return "alias" + Math.abs(Objects.hash(datasetName, tableName));
   }
 
@@ -44,9 +38,15 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
 
   @Override
   public String visitColumn_expr(SQLParser.Column_exprContext ctx) {
-    String bqDatasetName = PdaoConstant.PDAO_PREFIX + getNameFromContext(ctx.dataset_name());
+    String datasetName = getNameFromContext(ctx.dataset_name());
     String tableName = getNameFromContext(ctx.table_name());
-    String alias = generateAlias(bqDatasetName, tableName);
+    if (tableName == null) {
+      throw new InvalidQueryException(
+          "All column names must be qualified with a dataset and table name. "
+              + "Please ensure that your query uses the format `dataset.table.column` for columns. "
+              + "For example, use `my_dataset.my_table.my_column` instead of just `my_column`.");
+    }
+    String alias = generateAlias(prefixDatasetName(datasetName), tableName);
     String columnName = getNameFromContext(ctx.column_name());
     return String.format("`%s`.%s", alias, columnName);
   }

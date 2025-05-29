@@ -18,7 +18,7 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
   }
 
   @VisibleForTesting
-  public String generateAlias(String datasetName, String tableName) {
+  public static String generateAlias(String datasetName, String tableName) {
     return "alias" + Math.abs(Objects.hash(datasetName, tableName));
   }
 

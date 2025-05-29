@@ -46,7 +46,9 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
       throw new InvalidQueryException(
           "All column names must be qualified with a dataset and table name. "
               + "Please ensure that your query uses the format `dataset.table.column` for columns. "
-              + "For example, use `my_dataset.my_table.my_column` instead of just `my_column`.");
+              + "For example, use `my_dataset.my_table.my_column` instead of just `my_column`."
+              + "Unqualified column name: "
+              + getNameFromContext(ctx.column_name()));
     }
     String alias = generateAlias(prefixDatasetName(datasetName), tableName);
     String columnName = getNameFromContext(ctx.column_name());

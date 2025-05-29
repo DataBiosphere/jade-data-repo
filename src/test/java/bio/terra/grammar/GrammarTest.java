@@ -244,12 +244,7 @@ class GrammarTest {
       String testQuery, boolean queryHasQualifiedNames) {
     BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
     Query parsedQuery = Query.parse(testQuery);
-    if (!queryHasQualifiedNames) {
-      assertThrows(
-          InvalidQueryException.class,
-          () -> parsedQuery.translateSql(bqVisitor),
-          "All column names must be qualified with a dataset and table name. ");
-    } else {
+    if (queryHasQualifiedNames) {
       String bqDatasetName = PdaoConstant.PDAO_PREFIX + "dataset";
       String tableName = "table";
       String translated = parsedQuery.translateSql(bqVisitor);
@@ -258,6 +253,11 @@ class GrammarTest {
           "query translates to valid bigquery syntax",
           translated,
           containsString(aliasedTableName));
+    } else {
+      assertThrows(
+          InvalidQueryException.class,
+          () -> parsedQuery.translateSql(bqVisitor),
+          "All column names must be qualified with a dataset and table name. ");
     }
   }
 

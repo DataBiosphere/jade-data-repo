@@ -221,7 +221,7 @@ class GrammarTest {
         Query.parse(
             "SELECT dataset.table.datarepo_row_id FROM dataset.table WHERE dataset.table.x = 'string'");
     String translated = query.translateSql(bqVisitor);
-    String aliasedTableName = bqVisitor.generateAlias(bqDatasetName, tableName);
+    String aliasedTableName = BigQueryVisitor.generateAlias(bqDatasetName, tableName);
     assertThat(
         "query translates to valid bigquery syntax",
         translated,
@@ -248,7 +248,7 @@ class GrammarTest {
       String bqDatasetName = PdaoConstant.PDAO_PREFIX + "dataset";
       String tableName = "table";
       String translated = parsedQuery.translateSql(bqVisitor);
-      String aliasedTableName = bqVisitor.generateAlias(bqDatasetName, tableName);
+      String aliasedTableName = BigQueryVisitor.generateAlias(bqDatasetName, tableName);
       assertThat(
           "query translates to valid bigquery syntax",
           translated,
@@ -297,8 +297,8 @@ class GrammarTest {
         Query.parse(
             "SELECT foo.bar.datarepo_row_id FROM foo.bar, baz.quux WHERE foo.bar.x = baz.quux.y");
     String translated = query.translateSql(bqVisitor);
-    String aliasedTable1Name = bqVisitor.generateAlias(bqDataset1Name, table1Name);
-    String aliasedTable2Name = bqVisitor.generateAlias(bqDataset2Name, table2Name);
+    String aliasedTable1Name = BigQueryVisitor.generateAlias(bqDataset1Name, table1Name);
+    String aliasedTable2Name = BigQueryVisitor.generateAlias(bqDataset2Name, table2Name);
     assertThat(
         "query translates to valid bigquery syntax",
         translated,
@@ -338,8 +338,8 @@ class GrammarTest {
         Query.parse(
             "SELECT baz.quux.datarepo_row_id FROM foo.bar, baz.quux WHERE foo.bar.x = baz.quux.y");
     String translated = query.translateSql(bqVisitor);
-    String aliasedTable1Name = bqVisitor.generateAlias(bqDataset1Name, table1Name);
-    String aliasedTable2Name = bqVisitor.generateAlias(bqDataset2Name, table2Name);
+    String aliasedTable1Name = BigQueryVisitor.generateAlias(bqDataset1Name, table1Name);
+    String aliasedTable2Name = BigQueryVisitor.generateAlias(bqDataset2Name, table2Name);
     assertThat(
         "query translates to valid bigquery syntax",
         translated,

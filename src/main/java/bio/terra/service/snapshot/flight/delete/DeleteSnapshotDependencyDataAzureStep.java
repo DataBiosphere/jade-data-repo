@@ -5,6 +5,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.filedata.azure.tables.TableDependencyDao;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
@@ -12,14 +13,13 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.TableTransactionFailedException;
 import java.util.UUID;
 
-public class DeleteSnapshotDependencyDataAzureStep implements Step {
+public class DeleteSnapshotDependencyDataAzureStep extends DefaultUndoStep {
 
   private final TableDependencyDao tableDependencyDao;
   private final UUID snapshotId;
@@ -66,12 +66,5 @@ public class DeleteSnapshotDependencyDataAzureStep implements Step {
     }
 
     return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    return new StepResult(
-        StepStatus.STEP_RESULT_FAILURE_FATAL,
-        new IllegalStateException("Attempt to undo permanent delete"));
   }
 }

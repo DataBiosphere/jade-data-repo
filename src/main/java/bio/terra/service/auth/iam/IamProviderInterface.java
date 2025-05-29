@@ -2,7 +2,6 @@ package bio.terra.service.auth.iam;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetRequestModelPolicies;
-import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
@@ -198,19 +197,19 @@ public interface IamProviderInterface {
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws InterruptedException;
 
-  PolicyModel addPolicyMember(
+  void addPolicyMember(
       AuthenticatedUserRequest userReq,
       IamResourceType iamResourceType,
       UUID resourceId,
-      String policyName,
+      IamRole policy,
       String userEmail)
       throws InterruptedException;
 
-  PolicyModel deletePolicyMember(
+  void deletePolicyMember(
       AuthenticatedUserRequest userReq,
       IamResourceType iamResourceType,
       UUID resourceId,
-      String policyName,
+      IamRole policy,
       String userEmail)
       throws InterruptedException;
 
@@ -425,5 +424,37 @@ public interface IamProviderInterface {
 
   List<FullyQualifiedResourceId> listResourceChildren(
       String accessToken, IamResourceType parentIamResourceType, UUID parentId)
+      throws InterruptedException;
+
+  /**
+   * Get the policy public status for a specified resource.
+   *
+   * @param accessToken String requesting user's access token
+   * @param iamResourceType The IamResourceType of the resource
+   * @param resourceId The UUID of the resource
+   * @param policyName The name of the policy to check the public status of
+   * @return true if the policy is public, false otherwise
+   * @throws InterruptedException
+   */
+  boolean getPolicyPublicV2(
+      String accessToken, IamResourceType iamResourceType, UUID resourceId, String policyName)
+      throws InterruptedException;
+
+  /**
+   * Set the specified policy to public or private for the specified resource.
+   *
+   * @param accessToken String requesting user's access token
+   * @param iamResourceType The IamResourceType of the resource
+   * @param resourceId The UUID of the resource
+   * @param policyName The name of the policy to set the public status for
+   * @param setPublic true to set the policy public, false to set it private
+   * @throws InterruptedException
+   */
+  void setPolicyPublicV2(
+      String accessToken,
+      IamResourceType iamResourceType,
+      UUID resourceId,
+      String policyName,
+      boolean setPublic)
       throws InterruptedException;
 }

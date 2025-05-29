@@ -1,0 +1,30 @@
+[
+  {
+    "insertId": "2fre66rgygzjb2zs",
+    "jsonPayload": {
+      "message": "userId: a0d98b19-e92e-4236-af7a-67858f252f1d, email: sholden@broadinstitute.org, institute: broadinstitute.org, url: https://datarepo-datarepo-api/api/repository/v1/datasets/1e81193f-73f7-4923-91ed-e302a4b4eea5/data/visit_occurrence, method: POST, params: {}, status: 200, duration: 4168, srcIP: 10.64.112.28, destIP: 10.76.0.167, destPort: 8080, sessionId: 4975D83E81046B72F272D5DCE366B41F, userAgent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36, contentType: application/json, bytes: 80",
+      "logger": "bio.terra.app.logging.LoggerInterceptor",
+      "context": "default",
+      "requestId": "2e89443aa86116dccc41e3dd61e5b66e",
+      "requestBody": "{\"offset\":0,\"limit\":100,\"sort\":\"datarepo_row_id\",\"direction\":\"desc\",\"filter\":\"\"}",
+      "thread": "http-nio-8080-exec-9",
+      "serviceContext": {
+        "version": null,
+        "service": null
+      }
+    },
+    "resource": {
+      "type": "k8s_container",
+      "labels": {
+        "project_id": "broad-dsde-qa",
+        "cluster_name": "terra-qa-bees",
+        "namespace_name": "terra-shelbee",
+        "pod_name": "datarepo-datarepo-api-5458b84cf8-v9z2b",
+        "location": "us-central1-a",
+        "container_name": "datarepo-datarepo-api"
+      }
+    },
+    "timestamp": "2025-04-28T19:32:35.636Z",
+    "severity": "INFO"
+  }
+]

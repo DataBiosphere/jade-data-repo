@@ -29,6 +29,7 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.ResourceLocks;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.model.TagCount;
 import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TagUpdateRequestModel;
@@ -43,7 +44,6 @@ import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.exception.DatasetDataException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
-import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
 import bio.terra.service.dataset.flight.datadelete.DatasetDataDeleteFlight;
@@ -53,7 +53,7 @@ import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.dataset.flight.ingest.scratch.DatasetScratchFilePrepareFlight;
-import bio.terra.service.dataset.flight.inheritsteward.EnableInheritStewardFlight;
+import bio.terra.service.dataset.flight.inheritsteward.SetInheritStewardFlight;
 import bio.terra.service.dataset.flight.lock.DatasetLockFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionCommitFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
@@ -166,11 +166,23 @@ public class DatasetService {
     String description = "Create dataset " + datasetRequest.getName();
     UUID defaultProfileId = datasetRequest.getDefaultProfileId();
     loggingMetrics.set(BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, defaultProfileId);
+
+    // Locate billing profile in TDR or Rawls
+    // No auth check: Just a check if there is an entry in our db for this billing profile
+    boolean isTdrBillingProfile;
+    try {
+      profileService.getProfileByIdNoCheck(defaultProfileId);
+      isTdrBillingProfile = true;
+    } catch (ProfileNotFoundException ex) {
+      isTdrBillingProfile = false;
+    }
+
     return jobService
         .newJob(description, DatasetCreateFlight.class, datasetRequest, userReq)
         .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.SPEND_PROFILE)
         .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), defaultProfileId)
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.LINK)
+        .addParameter(JobMapKeys.TDR_BILLING_PROFILE_FALLBACK.getKeyName(), isTdrBillingProfile)
         .submit();
   }
 
@@ -760,18 +772,41 @@ public class DatasetService {
     return datasetDao.retrieveSummaryById(id).toModel();
   }
 
-  public String enableInheritSteward(UUID datasetId, AuthenticatedUserRequest userReq) {
-    String description = "Enable InheritSteward for dataset " + datasetId;
-    var custodianEmail =
-        iamService
-            .retrievePolicyEmails(userReq, IamResourceType.DATASET, datasetId)
-            .get(IamRole.CUSTODIAN);
+  public static boolean isInheritedRole(IamRole role) {
+    return isInheritedRole(role.toString());
+  }
+
+  public static boolean isInheritedRole(String roleName) {
+    return List.of(IamRole.STEWARD.toString(), IamRole.CUSTODIAN.toString())
+        .contains(roleName.toLowerCase());
+  }
+
+  public String setInheritSteward(
+      UUID datasetId, boolean inheritSteward, AuthenticatedUserRequest userReq) {
+    String description =
+        String.format("Set inherit steward to %s for dataset %s", inheritSteward, datasetId);
+    List<SamPolicyModel> datasetPolicies =
+        iamService.retrievePolicies(userReq, IamResourceType.DATASET, datasetId).stream()
+            .filter(p -> isInheritedRole(p.getName()))
+            .toList();
+    List<String> datasetPolicyEmails =
+        datasetPolicies.stream()
+            .map(SamPolicyModel::getEmail)
+            .distinct()
+            .collect(Collectors.toList());
+    List<String> datasetPolicyMembers =
+        datasetPolicies.stream()
+            .flatMap(policy -> policy.getMembers().stream())
+            .distinct()
+            .collect(Collectors.toList());
     return jobService
-        .newJob(description, EnableInheritStewardFlight.class, null, userReq)
+        .newJob(description, SetInheritStewardFlight.class, null, userReq)
         .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD)
-        .addParameter(DatasetWorkingMapKeys.DATASET_ID, datasetId)
-        .addParameter(JobMapKeys.CUSTODIAN_EMAIL.getKeyName(), custodianEmail)
+        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.DATASET_POLICY_EMAILS.getKeyName(), datasetPolicyEmails)
+        .addParameter(JobMapKeys.DATASET_POLICY_USERS.getKeyName(), datasetPolicyMembers)
+        .addParameter(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward)
         .submit();
   }
 

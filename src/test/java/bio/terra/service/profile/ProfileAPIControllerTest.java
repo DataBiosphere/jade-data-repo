@@ -37,6 +37,7 @@ import bio.terra.model.PolicyResponse;
 import bio.terra.model.ProfileOwnedResourceModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.PolicyMemberValidator;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
@@ -218,14 +219,14 @@ class ProfileAPIControllerTest {
   @Test
   void testAddProfilePolicyMember() {
     UUID id = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
-    String policyName = "policyName";
+    IamRole policy = IamRole.ADMIN;
     var policyMemberRequest = new PolicyMemberRequest().email("email");
     var policyModel = new PolicyModel();
-    when(profileService.addProfilePolicyMember(id, policyName, policyMemberRequest, TEST_USER))
+    when(profileService.addProfilePolicyMember(id, policy, policyMemberRequest, TEST_USER))
         .thenReturn(policyModel);
 
     ResponseEntity<PolicyResponse> response =
-        apiController.addProfilePolicyMember(id, policyName, policyMemberRequest);
+        apiController.addProfilePolicyMember(id, policy.toString(), policyMemberRequest);
 
     assertTrue(response.getBody().getPolicies().contains(policyModel));
     assertEquals(HttpStatus.OK, response.getStatusCode());

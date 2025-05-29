@@ -24,7 +24,11 @@ public enum JobMapKeys {
   TRANSACTION_ID("transactionId"),
   DELETE_CLOUD_RESOURCES("deleteCloudResources"),
   BUCKET_NAME("bucketName"),
-  CUSTODIAN_EMAIL("custodianEmail");
+  DATASET_POLICY_EMAILS("datasetPolicyEmails"),
+  DATASET_POLICY_USERS("datasetPolicyUsers"),
+  INHERIT_STEWARD("inheritSteward"),
+  TDR_BILLING_PROFILE_FALLBACK("tdrBillingProfileFallback"),
+  SET_PUBLIC("setPublic");
 
   private final String keyName;
 

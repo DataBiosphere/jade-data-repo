@@ -1,16 +1,15 @@
 package bio.terra.service.snapshot.flight.delete;
 
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 
-public class DeleteSnapshotPrimaryDataGcpStep implements Step {
+public class DeleteSnapshotPrimaryDataGcpStep extends DefaultUndoStep {
 
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotService snapshotService;
@@ -38,14 +37,5 @@ public class DeleteSnapshotPrimaryDataGcpStep implements Step {
     fileDao.deleteFilesFromSnapshot(snapshot);
 
     return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    // This step is not undoable. We only get here when the
-    // metadata delete that comes after will has a dismal failure.
-    return new StepResult(
-        StepStatus.STEP_RESULT_FAILURE_FATAL,
-        new IllegalStateException("Attempt to undo permanent delete"));
   }
 }

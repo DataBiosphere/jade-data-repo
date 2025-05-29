@@ -12,6 +12,7 @@ import bio.terra.common.Relationship;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.Table;
 import bio.terra.common.ValidationUtils;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -93,6 +94,7 @@ import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
 import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.snapshot.flight.lock.SnapshotLockFlight;
+import bio.terra.service.snapshot.flight.setpublic.SnapshotSetPublicFlight;
 import bio.terra.service.snapshot.flight.unlock.SnapshotUnlockFlight;
 import bio.terra.service.snapshotbuilder.SnapshotAccessRequestModel;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
@@ -213,6 +215,12 @@ public class SnapshotService {
       SnapshotRequestModel snapshotRequestModel,
       Dataset dataset,
       AuthenticatedUserRequest userReq) {
+    if (dataset.isInheritSteward()
+        && snapshotRequestModel.getDataAccessControlGroups() != null
+        && !snapshotRequestModel.getDataAccessControlGroups().isEmpty()) {
+      throw new BadRequestException(
+          "Cannot create a snapshot with an auth domain whose parent dataset has inherit steward enabled.");
+    }
     snapshotRequestModel.setName(getSnapshotName(snapshotRequestModel));
     if (snapshotRequestModel.getProfileId() == null) {
       snapshotRequestModel.setProfileId(dataset.getDefaultProfileId());
@@ -784,6 +792,11 @@ public class SnapshotService {
 
   public AddAuthDomainResponseModel addSnapshotDataAccessControls(
       AuthenticatedUserRequest userReq, UUID snapshotId, List<String> userGroups) {
+    if (retrieve(snapshotId).getFirstSnapshotSource().getDataset().isInheritSteward()) {
+      throw new BadRequestException(
+          "Cannot add an auth domain to snapshot whose parent dataset has inherit steward enabled.");
+    }
+
     String userGroupsString = StringUtils.join(userGroups, ", ");
     String description =
         "Add data access control groups " + userGroupsString + " to snapshot " + snapshotId;
@@ -963,6 +976,17 @@ public class SnapshotService {
         throw new ForbiddenException("Error accessing snapshot: see errorDetails", causes);
       }
     }
+  }
+
+  public String setSnapshotPublic(UUID id, boolean setPublic, AuthenticatedUserRequest userReq) {
+    String description =
+        String.format(
+            "Set reader policy for snapshot %s to %s", id, setPublic ? "public" : "private");
+    return jobService
+        .newJob(description, SnapshotSetPublicFlight.class, null, userReq)
+        .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.SET_PUBLIC.getKeyName(), setPublic)
+        .submit();
   }
 
   public SnapshotPreviewModel retrievePreview(
@@ -1438,9 +1462,5 @@ public class SnapshotService {
 
   public void deleteSnapshotBuilderSettings(UUID snapshotId) {
     snapshotBuilderSettingsDao.deleteBySnapshotId(snapshotId);
-  }
-
-  public List<String> getSnapshotGoogleProjectIds(UUID datasetId) {
-    return snapshotDao.getSnapshotGoogleProjectIds(datasetId);
   }
 }

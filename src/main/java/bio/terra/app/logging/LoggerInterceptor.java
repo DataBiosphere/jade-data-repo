@@ -27,7 +27,6 @@ public class LoggerInterceptor implements HandlerInterceptor {
   private static final String UNAUTHED_INSTITUTE = "N/A";
   // Don't log requests for URLs that end with any of   the following paths
   private static final Set<String> LOG_EXCLUDE_LIST = Set.of("/status");
-
   private static final String REQUEST_START_ATTRIBUTE = "x-request-start";
   private static final long NOT_FOUND_DURATION = -1;
 
@@ -68,8 +67,15 @@ public class LoggerInterceptor implements HandlerInterceptor {
       userEmail = UNAUTHED_EMAIL;
       institute = UNAUTHED_INSTITUTE;
     }
-
+    String srcIpAddress = request.getRemoteAddr();
+    String destIPAddress = request.getLocalAddr();
+    String destPort = Integer.toString(request.getLocalPort());
+    String sessionId = request.getSession().getId();
+    String userAgent = request.getHeader("User-Agent");
     String url = request.getRequestURL().toString();
+    String contentType = request.getContentType();
+    int bytes = request.getContentLength();
+
     String method = request.getMethod();
     Map<String, String[]> paramMap = request.getParameterMap();
     Gson gson = new Gson();
@@ -106,7 +112,7 @@ public class LoggerInterceptor implements HandlerInterceptor {
       // https://github.com/DataBiosphere/terra-common-lib/blob/develop/src/main/java/bio/terra/common/logging/GoogleJsonLayout.java
       // for the layout implementation.
       logger.info(
-          "userId: {}, email: {}, institute: {}, url: {}, method: {}, params: {}, status: {}, duration: {}",
+          "userId: {}, email: {}, institute: {}, url: {}, method: {}, params: {}, status: {}, duration: {}, srcIP: {}, destIP: {}, destPort: {}, sessionId: {}, userAgent: {}, contentType: {}, bytes: {}",
           userId,
           userEmail,
           institute,
@@ -115,6 +121,13 @@ public class LoggerInterceptor implements HandlerInterceptor {
           paramString,
           responseStatus,
           requestDuration,
+          srcIpAddress,
+          destIPAddress,
+          destPort,
+          sessionId,
+          userAgent,
+          contentType,
+          bytes,
           stackDriverPayload);
     }
 

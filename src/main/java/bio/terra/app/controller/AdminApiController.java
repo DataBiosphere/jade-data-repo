@@ -2,7 +2,6 @@ package bio.terra.app.controller;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.utils.ControllerUtils;
-import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.AdminApi;
@@ -114,23 +113,5 @@ public class AdminApiController implements AdminApi {
     logger.info("Retrieving snapshot id: {}", id);
     SnapshotModel snapshotModel = snapshotService.retrieveSnapshotModel(id, include, userReq);
     return ResponseEntity.ok(snapshotModel);
-  }
-
-  @Override
-  public ResponseEntity<JobModel> adminInheritSteward(UUID id, Boolean inheritSteward) {
-    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    iamService.verifyResourceTypeAdminAuthorized(
-        userReq, IamResourceType.DATASET, IamAction.SET_INHERIT_STEWARD, id);
-
-    // dataset already has the requested value for inheritSteward
-    if (datasetService.retrieveDatasetSummary(id).isInheritSteward().equals(inheritSteward)) {
-      return ResponseEntity.noContent().build();
-    }
-
-    if (inheritSteward) {
-      String jobId = datasetService.enableInheritSteward(id, userReq);
-      return ControllerUtils.jobToResponse(jobService.retrieveJob(jobId, userReq));
-    }
-    throw new FeatureNotImplementedException("disabling Inherit Steward is not implemented yet.");
   }
 }

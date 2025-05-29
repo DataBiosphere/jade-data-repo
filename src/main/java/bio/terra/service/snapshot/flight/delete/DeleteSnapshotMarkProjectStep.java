@@ -1,11 +1,11 @@
 package bio.terra.service.snapshot.flight.delete;
 
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
@@ -14,7 +14,7 @@ import java.util.UUID;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.transaction.TransactionSystemException;
 
-public class DeleteSnapshotMarkProjectStep implements Step {
+public class DeleteSnapshotMarkProjectStep extends DefaultUndoStep {
 
   private final ResourceService resourceService;
   private final UUID snapshotId;
@@ -42,10 +42,5 @@ public class DeleteSnapshotMarkProjectStep implements Step {
     } catch (TransientDataAccessException | TransactionSystemException e) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
     }
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) throws InterruptedException {
-    return StepResult.getStepResultSuccess();
   }
 }

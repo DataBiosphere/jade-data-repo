@@ -22,8 +22,10 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
+import bio.terra.service.profile.flight.AuthorizeRawlsBillingProjectsUseStep;
 import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
 import bio.terra.service.profile.google.GoogleBillingService;
+import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
@@ -63,6 +65,7 @@ public class DatasetCreateFlight extends Flight {
         appContext.getBean(GoogleResourceManagerService.class);
     JournalService journalService = appContext.getBean(JournalService.class);
     AzureMonitoringService monitoringService = appContext.getBean(AzureMonitoringService.class);
+    RawlsService rawlsService = appContext.getBean(RawlsService.class);
 
     DatasetRequestModel datasetRequest =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
@@ -75,16 +78,30 @@ public class DatasetCreateFlight extends Flight {
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-    // Make sure this user is authorized to use the billing profile in SAM
-    addStep(
-        new AuthorizeBillingProfileUseStep(
-            profileService, datasetRequest.getDefaultProfileId(), userReq));
+    boolean isTdrBillingProfile =
+        inputParameters.get(JobMapKeys.TDR_BILLING_PROFILE_FALLBACK.getKeyName(), Boolean.class);
+
+    if (isTdrBillingProfile) {
+      // If using TDR billing profile, make sure this user is authorized to use the billing profile
+      // in Sam
+      addStep(
+          new AuthorizeBillingProfileUseStep(
+              profileService, datasetRequest.getDefaultProfileId(), userReq));
+    } else {
+      // If using Rawls billing project, make sure this user is authorized to use the billing
+      // project in Sam
+      addStep(
+          new AuthorizeRawlsBillingProjectsUseStep(
+              rawlsService, datasetRequest.getDefaultProfileId(), userReq));
+    }
 
     // Generate the dateset id and store it in the working map
     addStep(new CreateDatasetIdStep());
 
     if (platform.isGcp()) {
-      addStep(new VerifyBillingAccountAccessStep(googleBillingService));
+      if (isTdrBillingProfile) {
+        addStep(new VerifyBillingAccountAccessStep(googleBillingService));
+      }
 
       // Get a new google project from RBS and store it in the working map
       addStep(

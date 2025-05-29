@@ -97,9 +97,9 @@ public class AccessTest {
   @Before
   public void setup() throws Exception {
     testUsers = users.testUsers();
-    discovererToken = authService.getDirectAccessAuthToken(testUsers.discoverer().getEmail());
-    readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
-    custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
+    discovererToken = authService.getDirectAccessAuthToken(testUsers.discoverer().email());
+    readerToken = authService.getDirectAccessAuthToken(reader().email());
+    custodianToken = authService.getDirectAccessAuthToken(custodian().email());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     datasetId = null;
     snapshotIds = new ArrayList<>();
@@ -161,7 +161,7 @@ public class AccessTest {
     }
 
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().email());
     DataRepoResponse<EnumerateDatasetModel> enumDatasets =
         dataRepoFixtures.enumerateDatasetsRaw(custodian());
     assertThat(
@@ -196,13 +196,10 @@ public class AccessTest {
     }
 
     dataRepoFixtures.addSnapshotPolicyMember(
-        custodian(), snapshotSummaryModel.getId(), IamRole.READER, reader().getEmail());
+        custodian(), snapshotSummaryModel.getId(), IamRole.READER, reader().email());
 
     AuthenticatedUserRequest authenticatedReaderRequest =
-        AuthenticatedUserRequest.builder()
-            .setEmail(reader().getEmail())
-            .setToken(readerToken)
-            .build();
+        AuthenticatedUserRequest.builder().setEmail(reader().email()).setToken(readerToken).build();
     assertThat(
         "correctly added reader",
         iamService.isAuthorized(
@@ -221,7 +218,7 @@ public class AccessTest {
     makeAclTestDataset();
 
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
+        steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().email());
 
     // Ingest a file into the dataset
     String gsPath = "gs://" + testConfiguration.getIngestbucket();
@@ -259,13 +256,10 @@ public class AccessTest {
         dataRepoFixtures.getSnapshot(custodian(), snapshotSummaryModel.getId(), null);
 
     dataRepoFixtures.addSnapshotPolicyMember(
-        custodian(), snapshotModel.getId(), IamRole.READER, reader().getEmail());
+        custodian(), snapshotModel.getId(), IamRole.READER, reader().email());
 
     AuthenticatedUserRequest authenticatedReaderRequest =
-        AuthenticatedUserRequest.builder()
-            .setEmail(reader().getEmail())
-            .setToken(readerToken)
-            .build();
+        AuthenticatedUserRequest.builder().setEmail(reader().email()).setToken(readerToken).build();
     boolean authorized =
         iamService.isAuthorized(
             authenticatedReaderRequest,
@@ -350,7 +344,7 @@ public class AccessTest {
     }
 
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().email());
     DataRepoResponse<EnumerateDatasetModel> enumDatasets =
         dataRepoFixtures.enumerateDatasetsRaw(custodian());
     assertThat(

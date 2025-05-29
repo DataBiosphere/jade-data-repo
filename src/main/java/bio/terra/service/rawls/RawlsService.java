@@ -8,6 +8,7 @@ import bio.terra.model.InaccessibleWorkspacePolicyModel;
 import bio.terra.model.ResourcePolicyModel;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.WorkspacePolicyModel;
+import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
@@ -84,5 +85,10 @@ public class RawlsService {
     }
     return "%s/#workspaces/%s/%s"
         .formatted(terraConfiguration.basePath(), workspace.namespace(), workspace.name());
+  }
+
+  public void authorizeBillingProjectLink(
+      UUID billingProjectId, AuthenticatedUserRequest userRequest) {
+    rawlsClient.verifyBillingProjectAction(billingProjectId, IamAction.LINK, userRequest);
   }
 }

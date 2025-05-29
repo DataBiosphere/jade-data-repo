@@ -117,77 +117,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/admin/v1/datasets/{id}/inheritSteward:
-    put:
-      tags:
-        - admin
-      description: >
-        Administrative Support to allow the dataset custodians to inherit the steward role on all
-        snapshots made from this dataset
-      operationId: adminInheritSteward
-      requestBody:
-        description: >
-          A boolean value indicating whether the dataset custodians should inherit the steward role
-          on all snapshots made from this dataset.
-        content:
-          application/json:
-            schema:
-              type: boolean
-        required: true
-      parameters:
-        - $ref: '#/components/parameters/Id'
-      responses:
-        200:
-          description: Redirect for dataset update inheritSteward result
-          headers:
-            location:
-              description: url for the job result
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobModel'
-        202:
-          description: Job status of dataset update inheritSteward job & url for polling in the response
-            header
-          headers:
-            location:
-              description: url for the job polling
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobModel'
-        204:
-          description: >
-            Nothing was changed. The inheritSteward value was already set to the requested value.
-          content: {}
-        400:
-          description: Bad request - invalid id, badly formed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        403:
-          description: No permission to update inheritSteward on this dataset
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        404:
-          description: Not found - dataset does not exist
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        500:
-          description: An unexpected error occurred - dataset was not updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
   /api/admin/v1/snapshots/{id}:
     get:
       tags:
@@ -979,7 +908,10 @@ paths:
       tags:
         - snapshots
         - repository
-      description: Delete a snapshot by id
+      description: >
+        Delete a snapshot by id.
+        If this operation fails, we do not attempt to undo any failed steps. Therefore, a
+        failed snapshot delete call leaves the snapshot in a partially deleted state.
       operationId: deleteSnapshot
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -1608,6 +1540,60 @@ paths:
                   type: string
         404:
           description: Not found - snapshot id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshots/{id}/public:
+    put:
+      tags:
+          - snapshots
+          - repository
+      description: >
+        Sets the reader policy on the snapshot public for the specified snapshot if request body
+        is true. Makes the reader policy on the snapshot private if the request body is false.
+      operationId: setSnapshotPublic
+      requestBody:
+        description: A boolean value indicating whether the reader policy on the snapshot is
+          being set public.
+        content:
+          application/json:
+            schema:
+              type: boolean
+        required: true
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        202:
+          description: Job status of snapshot set public job & url for polling in the response
+            header
+          headers:
+            location:
+              description: url for the job polling
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        204:
+          description: >
+            Nothing was changed. The public value was already set to the requested value.
+          content: { }
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - snapshot id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - snapshot was not updated.
           content:
             application/json:
               schema:
@@ -3136,6 +3122,78 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
         500:
           description: An unexpected error occurred - dataset was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/datasets/{id}/inheritSteward:
+    put:
+      tags:
+        - datasets
+        - repository
+      description: >
+        ADMIN ONLY - Set flag that allows the dataset custodians to inherit the steward role on all
+        snapshots made from this dataset
+      operationId: setInheritSteward
+      requestBody:
+        description: >
+          A boolean value indicating whether the dataset custodians should inherit the steward role
+          on all snapshots made from this dataset.
+        content:
+          application/json:
+            schema:
+              type: boolean
+        required: true
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: Redirect for dataset update inheritSteward result
+          headers:
+            location:
+              description: url for the job result
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        202:
+          description: Job status of dataset update inheritSteward job & url for polling in the response
+            header
+          headers:
+            location:
+              description: url for the job polling
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        204:
+          description: >
+            Nothing was changed. The inheritSteward value was already set to the requested value.
+          content: { }
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to update inheritSteward on this dataset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - dataset does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - dataset was not updated
           content:
             application/json:
               schema:
@@ -7170,6 +7228,8 @@ components:
       properties:
         name:
           type: string
+        email:
+          type: string
         members:
           type: array
           items:
@@ -8486,9 +8546,9 @@ components:
           description: A note about the journal entry
     IamResourceTypeEnum:
       type: string
-      enum: [ DATASET, DATASNAPSHOT, SPEND_PROFILE, DATAREPO, WORKSPACE, SNAPSHOT_BUILDER_REQUEST ]
+      enum: [ DATASET, DATASNAPSHOT, SPEND_PROFILE, DATAREPO, WORKSPACE, SNAPSHOT_BUILDER_REQUEST, GOOGLE_PROJECT ]
       description: >
-        The type of journal entries to return.  DATASET maps to Dataset, DATASNAPSHOT maps to Snapshot, SPEND_PROFILE maps to Profile.  DATAREPO and WORKSPACE are not implemented at this time but are included in the list for completeness.
+        The type of journal entries to return.  DATASET maps to Dataset, DATASNAPSHOT maps to Snapshot, SPEND_PROFILE maps to Profile.  DATAREPO, WORKSPACE and GOOGLE_PROJECT are not implemented at this time but are included in the list for completeness.
   parameters:
     Id:
       name: id

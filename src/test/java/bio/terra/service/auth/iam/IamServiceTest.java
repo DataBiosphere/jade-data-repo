@@ -3,6 +3,7 @@ package bio.terra.service.auth.iam;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -16,6 +17,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
@@ -84,31 +86,34 @@ class IamServiceTest {
 
   @Test
   void testAddPolicyMember() throws InterruptedException {
-    var policyModel = new PolicyModel();
-    String policyName = "policyName";
+    IamRole policy = IamRole.DISCOVERER;
     String email = "email";
-    when(iamProvider.addPolicyMember(
-            TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email))
-        .thenReturn(policyModel);
 
-    PolicyModel result =
-        iamService.addPolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
-    assertEquals(policyModel, result);
+    iamService.addPolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policy, email);
+    verify(iamProvider)
+        .addPolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policy, email);
   }
 
   @Test
   void testDeletePolicyMember() throws InterruptedException {
-    var policyModel = new PolicyModel();
-    String policyName = "policyName";
+    IamRole policy = IamRole.DISCOVERER;
     String email = "email";
-    when(iamProvider.deletePolicyMember(
-            TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email))
-        .thenReturn(policyModel);
 
-    PolicyModel result =
-        iamService.deletePolicyMember(
-            TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
-    assertEquals(policyModel, result);
+    iamService.deletePolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policy, email);
+    verify(iamProvider)
+        .deletePolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policy, email);
+  }
+
+  @Test
+  void retrievePolicy() throws Exception {
+    IamRole policy = IamRole.DISCOVERER;
+    String email = "email";
+
+    when(iamProvider.retrievePolicies(TEST_USER, IamResourceType.SPEND_PROFILE, ID))
+        .thenReturn(List.of(new SamPolicyModel().name(policy.toString()).addMembersItem(email)));
+    var policyModel =
+        iamService.retrievePolicy(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policy);
+    assertThat(policyModel, is(new PolicyModel().name(policy.toString()).addMembersItem(email)));
   }
 
   @Test
@@ -354,5 +359,35 @@ class IamServiceTest {
     assertEquals(
         children,
         iamService.listResourceChildren(TEST_USER.getToken(), IamResourceType.DATASET, parentId));
+  }
+
+  @Test
+  void getPolicyPublicV2() throws InterruptedException {
+    UUID resourceId = UUID.randomUUID();
+    when(iamProvider.getPolicyPublicV2(
+            TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, resourceId, IamRole.READER.name()))
+        .thenReturn(true);
+    assertEquals(
+        true,
+        iamService.getPolicyPublicV2(
+            TEST_USER.getToken(), IamResourceType.DATASNAPSHOT, resourceId, IamRole.READER.name()));
+  }
+
+  @Test
+  void setPolicyPublicV2() throws InterruptedException {
+    UUID resourceId = UUID.randomUUID();
+    iamService.setPolicyPublicV2(
+        TEST_USER.getToken(),
+        IamResourceType.DATASNAPSHOT,
+        resourceId,
+        IamRole.READER.name(),
+        true);
+    verify(iamProvider)
+        .setPolicyPublicV2(
+            TEST_USER.getToken(),
+            IamResourceType.DATASNAPSHOT,
+            resourceId,
+            IamRole.READER.name(),
+            true);
   }
 }

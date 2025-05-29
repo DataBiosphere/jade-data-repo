@@ -58,7 +58,7 @@ class AddDuosFirecloudReaderStepTest {
             TEST_USER,
             IamResourceType.DATASNAPSHOT,
             SNAPSHOT_ID,
-            IamRole.READER.toString(),
+            IamRole.READER,
             DUOS_FIRECLOUD_GROUP.getFirecloudGroupEmail());
 
     StepResult undoResult = step.undoStep(flightContext);
@@ -68,7 +68,7 @@ class AddDuosFirecloudReaderStepTest {
             TEST_USER,
             IamResourceType.DATASNAPSHOT,
             SNAPSHOT_ID,
-            IamRole.READER.toString(),
+            IamRole.READER,
             DUOS_FIRECLOUD_GROUP.getFirecloudGroupEmail());
   }
 }

@@ -39,6 +39,7 @@ import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.Dataset;
@@ -52,7 +53,6 @@ import io.swagger.annotations.Api;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -342,10 +342,14 @@ public class SnapshotsApiController implements SnapshotsApi {
       @PathVariable("policyName") String policyName,
       @Valid @RequestBody PolicyMemberRequest policyMember) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    PolicyModel policy =
-        iamService.addPolicyMember(
-            userReq, IamResourceType.DATASNAPSHOT, id, policyName, policyMember.getEmail());
-    PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
+    IamRole role = IamRole.fromValue(policyName);
+    if (role == null) {
+      throw new ValidationException("InvalidPolicyName");
+    }
+    iamService.addPolicyMember(
+        userReq, IamResourceType.DATASNAPSHOT, id, role, policyMember.getEmail());
+    PolicyModel policy = iamService.retrievePolicy(userReq, IamResourceType.DATASNAPSHOT, id, role);
+    PolicyResponse response = new PolicyResponse().policies(List.of(policy));
     return ResponseEntity.ok(response);
   }
 
@@ -364,11 +368,14 @@ public class SnapshotsApiController implements SnapshotsApi {
     if (!ValidationUtils.isValidEmail(memberEmail)) {
       throw new ValidationException("InvalidMemberEmail");
     }
+    IamRole role = IamRole.fromValue(policyName);
+    if (role == null) {
+      throw new ValidationException("InvalidPolicyName");
+    }
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    PolicyModel policy =
-        iamService.deletePolicyMember(
-            userReq, IamResourceType.DATASNAPSHOT, id, policyName, memberEmail);
-    PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
+    iamService.deletePolicyMember(userReq, IamResourceType.DATASNAPSHOT, id, role, memberEmail);
+    PolicyModel policy = iamService.retrievePolicy(userReq, IamResourceType.DATASNAPSHOT, id, role);
+    PolicyResponse response = new PolicyResponse().policies(List.of(policy));
     return ResponseEntity.ok(response);
   }
 
@@ -376,6 +383,19 @@ public class SnapshotsApiController implements SnapshotsApi {
   public ResponseEntity<List<String>> retrieveUserSnapshotRoles(UUID id) {
     List<String> roles = snapshotService.retrieveUserSnapshotRoles(id, getAuthenticatedInfo());
     return ResponseEntity.ok(roles);
+  }
+
+  @Override
+  public ResponseEntity<JobModel> setSnapshotPublic(UUID id, Boolean setPublic) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    boolean isPublic =
+        iamService.getPolicyPublicV2(
+            userReq.getToken(), IamResourceType.DATASNAPSHOT, id, IamRole.READER.name());
+    if (isPublic == setPublic) {
+      return ResponseEntity.noContent().build();
+    }
+    String jobId = snapshotService.setSnapshotPublic(id, setPublic, userReq);
+    return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
   @Override

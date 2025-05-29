@@ -383,49 +383,60 @@ public class IamService {
         () -> iamProvider.retrievePolicyEmails(userReq, iamResourceType, resourceId));
   }
 
-  public PolicyModel addPolicyMember(
+  public void addPolicyMember(
       AuthenticatedUserRequest userReq,
       IamResourceType iamResourceType,
       UUID resourceId,
-      String policyName,
+      IamRole policy,
       String userEmail) {
-    return callProvider(
+    callProvider(
         () -> {
-          PolicyModel policy =
-              iamProvider.addPolicyMember(
-                  userReq, iamResourceType, resourceId, policyName, userEmail);
+          iamProvider.addPolicyMember(userReq, iamResourceType, resourceId, policy, userEmail);
           // Invalidate the cache
           authorizedMap.clear();
           journalService.recordUpdate(
               userReq,
               resourceId,
               iamResourceType,
-              String.format("Added %s to %s", userEmail, policyName),
+              String.format("Added %s to %s", userEmail, policy),
               null);
-          return policy;
         });
   }
 
-  public PolicyModel deletePolicyMember(
+  public void deletePolicyMember(
       AuthenticatedUserRequest userReq,
       IamResourceType iamResourceType,
       UUID resourceId,
-      String policyName,
+      IamRole policy,
       String userEmail) {
-    return callProvider(
+    callProvider(
         () -> {
-          PolicyModel policy =
-              iamProvider.deletePolicyMember(
-                  userReq, iamResourceType, resourceId, policyName, userEmail);
+          iamProvider.deletePolicyMember(userReq, iamResourceType, resourceId, policy, userEmail);
           // Invalidate the cache
           authorizedMap.clear();
           journalService.recordUpdate(
               userReq,
               resourceId,
               iamResourceType,
-              String.format("Removed %s from %s", userEmail, policyName),
+              String.format("Removed %s from %s", userEmail, policy),
               null);
-          return policy;
+        });
+  }
+
+  public PolicyModel retrievePolicy(
+      AuthenticatedUserRequest userReq,
+      IamResourceType iamResourceType,
+      UUID resourceId,
+      IamRole role) {
+    var policyName = role.toString();
+    return callProvider(
+        () -> {
+          var policies = iamProvider.retrievePolicies(userReq, iamResourceType, resourceId);
+          return policies.stream()
+              .filter(p -> p.getName().equals(policyName))
+              .map(p -> new PolicyModel().name(policyName).members(p.getMembers()))
+              .findFirst()
+              .orElseThrow();
         });
   }
 
@@ -608,5 +619,23 @@ public class IamService {
       String accessToken, IamResourceType parentIamResourceType, UUID parentId) {
     return callProvider(
         () -> iamProvider.listResourceChildren(accessToken, parentIamResourceType, parentId));
+  }
+
+  public boolean getPolicyPublicV2(
+      String token, IamResourceType iamResourceType, UUID resourceId, String policyName) {
+    return callProvider(
+        () -> iamProvider.getPolicyPublicV2(token, iamResourceType, resourceId, policyName));
+  }
+
+  public void setPolicyPublicV2(
+      String token,
+      IamResourceType iamResourceType,
+      UUID resourceId,
+      String policyName,
+      boolean setPublic) {
+    callProvider(
+        () ->
+            iamProvider.setPolicyPublicV2(
+                token, iamResourceType, resourceId, policyName, setPublic));
   }
 }

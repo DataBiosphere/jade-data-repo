@@ -614,7 +614,7 @@ class FileTest {
 
     TestUtils.validateDrsAccessMethods(
         drsObject.getAccessMethods(),
-        authService.getDirectAccessAuthToken(custodian().getEmail()),
+        authService.getDirectAccessAuthToken(custodian().email()),
         false);
   }
 
@@ -627,9 +627,9 @@ class FileTest {
     String filePath = "/foo/bar";
     String gsFilePath = gsPath + "/files/file with space and #hash%percent+plus.txt";
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, reader().getEmail());
+        steward(), datasetId, IamRole.CUSTODIAN, reader().email());
     dataRepoFixtures.addPolicyMember(
-        steward(), profileId, IamRole.USER, reader().getEmail(), IamResourceType.SPEND_PROFILE);
+        steward(), profileId, IamRole.USER, reader().email(), IamResourceType.SPEND_PROFILE);
     DataRepoResponse<JobModel> ingestJob =
         dataRepoFixtures.ingestFileLaunch(
             // note: reader's proxy group should not have access to the source bucket
@@ -676,7 +676,7 @@ class FileTest {
     var profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     tlProfileId.set(profileId);
     dataRepoFixtures.addPolicyMember(
-        steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
+        steward(), profileId, IamRole.USER, custodian().email(), IamResourceType.SPEND_PROFILE);
 
     DataRepoResponse<JobModel> datasetCreateJob =
         dataRepoFixtures.createDatasetRaw(
@@ -696,7 +696,7 @@ class FileTest {
     tlDatasetId.set(datasetId);
     logger.info("created dataset {}", datasetId);
     dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().email());
     return datasetSummaryModel;
   }
 }

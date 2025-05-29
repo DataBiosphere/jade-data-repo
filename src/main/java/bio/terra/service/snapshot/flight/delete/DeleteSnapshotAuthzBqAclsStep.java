@@ -4,11 +4,11 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DeleteSnapshotAuthzBqAclsStep implements Step {
+public class DeleteSnapshotAuthzBqAclsStep extends DefaultUndoStep {
   private final IamService sam;
   private final ResourceService resourceService;
   private final SnapshotService snapshotService;
@@ -66,13 +66,6 @@ public class DeleteSnapshotAuthzBqAclsStep implements Step {
     resourceService.revokePoliciesBqJobUser(
         snapshot.getProjectResource().getGoogleProjectId(), policyEmails);
 
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    // can't undo delete
-    logger.warn("Trying to undo clear ACLs for snapshot {}", snapshotId);
     return StepResult.getStepResultSuccess();
   }
 }

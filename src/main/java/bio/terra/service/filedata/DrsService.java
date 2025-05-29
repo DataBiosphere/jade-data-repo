@@ -77,6 +77,7 @@ import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
@@ -928,7 +929,8 @@ public class DrsService {
             // Extract singleton values
             .id(extractUniqueDrsObjectValue(drsObjects, DRSObject::getId))
             .name(extractUniqueDrsObjectValue(drsObjects, DRSObject::getName))
-            .description(extractUniqueDrsObjectValue(drsObjects, DRSObject::getDescription))
+            .description(
+                extractDrsFileConcatenatedStringValues(drsObjects, DRSObject::getDescription))
             .size(extractUniqueDrsObjectValue(drsObjects, DRSObject::getSize))
             .selfUri(extractUniqueDrsObjectValue(drsObjects, DRSObject::getSelfUri))
             .mimeType(extractUniqueDrsObjectValue(drsObjects, DRSObject::getMimeType))
@@ -1008,6 +1010,19 @@ public class DrsService {
     } catch (IllegalArgumentException e) {
       throw new InvalidDrsObjectException("Found duplicate values: %s".formatted(values), e);
     }
+  }
+
+  /** Given a list of DRSObjects, concatenate the string values of the mapped field */
+  @VisibleForTesting
+  static String extractDrsFileConcatenatedStringValues(
+      List<DRSObject> drsObjects, Function<DRSObject, String> mapper) {
+    return drsObjects.stream()
+        .map(mapper)
+        .filter(Objects::nonNull)
+        .map(Objects::toString)
+        .distinct()
+        .filter(Predicate.not(String::isEmpty))
+        .collect(Collectors.joining(", "));
   }
 
   /** Given a list of DRSObjects, extract a list of distinct values sorted by the comparator. */

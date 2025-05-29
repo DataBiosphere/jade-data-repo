@@ -66,6 +66,9 @@ gha-creds-*.json
 #tools output
 tools/setupResourceScripts/*_outputs.json
 tools/profileEndpoints/results_*.csv
+tools/logCollection/rawLogs/
+tools/logCollection/output/
 
 
 gha-creds-*.json
+

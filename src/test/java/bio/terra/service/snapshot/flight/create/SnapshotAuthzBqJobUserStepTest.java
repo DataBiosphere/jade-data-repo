@@ -12,9 +12,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.AuthenticationFixtures;
-import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
@@ -30,12 +27,13 @@ import bio.terra.stairway.StepResult;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -47,8 +45,6 @@ class SnapshotAuthzBqJobUserStepTest {
   @Mock private IamService iamService;
   @Mock private FlightContext flightContext;
 
-  private static final AuthenticatedUserRequest TEST_USER =
-      AuthenticationFixtures.randomUserRequest();
   private static final String SNAPSHOT_NAME = "snapshotName";
   private static final String GOOGLE_PROJECT_ID = "google project id";
   private static final Snapshot SNAPSHOT =
@@ -67,6 +63,11 @@ class SnapshotAuthzBqJobUserStepTest {
     policyMap.put(IamRole.STEWARD, "steward");
     policyMap.put(IamRole.READER, "reader");
     workingMap.put(SnapshotWorkingMapKeys.POLICY_MAP, policyMap);
+
+    var sourceDatasetPolicyMap = new EnumMap<>(IamRole.class);
+    sourceDatasetPolicyMap.put(IamRole.CUSTODIAN, "datasetCustodian");
+    sourceDatasetPolicyMap.put(IamRole.STEWARD, "datasetSteward");
+    workingMap.put(SnapshotWorkingMapKeys.SOURCE_DATASET_POLICY_MAP, sourceDatasetPolicyMap);
     when(snapshotService.retrieveByName(SNAPSHOT_NAME)).thenReturn(SNAPSHOT);
 
     doAnswer(
@@ -83,24 +84,29 @@ class SnapshotAuthzBqJobUserStepTest {
   void doStep() throws Exception {
     step =
         new SnapshotAuthzBqJobUserStep(
-            snapshotService, resourceService, iamService, TEST_USER, SNAPSHOT_NAME, new Dataset());
+            snapshotService, resourceService, SNAPSHOT_NAME, new Dataset());
     assertThat(step.doStep(flightContext), is(StepResult.getStepResultSuccess()));
     assertThat(addedEmails, containsInAnyOrder("steward", "reader"));
     verifyNoMoreInteractions(resourceService);
     verifyNoInteractions(iamService);
   }
 
-  @Test
-  void doStepInheritEnabled() throws Exception {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void doStepInheritSteward(boolean inheritSteward) throws Exception {
     var sourceDataset =
-        new Dataset(new DatasetSummary().inheritSteward(true)).id(UUID.randomUUID());
+        new Dataset(new DatasetSummary().inheritSteward(inheritSteward)).id(UUID.randomUUID());
     step =
         new SnapshotAuthzBqJobUserStep(
-            snapshotService, resourceService, iamService, TEST_USER, SNAPSHOT_NAME, sourceDataset);
-    when(iamService.retrievePolicyEmails(TEST_USER, IamResourceType.DATASET, sourceDataset.getId()))
-        .thenReturn(Map.of(IamRole.CUSTODIAN, "custodian"));
+            snapshotService, resourceService, SNAPSHOT_NAME, sourceDataset);
     assertThat(step.doStep(flightContext), is(StepResult.getStepResultSuccess()));
-    assertThat(addedEmails, containsInAnyOrder("steward", "reader", "custodian"));
+    if (inheritSteward) {
+      assertThat(
+          addedEmails,
+          containsInAnyOrder("steward", "reader", "datasetCustodian", "datasetSteward"));
+    } else {
+      assertThat(addedEmails, containsInAnyOrder("steward", "reader"));
+    }
   }
 
   @Test
@@ -108,7 +114,7 @@ class SnapshotAuthzBqJobUserStepTest {
     reset(snapshotService, flightContext, resourceService);
     step =
         new SnapshotAuthzBqJobUserStep(
-            snapshotService, resourceService, iamService, TEST_USER, SNAPSHOT_NAME, new Dataset());
+            snapshotService, resourceService, SNAPSHOT_NAME, new Dataset());
     assertThat(step.undoStep(flightContext), is(StepResult.getStepResultSuccess()));
     verifyNoInteractions(snapshotService, resourceService, iamService, flightContext);
   }

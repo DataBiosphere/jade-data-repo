@@ -29,7 +29,7 @@ public class AddDuosFirecloudReaderStep implements Step {
         userReq,
         IamResourceType.DATASNAPSHOT,
         snapshotId,
-        IamRole.READER.toString(),
+        IamRole.READER,
         SnapshotDuosFlightUtils.getFirecloudGroup(context).getFirecloudGroupEmail());
     return StepResult.getStepResultSuccess();
   }
@@ -40,7 +40,7 @@ public class AddDuosFirecloudReaderStep implements Step {
         userReq,
         IamResourceType.DATASNAPSHOT,
         snapshotId,
-        IamRole.READER.toString(),
+        IamRole.READER,
         SnapshotDuosFlightUtils.getFirecloudGroup(context).getFirecloudGroupEmail());
     return StepResult.getStepResultSuccess();
   }

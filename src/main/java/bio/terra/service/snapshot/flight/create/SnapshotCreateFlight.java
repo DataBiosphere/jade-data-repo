@@ -350,13 +350,7 @@ public class SnapshotCreateFlight extends Flight {
       // Apply the IAM readers to the BQ dataset
       addStep(
           new SnapshotAuthzTabularAclStep(
-              bigQuerySnapshotPdao,
-              snapshotService,
-              configService,
-              iamService,
-              snapshotId,
-              userReq,
-              sourceDataset),
+              bigQuerySnapshotPdao, snapshotService, configService, snapshotId, sourceDataset),
           pdaoAclRetryRule);
 
       // Apply the IAM readers to the GCS files
@@ -369,10 +363,14 @@ public class SnapshotCreateFlight extends Flight {
 
       addStep(
           new SnapshotAuthzBqJobUserStep(
-              snapshotService, resourceService, iamService, userReq, snapshotName, sourceDataset));
+              snapshotService, resourceService, snapshotName, sourceDataset));
       addStep(
           new SnapshotAuthzServiceAccountConsumerStep(
-              snapshotService, resourceService, snapshotName, tdrServiceAccountEmail));
+              snapshotService,
+              resourceService,
+              snapshotName,
+              tdrServiceAccountEmail,
+              sourceDataset));
       // Record the Drs IDs if this is a global file id snapshot
       if (snapshotReq.isGlobalFileIds()) {
         addStep(

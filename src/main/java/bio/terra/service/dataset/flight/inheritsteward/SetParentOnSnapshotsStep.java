@@ -11,56 +11,58 @@ import bio.terra.stairway.exception.RetryException;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 
 public class SetParentOnSnapshotsStep implements Step {
   private final IamService iamService;
   private final UUID datasetId;
   private final AuthenticatedUserRequest userReq;
+  private final boolean inheritSteward;
 
   public SetParentOnSnapshotsStep(
-      IamService iamService, UUID datasetId, AuthenticatedUserRequest userReq) {
+      IamService iamService,
+      UUID datasetId,
+      AuthenticatedUserRequest userReq,
+      boolean inheritSteward) {
     this.iamService = iamService;
     this.datasetId = datasetId;
     this.userReq = userReq;
+    this.inheritSteward = inheritSteward;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    String accessToken = userReq.getToken();
-    List<UUID> snapshots =
-        context.getWorkingMap().get(DatasetWorkingMapKeys.SNAPSHOT_IDS, List.class);
-    Objects.requireNonNull(snapshots)
-        .forEach(
-            snapshotId ->
-                // do not catch and handle errors, if one occurs, fail the flight
-                // we are not checking if a parent already exists because
-                // we want to overwrite it no matter what it is
-                iamService.setResourceParent(
-                    accessToken,
-                    IamResourceType.DATASNAPSHOT,
-                    snapshotId,
-                    IamResourceType.DATASET,
-                    datasetId));
+    manageParents(context, inheritSteward);
     return StepResult.getStepResultSuccess();
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    List<FullyQualifiedResourceId> children =
-        iamService.listResourceChildren(userReq.getToken(), IamResourceType.DATASET, datasetId);
-    children.stream()
-        .filter(
-            child ->
-                child
-                    .getResourceTypeName()
-                    .equalsIgnoreCase(IamResourceType.DATASNAPSHOT.getSamResourceName()))
+    manageParents(context, !inheritSteward);
+    return StepResult.getStepResultSuccess();
+  }
+
+  private void manageParents(FlightContext context, boolean inherit) {
+    List<UUID> snapshots =
+        context.getWorkingMap().get(DatasetWorkingMapKeys.SNAPSHOT_IDS, List.class);
+    Objects.requireNonNull(snapshots)
         .forEach(
-            child ->
-                iamService.deleteResourceParent(
+            snapshotId -> {
+              if (inherit) {
+                // do not catch and handle errors, if one occurs, fail the flight
+                // we are not checking if a parent already exists because
+                // we want to overwrite it no matter what it is
+                iamService.setResourceParent(
                     userReq.getToken(),
                     IamResourceType.DATASNAPSHOT,
-                    UUID.fromString(child.getResourceId())));
-    return StepResult.getStepResultSuccess();
+                    snapshotId,
+                    IamResourceType.DATASET,
+                    datasetId);
+              } else {
+                // we are not checking if the parent already exists or what it is because
+                // these are only the children of the dataset
+                iamService.deleteResourceParent(
+                    userReq.getToken(), IamResourceType.DATASNAPSHOT, snapshotId);
+              }
+            });
   }
 }

@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.service.auth.iam.IamRole;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -14,21 +15,25 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class SnapshotAuthzServiceAccountConsumerStep implements Step {
+public class SnapshotAuthzServiceAccountConsumerStep
+    extends AddSourceDatasetPolicyEmailsIfInheritStewardStep implements Step {
   private final SnapshotService snapshotService;
   private final ResourceService resourceService;
   private final String snapshotName;
   private final String tdrServiceAccountEmail;
+  private final Dataset sourceDataset;
 
   public SnapshotAuthzServiceAccountConsumerStep(
       SnapshotService snapshotService,
       ResourceService resourceService,
       String snapshotName,
-      String tdrServiceAccountEmail) {
+      String tdrServiceAccountEmail,
+      Dataset sourceDataset) {
     this.snapshotService = snapshotService;
     this.resourceService = resourceService;
     this.snapshotName = snapshotName;
     this.tdrServiceAccountEmail = tdrServiceAccountEmail;
+    this.sourceDataset = sourceDataset;
   }
 
   @Override
@@ -51,6 +56,9 @@ public class SnapshotAuthzServiceAccountConsumerStep implements Step {
         .equals(tdrServiceAccountEmail)) {
       principalsToAdd.add(snapshot.getSourceDataset().getProjectResource().getServiceAccount());
     }
+
+    principalsToAdd.addAll(addSourceDatasetPolicyEmailsIfInheritSteward(workingMap, sourceDataset));
+
     resourceService.grantPoliciesServiceUsageConsumer(
         snapshot.getProjectResource().getGoogleProjectId(), principalsToAdd);
 

@@ -185,7 +185,10 @@ public final class BigQueryProject {
     if (message.startsWith("Read timed out") || ex.getCause() instanceof SocketTimeoutException) {
       throw new AclUtils.AclRetryException("Timeout.", ex, "Timeout");
     }
-    if (message.contains("504") || (ex.getCause() != null && ex.getCause().getMessage() != null && ex.getCause().getMessage().contains("504"))) {
+    if (message.contains("504")
+        || (ex.getCause() != null
+            && ex.getCause().getMessage() != null
+            && ex.getCause().getMessage().contains("504"))) {
       throw new AclUtils.AclRetryException("Gateway timeout.", ex, "Timeout");
     }
     throw ex;

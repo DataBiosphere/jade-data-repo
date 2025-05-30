@@ -946,10 +946,16 @@ public class BigQueryPdaoTest {
   private void assertThatDatasetAndTablesShouldExist(Dataset dataset, boolean shouldExist)
       throws InterruptedException {
 
-    boolean datasetExists = bigQueryDatasetPdao.tableExists(dataset, "participant");
+    boolean datasetExists = bigQueryDatasetPdao.datasetExists(dataset);
     assertThat(
         String.format("Dataset: %s, exists", dataset.getName()),
         datasetExists,
+        equalTo(shouldExist));
+
+    boolean participantTableExists = bigQueryDatasetPdao.tableExists(dataset, "participant");
+    assertThat(
+        String.format("Participant table in dataset %s exists", dataset.getName()),
+        participantTableExists,
         equalTo(shouldExist));
 
     boolean loadTableExists = bigQueryDatasetPdao.tableExists(dataset, PDAO_LOAD_HISTORY_TABLE);

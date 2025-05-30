@@ -45,7 +45,7 @@ public final class BigQueryProject {
   private final BigQuery bigQuery;
   private final int TIMEOUT_SECONDS = 40;
 
-  BigQueryProject(String projectId) {
+  private BigQueryProject(String projectId) {
     logger.info("Retrieving Bigquery project for project id: {}", projectId);
     this.projectId = projectId;
     HttpTransportOptions transportOptions = StorageOptions.getDefaultHttpTransportOptions();
@@ -101,8 +101,7 @@ public final class BigQueryProject {
 
   public boolean datasetExists(String datasetName) {
     try {
-      DatasetId datasetId = DatasetId.of(projectId, datasetName);
-      Dataset dataset = bigQuery.getDataset(datasetId);
+      Dataset dataset = getBQDataset(datasetName);
       return (dataset != null);
     } catch (Exception ex) {
       throw new PdaoException("existence check failed for " + datasetName, ex);
@@ -194,10 +193,10 @@ public final class BigQueryProject {
     throw ex;
   }
 
-  public void addDatasetAcls(String datasetId, List<Acl> acls) throws InterruptedException {
-    Dataset dataset = getBQDataset(datasetId);
+  public void addDatasetAcls(String datasetBQName, List<Acl> acls) throws InterruptedException {
+    Dataset dataset = getBQDataset(datasetBQName);
     if (dataset == null) {
-      throw new PdaoException(String.format("Dataset %s was not found", datasetId));
+      throw new PdaoException(String.format("Dataset %s was not found", datasetBQName));
     }
     List<Acl> beforeAcls = dataset.getAcl();
     logger.debug("Before acl: " + StringUtils.join(beforeAcls, ", "));
@@ -207,10 +206,11 @@ public final class BigQueryProject {
     updateDatasetAcls(dataset, newAcls);
   }
 
-  public Dataset getBQDataset(String datasetId) throws InterruptedException {
+  public Dataset getBQDataset(String datasetBQName) throws InterruptedException {
     return AclUtils.aclUpdateRetry(
         () -> {
           try {
+            DatasetId datasetId = DatasetId.of(projectId, datasetBQName);
             return bigQuery.getDataset(datasetId);
           } catch (BigQueryException ex) {
             bigQueryAclUpdateShouldRetry(ex);

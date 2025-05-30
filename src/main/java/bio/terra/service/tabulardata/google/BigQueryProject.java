@@ -35,7 +35,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.client.HttpServerErrorException;
 
 public final class BigQueryProject {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryProject.class);
@@ -181,7 +180,9 @@ public final class BigQueryProject {
       throw new AclUtils.AclRetryException(
           "Policy does not exist. Retrying to wait for propagation", ex, "propagation");
     }
-    if (message.startsWith("Read timed out") || ex.getCause() instanceof SocketTimeoutException || ex.getCode() == 504) {
+    if (message.startsWith("Read timed out")
+        || ex.getCause() instanceof SocketTimeoutException
+        || ex.getCode() == 504) {
       throw new AclUtils.AclRetryException("Timeout.", ex, "Timeout");
     }
     throw ex;

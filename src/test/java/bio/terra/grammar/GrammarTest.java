@@ -3,6 +3,7 @@ package bio.terra.grammar;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -220,7 +221,7 @@ class GrammarTest {
         Query.parse(
             "SELECT dataset.table.datarepo_row_id FROM dataset.table WHERE dataset.table.x = 'string'");
     String translated = query.translateSql(bqVisitor);
-    String aliasedTableName = bqVisitor.generateAlias(bqDatasetName, tableName);
+    String aliasedTableName = BigQueryVisitor.generateAlias(bqDatasetName, tableName);
     assertThat(
         "query translates to valid bigquery syntax",
         translated,
@@ -235,6 +236,50 @@ class GrammarTest {
                 + "` WHERE `"
                 + aliasedTableName
                 + "`.x = 'string'"));
+  }
+
+  @ParameterizedTest
+  @MethodSource
+  void testRequiredQualifiedNameOnQueryTranslation(
+      String testQuery, boolean queryHasQualifiedNames) {
+    BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
+    Query parsedQuery = Query.parse(testQuery);
+    if (queryHasQualifiedNames) {
+      String bqDatasetName = PdaoConstant.PDAO_PREFIX + "dataset";
+      String tableName = "table";
+      String translated = parsedQuery.translateSql(bqVisitor);
+      String aliasedTableName = BigQueryVisitor.generateAlias(bqDatasetName, tableName);
+      assertThat(
+          "query translates to valid bigquery syntax",
+          translated,
+          containsString(aliasedTableName));
+    } else {
+      assertThrows(
+          InvalidQueryException.class,
+          () -> parsedQuery.translateSql(bqVisitor),
+          "All column names must be qualified with a dataset and table name. ");
+    }
+  }
+
+  static Stream<Arguments> testRequiredQualifiedNameOnQueryTranslation() {
+    return Stream.of(
+        Arguments.of(
+            "SELECT dataset.table.datarepo_row_id FROM dataset.table WHERE dataset.table.x = 'string'",
+            true),
+        Arguments.of(
+            "SELECT datarepo_row_id FROM dataset.table WHERE dataset.table.x = 'string'", false),
+        Arguments.of("SELECT * FROM dataset.table WHERE dataset.table.x = 'string'", true),
+        Arguments.of("SELECT datarepo_row_id FROM dataset.table WHERE x = 'string'", false));
+  }
+
+  @Test
+  void testRequiredQualifiedDatasetName() {
+    assertThrows(
+        InvalidQueryException.class,
+        () ->
+            Query.parse(
+                "SELECT dataset.table.datarepo_row_id FROM table WHERE dataset.table.x = 'string'"),
+        "All table names must be qualified with a dataset name.");
   }
 
   @Test
@@ -252,8 +297,8 @@ class GrammarTest {
         Query.parse(
             "SELECT foo.bar.datarepo_row_id FROM foo.bar, baz.quux WHERE foo.bar.x = baz.quux.y");
     String translated = query.translateSql(bqVisitor);
-    String aliasedTable1Name = bqVisitor.generateAlias(bqDataset1Name, table1Name);
-    String aliasedTable2Name = bqVisitor.generateAlias(bqDataset2Name, table2Name);
+    String aliasedTable1Name = BigQueryVisitor.generateAlias(bqDataset1Name, table1Name);
+    String aliasedTable2Name = BigQueryVisitor.generateAlias(bqDataset2Name, table2Name);
     assertThat(
         "query translates to valid bigquery syntax",
         translated,
@@ -293,8 +338,8 @@ class GrammarTest {
         Query.parse(
             "SELECT baz.quux.datarepo_row_id FROM foo.bar, baz.quux WHERE foo.bar.x = baz.quux.y");
     String translated = query.translateSql(bqVisitor);
-    String aliasedTable1Name = bqVisitor.generateAlias(bqDataset1Name, table1Name);
-    String aliasedTable2Name = bqVisitor.generateAlias(bqDataset2Name, table2Name);
+    String aliasedTable1Name = BigQueryVisitor.generateAlias(bqDataset1Name, table1Name);
+    String aliasedTable2Name = BigQueryVisitor.generateAlias(bqDataset2Name, table2Name);
     assertThat(
         "query translates to valid bigquery syntax",
         translated,

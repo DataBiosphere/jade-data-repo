@@ -3,9 +3,11 @@ package bio.terra.grammar.google;
 import bio.terra.common.PdaoConstant;
 import bio.terra.grammar.DatasetAwareVisitor;
 import bio.terra.grammar.SQLParser;
+import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.Map;
 import java.util.Objects;
 
@@ -15,7 +17,8 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
     super(datasetMap);
   }
 
-  public String generateAlias(String datasetName, String tableName) {
+  @VisibleForTesting
+  public static String generateAlias(String datasetName, String tableName) {
     return "alias" + Math.abs(Objects.hash(datasetName, tableName));
   }
 
@@ -37,9 +40,17 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
 
   @Override
   public String visitColumn_expr(SQLParser.Column_exprContext ctx) {
-    String bqDatasetName = PdaoConstant.PDAO_PREFIX + getNameFromContext(ctx.dataset_name());
+    String datasetName = getNameFromContext(ctx.dataset_name());
     String tableName = getNameFromContext(ctx.table_name());
-    String alias = generateAlias(bqDatasetName, tableName);
+    if (tableName == null) {
+      throw new InvalidQueryException(
+          "All column names must be qualified with a dataset and table name. "
+              + "Please ensure that your query uses the format `dataset.table.column` for columns. "
+              + "For example, use `my_dataset.my_table.my_column` instead of just `my_column`."
+              + "Unqualified column name: "
+              + getNameFromContext(ctx.column_name()));
+    }
+    String alias = generateAlias(prefixDatasetName(datasetName), tableName);
     String columnName = getNameFromContext(ctx.column_name());
     return String.format("`%s`.%s", alias, columnName);
   }

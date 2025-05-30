@@ -8,6 +8,7 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.model.SnapshotModel;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import bio.terra.service.filedata.FSContainerInterface;
+import com.google.api.client.http.HttpResponseException;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
@@ -34,6 +35,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -184,10 +186,8 @@ public final class BigQueryProject {
     if (message.startsWith("Read timed out") || ex.getCause() instanceof SocketTimeoutException) {
       throw new AclUtils.AclRetryException("Timeout.", ex, "Timeout");
     }
-    if (message.contains("504")
-        || (ex.getCause() != null
-            && ex.getCause().getMessage() != null
-            && ex.getCause().getMessage().contains("504"))) {
+    if (ex.getCause() instanceof HttpResponseException httpResponseException
+        && httpResponseException.getStatusCode() == HttpStatus.SC_GATEWAY_TIMEOUT) {
       throw new AclUtils.AclRetryException("Gateway timeout.", ex, "Timeout");
     }
     throw ex;

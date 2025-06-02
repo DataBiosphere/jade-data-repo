@@ -8,6 +8,7 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.model.SnapshotModel;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import bio.terra.service.filedata.FSContainerInterface;
+import com.google.api.client.http.HttpResponseException;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
@@ -26,6 +27,7 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.http.HttpTransportOptions;
 import com.google.cloud.storage.StorageOptions;
+import com.google.common.annotations.VisibleForTesting;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +35,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,8 +103,7 @@ public final class BigQueryProject {
 
   public boolean datasetExists(String datasetName) {
     try {
-      DatasetId datasetId = DatasetId.of(projectId, datasetName);
-      Dataset dataset = bigQuery.getDataset(datasetId);
+      Dataset dataset = getBQDataset(datasetName);
       return (dataset != null);
     } catch (Exception ex) {
       throw new PdaoException("existence check failed for " + datasetName, ex);
@@ -174,7 +176,8 @@ public final class BigQueryProject {
         });
   }
 
-  private void bigQueryAclUpdateShouldRetry(BigQueryException ex) {
+  @VisibleForTesting
+  void bigQueryAclUpdateShouldRetry(BigQueryException ex) {
     String message = ex.getMessage();
     if (message.startsWith("IAM setPolicy") && message.endsWith("does not exist.")) {
       throw new AclUtils.AclRetryException(
@@ -183,13 +186,17 @@ public final class BigQueryProject {
     if (message.startsWith("Read timed out") || ex.getCause() instanceof SocketTimeoutException) {
       throw new AclUtils.AclRetryException("Timeout.", ex, "Timeout");
     }
+    if (ex.getCause() instanceof HttpResponseException httpResponseException
+        && httpResponseException.getStatusCode() == HttpStatus.SC_GATEWAY_TIMEOUT) {
+      throw new AclUtils.AclRetryException("Gateway timeout.", ex, "Timeout");
+    }
     throw ex;
   }
 
-  public void addDatasetAcls(String datasetId, List<Acl> acls) throws InterruptedException {
-    Dataset dataset = bigQuery.getDataset(datasetId);
+  public void addDatasetAcls(String datasetBQName, List<Acl> acls) throws InterruptedException {
+    Dataset dataset = getBQDataset(datasetBQName);
     if (dataset == null) {
-      throw new PdaoException(String.format("Dataset %s was not found", datasetId));
+      throw new PdaoException(String.format("Dataset %s was not found", datasetBQName));
     }
     List<Acl> beforeAcls = dataset.getAcl();
     logger.debug("Before acl: " + StringUtils.join(beforeAcls, ", "));
@@ -199,8 +206,21 @@ public final class BigQueryProject {
     updateDatasetAcls(dataset, newAcls);
   }
 
+  public Dataset getBQDataset(String datasetBQName) throws InterruptedException {
+    return AclUtils.aclUpdateRetry(
+        () -> {
+          try {
+            DatasetId datasetId = DatasetId.of(projectId, datasetBQName);
+            return bigQuery.getDataset(datasetId);
+          } catch (BigQueryException ex) {
+            bigQueryAclUpdateShouldRetry(ex);
+          }
+          return null;
+        });
+  }
+
   public void removeDatasetAcls(String datasetId, List<Acl> acls) throws InterruptedException {
-    Dataset dataset = bigQuery.getDataset(datasetId);
+    Dataset dataset = getBQDataset(datasetId);
     if (dataset != null) { // can be null if create dataset step failed before it was created
       updateDatasetAcls(
           dataset,

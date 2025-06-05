@@ -3198,7 +3198,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/datasets/{id}/inheritStewardAdjustMembers:
+  /api/repository/v1/datasets/{id}/adjustMembersInheritSteward:
     put:
       tags:
         - datasets

@@ -2,6 +2,8 @@ package bio.terra.service.dataset.flight.inheritsteward;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -86,5 +88,36 @@ class AdjustStewardMembersStepTest {
         new AdjustStewardMembersStep(TEST_USER, iamService, inheritSteward);
     verifyAdjustMembers(step::doStep, inheritSteward);
     verifyAdjustMembers(step::undoStep, !inheritSteward);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void stepSucceedsCatchesError(boolean inheritSteward) throws Exception {
+    var snapshots =
+        List.of(new Snapshot().id(UUID.randomUUID()), new Snapshot().id(UUID.randomUUID()));
+    List<String> datasetPolicyEmails = Arrays.asList("custodianEmail", "stewardEmail");
+    FlightMap workingMap = new FlightMap();
+    workingMap.put(
+        DatasetWorkingMapKeys.SNAPSHOT_IDS,
+        snapshots.stream().map(Snapshot::getId).collect(Collectors.toList()));
+    FlightMap inputParameters = new FlightMap();
+    inputParameters.put(JobMapKeys.DATASET_POLICY_USERS.getKeyName(), datasetPolicyEmails);
+    when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    when(flightContext.getInputParameters()).thenReturn(inputParameters);
+
+    AdjustStewardMembersStep step =
+        new AdjustStewardMembersStep(TEST_USER, iamService, inheritSteward);
+
+    if (inheritSteward) {
+      doThrow(new RuntimeException("Test exception"))
+          .when(iamService)
+          .deletePolicyMember(any(), any(), any(), any(), any());
+    } else {
+      doThrow(new RuntimeException("Test exception"))
+          .when(iamService)
+          .addPolicyMember(any(), any(), any(), any(), any());
+    }
+
+    assertThat(step.doStep(flightContext), is(StepResult.getStepResultSuccess()));
   }
 }

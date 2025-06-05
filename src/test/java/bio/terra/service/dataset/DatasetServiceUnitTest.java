@@ -43,6 +43,7 @@ import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
+import bio.terra.service.dataset.flight.inheritsteward.InheritStewardAdjustMembersFlight;
 import bio.terra.service.dataset.flight.inheritsteward.SetInheritStewardFlight;
 import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
@@ -447,10 +448,68 @@ class DatasetServiceUnitTest {
         equalTo(inheritSteward));
   }
 
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void adjustMembersInheritSteward(boolean inheritSteward) {
+    JobBuilder jobBuilder =
+        new JobBuilder("", InheritStewardAdjustMembersFlight.class, null, TEST_USER, jobService);
+    when(jobService.newJob(
+            String.format(
+                "Adjust members to reduce google group usage after inherit steward is for dataset %s",
+                DATASET_ID),
+            InheritStewardAdjustMembersFlight.class,
+            null,
+            TEST_USER))
+        .thenReturn(jobBuilder);
+    var custodianEmail = "custodianEmail";
+    var stewardEmail = "stewardEmail";
+    var members = Arrays.asList("member");
+    var stewardMembers = Arrays.asList("member2");
+    mockDataset(CloudPlatform.GCP, TableDataType.STRING, inheritSteward);
+    when(iamService.retrievePolicies(TEST_USER, IamResourceType.DATASET, DATASET_ID))
+        .thenReturn(
+            List.of(
+                new SamPolicyModel()
+                    .name(IamRole.CUSTODIAN.toString())
+                    .email(custodianEmail)
+                    .members(members),
+                new SamPolicyModel()
+                    .name(IamRole.STEWARD.toString())
+                    .email(stewardEmail)
+                    .members(stewardMembers)));
+    ArgumentCaptor<FlightMap> captor = ArgumentCaptor.forClass(FlightMap.class);
+    when(jobService.submit(eq(InheritStewardAdjustMembersFlight.class), captor.capture()))
+        .thenReturn("JobId");
+    assertThat(
+        "Job is submitted and JobId is returned",
+        datasetService.adjustMembersInheritSteward(DATASET_ID, TEST_USER),
+        equalTo("JobId"));
+    FlightMap flightMap = captor.getValue();
+    assertThat(
+        flightMap.get(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class),
+        equalTo(IamResourceType.DATASET));
+    assertThat(flightMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class), equalTo(DATASET_ID));
+    assertThat(
+        flightMap.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class),
+        equalTo(IamAction.SET_INHERIT_STEWARD));
+    assertThat(
+        flightMap.get(JobMapKeys.DATASET_POLICY_USERS.getKeyName(), List.class),
+        equalTo(Stream.of(members, stewardMembers).flatMap(List::stream).toList()));
+    assertThat(
+        flightMap.get(JobMapKeys.INHERIT_STEWARD.getKeyName(), Boolean.class),
+        equalTo(inheritSteward));
+  }
+
   private void mockDataset(CloudPlatform cloudPlatform, TableDataType columnDataType) {
+    mockDataset(cloudPlatform, columnDataType, false);
+  }
+
+  private void mockDataset(
+      CloudPlatform cloudPlatform, TableDataType columnDataType, boolean inheritSteward) {
     List<DatasetTable> tables = List.of(new DatasetTable().name(DATASET_TABLE_NAME));
     Dataset mockDataset =
-        new Dataset(new DatasetSummary().cloudPlatform(cloudPlatform))
+        new Dataset(
+                new DatasetSummary().cloudPlatform(cloudPlatform).inheritSteward(inheritSteward))
             .id(DATASET_ID)
             .tables(tables)
             .tables(

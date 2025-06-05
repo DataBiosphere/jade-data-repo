@@ -53,6 +53,7 @@ import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.dataset.flight.ingest.scratch.DatasetScratchFilePrepareFlight;
+import bio.terra.service.dataset.flight.inheritsteward.InheritStewardAdjustMembersFlight;
 import bio.terra.service.dataset.flight.inheritsteward.SetInheritStewardFlight;
 import bio.terra.service.dataset.flight.lock.DatasetLockFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionCommitFlight;
@@ -805,6 +806,31 @@ public class DatasetService {
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
         .addParameter(JobMapKeys.DATASET_POLICY_EMAILS.getKeyName(), datasetPolicyEmails)
+        .addParameter(JobMapKeys.DATASET_POLICY_USERS.getKeyName(), datasetPolicyMembers)
+        .addParameter(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward)
+        .submit();
+  }
+
+  public String adjustMembersInheritSteward(UUID datasetId, AuthenticatedUserRequest userReq) {
+    String description =
+        String.format(
+            "Adjust members to reduce google group usage after inherit steward is for dataset %s",
+            datasetId);
+    List<SamPolicyModel> datasetPolicies =
+        iamService.retrievePolicies(userReq, IamResourceType.DATASET, datasetId).stream()
+            .filter(p -> isInheritedRole(p.getName()))
+            .toList();
+    List<String> datasetPolicyMembers =
+        datasetPolicies.stream()
+            .flatMap(policy -> policy.getMembers().stream())
+            .distinct()
+            .collect(Collectors.toList());
+    var inheritSteward = retrieve(datasetId).isInheritSteward();
+    return jobService
+        .newJob(description, InheritStewardAdjustMembersFlight.class, null, userReq)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SET_INHERIT_STEWARD)
+        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
         .addParameter(JobMapKeys.DATASET_POLICY_USERS.getKeyName(), datasetPolicyMembers)
         .addParameter(JobMapKeys.INHERIT_STEWARD.getKeyName(), inheritSteward)
         .submit();

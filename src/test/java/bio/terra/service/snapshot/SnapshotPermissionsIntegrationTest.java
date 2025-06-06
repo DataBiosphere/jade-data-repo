@@ -124,7 +124,8 @@ class SnapshotPermissionsIntegrationTest {
   void snapshotInvalidEmailTest() throws Exception {
     SnapshotRequestModel requestModel =
         jsonLoader.loadObject("ingest-test-snapshot.json", SnapshotRequestModel.class);
-    // randomize name so that we don't have failures on test retry after successful creation of snapshot
+    // randomize name so that we don't have failures on test retry after successful creation of
+    // snapshot
     // Only randomize name here at the beginning of the test
     // so that we can test that we can't create a snapshot with the same name
     requestModel.setName(Names.randomizeName(requestModel.getName()));

@@ -10,6 +10,7 @@ import bio.terra.common.auth.Users;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.common.fixtures.Names;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
@@ -123,6 +124,10 @@ class SnapshotPermissionsIntegrationTest {
   void snapshotInvalidEmailTest() throws Exception {
     SnapshotRequestModel requestModel =
         jsonLoader.loadObject("ingest-test-snapshot.json", SnapshotRequestModel.class);
+    // randomize name so that we don't have failures on test retry after successful creation of snapshot
+    // Only randomize name here at the beginning of the test
+    // so that we can test that we can't create a snapshot with the same name
+    requestModel.setName(Names.randomizeName(requestModel.getName()));
 
     requestModel.setReaders(Collections.singletonList("bad-user@not-a-real-domain.com"));
     DataRepoResponse<JobModel> jobResponse =

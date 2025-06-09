@@ -14,10 +14,13 @@ import bio.terra.stairway.exception.RetryException;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public record AdjustStewardMembersStep(
     AuthenticatedUserRequest userReq, IamService iamService, boolean inheritSteward)
     implements Step {
+  private static final Logger logger = LoggerFactory.getLogger(AdjustStewardMembersStep.class);
 
   interface AddRemoveApi {
     void addRemoveMember(
@@ -38,11 +41,17 @@ public record AdjustStewardMembersStep(
             inputParams.get(JobMapKeys.DATASET_POLICY_USERS.getKeyName(), List.class));
     AddRemoveApi api =
         inheritSteward ? iamService::deletePolicyMember : iamService::addPolicyMember;
-    for (var snapshotId : snapshotIds) {
-      for (var email : custodians) {
-        api.addRemoveMember(
-            userReq, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.STEWARD, email);
+    try {
+      for (var snapshotId : snapshotIds) {
+        for (var email : custodians) {
+          api.addRemoveMember(
+              userReq, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.STEWARD, email);
+        }
       }
+    } catch (Exception e) {
+      logger.error(
+          "Error adjusting steward members. Run the adjust members endpoint to just perform this step.",
+          e);
     }
   }
 

@@ -109,6 +109,9 @@ class DatasetsApiControllerTest {
   private static final String SET_INHERIT_STEWARD_ENDPOINT =
       DATASET_ID_ENDPOINT + "/inheritSteward";
 
+  private static final String ADJUST_MEMBERS_INHERIT_STEWARD_ENDPOINT =
+      DATASET_ID_ENDPOINT + "/adjustMembersInheritSteward";
+
   private static final SqlSortDirectionAscDefault DIRECTION = SqlSortDirectionAscDefault.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final DatasetPatchRequestModel DATASET_PATCH_REQUEST =
@@ -620,8 +623,33 @@ class DatasetsApiControllerTest {
     verifyAuthorizationCall(IamAction.SET_INHERIT_STEWARD);
   }
 
-  @Test
-  void setInheritStewardNotAuthorized() throws Exception {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void adjustMembersInheritSteward(boolean inheritSteward) throws Exception {
+    String jobId = "jobId";
+    mockValidators();
+    when(datasetService.retrieveDatasetSummary(DATASET_ID))
+        .thenReturn(new DatasetSummaryModel().id(DATASET_ID).inheritSteward(!inheritSteward));
+    when(datasetService.adjustMembersInheritSteward(DATASET_ID, TEST_USER)).thenReturn(jobId);
+    JobModel jobModel = new JobModel().id(jobId).jobStatus(JobModel.JobStatusEnum.RUNNING);
+    when(jobService.retrieveJob(eq(jobId), any())).thenReturn(jobModel);
+
+    String json =
+        mvc.perform(
+                put(ADJUST_MEMBERS_INHERIT_STEWARD_ENDPOINT, DATASET_ID)
+                    .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().is(202))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    JobModel model = TestUtils.mapFromJson(json, JobModel.class);
+    assertThat("Job ID is returned", model, equalTo(jobModel));
+    verifyAuthorizationCall(IamAction.SET_INHERIT_STEWARD);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {SET_INHERIT_STEWARD_ENDPOINT, ADJUST_MEMBERS_INHERIT_STEWARD_ENDPOINT})
+  void inheritStewardNotAuthorized(String endpoint) throws Exception {
     boolean inheritSteward = true;
     mockValidators();
     IamAction iamAction = IamAction.SET_INHERIT_STEWARD;
@@ -630,7 +658,7 @@ class DatasetsApiControllerTest {
         .verifyAuthorization(TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction);
 
     mvc.perform(
-            put(SET_INHERIT_STEWARD_ENDPOINT, DATASET_ID)
+            put(endpoint, DATASET_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtils.mapToJson(inheritSteward)))
         .andExpect(status().isForbidden());
@@ -638,27 +666,29 @@ class DatasetsApiControllerTest {
     verifyAuthorizationCall(iamAction);
   }
 
-  @Test
-  void setInheritStewardInvalidId() throws Exception {
+  @ParameterizedTest
+  @ValueSource(strings = {SET_INHERIT_STEWARD_ENDPOINT, ADJUST_MEMBERS_INHERIT_STEWARD_ENDPOINT})
+  void setInheritStewardInvalidId(String endpoint) throws Exception {
     boolean inheritSteward = true;
     mockValidators();
 
     mvc.perform(
-            put(SET_INHERIT_STEWARD_ENDPOINT, "not a UUID")
+            put(endpoint, "not a UUID")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtils.mapToJson(inheritSteward)))
         .andExpect(status().isBadRequest());
   }
 
-  @Test
-  void setInheritStewardDatasetNotFound() throws Exception {
+  @ParameterizedTest
+  @ValueSource(strings = {SET_INHERIT_STEWARD_ENDPOINT, ADJUST_MEMBERS_INHERIT_STEWARD_ENDPOINT})
+  void setInheritStewardDatasetNotFound(String endpoint) throws Exception {
     boolean inheritSteward = true;
     mockValidators();
     when(datasetService.retrieveDatasetSummary(DATASET_ID))
         .thenThrow(new DatasetNotFoundException("Dataset not found for id: " + DATASET_ID));
 
     mvc.perform(
-            put(SET_INHERIT_STEWARD_ENDPOINT, DATASET_ID)
+            put(endpoint, DATASET_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtils.mapToJson(inheritSteward)))
         .andExpect(status().isNotFound());

@@ -522,6 +522,15 @@ public class DatasetsApiController implements DatasetsApi {
     return ControllerUtils.jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
+  @Override
+  public ResponseEntity<JobModel> adjustMembersInheritSteward(UUID id) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.SET_INHERIT_STEWARD);
+
+    String jobId = datasetService.adjustMembersInheritSteward(id, userReq);
+    return ControllerUtils.jobToResponse(jobService.retrieveJob(jobId, userReq));
+  }
+
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {
     CloudPlatform datasetPlatform =
         datasetService.retrieveDatasetSummary(datasetId).getCloudPlatform();

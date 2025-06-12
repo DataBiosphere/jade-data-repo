@@ -20,20 +20,28 @@ public class IngestValidateIngestRowsStep implements Step {
   private static final int MAX_ERROR_DUPLICATE_ROWS = 20;
   private static final Logger logger = LoggerFactory.getLogger(IngestValidateIngestRowsStep.class);
   private final DatasetService datasetService;
+  private final boolean postIngest;
 
-  public IngestValidateIngestRowsStep(DatasetService datasetService) {
+  public IngestValidateIngestRowsStep(DatasetService datasetService, boolean postIngest) {
     this.datasetService = datasetService;
+    this.postIngest = postIngest;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     DatasetTable targetTable = IngestUtils.getDatasetTable(context, dataset);
-    String stagingTableName = IngestUtils.getStagingTableName(context);
 
     if (targetTable.getPrimaryKey() != null && !targetTable.getPrimaryKey().isEmpty()) {
+      // targetTable.getPrimaryKey() would be the same as stagingTable.getPrimaryKey()
+      // checks for duplicate primary keys in the specified table
+      String tableNameToCheck =
+          postIngest
+              ? targetTable.getName()
+              : IngestUtils.getStagingTableName(
+                  context); // use target table for post-ingest validation
       TableResult duplicatePrimaryKeys =
-          BigQueryPdao.duplicatePrimaryKeys(dataset, targetTable.getPrimaryKey(), stagingTableName);
+          BigQueryPdao.duplicatePrimaryKeys(dataset, targetTable.getPrimaryKey(), tableNameToCheck);
       long numDuplicatePrimaryKeys = duplicatePrimaryKeys.getTotalRows();
 
       if (numDuplicatePrimaryKeys > 0) {

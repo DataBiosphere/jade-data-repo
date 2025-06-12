@@ -249,7 +249,7 @@ public class DatasetIngestFlight extends Flight {
           (ingestRequestModel.getUpdateStrategy() == IngestRequestModel.UpdateStrategyEnum.MERGE);
       if (replaceIngest || mergeIngest) {
         // Ensure that no duplicate IDs are being loaded in
-        addStep(new IngestValidateIngestRowsStep(datasetService));
+        addStep(new IngestValidateIngestRowsStep(datasetService, false));
         if (mergeIngest) {
           addStep(new IngestValidatePrimaryKeyDefinedStep(datasetService));
           addStep(new IngestValidateTargetRowsStep(datasetService, bigQueryDatasetPdao));
@@ -273,6 +273,12 @@ public class DatasetIngestFlight extends Flight {
       addStep(new IngestCleanupStep(datasetService, bigQueryDatasetPdao));
       addStep(new IngestScratchFileDeleteGcpStep(gcsPdao));
       addStep(new PerformPayloadIngestStep(new IngestLandingFileDeleteGcpStep(false, gcsPdao)));
+      if (replaceIngest || mergeIngest) {
+        // Validate the rows in the target table after ingest.
+        // There may have already been duplicate rows in the table prior to ingest
+        // or concurrent ingests could have created duplicate rows.
+        new IngestValidateIngestRowsStep(datasetService, true);
+      }
     } else if (cloudPlatform.isAzure()) {
       addStep(
           new IngestCreateIngestRequestDataSourceStep(
@@ -293,6 +299,7 @@ public class DatasetIngestFlight extends Flight {
           new PerformPayloadIngestStep(
               new IngestLandingFileDeleteAzureStep(false, azureContainerPdao)));
     }
+
     if (cloudPlatform.isGcp()) {
       if (!autocommit) {
         addStep(

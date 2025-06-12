@@ -190,6 +190,10 @@ public final class BigQueryProject {
         && httpResponseException.getStatusCode() == HttpStatus.SC_GATEWAY_TIMEOUT) {
       throw new AclUtils.AclRetryException("Gateway timeout.", ex, "Timeout");
     }
+    if (ex.getCause() instanceof HttpResponseException httpResponseException
+        && (httpResponseException.getStatusCode() == HttpStatus.SC_SERVICE_UNAVAILABLE)) {
+      throw new AclUtils.AclRetryException("BQ Service Unavailable", ex, "Service Unavailable");
+    }
     throw ex;
   }
 

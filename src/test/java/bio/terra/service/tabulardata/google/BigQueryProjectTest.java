@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 class BigQueryProjectTest {
 
   @Test
-  void bigQueryAclUpdateShouldRetry() {
+  void gatewayTimeoutShouldRetry() {
     // mock an exception that looks like the following:
     // com.google.cloud.bigquery.BigQueryException: Project id: datarepo-REDACTED
     //	at com.google.cloud.bigquery.BigQueryRetryHelper.runWithRetries(BigQueryRetryHelper.java:59)
@@ -30,6 +30,35 @@ class BigQueryProjectTest {
             "Project id: datarepo-REDACTED",
             new HttpResponseException.Builder(
                     HttpStatus.SC_GATEWAY_TIMEOUT, "504 Gateway Timeout", new HttpHeaders() {})
+                .build());
+    assertThrows(
+        AclUtils.AclRetryException.class,
+        () -> bigQueryProject.bigQueryAclUpdateShouldRetry(bigQueryException));
+  }
+
+  @Test
+  void serviceUnavailableShouldRetry() {
+    // mock an exception that looks like the following:
+    //    Caused by: com.google.cloud.bigquery.BigQueryException: Visibility check was unavailable.
+    //    Please retry the request and contact support if the problem persists
+    //      at
+    // com.google.cloud.bigquery.BigQueryRetryHelper.runWithRetries(BigQueryRetryHelper.java:59)
+    //      at com.google.cloud.bigquery.BigQueryImpl.getDataset(BigQueryImpl.java:500)
+    //      at
+    // bio.terra.service.tabulardata.google.BigQueryProject.lambda$getBQDataset$1(BigQueryProject.java:214)
+    //      at bio.terra.common.AclUtils.aclUpdateRetry(AclUtils.java:28)
+    //	... 16 common frames omitted
+    //    Caused by: com.google.api.client.googleapis.json.GoogleJsonResponseException: 503 Service
+    // Unavailable
+    var bigQueryProject = BigQueryProject.from(new SnapshotModel().dataProject("data-project"));
+    var bigQueryException =
+        new BigQueryException(
+            500,
+            "Visibility check was unavailable",
+            new HttpResponseException.Builder(
+                    HttpStatus.SC_SERVICE_UNAVAILABLE,
+                    "503 Service Unavailable",
+                    new HttpHeaders() {})
                 .build());
     assertThrows(
         AclUtils.AclRetryException.class,

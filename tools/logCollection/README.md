@@ -1,3 +1,5 @@
+See more details for TDR logs in [google doc](https://docs.google.com/document/d/1WKjGWkeQ--Ke22t_iQeQl5I9It4Q1gpUYhRrryg6FbU/edit?usp=sharing).
+
 The `collect-logs.py` script can be used to transform logs from TDR GCP logging into a tabular format
 with more details.
 

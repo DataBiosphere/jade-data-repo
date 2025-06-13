@@ -26,6 +26,7 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.BQTestUtils;
+import bio.terra.common.Column;
 import bio.terra.common.DateTimeUtils;
 import bio.terra.common.Relationship;
 import bio.terra.common.category.Unit;
@@ -1146,6 +1147,21 @@ class BigQueryPdaoUnitTest {
     assertThat("Snapshot BQ table name is correctly formatted", expected, equalTo(actual));
   }
 
+  @Test
+  void testDuplicatePrimaryKeys() throws InterruptedException {
+    Dataset dataset = mockDataset();
+    DatasetTable table1 = dataset.getTables().get(0);
+    List<Column> columns = table1.getColumns();
+    TableResult expected = mock(TableResult.class);
+    when(bigQueryProjectDataset.query(
+            "SELECT col1a,col2a,COUNT(*) AS count "
+                + "FROM `dataset_data.datarepo_datasetName.tableA` "
+                + "GROUP BY col1a,col2a HAVING COUNT(*) > 1"))
+        .thenReturn(expected);
+    TableResult result = BigQueryPdao.duplicatePrimaryKeys(dataset, columns, table1.getName());
+    assertEquals(expected, result);
+  }
+
   private Dataset mockDataset() {
     DatasetTable tbl1 =
         DatasetFixtures.generateDatasetTable(
@@ -1153,6 +1169,7 @@ class BigQueryPdaoUnitTest {
             .id(TABLE_1_ID);
     tbl1.getColumns().get(0).id(TABLE_1_COL1_ID);
     tbl1.getColumns().get(1).id(TABLE_1_COL2_ID);
+    tbl1.primaryKey(tbl1.getColumns());
 
     DatasetTable tbl2 =
         DatasetFixtures.generateDatasetTable(

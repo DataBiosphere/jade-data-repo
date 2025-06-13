@@ -66,8 +66,8 @@ public enum BigQueryPdao {
           + "HAVING COUNT(*) > 1";
 
   /**
-   * Returns true is any duplicate IDs are present in a BigQuery table TODO: add support for
-   * returning top few instances
+   * Returns table result with rows that represent the duplicate primary keys and their counts TODO:
+   * add support for returning top few instances
    */
   public static TableResult duplicatePrimaryKeys(
       FSContainerInterface container, List<Column> pkColumns, String tableName)

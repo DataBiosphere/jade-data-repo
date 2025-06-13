@@ -119,10 +119,7 @@ class IngestValidateIngestRowsStepTest {
   }
 
   private Dataset createDataset() {
-    //    GoogleProjectResource googleProjectResource = new GoogleProjectResource();
-    //    googleProjectResource."test-project-id");
     Dataset dataset = new Dataset();
-    //    dataset.projectResource(new GoogleProjectResource());
 
     DatasetTable datasetTable = new DatasetTable();
     Column primaryKeyColumn = new Column();

@@ -47,7 +47,7 @@ class IngestValidateIngestRowsStepTest {
   }
 
   @AfterEach
-  public void close() {
+  void close() {
     mockedUtils.close();
     mockedBigQueryPdao.close();
   }

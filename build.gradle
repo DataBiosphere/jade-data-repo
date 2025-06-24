@@ -20,7 +20,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.68')
+        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.69')
         // Required for gradle liquibase plugin
         classpath ('org.liquibase:liquibase-core:4.30.0')
     }
@@ -33,7 +33,7 @@ plugins {
     id 'org.gradle.test-retry' version '1.6.2'
     id 'antlr'
     id 'org.hidetake.swagger.generator' version '2.19.2'
-    id 'org.springframework.boot' version '3.5.0'
+    id 'org.springframework.boot' version '3.5.3'
     id 'idea'
     id 'java'
     id 'io.spring.dependency-management' version '1.1.7'
@@ -63,8 +63,8 @@ allprojects {
             mavenBom SpringBootPlugin.BOM_COORDINATES
         }
         dependencies {
-            dependency 'io.swagger.core.v3:swagger-annotations:2.2.33'
-            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.68'
+            dependency 'io.swagger.core.v3:swagger-annotations:2.2.34'
+            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.69'
         }
     }
 }
@@ -171,7 +171,7 @@ dependencies {
     implementation 'com.google.cloud:google-cloud-storage'
     implementation 'com.google.cloud:google-cloud-firestore'
     implementation 'com.google.cloud:google-cloud-pubsub'
-    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:6.2.1'
+    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:6.2.2'
     implementation 'com.google.http-client:google-http-client'
 
     implementation 'org.apache.commons:commons-compress:1.27.1' // For srcclr, jib plugin conflict
@@ -226,11 +226,11 @@ dependencies {
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.51.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'
-    implementation 'com.azure:azure-storage-common:12.29.0'
-    implementation 'com.azure:azure-storage-file-datalake:12.23.0'
-    implementation 'com.azure:azure-data-tables:12.5.3'
+    implementation 'com.azure:azure-storage-common:12.29.1'
+    implementation 'com.azure:azure-storage-file-datalake:12.23.1'
+    implementation 'com.azure:azure-data-tables:12.5.4'
 
-    implementation platform('io.sentry:sentry-bom:8.13.3') //import bom
+    implementation platform('io.sentry:sentry-bom:8.14.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')
     implementation('io.sentry:sentry-logback')
 
@@ -276,7 +276,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.webjars:webjars-locator-core'
     // NOTE: If this version is changed, the version in WebConfig.addResourceHandlers must be updated as well.
-    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.24.1'
+    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.25.2'
     generatedCompile 'io.swagger.core.v3:swagger-annotations'
 
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'

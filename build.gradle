@@ -223,19 +223,19 @@ dependencies {
 
     // Azure related dependencies
     implementation 'com.azure:azure-identity:1.16.2'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.51.0'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.52.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'
     implementation 'com.azure:azure-storage-common:12.29.1'
     implementation 'com.azure:azure-storage-file-datalake:12.23.1'
     implementation 'com.azure:azure-data-tables:12.5.4'
 
-    implementation platform('io.sentry:sentry-bom:8.14.0') //import bom
+    implementation platform('io.sentry:sentry-bom:8.16.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')
     implementation('io.sentry:sentry-logback')
 
     // OpenTelemetry @WithSpan annotations:
-    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.16.0'
+    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.17.0'
     implementation 'io.opentelemetry:opentelemetry-sdk-extension-autoconfigure'
 
     testImplementation 'org.apache.parquet:parquet-common:1.15.2'
@@ -276,7 +276,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.webjars:webjars-locator-core'
     // NOTE: If this version is changed, the version in WebConfig.addResourceHandlers must be updated as well.
-    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.25.2'
+    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.25.3'
     generatedCompile 'io.swagger.core.v3:swagger-annotations'
 
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'

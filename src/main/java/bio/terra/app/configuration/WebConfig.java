@@ -19,10 +19,8 @@ import org.springframework.web.util.UrlPathHelper;
 
 @Component
 public class WebConfig implements WebMvcConfigurer {
-  @Autowired
-  private LoggerInterceptor loggerInterceptor;
-  @Autowired
-  private UserMetricsInterceptor metricsInterceptor;
+  @Autowired private LoggerInterceptor loggerInterceptor;
+  @Autowired private UserMetricsInterceptor metricsInterceptor;
 
   public static final String SWAGGER_UI_VERSION = getSwaggerUiVersion();
 

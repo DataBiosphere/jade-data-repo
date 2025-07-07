@@ -20,7 +20,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.70')
+        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.71')
         // Required for gradle liquibase plugin
         classpath ('org.liquibase:liquibase-core:4.30.0')
     }
@@ -64,7 +64,7 @@ allprojects {
         }
         dependencies {
             dependency 'io.swagger.core.v3:swagger-annotations:2.2.34'
-            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.70'
+            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.71'
         }
     }
 }
@@ -164,14 +164,14 @@ dependencies {
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
 
-    implementation platform('com.google.cloud:libraries-bom:26.62.0')
+    implementation platform('com.google.cloud:libraries-bom:26.63.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
     implementation 'com.google.cloud:google-cloud-bigquery'
     implementation 'com.google.cloud:google-cloud-storage'
     implementation 'com.google.cloud:google-cloud-firestore'
     implementation 'com.google.cloud:google-cloud-pubsub'
-    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:6.2.2'
+    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:6.2.3'
     implementation 'com.google.http-client:google-http-client'
 
     implementation 'org.apache.commons:commons-compress:1.27.1' // For srcclr, jib plugin conflict
@@ -201,14 +201,14 @@ dependencies {
     implementation 'com.microsoft.sqlserver:mssql-jdbc:12.3.0.jre17-preview'
 
     // For distributed locking of Spring @Scheduled tasks across multiple instances
-    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.9.0'
-    implementation 'net.javacrumbs.shedlock:shedlock-spring:6.9.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.9.1'
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:6.9.1'
 
     implementation 'bio.terra:terra-common-lib:1.1.42-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.241'
     implementation 'bio.terra:terra-policy-client:1.0.19-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'
-    implementation 'bio.terra:externalcreds-client-resttemplate:1.101.0-SNAPSHOT'
+    implementation 'bio.terra:externalcreds-client-resttemplate:1.104.0-SNAPSHOT'
 
     implementation 'org.glassfish.jersey.inject:jersey-hk2'
 
@@ -276,7 +276,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.webjars:webjars-locator-core'
     // NOTE: If this version is changed, the version in WebConfig.addResourceHandlers must be updated as well.
-    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.25.3'
+    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.26.2'
     generatedCompile 'io.swagger.core.v3:swagger-annotations'
 
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'

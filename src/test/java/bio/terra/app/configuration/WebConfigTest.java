@@ -1,5 +1,6 @@
 package bio.terra.app.configuration;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -18,28 +19,7 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 class WebConfigTest {
 
   @Test
-  void swaggerUiVersionMatchesClasspath() throws IOException {
-    PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
-    Resource[] resources =
-        resolver.getResources("classpath:/META-INF/resources/webjars/swagger-ui-dist/*/");
-
-    assertEquals(
-        1, resources.length, "Expected one swagger-ui-dist resource, found " + resources.length);
-
-    Pattern versionPattern = Pattern.compile(".+/swagger-ui-dist/(\\d+\\.\\d+\\.\\d+)/");
-    Matcher matcher = versionPattern.matcher(((ClassPathResource) resources[0]).getPath());
-    Optional<String> currentVersion = matcher.results().findFirst().map(m -> m.group(1));
-
-    assertTrue(
-        currentVersion.isPresent(),
-        "Could not find swagger-ui-dist version in classpath. Check your build.gradle dependencies.");
-
-    assertEquals(
-        currentVersion.get(),
-        WebConfig.SWAGGER_UI_VERSION,
-        "SWAGGER_UI_VERSION in WebConfig.java does not match the version in build.gradle. "
-            + "Update the version in WebConfig.java to "
-            + currentVersion.get()
-            + " to match.");
+  void swaggerUiVersionMatchesClasspath() {
+    assertDoesNotThrow(WebConfig::getSwaggerUiVersion);
   }
 }

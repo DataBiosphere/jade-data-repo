@@ -14,7 +14,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
@@ -58,6 +60,7 @@ import bio.terra.service.snapshot.exception.MismatchedValueException;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.api.gax.paging.Page;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
@@ -1160,6 +1163,36 @@ class BigQueryPdaoUnitTest {
         .thenReturn(expected);
     TableResult result = BigQueryPdao.duplicatePrimaryKeys(dataset, columns, table1.getName());
     assertEquals(expected, result);
+  }
+
+  @Test
+  void testTooManyDmlStatementsOutstanding_Dml() {
+    BigQueryException cause =
+        new BigQueryException(400, "Too many DML statements outstanding against table");
+    PdaoException ex = new PdaoException("error", cause);
+    assertTrue(BigQueryPdao.tooManyDmlStatementsOutstanding(ex));
+  }
+
+  @Test
+  void testTooManyDmlStatementsOutstanding_QuotaExceeded() {
+    BigQueryException cause = new BigQueryException(400, "Quota Exceeded");
+    PdaoException ex = new PdaoException("error", cause);
+    assertTrue(BigQueryPdao.tooManyDmlStatementsOutstanding(ex));
+  }
+
+  @Test
+  void testTooManyDmlStatementsOutstanding_JobRateLimitExceeded() {
+    BigQueryError error = new BigQueryError("jobRateLimitExceeded", "location", "error message");
+    BigQueryException cause = new BigQueryException(400, "message", error);
+    PdaoException ex = new PdaoException("error", cause);
+    assertTrue(BigQueryPdao.tooManyDmlStatementsOutstanding(ex));
+  }
+
+  @Test
+  void testTooManyDmlStatementsOutstanding_NotBigQueryException() {
+    Exception cause = new Exception("Other error");
+    PdaoException ex = new PdaoException("error", cause);
+    assertFalse(BigQueryPdao.tooManyDmlStatementsOutstanding(ex));
   }
 
   private Dataset mockDataset() {

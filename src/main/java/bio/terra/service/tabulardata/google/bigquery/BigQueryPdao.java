@@ -120,6 +120,7 @@ public enum BigQueryPdao {
   public static boolean tooManyDmlStatementsOutstanding(PdaoException ex) {
     return ex.getCause() instanceof BigQueryException
         && (ex.getCause().getMessage().contains("Too many DML statements outstanding against table")
+            || ex.getCause().getMessage().contains("Quota Exceeded")
             || ((BigQueryException) ex.getCause()).getReason().contains("jobRateLimitExceeded"));
   }
 

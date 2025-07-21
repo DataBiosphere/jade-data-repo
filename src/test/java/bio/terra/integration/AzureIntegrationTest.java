@@ -123,6 +123,7 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.hamcrest.CoreMatchers;
+import org.junit.Ignore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -142,6 +143,7 @@ import org.springframework.util.ResourceUtils;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
+@Ignore("Disable Azure tests due to expired credentials")
 class AzureIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(AzureIntegrationTest.class);
 

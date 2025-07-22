@@ -205,7 +205,7 @@ dependencies {
     implementation 'net.javacrumbs.shedlock:shedlock-spring:6.9.2'
 
     implementation 'bio.terra:terra-common-lib:1.1.42-SNAPSHOT'
-    implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.241'
+    implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.407-3bcdd55-SNAP'
     implementation 'bio.terra:terra-policy-client:1.0.23-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'
     implementation 'bio.terra:externalcreds-client-resttemplate:1.110.0-SNAPSHOT'

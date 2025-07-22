@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -44,6 +45,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 @EmbeddedDatabaseTest
+@Ignore("Disable Azure tests due to expired credentials")
 public class ProfileConnectedTest {
   private static final Logger logger = LoggerFactory.getLogger(ProfileConnectedTest.class);
 

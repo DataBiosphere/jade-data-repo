@@ -142,6 +142,7 @@ import org.springframework.util.ResourceUtils;
 @SpringBootTest(classes = IntegrationTestConfiguration.class)
 @ActiveProfiles({"google", "integrationtest"})
 @Tag(Integration.TAG)
+@Disabled("Disable Azure tests due to expired credentials")
 class AzureIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(AzureIntegrationTest.class);
 

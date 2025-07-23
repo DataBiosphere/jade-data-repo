@@ -164,7 +164,7 @@ dependencies {
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
 
-    implementation platform('com.google.cloud:libraries-bom:26.63.0')
+    implementation platform('com.google.cloud:libraries-bom:26.64.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
     implementation 'com.google.cloud:google-cloud-bigquery'
@@ -208,7 +208,7 @@ dependencies {
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.407-3bcdd55-SNAP'
     implementation 'bio.terra:terra-policy-client:1.0.23-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'
-    implementation 'bio.terra:externalcreds-client-resttemplate:1.110.0-SNAPSHOT'
+    implementation 'bio.terra:externalcreds-client-resttemplate:1.112.0-SNAPSHOT'
 
     implementation 'org.glassfish.jersey.inject:jersey-hk2'
 
@@ -222,12 +222,12 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     // Azure related dependencies
-    implementation 'com.azure:azure-identity:1.16.2'
+    implementation 'com.azure:azure-identity:1.16.3'
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.52.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'
-    implementation 'com.azure:azure-storage-common:12.29.1'
-    implementation 'com.azure:azure-storage-file-datalake:12.23.1'
+    implementation 'com.azure:azure-storage-common:12.30.0'
+    implementation 'com.azure:azure-storage-file-datalake:12.24.0'
     implementation 'com.azure:azure-data-tables:12.5.4'
 
     implementation platform('io.sentry:sentry-bom:8.17.0') //import bom
@@ -235,7 +235,7 @@ dependencies {
     implementation('io.sentry:sentry-logback')
 
     // OpenTelemetry @WithSpan annotations:
-    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.17.1'
+    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.18.1'
     implementation 'io.opentelemetry:opentelemetry-sdk-extension-autoconfigure'
 
     testImplementation 'org.apache.parquet:parquet-common:1.15.2'

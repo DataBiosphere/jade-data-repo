@@ -64,6 +64,7 @@ jade-dev-account.pem
 gha-creds-*.json
 
 #tools output
+tools/migrateInheritSteward/*.json
 tools/setupResourceScripts/*_outputs.json
 tools/profileEndpoints/results_*.csv
 tools/logCollection/rawLogs/

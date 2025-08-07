@@ -63,7 +63,7 @@ allprojects {
             mavenBom SpringBootPlugin.BOM_COORDINATES
         }
         dependencies {
-            dependency 'io.swagger.core.v3:swagger-annotations:2.2.34'
+            dependency 'io.swagger.core.v3:swagger-annotations:2.2.35'
             dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.71'
         }
     }
@@ -164,17 +164,17 @@ dependencies {
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
 
-    implementation platform('com.google.cloud:libraries-bom:26.64.0')
+    implementation platform('com.google.cloud:libraries-bom:26.65.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
     implementation 'com.google.cloud:google-cloud-bigquery'
     implementation 'com.google.cloud:google-cloud-storage'
     implementation 'com.google.cloud:google-cloud-firestore'
     implementation 'com.google.cloud:google-cloud-pubsub'
-    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:7.0.0'
+    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:7.1.0'
     implementation 'com.google.http-client:google-http-client'
 
-    implementation 'org.apache.commons:commons-compress:1.27.1' // For srcclr, jib plugin conflict
+    implementation 'org.apache.commons:commons-compress:1.28.0' // For srcclr, jib plugin conflict
     // More info: https://discuss.gradle.org/t/plugin-dependency-conflict-with-jib-and-srcclr/42355
     implementation 'org.apache.commons:commons-dbcp2' // For database connection support
     implementation 'org.apache.commons:commons-lang3'
@@ -207,8 +207,8 @@ dependencies {
     implementation 'bio.terra:terra-common-lib:1.1.42-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.407-3bcdd55-SNAP'
     implementation 'bio.terra:terra-policy-client:1.0.23-SNAPSHOT'
-    implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'
-    implementation 'bio.terra:externalcreds-client-resttemplate:1.112.0-SNAPSHOT'
+    implementation 'bio.terra:terra-resource-buffer-client:0.198.150-SNAPSHOT'
+    implementation 'bio.terra:externalcreds-client-resttemplate:1.114.0-SNAPSHOT'
 
     implementation 'org.glassfish.jersey.inject:jersey-hk2'
 
@@ -226,11 +226,11 @@ dependencies {
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.53.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'
-    implementation 'com.azure:azure-storage-common:12.30.0'
-    implementation 'com.azure:azure-storage-file-datalake:12.24.0'
-    implementation 'com.azure:azure-data-tables:12.5.4'
+    implementation 'com.azure:azure-storage-common:12.30.1'
+    implementation 'com.azure:azure-storage-file-datalake:12.24.1'
+    implementation 'com.azure:azure-data-tables:12.5.5'
 
-    implementation platform('io.sentry:sentry-bom:8.17.0') //import bom
+    implementation platform('io.sentry:sentry-bom:8.18.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')
     implementation('io.sentry:sentry-logback')
 
@@ -276,7 +276,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.webjars:webjars-locator-core'
     // NOTE: If this version is changed, the version in WebConfig.addResourceHandlers must be updated as well.
-    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.27.0'
+    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.27.1'
     generatedCompile 'io.swagger.core.v3:swagger-annotations'
 
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'

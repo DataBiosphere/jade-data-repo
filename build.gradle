@@ -204,10 +204,10 @@ dependencies {
     implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.9.2'
     implementation 'net.javacrumbs.shedlock:shedlock-spring:6.9.2'
 
-    implementation 'bio.terra:terra-common-lib:1.1.42-SNAPSHOT'
+    implementation 'bio.terra:terra-common-lib:1.1.44-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.407-3bcdd55-SNAP'
-    implementation 'bio.terra:terra-policy-client:1.0.23-SNAPSHOT'
-    implementation 'bio.terra:terra-resource-buffer-client:0.198.150-SNAPSHOT'
+    implementation 'bio.terra:terra-policy-client:1.0.29-SNAPSHOT'
+    implementation 'bio.terra:terra-resource-buffer-client:0.198.151-SNAPSHOT'
     implementation 'bio.terra:externalcreds-client-resttemplate:1.114.0-SNAPSHOT'
 
     implementation 'org.glassfish.jersey.inject:jersey-hk2'
@@ -222,8 +222,8 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     // Azure related dependencies
-    implementation 'com.azure:azure-identity:1.16.3'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.53.0'
+    implementation 'com.azure:azure-identity:1.17.0'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.53.1'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'
     implementation 'com.azure:azure-storage-common:12.30.1'

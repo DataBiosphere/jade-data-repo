@@ -63,7 +63,7 @@ allprojects {
             mavenBom SpringBootPlugin.BOM_COORDINATES
         }
         dependencies {
-            dependency 'io.swagger.core.v3:swagger-annotations:2.2.35'
+            dependency 'io.swagger.core.v3:swagger-annotations:2.2.36'
             dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.71'
         }
     }
@@ -164,7 +164,7 @@ dependencies {
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
 
-    implementation platform('com.google.cloud:libraries-bom:26.65.0')
+    implementation platform('com.google.cloud:libraries-bom:26.66.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
     implementation 'com.google.cloud:google-cloud-bigquery'
@@ -204,10 +204,10 @@ dependencies {
     implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.9.2'
     implementation 'net.javacrumbs.shedlock:shedlock-spring:6.9.2'
 
-    implementation 'bio.terra:terra-common-lib:1.1.42-SNAPSHOT'
+    implementation 'bio.terra:terra-common-lib:1.1.44-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.407-3bcdd55-SNAP'
-    implementation 'bio.terra:terra-policy-client:1.0.23-SNAPSHOT'
-    implementation 'bio.terra:terra-resource-buffer-client:0.198.150-SNAPSHOT'
+    implementation 'bio.terra:terra-policy-client:1.0.36-SNAPSHOT'
+    implementation 'bio.terra:terra-resource-buffer-client:0.198.152-SNAPSHOT'
     implementation 'bio.terra:externalcreds-client-resttemplate:1.114.0-SNAPSHOT'
 
     implementation 'org.glassfish.jersey.inject:jersey-hk2'
@@ -222,20 +222,20 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     // Azure related dependencies
-    implementation 'com.azure:azure-identity:1.16.3'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.53.0'
+    implementation 'com.azure:azure-identity:1.17.0'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.53.1'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'
     implementation 'com.azure:azure-storage-common:12.30.1'
     implementation 'com.azure:azure-storage-file-datalake:12.24.1'
     implementation 'com.azure:azure-data-tables:12.5.5'
 
-    implementation platform('io.sentry:sentry-bom:8.18.0') //import bom
+    implementation platform('io.sentry:sentry-bom:8.19.1') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')
     implementation('io.sentry:sentry-logback')
 
     // OpenTelemetry @WithSpan annotations:
-    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.18.1'
+    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.19.0'
     implementation 'io.opentelemetry:opentelemetry-sdk-extension-autoconfigure'
 
     testImplementation 'org.apache.parquet:parquet-common:1.15.2'

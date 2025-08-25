@@ -33,7 +33,7 @@ plugins {
     id 'org.gradle.test-retry' version '1.6.2'
     id 'antlr'
     id 'org.hidetake.swagger.generator' version '2.19.2'
-    id 'org.springframework.boot' version '3.5.4'
+    id 'org.springframework.boot' version '3.5.5'
     id 'idea'
     id 'java'
     id 'io.spring.dependency-management' version '1.1.7'
@@ -63,7 +63,7 @@ allprojects {
             mavenBom SpringBootPlugin.BOM_COORDINATES
         }
         dependencies {
-            dependency 'io.swagger.core.v3:swagger-annotations:2.2.35'
+            dependency 'io.swagger.core.v3:swagger-annotations:2.2.36'
             dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.71'
         }
     }
@@ -164,7 +164,7 @@ dependencies {
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
 
-    implementation platform('com.google.cloud:libraries-bom:26.65.0')
+    implementation platform('com.google.cloud:libraries-bom:26.66.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
     implementation 'com.google.cloud:google-cloud-bigquery'
@@ -201,7 +201,7 @@ dependencies {
     implementation 'com.microsoft.sqlserver:mssql-jdbc:12.3.0.jre17-preview'
 
     // For distributed locking of Spring @Scheduled tasks across multiple instances
-    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.9.2'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.10.0'
     implementation 'net.javacrumbs.shedlock:shedlock-spring:6.9.2'
 
     implementation 'bio.terra:terra-common-lib:1.1.45-SNAPSHOT'
@@ -226,16 +226,16 @@ dependencies {
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.53.1'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'
-    implementation 'com.azure:azure-storage-common:12.30.1'
-    implementation 'com.azure:azure-storage-file-datalake:12.24.1'
-    implementation 'com.azure:azure-data-tables:12.5.5'
+    implementation 'com.azure:azure-storage-common:12.30.2'
+    implementation 'com.azure:azure-storage-file-datalake:12.24.2'
+    implementation 'com.azure:azure-data-tables:12.5.6'
 
-    implementation platform('io.sentry:sentry-bom:8.18.0') //import bom
+    implementation platform('io.sentry:sentry-bom:8.19.1') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')
     implementation('io.sentry:sentry-logback')
 
     // OpenTelemetry @WithSpan annotations:
-    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.18.1'
+    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.19.0'
     implementation 'io.opentelemetry:opentelemetry-sdk-extension-autoconfigure'
 
     testImplementation 'org.apache.parquet:parquet-common:1.15.2'
@@ -267,8 +267,8 @@ dependencies {
     testImplementation 'org.junit.vintage:junit-vintage-engine'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'io.zonky.test:embedded-database-spring-test:2.6.0'
-    testImplementation 'io.zonky.test:embedded-postgres:2.1.0'
-    implementation enforcedPlatform('io.zonky.test.postgres:embedded-postgres-binaries-bom:16.9.0')
+    testImplementation 'io.zonky.test:embedded-postgres:2.1.1'
+    implementation enforcedPlatform('io.zonky.test.postgres:embedded-postgres-binaries-bom:16.10.0')
 
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'
     // boot-starter-validation required for jakarta.validation.Valid references, @Valid tags

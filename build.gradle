@@ -202,7 +202,7 @@ dependencies {
 
     // For distributed locking of Spring @Scheduled tasks across multiple instances
     implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.10.0'
-    implementation 'net.javacrumbs.shedlock:shedlock-spring:6.9.2'
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:6.10.0'
 
     implementation 'bio.terra:terra-common-lib:1.1.45-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.415'
@@ -230,7 +230,7 @@ dependencies {
     implementation 'com.azure:azure-storage-file-datalake:12.24.2'
     implementation 'com.azure:azure-data-tables:12.5.6'
 
-    implementation platform('io.sentry:sentry-bom:8.19.1') //import bom
+    implementation platform('io.sentry:sentry-bom:8.20.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')
     implementation('io.sentry:sentry-logback')
 

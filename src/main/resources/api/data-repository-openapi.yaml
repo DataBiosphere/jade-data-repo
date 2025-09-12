@@ -187,6 +187,8 @@ paths:
       description: >
         Creates a new profile associated with a billing account. This is asynchronous.
         The final return is of type definitions/BillingProfileModel.
+        Use the returned job id to check the retrieveJob endpoint for the job status 
+        or retrieveJobResult endpoint to get the final result.
       operationId: createProfile
       requestBody:
         content:
@@ -238,6 +240,8 @@ paths:
       description: >
         Update a billing profile by id. This is asynchronous.
         The final return is of type definitions/BillingProfileModel.
+        Use the returned job id to check the retrieveJob endpoint for the job status 
+        or retrieveJobResult endpoint to get the final result.
       operationId: updateProfile
       requestBody:
         content:
@@ -328,6 +332,8 @@ paths:
       description: >
         Delete a billing profile by id. This is asynchronous.
         The final return is of type definitions/DeleteResponseModel.
+        Use the returned job id to check the retrieveJob endpoint for the job status
+        or retrieveJobResult endpoint to get the final result.
       operationId: deleteProfile
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -646,7 +652,9 @@ paths:
       tags:
         - snapshots
         - repository
-      description: Create a new snapshot
+      description: Create a new snapshot. This is asynchronous. 
+        Use the returned job id to check the retrieveJob endpoint for the job status 
+        or retrieveJobResult endpoint to get the final result.
       operationId: createSnapshot
       requestBody:
         description: Snapshot to create
@@ -911,7 +919,9 @@ paths:
       description: >
         Delete a snapshot by id.
         If this operation fails, we do not attempt to undo any failed steps. Therefore, a
-        failed snapshot delete call leaves the snapshot in a partially deleted state.
+        failed snapshot delete call leaves the snapshot in a partially deleted state. This is asynchronous.
+        Use the returned job id to check the retrieveJob endpoint for the job status or retrieveJobResult 
+        endpoint to get the final result.
       operationId: deleteSnapshot
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -1135,7 +1145,8 @@ paths:
       tags:
         - snapshots
         - repository
-      description: Export a snapshot by id
+      description: Export a snapshot by id.  This is asynchronous. Use the returned job id to check 
+        the retrieveJob endpoint for the job status or retrieveJobResult endpoint to get the final result.
       operationId: exportSnapshot
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -1552,6 +1563,7 @@ paths:
       description: >
         Sets the reader policy on the snapshot public for the specified snapshot if request body
         is true. Makes the reader policy on the snapshot private if the request body is false.
+        This is asynchronous. Use the returned job id to check the retrieveJob endpoint for the job status or retrieveJobResult endpoint to get the final result.
       operationId: setSnapshotPublic
       requestBody:
         description: A boolean value indicating whether the reader policy on the snapshot is
@@ -1958,6 +1970,7 @@ paths:
         - datasets
         - repository
       description: Create a new dataset asynchronously. The async result is DatasetSummaryModel.
+        Use the returned job id to check the retrieveJob endpoint for the job status or retrieveJobResult endpoint to get the final result.
       operationId: createDataset
       requestBody:
         description: Dataset to create
@@ -2077,7 +2090,8 @@ paths:
       tags:
         - datasets
         - repository
-      description: Delete a dataset by id
+      description: Delete a dataset by id.  This is asynchronous. 
+        Use the returned job id to check the retrieveJob endpoint for the job status or retrieveJobResult endpoint to get the final result.
       operationId: deleteDataset
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -2631,7 +2645,8 @@ paths:
       tags:
         - datasets
         - repository
-      description: Ingest data into a dataset table
+      description: Ingest data into a dataset table. This is asynchronous. 
+        Use the returned job id to check the retrieveJob endpoint for the job status or retrieveJobResult endpoint to get the final result.
       operationId: ingestDataset
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -2691,7 +2706,8 @@ paths:
         - datasets
         - repository
       description:
-        Modify a dataset's schema with additive changes
+        Modify a dataset's schema with additive changes. This is asynchronous.
+        Use the returned job id to check the retrieveJob endpoint for the job status or retrieveJobResult endpoint to get the final result.
       operationId: updateSchema
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -2749,7 +2765,8 @@ paths:
       tags:
         - datasets
         - repository
-      description: Create a transaction to be used for ingesting if you are chaining ingests together
+      description: Create a transaction to be used for ingesting if you are chaining ingests together.
+        This is asynchronous. Use the returned job id to check the retrieveJob endpoint for the job status or retrieveJobResult endpoint to get the final result.
       operationId: openTransaction
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -2891,7 +2908,8 @@ paths:
       tags:
         - datasets
         - repository
-      description: Close a given transaction
+      description: Close a given transaction. This is asynchronous.
+        Use the returned job id to check the retrieveJob endpoint for the job status or retrieveJobResult endpoint to get the final result.
       operationId: closeTransaction
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -2949,7 +2967,8 @@ paths:
       tags:
         - datasets
         - repository
-      description: Add an asset definition to a dataset
+      description: Add an asset definition to a dataset. This is asynchronous.
+        Use the returned job id to check the retrieveJob endpoint for the job status or retrieveJobResult endpoint to get the final result.
       operationId: addDatasetAssetSpecifications
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -3002,7 +3021,8 @@ paths:
       tags:
         - datasets
         - repository
-      description: Remove an asset definition from a dataset
+      description: Remove an asset definition from a dataset. This is asynchronous.
+        Use the returned job id to check the retrieveJob endpoint for the job status or retrieveJobResult endpoint to get the final result.
       operationId: removeDatasetAssetSpecifications
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -3047,7 +3067,8 @@ paths:
       tags:
         - datasets
         - repository
-      description: Applies deletes to primary tabular data in a dataset
+      description: Applies deletes to primary tabular data in a dataset. This is asynchronous.
+        Use the returned job id to check the retrieveJob endpoint for the job status or retrieveJobResult endpoint to get the final result.
       operationId: applyDatasetDataDeletion
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -3133,7 +3154,8 @@ paths:
         - repository
       description: >
         ADMIN ONLY - Set flag that allows the dataset custodians to inherit the steward role on all
-        snapshots made from this dataset
+        snapshots made from this dataset. This is asynchronous. Use the returned job id to check the
+        retrieveJob endpoint for the job status or retrieveJobResult endpoint to get the final result.
       operationId: setInheritSteward
       requestBody:
         description: >
@@ -3204,7 +3226,8 @@ paths:
         - datasets
         - repository
       description: >
-        ADMIN ONLY - Adjust members on datasets based on inherit steward flag
+        ADMIN ONLY - Adjust members on datasets based on inherit steward flag. This is asynchronous.
+        Use the returned job id to check the retrieveJob endpoint for the job status or retrieveJobResult endpoint to get the final result.
       operationId: adjustMembersInheritSteward
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -3728,7 +3751,9 @@ paths:
       tags:
         - datasets
         - repository
-      description: Ingest one file into the dataset file system; async returns a FileModel
+      description: Ingest one file into the dataset file system; async returns a FileModel.
+        This is asynchronous.
+        Use the returned job id to check the retrieveJob endpoint for the job status or retrieveJobResult endpoint to get the final result.
       operationId: ingestFile
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -3791,7 +3816,8 @@ paths:
         Load many files into the dataset file system; async returns a BulkLoadResultModel
         Note that this endpoint is not a single transaction. Some files may be loaded and
         others may fail. Each file load is atomic; the file will either be loaded into the
-        dataset file system or it will not exist.
+        dataset file system or it will not exist. This is asynchronous. Use the returned 
+        job id to check the retrieveJob endpoint for the job status or retrieveJobResult endpoint to get the final result.
       operationId: bulkFileLoad
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -3855,7 +3881,8 @@ paths:
       description: >-
         Retrieve the results of a bulk file load. The results of each bulk load are stored
         in the dataset. They can be queried directly or retrieved with this paginated
-        interface.
+        interface. This is asynchronous. Use the returned job id to check the retrieveJob 
+        endpoint for the job status or retrieveJobResult endpoint to get the final result.
       operationId: getLoadHistoryForLoadTag
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -3916,6 +3943,8 @@ paths:
         Delete results from the bulk file load table of the dataset.
         If jobId is specified, then only the results for the loadTag plus that jobId are
         deleted. Otherwise, all results associated with the loadTag are deleted.
+        This is asynchronous. Use the returned job id to check the retrieveJob 
+        endpoint for the job status or retrieveJobResult endpoint to get the final result.
       operationId: bulkFileResultsDelete
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -3969,7 +3998,9 @@ paths:
         Load many files into the dataset file system; async returns a BulkLoadArrayResultModel
         Note that this endpoint is not a single transaction. Some files may be loaded and
         others may fail. Each file load is atomic; the file will either be loaded into the
-        dataset file system or it will not exist.
+        dataset file system or it will not exist. This is asynchronous. Use the returned 
+        job id to check the retrieveJob endpoint for the job status or retrieveJobResult 
+        endpoint to get the final result.
       operationId: bulkFileLoadArray
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -4078,7 +4109,9 @@ paths:
         - repository
       description: >
         Hard delete of a file by id. The file is deleted even if it is in use by
-        a dataset. Subsequent lookups will give not found errors.
+        a dataset. Subsequent lookups will give not found errors. This is asynchronous. 
+        Use the returned job id to check the retrieveJob endpoint for the job status 
+        or retrieveJobResult endpoint to get the final result.
       operationId: deleteFile
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -4308,7 +4341,8 @@ paths:
         - repository
       description: >
         Load Drs Aliases into TDR.  It is possible to have an alias to a DRS ID that does not exist
-        in TDR.
+        in TDR. This is asynchronous. Use the returned job id to check the retrieveJob 
+        endpoint for the job status or retrieveJobResult endpoint to get the final result.
       operationId: registerDrsAliases
       requestBody:
         content:
@@ -4460,7 +4494,9 @@ paths:
         - repository
       description: >-
         Extensible endpoint for triggering upgrade tasks in the data repository.
-        The asynchronous result is UpgradeResponseModel
+        The asynchronous result is UpgradeResponseModel. Use the returned job id 
+        to check the retrieveJob endpoint for the job status or retrieveJobResult 
+        endpoint to get the final result.
       operationId: upgrade
       requestBody:
         content:

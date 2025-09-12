@@ -12,6 +12,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import java.util.List;
 
 public class DeleteFileLookupStep extends DefaultUndoStep {
 
@@ -45,9 +46,12 @@ public class DeleteFileLookupStep extends DefaultUndoStep {
       // running the rest of the steps, so we use the null stored in the working map to let other
       // steps know there is no file. If there is a file, check dependencies here.
       if (fireStoreFile != null) {
-        if (dependencyDao.fileHasSnapshotReference(dataset, fireStoreFile.getFileId())) {
+        List<String> snapshotReferenceIds =
+            dependencyDao.getFileSnapshotReferences(dataset, fireStoreFile.getFileId());
+        if (!snapshotReferenceIds.isEmpty()) {
           throw new FileDependencyException(
-              "File is used by at least one snapshot and cannot be deleted");
+              "File is used by at least one snapshot and cannot be deleted. Snapshots referencing file: "
+                  + String.join(", ", snapshotReferenceIds));
         }
       }
     } catch (FileSystemAbortTransactionException rex) {

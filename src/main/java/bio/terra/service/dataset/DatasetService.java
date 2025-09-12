@@ -44,6 +44,8 @@ import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.exception.DatasetDataException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
+import bio.terra.service.dataset.exception.InvalidColumnException;
+import bio.terra.service.dataset.exception.InvalidTableException;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
 import bio.terra.service.dataset.flight.datadelete.DatasetDataDeleteFlight;
@@ -532,7 +534,7 @@ public class DatasetService {
             .getTableByName(tableName)
             .orElseThrow(
                 () ->
-                    new DatasetDataException(
+                    new InvalidTableException(
                         "No dataset table exists with the name: " + tableName));
 
     // Assert column name provided by user is valid
@@ -542,7 +544,7 @@ public class DatasetService {
           .getColumnByName(sort)
           .orElseThrow(
               () ->
-                  new DatasetDataException(
+                  new InvalidColumnException(
                       "No dataset table column exists with the name: " + sort));
     }
 

@@ -3,9 +3,11 @@ package bio.terra.service.dataset;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -20,6 +22,7 @@ import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.category.Unit;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoModel;
@@ -281,6 +284,42 @@ class DatasetServiceUnitTest {
         "Correct filtered row count",
         datasetDataModel.getFilteredRowCount(),
         equalTo(filteredRowCount));
+  }
+
+  @Test
+  void retrieveDataErrors() {
+    Dataset dataset = new Dataset();
+    when(datasetDao.retrieve(DATASET_ID)).thenReturn(dataset);
+    BadRequestException error =
+        assertThrows(
+            BadRequestException.class,
+            () ->
+                datasetService.retrieveData(
+                    TEST_USER,
+                    DATASET_ID,
+                    DATASET_TABLE_NAME,
+                    100,
+                    0,
+                    PDAO_ROW_ID_COLUMN,
+                    SqlSortDirection.ASC,
+                    ""));
+    assertThat(error.getMessage(), containsString("No dataset table exists"));
+
+    dataset.tables(List.of(new DatasetTable().name(DATASET_TABLE_NAME)));
+    error =
+        assertThrows(
+            BadRequestException.class,
+            () ->
+                datasetService.retrieveData(
+                    TEST_USER,
+                    DATASET_ID,
+                    DATASET_TABLE_NAME,
+                    100,
+                    0,
+                    "column",
+                    SqlSortDirection.ASC,
+                    ""));
+    assertThat(error.getMessage(), containsString("No dataset table column exists"));
   }
 
   @Test

@@ -378,6 +378,19 @@ public class FireStoreUtils {
     }
   }
 
+  public List<QueryDocumentSnapshot> getCollectionDocuments(
+      Firestore firestore, Query collectionQuery) throws InterruptedException {
+    return runTransactionWithRetry(
+        firestore,
+        (xn -> {
+          Query limitedQuery = collectionQuery.limit(1);
+          ApiFuture<QuerySnapshot> querySnapshot = xn.get(limitedQuery);
+          return querySnapshot.get().getDocuments();
+        }),
+        "getCollectionDocuments",
+        "Querying firestore and retrieving documents from collection");
+  }
+
   public boolean collectionHasDocuments(Firestore firestore, Query collectionQuery)
       throws InterruptedException {
     int docCount =

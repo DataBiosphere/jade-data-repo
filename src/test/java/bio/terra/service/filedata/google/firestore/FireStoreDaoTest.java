@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
@@ -157,14 +158,15 @@ class FireStoreDaoTest {
     boolean hasReference = fireStoreDependencyDao.datasetHasSnapshotReference(dataset);
     assertThat("Dataset should have dependencies", hasReference);
 
-    boolean hasFileReference =
-        fireStoreDependencyDao.fileHasSnapshotReference(dataset, snapObjects.get(0).getFileId());
-    assertThat("File should be referenced in snapshot", hasFileReference);
+    List<String> snapshotReferenceIds =
+        fireStoreDependencyDao.getFileSnapshotReferences(dataset, snapObjects.get(0).getFileId());
+    assertEquals(List.of(snapshotId), snapshotReferenceIds);
 
     // Validate dataset files do not have references
-    boolean noFileReference =
-        fireStoreDependencyDao.fileHasSnapshotReference(dataset, dsetObjects.get(0).getFileId());
-    assertThat("No dependency on files not referenced in snapshot", noFileReference, is(false));
+    List<String> noSnapshotReferenceIds =
+        fireStoreDependencyDao.getFileSnapshotReferences(dataset, dsetObjects.get(0).getFileId());
+    assertThat(
+        "No dependency on files not referenced in snapshot", noSnapshotReferenceIds.size(), is(0));
 
     // Validate we cannot lookup dataset files in the snapshot
     for (FireStoreDirectoryEntry dsetObject : dsetObjects) {

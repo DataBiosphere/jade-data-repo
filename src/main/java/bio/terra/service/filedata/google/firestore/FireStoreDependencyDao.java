@@ -48,7 +48,7 @@ public class FireStoreDependencyDao {
     this.configurationService = configurationService;
   }
 
-  public boolean fileHasSnapshotReference(Dataset dataset, String fileId)
+  public List<String> getFileSnapshotReferences(Dataset dataset, String fileId)
       throws InterruptedException {
     Firestore firestore =
         FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
@@ -57,7 +57,8 @@ public class FireStoreDependencyDao {
     // check if firestore collection with file id has any documents
     CollectionReference depColl = firestore.collection(dependencyCollectionName);
     Query query = depColl.whereEqualTo("fileId", fileId).limit(1);
-    return fireStoreUtils.collectionHasDocuments(firestore, query);
+    List<QueryDocumentSnapshot> docs = fireStoreUtils.getCollectionDocuments(firestore, query);
+    return docs.stream().map(doc -> (String) doc.get("snapshotId")).toList();
   }
 
   public boolean datasetHasSnapshotReference(Dataset dataset) throws InterruptedException {

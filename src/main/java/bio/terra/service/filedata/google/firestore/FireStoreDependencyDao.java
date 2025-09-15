@@ -58,9 +58,7 @@ public class FireStoreDependencyDao {
     CollectionReference depColl = firestore.collection(dependencyCollectionName);
     Query query = depColl.whereEqualTo("fileId", fileId).limit(1);
     List<QueryDocumentSnapshot> docs = fireStoreUtils.getCollectionDocuments(firestore, query);
-    List<String> snapshotReferenceIds =
-        docs.stream().map(doc -> (String) doc.get("referenceId")).toList();
-    return snapshotReferenceIds;
+    return docs.stream().map(doc -> (String) doc.get("snapshotId")).toList();
   }
 
   public boolean datasetHasSnapshotReference(Dataset dataset) throws InterruptedException {

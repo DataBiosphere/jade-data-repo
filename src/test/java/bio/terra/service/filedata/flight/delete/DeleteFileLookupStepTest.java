@@ -24,7 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class DeleteFileLookupStepTest {
+class DeleteFileLookupStepTest {
 
   @Mock private FireStoreDao fileDao;
   @Mock private FireStoreDependencyDao dependencyDao;

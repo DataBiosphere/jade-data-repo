@@ -12,7 +12,7 @@ import com.google.cloud.firestore.QueryDocumentSnapshot;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-public class FireStoreUtilsTest {
+class FireStoreUtilsTest {
 
   @Test
   void testCollectionHasDocuments_returnsTrueWhenDocumentsExist() throws Exception {

@@ -31,7 +31,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - bump_version
-    if: github.ref_name == github.event.repository.default_branch
     steps:
       - name: Checkout tagged branch of jade-data-repo
         uses: actions/checkout@v4
@@ -55,7 +54,7 @@ jobs:
         env:
           GOOGLE_CLOUD_PROJECT: dsp-artifact-registry
           GAR_LOCATION: us-central1
-          GAR_REPOSITORY_ID: libs-snapshot-jfrog-archive
+          GAR_REPOSITORY_ID: libs-release-standard
 
   build_container_and_publish:
     runs-on: ubuntu-latest

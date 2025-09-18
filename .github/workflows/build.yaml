@@ -35,7 +35,7 @@ jobs:
       - name: Checkout tagged branch of jade-data-repo
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.bump_version.outputs.tag }}
+          ref: ${{ github.head_ref || '' }}
           persist-credentials: false
       - name: Set up JDK
         uses: actions/setup-java@v3

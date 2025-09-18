@@ -1,7 +1,7 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
-    id 'com.jfrog.artifactory' version '5.2.5'
+    id 'com.google.cloud.artifactregistry.gradle-plugin' version '2.1.5'
     id 'org.hidetake.swagger.generator'
 }
 
@@ -13,15 +13,9 @@ java {
 // TODO: there may be a better way to supply these values than envvars.
 // This and the test below makes sure the build will fail reasonably if you try
 // to publish without the environment variables defined.
-def artifactory_user = System.getenv('ARTIFACTORY_USER')
-def artifactory_password = System.getenv('ARTIFACTORY_PASSWORD')
-
-gradle.taskGraph.whenReady { taskGraph ->
-    if (taskGraph.hasTask(artifactoryPublish) &&
-        (artifactory_user == null || artifactory_password == null)) {
-        throw new GradleException("Set env vars ARTIFACTORY_USER and ARTIFACTORY_PASSWORD to publish")
-    }
-}
+def garProjectId = System.getenv("GOOGLE_CLOUD_PROJECT")
+def garLocation = System.getenv("GAR_LOCATION")
+def garRepoId = System.getenv("GAR_REPOSITORY_ID")
 
 repositories {
     mavenCentral()
@@ -83,22 +77,9 @@ publishing {
             from components.java
         }
     }
-}
-
-artifactory {
-    publish {
-        contextUrl = 'https://broadinstitute.jfrog.io/broadinstitute/'
-        repository {
-            repoKey = 'libs-snapshot-local' // The Artifactory repository key to publish to
-            username = "${artifactory_user}" // The publisher user name
-            password = "${artifactory_password}" // The publisher password
-        }
-        defaults {
-            // This is how we tell the Artifactory Plugin which artifacts should be published to Artifactory.
-            // Reference to Gradle publications defined in the build script.
-            publications('datarepoClientLibrary')
-            publishArtifacts = true
-            publishPom = true
+    repositories {
+        maven {
+            url = uri("artifactregistry://${garLocation}-maven.pkg.dev/${garProjectId}/${garRepoId}")
         }
     }
 }

@@ -446,7 +446,7 @@ class JobServiceTest {
         new NamedParameterJdbcTemplate(stairwayJdbcConfiguration.getDataSource());
 
     String sql =
-        """
+"""
 update flight
 set submit_time=:submit_time
 where flightid=:id
@@ -469,7 +469,7 @@ where flightid=:id
         new NamedParameterJdbcTemplate(stairwayJdbcConfiguration.getDataSource());
 
     String sql =
-        """
+"""
 delete from flightworking where flightlog_id in (select id from flightlog where flightid=:id);
 delete from flightlog where flightid=:id;
 delete from flightinput where flightid=:id;

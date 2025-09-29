@@ -222,7 +222,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     // JWT handling
-    implementation 'com.nimbusds:nimbus-jose-jwt:9.40'
+    implementation 'com.nimbusds:nimbus-jose-jwt:10.5'
 
     // Azure related dependencies
     implementation 'com.azure:azure-identity:1.18.0'

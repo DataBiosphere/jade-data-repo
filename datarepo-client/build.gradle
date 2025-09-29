@@ -1,7 +1,7 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
-    id 'com.google.cloud.artifactregistry.gradle-plugin' version '2.1.5'
+    id 'com.google.cloud.artifactregistry.gradle-plugin' version '2.2.5'
     id 'org.hidetake.swagger.generator'
 }
 
@@ -25,8 +25,8 @@ dependencies {
     ext {
         jersey = "3.1.11"
         jackson = "2.20.0"
-        swaggerAnnotations = "2.2.36"
-        swaggerCli = "3.0.72"
+        swaggerAnnotations = "2.2.38"
+        swaggerCli = "3.0.73"
     }
 
     implementation group: 'org.glassfish.jersey.core', name: 'jersey-client', version: "${jersey}"

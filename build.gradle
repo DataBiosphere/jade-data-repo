@@ -20,7 +20,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.72')
+        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.73')
         // Required for gradle liquibase plugin
         classpath ('org.liquibase:liquibase-core:4.30.0')
     }
@@ -33,7 +33,7 @@ plugins {
     id 'org.gradle.test-retry' version '1.6.2'
     id 'antlr'
     id 'org.hidetake.swagger.generator' version '2.19.2'
-    id 'org.springframework.boot' version '3.5.5'
+    id 'org.springframework.boot' version '3.5.6'
     id 'idea'
     id 'java'
     id 'io.spring.dependency-management' version '1.1.7'
@@ -63,8 +63,8 @@ allprojects {
             mavenBom SpringBootPlugin.BOM_COORDINATES
         }
         dependencies {
-            dependency 'io.swagger.core.v3:swagger-annotations:2.2.36'
-            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.72'
+            dependency 'io.swagger.core.v3:swagger-annotations:2.2.38'
+            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.73'
         }
     }
 }
@@ -171,7 +171,7 @@ dependencies {
     implementation 'com.google.cloud:google-cloud-storage'
     implementation 'com.google.cloud:google-cloud-firestore'
     implementation 'com.google.cloud:google-cloud-pubsub'
-    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:7.3.0'
+    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:7.3.1'
     implementation 'com.google.http-client:google-http-client'
 
     implementation 'org.apache.commons:commons-compress:1.28.0' // For srcclr, jib plugin conflict
@@ -204,7 +204,7 @@ dependencies {
     implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.10.0'
     implementation 'net.javacrumbs.shedlock:shedlock-spring:6.10.0'
 
-    implementation 'bio.terra:terra-common-lib:1.1.46-SNAPSHOT'
+    implementation 'bio.terra:terra-common-lib:1.1.53-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.415'
     implementation 'bio.terra:terra-policy-client:1.0.37-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.153-SNAPSHOT'
@@ -221,21 +221,24 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
+    // JWT handling
+    implementation 'com.nimbusds:nimbus-jose-jwt:9.40'
+
     // Azure related dependencies
-    implementation 'com.azure:azure-identity:1.17.0'
+    implementation 'com.azure:azure-identity:1.18.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.54.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'
-    implementation 'com.azure:azure-storage-common:12.30.2'
-    implementation 'com.azure:azure-storage-file-datalake:12.24.2'
-    implementation 'com.azure:azure-data-tables:12.5.6'
+    implementation 'com.azure:azure-storage-common:12.30.3'
+    implementation 'com.azure:azure-storage-file-datalake:12.24.3'
+    implementation 'com.azure:azure-data-tables:12.5.7'
 
-    implementation platform('io.sentry:sentry-bom:8.21.1') //import bom
+    implementation platform('io.sentry:sentry-bom:8.22.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')
     implementation('io.sentry:sentry-logback')
 
     // OpenTelemetry @WithSpan annotations:
-    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.20.0'
+    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.20.1'
     implementation 'io.opentelemetry:opentelemetry-sdk-extension-autoconfigure'
 
     testImplementation 'org.apache.parquet:parquet-common:1.16.0'
@@ -276,7 +279,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.webjars:webjars-locator-core'
     // NOTE: If this version is changed, the version in WebConfig.addResourceHandlers must be updated as well.
-    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.29.0'
+    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.29.1'
     generatedCompile 'io.swagger.core.v3:swagger-annotations'
 
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'

@@ -1,7 +1,7 @@
 ## Publish a corresponding version of Python client to
-## https://pypi.org/project/data-repo-client/
+## https://pypi.org/project/data_repo_client/
 ##
-## To manage the data-repo-client project in PyPi, you must have a PyPi account
+## To manage the data_repo_client project in PyPi, you must have a PyPi account
 ## and be added as an owner to the project by a current owner.
 
 name: Publish Python 🐍 distributions 📦 to PyPI

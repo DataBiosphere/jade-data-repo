@@ -65,7 +65,7 @@ public class SnapshotMapTableDao {
 
   public List<SnapshotMapTable> retrieveMapTables(Snapshot snapshot, SnapshotSource source) {
     String sql =
-        """
+"""
 SELECT smt.id map_table_id, from_table_id, to_table_id,
        smc.id map_column_id, from_column_id, to_column_id
 FROM snapshot_map_table smt,

@@ -1,7 +1,7 @@
 ## Publish a corresponding version of Python client to
-## https://pypi.org/project/data-repo-client/
+## https://pypi.org/project/data_repo_client/
 ##
-## To manage the data-repo-client project in PyPi, you must have a PyPi account
+## To manage the data_repo_client project in PyPi, you must have a PyPi account
 ## and be added as an owner to the project by a current owner.
 
 name: Publish Python 🐍 distributions 📦 to PyPI
@@ -47,21 +47,21 @@ jobs:
           openapi-generator-cli generate \
           -i src/main/resources/api/data-repository-openapi.yaml \
           -g python \
-          -o data-repo-client \
-          --additional-properties=projectName=data-repo-client,packageName=data_repo_client,packageVersion=${CURRENT_SEMVER},useSpringBoot3=true \
+          -o data_repo_client \
+          --additional-properties=projectName=data_repo_client,packageName=data_repo_client,packageVersion=${CURRENT_SEMVER},useSpringBoot3=true \
           --skip-validate-spec
       - name: Install pypa/build
-        working-directory: ./data-repo-client
+        working-directory: ./data_repo_client
         run: >-
           python -m pip install build --user
       - name: Build a binary wheel and a source tarball
-        working-directory: ./data-repo-client
+        working-directory: ./data_repo_client
         run: >-
           python -m build --sdist --wheel --outdir dist/ .
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages_dir: ./data-repo-client/dist
+          packages_dir: ./data_repo_client/dist
           skip_existing: true
   report-workflow:
     uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main

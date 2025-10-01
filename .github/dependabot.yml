@@ -40,3 +40,6 @@ updates:
       # (outside of semver major, minor, and patch designations) and will attempt to update
       # to the latest published version.
       - dependency-name: "io.kubernetes:client-java"
+      # Exclude artifact registry plugin until Java 21 upgrade
+      - dependency-name: "com.google.cloud.artifactregistry.gradle-plugin"
+        versions: [">= 2.2.5"]

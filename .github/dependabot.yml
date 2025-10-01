@@ -42,3 +42,6 @@ updates:
       # Exclude artifact registry plugin until Java 21 upgrade
       - dependency-name: "com.google.cloud.artifactregistry.gradle-plugin"
         versions: [">= 2.2.5"]
+      # Liquibase 5.0.0 contains a license change that hasn't yet been reviewed
+      - dependency-name: "org.liquibase:liquibase-core"
+        versions: [">= 5.0.0"]

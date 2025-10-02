@@ -41,4 +41,3 @@ updates:
       - dependency-name: "io.kubernetes:client-java"
       # Exclude artifact registry plugin until Java 21 upgrade
       - dependency-name: "com.google.cloud.artifactregistry.gradle-plugin"
-        versions: [">= 2.2.5"]

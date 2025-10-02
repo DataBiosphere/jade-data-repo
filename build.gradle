@@ -164,14 +164,14 @@ dependencies {
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
 
-    implementation platform('com.google.cloud:libraries-bom:26.68.0')
+    implementation platform('com.google.cloud:libraries-bom:26.69.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
     implementation 'com.google.cloud:google-cloud-bigquery'
     implementation 'com.google.cloud:google-cloud-storage'
     implementation 'com.google.cloud:google-cloud-firestore'
     implementation 'com.google.cloud:google-cloud-pubsub'
-    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:7.3.1'
+    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:7.3.2'
     implementation 'com.google.http-client:google-http-client'
 
     implementation 'org.apache.commons:commons-compress:1.28.0' // For srcclr, jib plugin conflict
@@ -204,11 +204,11 @@ dependencies {
     implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.10.0'
     implementation 'net.javacrumbs.shedlock:shedlock-spring:6.10.0'
 
-    implementation 'bio.terra:terra-common-lib:1.1.53-SNAPSHOT'
+    implementation 'bio.terra:terra-common-lib:1.1.56-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.415'
-    implementation 'bio.terra:terra-policy-client:1.0.37-SNAPSHOT'
+    implementation 'bio.terra:terra-policy-client:1.0.39-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.153-SNAPSHOT'
-    implementation 'bio.terra:externalcreds-client-resttemplate:1.115.0-SNAPSHOT'
+    implementation 'bio.terra:externalcreds-client-resttemplate:1.118.0-SNAPSHOT'
 
     implementation 'org.glassfish.jersey.inject:jersey-hk2'
 
@@ -226,14 +226,14 @@ dependencies {
 
     // Azure related dependencies
     implementation 'com.azure:azure-identity:1.18.0'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.54.0'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.55.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'
     implementation 'com.azure:azure-storage-common:12.30.3'
     implementation 'com.azure:azure-storage-file-datalake:12.24.3'
     implementation 'com.azure:azure-data-tables:12.5.7'
 
-    implementation platform('io.sentry:sentry-bom:8.22.0') //import bom
+    implementation platform('io.sentry:sentry-bom:8.23.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')
     implementation('io.sentry:sentry-logback')
 

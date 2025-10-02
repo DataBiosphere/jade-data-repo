@@ -5,7 +5,6 @@
 
 # These owners will be the default owners for everything in the repo.
 *       @DataBiosphere/jadeteam
-*       @DataBiosphere/dsp-data-team-eng
 
 # Order is important. The last matching pattern has the most precedence.
 # Example: if a pull request only touches files in a `/snapshotbuilder` directory

@@ -15,8 +15,6 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
-import bio.terra.model.DatasetModel;
-import bio.terra.model.SnapshotModel;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.DatasetService;
@@ -35,6 +33,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import src.main.java.bio.terra.model.DatasetModel;
+import src.main.java.bio.terra.model.SnapshotModel;
 
 @ActiveProfiles({"google", "unittest"})
 @ContextConfiguration(classes = {AdminApiController.class, GlobalExceptionHandler.class})
@@ -90,7 +90,7 @@ class AdminApiControllerTest {
   void testAdminRetrieveDatasetNotAuthorized() throws Exception {
     doThrow(FORBIDDEN_EXCEPTION)
         .when(iamService)
-        .verifyResourceTypeAdminAuthorized(any(), any(), any(), any());
+        .verifyResourceTypeAdminAuthorizedWithLogging(any(), any(), any(), any());
     int status =
         mvc.perform(get(ADMIN_DATASETS_ENDPOINT, MODEL_ID)).andReturn().getResponse().getStatus();
     assertThat(status, equalTo(FORBIDDEN_EXCEPTION.getStatusCode().value()));
@@ -125,7 +125,7 @@ class AdminApiControllerTest {
   void testAdminRetrieveSnapshotNotAuthorized() throws Exception {
     doThrow(FORBIDDEN_EXCEPTION)
         .when(iamService)
-        .verifyResourceTypeAdminAuthorized(any(), any(), any(), any());
+        .verifyResourceTypeAdminAuthorizedWithLogging(any(), any(), any(), any());
     int status =
         mvc.perform(get(ADMIN_SNAPSHOTS_ENDPOINT, MODEL_ID)).andReturn().getResponse().getStatus();
     assertThat(status, equalTo(FORBIDDEN_EXCEPTION.getStatusCode().value()));

@@ -3,11 +3,6 @@ package bio.terra.service.auth.iam;
 import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.PolicyModel;
-import bio.terra.model.SamPolicyModel;
-import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SnapshotRequestModelPolicies;
-import bio.terra.model.UserStatusInfo;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.iam.exception.IamUnavailableException;
 import bio.terra.service.auth.oauth2.GoogleCredentialsService;
@@ -33,6 +28,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import src.main.java.bio.terra.model.PolicyModel;
+import src.main.java.bio.terra.model.SamPolicyModel;
+import src.main.java.bio.terra.model.SnapshotRequestModel;
+import src.main.java.bio.terra.model.SnapshotRequestModelPolicies;
 
 /**
  * The IamProvider code is used both in flights and from the REST API. It needs to be able to throw
@@ -158,7 +157,7 @@ public class IamService {
    * @param action The IamAction
    * @throws IamForbiddenException if NOT authorized
    */
-  public void verifyResourceTypeAdminAuthorized(
+  public void verifyResourceTypeAdminAuthorizedWithLogging(
       AuthenticatedUserRequest userReq,
       IamResourceType iamResourceType,
       IamAction action,
@@ -169,6 +168,12 @@ public class IamService {
         userEmail,
         iamResourceType,
         id);
+    verifyResourceTypeAdminAuthorized(userReq, iamResourceType, action);
+  }
+
+  public void verifyResourceTypeAdminAuthorized(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action) {
+    String userEmail = userReq.getEmail();
     if (!isResourceTypeAdminAuthorized(userReq, iamResourceType, action)) {
       throw new IamForbiddenException(
           String.format(

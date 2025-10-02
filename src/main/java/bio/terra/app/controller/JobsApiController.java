@@ -2,13 +2,23 @@ package bio.terra.app.controller;
 
 import static bio.terra.app.utils.ControllerUtils.jobToResponse;
 
+import java.util.ArrayList;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.InitBinder;
+
 import bio.terra.app.controller.exception.ValidationException;
+import bio.terra.buffer.model.JobModel;
+import bio.terra.buffer.model.SqlSortDirectionDescDefault;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
-import bio.terra.controller.JobsApi;
-import bio.terra.model.JobModel;
-import bio.terra.model.SqlSortDirectionDescDefault;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.PolicyMemberValidator;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.DatasetRequestValidator;
@@ -17,14 +27,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import io.swagger.annotations.Api;
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
-import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.WebDataBinder;
-import org.springframework.web.bind.annotation.InitBinder;
+import src.main.java.bio.terra.controller.JobsApi;
 
 @Controller
 @Api(tags = {"jobs"})
@@ -32,6 +35,7 @@ public class JobsApiController implements JobsApi {
 
   private final HttpServletRequest request;
   private final JobService jobService;
+  private final IamService iamService;
   private final DatasetRequestValidator datasetRequestValidator;
   private final SnapshotRequestValidator snapshotRequestValidator;
   private final IngestRequestValidator ingestRequestValidator;
@@ -43,6 +47,7 @@ public class JobsApiController implements JobsApi {
   public JobsApiController(
       HttpServletRequest request,
       JobService jobService,
+      IamService iamService,
       DatasetRequestValidator datasetRequestValidator,
       SnapshotRequestValidator snapshotRequestValidator,
       IngestRequestValidator ingestRequestValidator,
@@ -51,6 +56,7 @@ public class JobsApiController implements JobsApi {
       AssetModelValidator assetModelValidator) {
     this.request = request;
     this.jobService = jobService;
+    this.iamService = iamService;
     this.datasetRequestValidator = datasetRequestValidator;
     this.snapshotRequestValidator = snapshotRequestValidator;
     this.ingestRequestValidator = ingestRequestValidator;
@@ -76,10 +82,13 @@ public class JobsApiController implements JobsApi {
   @Override
   public ResponseEntity<List<JobModel>> enumerateJobs(
       Integer offset, Integer limit, SqlSortDirectionDescDefault direction, String className) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    // admin only
+    iamService.verifyResourceTypeAdminAuthorized(
+        userReq, IamResourceType.DATAREPO, IamAction.LIST_JOBS);
     validateOffsetAndLimit(offset, limit);
     List<JobModel> results =
-        jobService.enumerateJobs(
-            offset, limit, getAuthenticatedInfo(), SqlSortDirection.from(direction), className);
+        jobService.enumerateJobs(offset, limit, userReq, SqlSortDirection.from(direction), className);
     return new ResponseEntity<>(results, HttpStatus.OK);
   }
 

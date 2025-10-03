@@ -88,7 +88,7 @@ public class AdminApiController implements AdminApi {
             DatasetRequestAccessIncludeModel.SCHEMA,
             DatasetRequestAccessIncludeModel.STORAGE);
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    iamService.verifyResourceTypeAdminAuthorized(
+    iamService.verifyResourceTypeAdminAuthorizedWithLogging(
         userReq, IamResourceType.DATASET, IamAction.ADMIN_READ_SUMMARY_INFORMATION, id);
     logger.info("Retrieving dataset id: {}", id);
     DatasetModel datasetModel = datasetService.retrieveDatasetModel(id, userReq, include);
@@ -108,7 +108,7 @@ public class AdminApiController implements AdminApi {
             SnapshotRetrieveIncludeModel.CREATION_INFORMATION,
             SnapshotRetrieveIncludeModel.DUOS);
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    iamService.verifyResourceTypeAdminAuthorized(
+    iamService.verifyResourceTypeAdminAuthorizedWithLogging(
         userReq, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION, id);
     logger.info("Retrieving snapshot id: {}", id);
     SnapshotModel snapshotModel = snapshotService.retrieveSnapshotModel(id, include, userReq);

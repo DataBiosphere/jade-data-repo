@@ -9,6 +9,9 @@ import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.JobsApi;
 import bio.terra.model.JobModel;
 import bio.terra.model.SqlSortDirectionDescDefault;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.PolicyMemberValidator;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.DatasetRequestValidator;
@@ -32,6 +35,7 @@ public class JobsApiController implements JobsApi {
 
   private final HttpServletRequest request;
   private final JobService jobService;
+  private final IamService iamService;
   private final DatasetRequestValidator datasetRequestValidator;
   private final SnapshotRequestValidator snapshotRequestValidator;
   private final IngestRequestValidator ingestRequestValidator;
@@ -43,6 +47,7 @@ public class JobsApiController implements JobsApi {
   public JobsApiController(
       HttpServletRequest request,
       JobService jobService,
+      IamService iamService,
       DatasetRequestValidator datasetRequestValidator,
       SnapshotRequestValidator snapshotRequestValidator,
       IngestRequestValidator ingestRequestValidator,
@@ -51,6 +56,7 @@ public class JobsApiController implements JobsApi {
       AssetModelValidator assetModelValidator) {
     this.request = request;
     this.jobService = jobService;
+    this.iamService = iamService;
     this.datasetRequestValidator = datasetRequestValidator;
     this.snapshotRequestValidator = snapshotRequestValidator;
     this.ingestRequestValidator = ingestRequestValidator;
@@ -76,10 +82,14 @@ public class JobsApiController implements JobsApi {
   @Override
   public ResponseEntity<List<JobModel>> enumerateJobs(
       Integer offset, Integer limit, SqlSortDirectionDescDefault direction, String className) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    // admin only
+    iamService.verifyResourceTypeAdminAuthorized(
+        userReq, IamResourceType.DATAREPO, IamAction.LIST_JOBS);
     validateOffsetAndLimit(offset, limit);
     List<JobModel> results =
         jobService.enumerateJobs(
-            offset, limit, getAuthenticatedInfo(), SqlSortDirection.from(direction), className);
+            offset, limit, userReq, SqlSortDirection.from(direction), className);
     return new ResponseEntity<>(results, HttpStatus.OK);
   }
 

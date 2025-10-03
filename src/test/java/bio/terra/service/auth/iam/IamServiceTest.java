@@ -237,14 +237,14 @@ class IamServiceTest {
   }
 
   @Test
-  void testVerifyResourceTypeAdminAuthorizedTrue() throws InterruptedException {
+  void testVerifyResourceTypeAdminAuthorizedWithLoggingTrue() throws InterruptedException {
     UUID id = UUID.randomUUID();
     when(iamProvider.getResourceTypeAdminPermission(
             TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION))
         .thenReturn(true);
     assertDoesNotThrow(
         () ->
-            iamService.verifyResourceTypeAdminAuthorized(
+            iamService.verifyResourceTypeAdminAuthorizedWithLogging(
                 TEST_USER,
                 IamResourceType.DATASNAPSHOT,
                 IamAction.ADMIN_READ_SUMMARY_INFORMATION,
@@ -252,7 +252,7 @@ class IamServiceTest {
   }
 
   @Test
-  void testVerifyResourceTypeAdminAuthorizedFalse() throws InterruptedException {
+  void testVerifyResourceTypeAdminAuthorizedWithLoggingFalse() throws InterruptedException {
     UUID id = UUID.randomUUID();
     when(iamProvider.getResourceTypeAdminPermission(
             TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION))
@@ -260,11 +260,34 @@ class IamServiceTest {
     assertThrows(
         IamForbiddenException.class,
         () ->
-            iamService.verifyResourceTypeAdminAuthorized(
+            iamService.verifyResourceTypeAdminAuthorizedWithLogging(
                 TEST_USER,
                 IamResourceType.DATASNAPSHOT,
                 IamAction.ADMIN_READ_SUMMARY_INFORMATION,
                 id));
+  }
+
+  @Test
+  void testVerifyResourceTypeAdminAuthorizedTrue() throws InterruptedException {
+    when(iamProvider.getResourceTypeAdminPermission(
+            TEST_USER, IamResourceType.DATAREPO, IamAction.LIST_JOBS))
+        .thenReturn(true);
+    assertDoesNotThrow(
+        () ->
+            iamService.verifyResourceTypeAdminAuthorized(
+                TEST_USER, IamResourceType.DATAREPO, IamAction.LIST_JOBS));
+  }
+
+  @Test
+  void testVerifyResourceTypeAdminAuthorizedFalse() throws InterruptedException {
+    when(iamProvider.getResourceTypeAdminPermission(
+            TEST_USER, IamResourceType.DATAREPO, IamAction.LIST_JOBS))
+        .thenReturn(false);
+    assertThrows(
+        IamForbiddenException.class,
+        () ->
+            iamService.verifyResourceTypeAdminAuthorized(
+                TEST_USER, IamResourceType.DATAREPO, IamAction.LIST_JOBS));
   }
 
   @Test

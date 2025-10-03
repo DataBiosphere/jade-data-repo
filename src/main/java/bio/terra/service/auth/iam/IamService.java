@@ -158,7 +158,7 @@ public class IamService {
    * @param action The IamAction
    * @throws IamForbiddenException if NOT authorized
    */
-  public void verifyResourceTypeAdminAuthorized(
+  public void verifyResourceTypeAdminAuthorizedWithLogging(
       AuthenticatedUserRequest userReq,
       IamResourceType iamResourceType,
       IamAction action,
@@ -169,6 +169,12 @@ public class IamService {
         userEmail,
         iamResourceType,
         id);
+    verifyResourceTypeAdminAuthorized(userReq, iamResourceType, action);
+  }
+
+  public void verifyResourceTypeAdminAuthorized(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action) {
+    String userEmail = userReq.getEmail();
     if (!isResourceTypeAdminAuthorized(userReq, iamResourceType, action)) {
       throw new IamForbiddenException(
           String.format(

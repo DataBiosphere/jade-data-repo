@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -20,7 +21,9 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.JobModel;
 import bio.terra.model.JobModel.JobStatusEnum;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.PolicyMemberValidator;
+import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.DatasetRequestValidator;
 import bio.terra.service.dataset.IngestRequestValidator;
@@ -53,6 +56,8 @@ class JobsApiControllerTest {
   private static final String ENUMERATE_JOBS_ENDPOINT = "/api/repository/v1/jobs";
   private static final String RETRIEVE_JOB_ENDPOINT = "/api/repository/v1/jobs/{id}";
   private static final String RETRIEVE_JOB_RESULT_ENDPOINT = "/api/repository/v1/jobs/{id}/result";
+  private static final IamForbiddenException FORBIDDEN_EXCEPTION =
+      new IamForbiddenException("Forbidden");
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -60,7 +65,7 @@ class JobsApiControllerTest {
   @Autowired private MockMvc mvc;
 
   @MockitoBean private JobService jobService;
-
+  @MockitoBean private IamService iamService;
   @MockitoBean private BardClient bardClient;
   @MockitoBean private DatasetRequestValidator datasetRequestValidator;
   @MockitoBean private SnapshotRequestValidator snapshotRequestValidator;
@@ -80,7 +85,16 @@ class JobsApiControllerTest {
   }
 
   @Test
+  void testEnumerateJobsNotAdmin() throws Exception {
+    doThrow(FORBIDDEN_EXCEPTION)
+        .when(iamService)
+        .verifyResourceTypeAdminAuthorized(any(), any(), any());
+    mvc.perform(get(ENUMERATE_JOBS_ENDPOINT)).andExpect(status().isForbidden());
+  }
+
+  @Test
   void testEnumerateJobs() throws Exception {
+    when(iamService.isResourceTypeAdminAuthorized(any(), any(), any())).thenReturn(true);
     when(jobService.enumerateJobs(anyInt(), anyInt(), any(), any(), any()))
         .thenReturn(List.of(JOB_1, JOB_2));
     mvc.perform(get(ENUMERATE_JOBS_ENDPOINT))
@@ -92,6 +106,7 @@ class JobsApiControllerTest {
 
   @Test
   void testEnumerateJobsWithFilter() throws Exception {
+    when(iamService.isResourceTypeAdminAuthorized(any(), any(), any())).thenReturn(true);
     when(jobService.enumerateJobs(anyInt(), anyInt(), any(), any(), any()))
         .thenReturn(List.of(JOB_1, JOB_2));
     mvc.perform(get(ENUMERATE_JOBS_ENDPOINT).queryParam("className", FLIGHT_CLASS))
@@ -103,6 +118,7 @@ class JobsApiControllerTest {
 
   @Test
   void testEnumerateJobsBadOffsetAndLimit() throws Exception {
+    when(iamService.isResourceTypeAdminAuthorized(any(), any(), any())).thenReturn(true);
     mvc.perform(get(ENUMERATE_JOBS_ENDPOINT).param("offset", "-1"))
         .andExpect(status().is4xxClientError())
         .andExpect(jsonPath("$.message").value("Offset must be greater than or equal to 0."));

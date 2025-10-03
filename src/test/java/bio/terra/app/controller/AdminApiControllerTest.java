@@ -90,7 +90,7 @@ class AdminApiControllerTest {
   void testAdminRetrieveDatasetNotAuthorized() throws Exception {
     doThrow(FORBIDDEN_EXCEPTION)
         .when(iamService)
-        .verifyResourceTypeAdminAuthorized(any(), any(), any(), any());
+        .verifyResourceTypeAdminAuthorizedWithLogging(any(), any(), any(), any());
     int status =
         mvc.perform(get(ADMIN_DATASETS_ENDPOINT, MODEL_ID)).andReturn().getResponse().getStatus();
     assertThat(status, equalTo(FORBIDDEN_EXCEPTION.getStatusCode().value()));
@@ -125,7 +125,7 @@ class AdminApiControllerTest {
   void testAdminRetrieveSnapshotNotAuthorized() throws Exception {
     doThrow(FORBIDDEN_EXCEPTION)
         .when(iamService)
-        .verifyResourceTypeAdminAuthorized(any(), any(), any(), any());
+        .verifyResourceTypeAdminAuthorizedWithLogging(any(), any(), any(), any());
     int status =
         mvc.perform(get(ADMIN_SNAPSHOTS_ENDPOINT, MODEL_ID)).andReturn().getResponse().getStatus();
     assertThat(status, equalTo(FORBIDDEN_EXCEPTION.getStatusCode().value()));

@@ -12,22 +12,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import bio.terra.app.usermetrics.BardClient;
-import bio.terra.common.SqlSortDirection;
-import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.AuthenticationFixtures;
-import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.common.iam.AuthenticatedUserRequestFactory;
-import bio.terra.model.JobModel;
-import bio.terra.model.JobModel.JobStatusEnum;
-import bio.terra.service.auth.iam.PolicyMemberValidator;
-import bio.terra.service.dataset.AssetModelValidator;
-import bio.terra.service.dataset.DatasetRequestValidator;
-import bio.terra.service.dataset.IngestRequestValidator;
-import bio.terra.service.job.JobService;
-import bio.terra.service.job.JobService.JobResultWithStatus;
-import bio.terra.service.snapshot.SnapshotRequestValidator;
 import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -38,6 +24,23 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import bio.terra.app.usermetrics.BardClient;
+import bio.terra.common.SqlSortDirection;
+import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import bio.terra.model.JobModel;
+import bio.terra.model.JobModel.JobStatusEnum;
+import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.auth.iam.PolicyMemberValidator;
+import bio.terra.service.dataset.AssetModelValidator;
+import bio.terra.service.dataset.DatasetRequestValidator;
+import bio.terra.service.dataset.IngestRequestValidator;
+import bio.terra.service.job.JobService;
+import bio.terra.service.job.JobService.JobResultWithStatus;
+import bio.terra.service.snapshot.SnapshotRequestValidator;
 
 @ContextConfiguration(classes = {JobsApiController.class, GlobalExceptionHandler.class})
 @WebMvcTest
@@ -60,7 +63,7 @@ class JobsApiControllerTest {
   @Autowired private MockMvc mvc;
 
   @MockitoBean private JobService jobService;
-
+  @MockitoBean private IamService iamService;
   @MockitoBean private BardClient bardClient;
   @MockitoBean private DatasetRequestValidator datasetRequestValidator;
   @MockitoBean private SnapshotRequestValidator snapshotRequestValidator;
@@ -79,8 +82,16 @@ class JobsApiControllerTest {
     when(authenticatedUserRequestFactory.from(any())).thenReturn(TEST_USER);
   }
 
+   @Test
+  void testEnumerateJobsNotAdmin() throws Exception {
+    when(iamService.isResourceTypeAdminAuthorized(any(), any(), any())).thenReturn(false);
+    mvc.perform(get(ENUMERATE_JOBS_ENDPOINT))
+        .andExpect(status().isForbidden());
+  }
+
   @Test
   void testEnumerateJobs() throws Exception {
+    when(iamService.isResourceTypeAdminAuthorized(any(), any(), any())).thenReturn(true);
     when(jobService.enumerateJobs(anyInt(), anyInt(), any(), any(), any()))
         .thenReturn(List.of(JOB_1, JOB_2));
     mvc.perform(get(ENUMERATE_JOBS_ENDPOINT))
@@ -92,6 +103,7 @@ class JobsApiControllerTest {
 
   @Test
   void testEnumerateJobsWithFilter() throws Exception {
+    when(iamService.isResourceTypeAdminAuthorized(any(), any(), any())).thenReturn(true);
     when(jobService.enumerateJobs(anyInt(), anyInt(), any(), any(), any()))
         .thenReturn(List.of(JOB_1, JOB_2));
     mvc.perform(get(ENUMERATE_JOBS_ENDPOINT).queryParam("className", FLIGHT_CLASS))
@@ -103,6 +115,7 @@ class JobsApiControllerTest {
 
   @Test
   void testEnumerateJobsBadOffsetAndLimit() throws Exception {
+    when(iamService.isResourceTypeAdminAuthorized(any(), any(), any())).thenReturn(true);
     mvc.perform(get(ENUMERATE_JOBS_ENDPOINT).param("offset", "-1"))
         .andExpect(status().is4xxClientError())
         .andExpect(jsonPath("$.message").value("Offset must be greater than or equal to 0."));

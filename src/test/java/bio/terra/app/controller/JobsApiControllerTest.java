@@ -12,19 +12,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.util.List;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.http.HttpStatus;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-
 import bio.terra.app.usermetrics.BardClient;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.category.Unit;
@@ -41,6 +28,17 @@ import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.job.JobService;
 import bio.terra.service.job.JobService.JobResultWithStatus;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.HttpStatus;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
 @ContextConfiguration(classes = {JobsApiController.class, GlobalExceptionHandler.class})
 @WebMvcTest
@@ -82,11 +80,10 @@ class JobsApiControllerTest {
     when(authenticatedUserRequestFactory.from(any())).thenReturn(TEST_USER);
   }
 
-   @Test
+  @Test
   void testEnumerateJobsNotAdmin() throws Exception {
     when(iamService.isResourceTypeAdminAuthorized(any(), any(), any())).thenReturn(false);
-    mvc.perform(get(ENUMERATE_JOBS_ENDPOINT))
-        .andExpect(status().isForbidden());
+    mvc.perform(get(ENUMERATE_JOBS_ENDPOINT)).andExpect(status().isForbidden());
   }
 
   @Test

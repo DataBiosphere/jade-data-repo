@@ -13,12 +13,23 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.PolicyModel;
+import bio.terra.model.SamPolicyModel;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotRequestModelPolicies;
+import bio.terra.service.auth.iam.exception.IamForbiddenException;
+import bio.terra.service.auth.oauth2.GoogleCredentialsService;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.journal.JournalService;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-
 import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -26,19 +37,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.AuthenticationFixtures;
-import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.service.auth.iam.exception.IamForbiddenException;
-import bio.terra.service.auth.oauth2.GoogleCredentialsService;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.journal.JournalService;
-import src.main.java.bio.terra.model.PolicyModel;
-import src.main.java.bio.terra.model.SamPolicyModel;
-import src.main.java.bio.terra.model.SnapshotRequestModel;
-import src.main.java.bio.terra.model.SnapshotRequestModelPolicies;
 
 @Tag(Unit.TAG)
 @ExtendWith(MockitoExtension.class)
@@ -269,7 +267,6 @@ class IamServiceTest {
                 id));
   }
 
-
   @Test
   void testVerifyResourceTypeAdminAuthorizedTrue() throws InterruptedException {
     when(iamProvider.getResourceTypeAdminPermission(
@@ -278,9 +275,7 @@ class IamServiceTest {
     assertDoesNotThrow(
         () ->
             iamService.verifyResourceTypeAdminAuthorized(
-                TEST_USER,
-                IamResourceType.DATASNAPSHOT,
-                IamAction.ADMIN_READ_SUMMARY_INFORMATION));
+                TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION));
   }
 
   @Test
@@ -292,9 +287,7 @@ class IamServiceTest {
         IamForbiddenException.class,
         () ->
             iamService.verifyResourceTypeAdminAuthorized(
-                TEST_USER,
-                IamResourceType.DATAREPO,
-                IamAction.LIST_JOBS));
+                TEST_USER, IamResourceType.DATAREPO, IamAction.LIST_JOBS));
   }
 
   @Test

@@ -2,13 +2,23 @@ package bio.terra.app.controller;
 
 import static bio.terra.app.utils.ControllerUtils.jobToResponse;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.InitBinder;
+
 import bio.terra.app.controller.exception.ValidationException;
-import bio.terra.buffer.model.JobModel;
-import bio.terra.buffer.model.SqlSortDirectionDescDefault;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.JobsApi;
+import bio.terra.model.JobModel;
+import bio.terra.model.SqlSortDirectionDescDefault;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -20,14 +30,6 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import io.swagger.annotations.Api;
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
-import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.WebDataBinder;
-import org.springframework.web.bind.annotation.InitBinder;
 
 @Controller
 @Api(tags = {"jobs"})

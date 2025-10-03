@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,6 +23,7 @@ import bio.terra.model.JobModel;
 import bio.terra.model.JobModel.JobStatusEnum;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.PolicyMemberValidator;
+import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.DatasetRequestValidator;
 import bio.terra.service.dataset.IngestRequestValidator;
@@ -54,6 +56,8 @@ class JobsApiControllerTest {
   private static final String ENUMERATE_JOBS_ENDPOINT = "/api/repository/v1/jobs";
   private static final String RETRIEVE_JOB_ENDPOINT = "/api/repository/v1/jobs/{id}";
   private static final String RETRIEVE_JOB_RESULT_ENDPOINT = "/api/repository/v1/jobs/{id}/result";
+  private static final IamForbiddenException FORBIDDEN_EXCEPTION =
+      new IamForbiddenException("Forbidden");
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -82,7 +86,9 @@ class JobsApiControllerTest {
 
   @Test
   void testEnumerateJobsNotAdmin() throws Exception {
-    when(iamService.isResourceTypeAdminAuthorized(any(), any(), any())).thenReturn(false);
+    doThrow(FORBIDDEN_EXCEPTION)
+        .when(iamService)
+        .verifyResourceTypeAdminAuthorized(any(), any(), any());
     mvc.perform(get(ENUMERATE_JOBS_ENDPOINT)).andExpect(status().isForbidden());
   }
 

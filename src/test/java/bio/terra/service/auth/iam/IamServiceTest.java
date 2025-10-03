@@ -275,7 +275,7 @@ class IamServiceTest {
     assertDoesNotThrow(
         () ->
             iamService.verifyResourceTypeAdminAuthorized(
-                TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION));
+                TEST_USER, IamResourceType.DATAREPO, IamAction.LIST_JOBS));
   }
 
   @Test

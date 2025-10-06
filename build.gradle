@@ -22,7 +22,7 @@ buildscript {
     dependencies {
         classpath('io.swagger.codegen.v3:swagger-codegen:3.0.73')
         // Required for gradle liquibase plugin
-        classpath ('org.liquibase:liquibase-core:4.30.0')
+        classpath ('org.liquibase:liquibase-core:4.33.0')
     }
 }
 
@@ -204,11 +204,11 @@ dependencies {
     implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.10.0'
     implementation 'net.javacrumbs.shedlock:shedlock-spring:6.10.0'
 
-    implementation 'bio.terra:terra-common-lib:1.1.56-SNAPSHOT'
+    implementation 'bio.terra:terra-common-lib:1.1.57-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.415'
     implementation 'bio.terra:terra-policy-client:1.0.39-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.153-SNAPSHOT'
-    implementation 'bio.terra:externalcreds-client-resttemplate:1.118.0-SNAPSHOT'
+    implementation 'bio.terra:externalcreds-client-resttemplate:1.119.0-SNAPSHOT'
 
     implementation 'org.glassfish.jersey.inject:jersey-hk2'
 
@@ -279,7 +279,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.webjars:webjars-locator-core'
     // NOTE: If this version is changed, the version in WebConfig.addResourceHandlers must be updated as well.
-    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.29.1'
+    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.29.3'
     generatedCompile 'io.swagger.core.v3:swagger-annotations'
 
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'

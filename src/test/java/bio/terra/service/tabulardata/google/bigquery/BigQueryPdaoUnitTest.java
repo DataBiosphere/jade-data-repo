@@ -31,6 +31,7 @@ import bio.terra.common.BQTestUtils;
 import bio.terra.common.Column;
 import bio.terra.common.DateTimeUtils;
 import bio.terra.common.Relationship;
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.fixtures.DatasetFixtures;
@@ -1195,10 +1196,212 @@ class BigQueryPdaoUnitTest {
     assertFalse(BigQueryPdao.tooManyDmlStatementsOutstanding(ex));
   }
 
+  @Test
+  void testGetTableBasic() throws InterruptedException {
+    Dataset dataset = mockDataset();
+    List<String> columnNames = List.of("col1a", "col2a");
+
+    Schema schema =
+        Schema.of(
+            Field.of("col1a", StandardSQLTypeName.STRING),
+            Field.of("datarepo_row_id", StandardSQLTypeName.STRING),
+            Field.of("total_row_count", StandardSQLTypeName.STRING),
+            Field.of("filtered_row_count", StandardSQLTypeName.STRING));
+
+    List<Map<String, String>> rows =
+        List.of(
+            Map.of(
+                "col1a",
+                "value1",
+                "col2a",
+                "value2",
+                "datarepo_row_id",
+                "row1",
+                "total_row_count",
+                "5",
+                "filtered_row_count",
+                "5"),
+            Map.of(
+                "col1a",
+                "value3",
+                "col2a",
+                "value4",
+                "datarepo_row_id",
+                "row2",
+                "total_row_count",
+                "5",
+                "filtered_row_count",
+                "5"));
+
+    BQTestUtils.mockBQQuery(bigQueryProjectDataset, anyString(), schema, rows);
+
+    List<BigQueryDataResultModel> result =
+        BigQueryPdao.getTable(
+            dataset, "tableA", columnNames, 10, 0, "col1a", SqlSortDirection.ASC, "");
+
+    assertThat(result, hasSize(2));
+    assertThat(result.get(0).getRowResult().get("col1a"), equalTo("value1"));
+    assertThat(result.get(0).getTotalCount(), equalTo(5));
+    assertThat(result.get(0).getFilteredCount(), equalTo(5));
+  }
+
+  @Test
+  void testGetTableWithFilter() throws InterruptedException {
+    Dataset dataset = mockDataset();
+    List<String> columnNames = List.of("col1a");
+
+    Schema schema =
+        Schema.of(
+            Field.of("col1a", StandardSQLTypeName.STRING),
+            Field.of("datarepo_row_id", StandardSQLTypeName.STRING),
+            Field.of("total_row_count", StandardSQLTypeName.INT64),
+            Field.of("filtered_row_count", StandardSQLTypeName.INT64));
+
+    List<Map<String, String>> rows =
+        List.of(
+            Map.of(
+                "col1a",
+                "filtered_value",
+                "datarepo_row_id",
+                "row1",
+                "total_row_count",
+                "10",
+                "filtered_row_count",
+                "1"));
+
+    BQTestUtils.mockBQQuery(bigQueryProjectDataset, anyString(), schema, rows);
+
+    List<BigQueryDataResultModel> result =
+        BigQueryPdao.getTable(
+            dataset,
+            "tableA",
+            columnNames,
+            10,
+            0,
+            "col1a",
+            SqlSortDirection.ASC,
+            "col1a = 'filtered_value'");
+
+    assertThat(result, hasSize(1));
+    assertThat(result.get(0).getRowResult().get("col1a"), equalTo("filtered_value"));
+    assertThat(result.get(0).getTotalCount(), equalTo(10));
+    assertThat(result.get(0).getFilteredCount(), equalTo(1));
+  }
+
+  @Test
+  void testGetTableForSnapshot() throws InterruptedException {
+    Snapshot snapshot = mockSnapshot();
+    List<String> columnNames = List.of("col1a");
+
+    Schema schema =
+        Schema.of(
+            Field.of("col1a", StandardSQLTypeName.STRING),
+            Field.of("datarepo_row_id", StandardSQLTypeName.STRING),
+            Field.of("filtered_row_count", StandardSQLTypeName.INT64)
+            // Note: no total_row_count for snapshots
+            );
+
+    List<Map<String, String>> rows =
+        List.of(
+            Map.of(
+                "col1a", "snapshot_value", "datarepo_row_id", "row1", "filtered_row_count", "3"));
+
+    BQTestUtils.mockBQQuery(bigQueryProjectSnapshot, anyString(), schema, rows);
+
+    List<BigQueryDataResultModel> result =
+        BigQueryPdao.getTable(
+            snapshot, "tableA", columnNames, 10, 0, "col1a", SqlSortDirection.ASC, "");
+
+    assertThat(result, hasSize(1));
+    assertThat(result.get(0).getRowResult().get("col1a"), equalTo("snapshot_value"));
+    assertThat(result.get(0).getTotalCount(), equalTo(0)); // Snapshots don't include total count
+    assertThat(result.get(0).getFilteredCount(), equalTo(3));
+  }
+
+  @Test
+  void testGetTableWithInvalidSQLFilter() {
+    Dataset dataset = mockDataset();
+    List<String> columnNames = List.of("col1a");
+
+    // Test with invalid SQL filter - should throw exception during parsing
+    assertThrows(
+        RuntimeException.class, // or more specific exception type
+        () ->
+            BigQueryPdao.getTable(
+                dataset,
+                "tableA",
+                columnNames,
+                10,
+                0,
+                "col1a",
+                SqlSortDirection.ASC,
+                "invalid SQL syntax $$"));
+  }
+
+  @Test
+  void testGetTableKeywordTableName() throws InterruptedException {
+    Dataset dataset = mockDataset("interval");
+    List<String> columnNames = List.of("col1a", "col2a");
+
+    Schema schema =
+        Schema.of(
+            Field.of("col1a", StandardSQLTypeName.STRING),
+            Field.of("datarepo_row_id", StandardSQLTypeName.STRING),
+            Field.of("total_row_count", StandardSQLTypeName.STRING),
+            Field.of("filtered_row_count", StandardSQLTypeName.STRING));
+
+    List<Map<String, String>> rows =
+        List.of(
+            Map.of(
+                "col1a",
+                "value1",
+                "col2a",
+                "value2",
+                "datarepo_row_id",
+                "row1",
+                "total_row_count",
+                "5",
+                "filtered_row_count",
+                "5"),
+            Map.of(
+                "col1a",
+                "value3",
+                "col2a",
+                "value4",
+                "datarepo_row_id",
+                "row2",
+                "total_row_count",
+                "5",
+                "filtered_row_count",
+                "5"));
+
+    BQTestUtils.mockBQQuery(bigQueryProjectDataset, anyString(), schema, rows);
+
+    List<BigQueryDataResultModel> result =
+        BigQueryPdao.getTable(
+            dataset,
+            "interval", // 'interval' is a reserved keyword in SQL
+            columnNames,
+            10,
+            0,
+            "col1a",
+            SqlSortDirection.ASC,
+            "");
+
+    assertThat(result, hasSize(2));
+    assertThat(result.get(0).getRowResult().get("col1a"), equalTo("value1"));
+    assertThat(result.get(0).getTotalCount(), equalTo(5));
+    assertThat(result.get(0).getFilteredCount(), equalTo(5));
+  }
+
   private Dataset mockDataset() {
+    return mockDataset(TABLE_1_NAME);
+  }
+
+  private Dataset mockDataset(String table1Name) {
     DatasetTable tbl1 =
         DatasetFixtures.generateDatasetTable(
-                TABLE_1_NAME, TableDataType.STRING, List.of(TABLE_1_COL1_NAME, TABLE_1_COL2_NAME))
+                table1Name, TableDataType.STRING, List.of(TABLE_1_COL1_NAME, TABLE_1_COL2_NAME))
             .id(TABLE_1_ID);
     tbl1.getColumns().get(0).id(TABLE_1_COL1_ID);
     tbl1.getColumns().get(1).id(TABLE_1_COL2_ID);

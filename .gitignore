@@ -32,6 +32,9 @@ hs_err_pid*
 .idea/
 *.iml
 
+# Visual Studio Code files
+.vscode/
+
 # build results
 out/
 build/

@@ -362,7 +362,7 @@ jacoco {
     toolVersion = '0.8.9'
 }
 
-sourceSets.main.java.srcDir "${buildDir}/generated-src/swagger"
+sourceSets.main.java.srcDir "${buildDir}/generated-src/swagger/src/main/java"
 
 bootRun {
     classpath += sourceSets.generated.output

@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: add_indices_getaccessiblesnapshots
+      id: add_indexes_getaccessiblesnapshots
       author: rjohanek
       changes:
         - createIndex:

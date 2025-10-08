@@ -92,5 +92,5 @@
     <include file="changesets/20240830_dataset_table_dataset_id_index.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20241127_asset_column_asset_id_index.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20250218_dataset_inherit_steward_flag.yaml" relativeToChangelogFile="true"/>
-    <include file="changesets/20251008_add_indices_getaccessiblesnapshots.yaml" relativeToChangelogFile="true"/>
+    <include file="changesets/20251008_add_indexes_getaccessiblesnapshots.yaml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

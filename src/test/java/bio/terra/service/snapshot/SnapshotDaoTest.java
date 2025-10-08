@@ -1000,7 +1000,7 @@ class SnapshotDaoTest {
         hasItems(snapshotIds.toArray(new UUID[0])));
   }
 
-    @Test
+  @Test
   void getSnapshotIdsList() {
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
     Snapshot snapshot = createSnapshot(snapshotRequest);
@@ -1008,7 +1008,8 @@ class SnapshotDaoTest {
     assertThat("there should exist one snapshot", snapshotIds, hasSize(1));
     assertThat("the snapshot id should match", snapshotIds, contains(snapshot.getId()));
     // snapshot ID that does not exist in the DAO is not returned
-    Set<UUID> snapshotIds1 = snapshotDao.getSnapshotIds(Set.of(snapshot.getId(), UUID.randomUUID()));
+    Set<UUID> snapshotIds1 =
+        snapshotDao.getSnapshotIds(Set.of(snapshot.getId(), UUID.randomUUID()));
     assertThat("there should exist one snapshot", snapshotIds1, hasSize(1));
     assertThat("the snapshot id should match", snapshotIds1, contains(snapshot.getId()));
   }

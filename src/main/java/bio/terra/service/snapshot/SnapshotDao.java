@@ -544,7 +544,7 @@ public class SnapshotDao implements TaggableResourceDao {
     return jdbcTemplate.query("SELECT snapshot.id FROM snapshot", new UuidMapper("id"));
   }
 
-    /**
+  /**
    * @return a list of all snapshot IDs
    */
   @WithSpan

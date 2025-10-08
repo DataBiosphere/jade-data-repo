@@ -1336,15 +1336,15 @@ class SnapshotServiceTest {
         .thenThrow(ecmException)
         .thenReturn(List.of());
 
-    // Arranging TDR snapshots (could contain inaccessible snapshots)
-    UUID inaccessibleTdrSnapshotId = UUID.randomUUID();
-    when(snapshotDao.getSnapshotIds()).thenReturn(List.of(snapshotId, inaccessibleTdrSnapshotId));
+    // Arranging TDR snapshots
+    when(snapshotDao.getSnapshotIds(Set.of(snapshotId, accessibleNonTdrSnapshotId)))
+        .thenReturn(Set.of(snapshotId));
 
     // First invocation: error which may yield a partial role map
     SnapshotIdsAndRolesModel result = service.getSnapshotIdsAndRoles(TEST_USER);
     verify(iamService).listAuthorizedResources(TEST_USER, IamResourceType.DATASNAPSHOT);
     verify(ecmService).getRasDbgapPermissions(TEST_USER);
-    verify(snapshotDao).getSnapshotIds();
+    verify(snapshotDao).getSnapshotIds(Set.of(snapshotId, accessibleNonTdrSnapshotId));
 
     List<ErrorModel> errors = result.getErrors();
     Map<String, List<String>> roleMap = result.getRoleMap();
@@ -1365,7 +1365,7 @@ class SnapshotServiceTest {
     result = service.getSnapshotIdsAndRoles(TEST_USER);
     verify(iamService, times(2)).listAuthorizedResources(TEST_USER, IamResourceType.DATASNAPSHOT);
     verify(ecmService, times(2)).getRasDbgapPermissions(TEST_USER);
-    verify(snapshotDao, times(2)).getSnapshotIds();
+    verify(snapshotDao, times(2)).getSnapshotIds(any());
 
     errors = result.getErrors();
     roleMap = result.getRoleMap();

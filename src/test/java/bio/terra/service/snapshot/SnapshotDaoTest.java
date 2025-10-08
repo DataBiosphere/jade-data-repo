@@ -1004,14 +1004,24 @@ class SnapshotDaoTest {
   void getSnapshotIdsList() {
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
     Snapshot snapshot = createSnapshot(snapshotRequest);
-    Set<UUID> snapshotIds = snapshotDao.getSnapshotIds(Set.of(snapshot.getId()));
-    assertThat("there should exist one snapshot", snapshotIds, hasSize(1));
-    assertThat("the snapshot id should match", snapshotIds, contains(snapshot.getId()));
-    // snapshot ID that does not exist in the DAO is not returned
-    Set<UUID> snapshotIds1 =
-        snapshotDao.getSnapshotIds(Set.of(snapshot.getId(), UUID.randomUUID()));
+    Set<UUID> snapshotIds1 = snapshotDao.getSnapshotIds(Set.of(snapshot.getId()));
     assertThat("there should exist one snapshot", snapshotIds1, hasSize(1));
     assertThat("the snapshot id should match", snapshotIds1, contains(snapshot.getId()));
+    // snapshot ID that does not exist in the DAO is not returned
+    Set<UUID> snapshotIds2 =
+        snapshotDao.getSnapshotIds(Set.of(snapshot.getId(), UUID.randomUUID()));
+    assertThat("there should exist one snapshot", snapshotIds2, hasSize(1));
+    assertThat("the snapshot id should match", snapshotIds2, contains(snapshot.getId()));
+  }
+
+  @Test
+  void getSnapshotIdsListNull() {
+    assertThat("Returns the empty set", snapshotDao.getSnapshotIds(null), empty());
+  }
+
+  @Test
+  void getSnapshotIdsListEmpty() {
+    assertThat("Returns the empty set", snapshotDao.getSnapshotIds(Set.of()), empty());
   }
 
   @Test

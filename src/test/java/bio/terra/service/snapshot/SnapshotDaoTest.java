@@ -55,6 +55,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -997,6 +998,19 @@ class SnapshotDaoTest {
         "Unlocked snapshot UUIDs are returned",
         snapshotDao.getSnapshotIds(),
         hasItems(snapshotIds.toArray(new UUID[0])));
+  }
+
+    @Test
+  void getSnapshotIdsList() {
+    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
+    Snapshot snapshot = createSnapshot(snapshotRequest);
+    Set<UUID> snapshotIds = snapshotDao.getSnapshotIds(Set.of(snapshot.getId()));
+    assertThat("there should exist one snapshot", snapshotIds, hasSize(1));
+    assertThat("the snapshot id should match", snapshotIds, contains(snapshot.getId()));
+    // snapshot ID that does not exist in the DAO is not returned
+    Set<UUID> snapshotIds1 = snapshotDao.getSnapshotIds(Set.of(snapshot.getId(), UUID.randomUUID()));
+    assertThat("there should exist one snapshot", snapshotIds1, hasSize(1));
+    assertThat("the snapshot id should match", snapshotIds1, contains(snapshot.getId()));
   }
 
   @Test

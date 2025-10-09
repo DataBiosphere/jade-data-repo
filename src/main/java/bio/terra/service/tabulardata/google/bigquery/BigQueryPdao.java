@@ -199,19 +199,6 @@ public enum BigQueryPdao {
     }
   }
 
-  // List of SQL reserved keywords that would cause parsing issues
-  private static final List<String> SQL_RESERVED_KEYWORDS = List.of(
-      "interval", "all", "and", "any", "array", "as", "asc", "between", "by", "case", "cast",
-      "create", "cross", "current", "default", "desc", "distinct", "else", "end", "except",
-      "exists", "false", "from", "full", "group", "having", "in", "inner", "is", "join",
-      "left", "like", "limit", "not", "null", "or", "order", "outer", "right", "select",
-      "then", "true", "union", "using", "when", "where", "with"
-  );
-
-  private static boolean isReservedKeyword(String tableName) {
-    return SQL_RESERVED_KEYWORDS.contains(tableName.toLowerCase());
-  }
-
   /*
    * WARNING: Ensure input parameters are validated before executing this method!
    */
@@ -228,9 +215,25 @@ public enum BigQueryPdao {
     boolean isDataset = tdrResource.getCollectionType() == CollectionType.DATASET;
 
     String columns = String.join(",", columnNames);
+    final String sqlForValidation =
+        new ST(DATA_TEMPLATE)
+            .add("columns", columns)
+            .add("table", bqTableNameForParsing(tdrResource, tableName))
+            .add("filterParams", QueryUtils.formatAndParseUserFilter(filter))
+            .add("includeTotalRowCount", isDataset)
+            .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
+            .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
+            .add(
+                "pdaoRowIdColumn",
+                columnNames.contains(PDAO_ROW_ID_COLUMN) ? "" : PDAO_ROW_ID_COLUMN + ",")
+            .render();
 
-    // Always validate the user-supplied filter for security (prevents SQL injection)
-    // This validation happens inside formatAndParseUserFilter using a dummy table
+    // Parse before querying to ensure the query is valid
+    // and because the where clause is user-provided
+    Query.parse(sqlForValidation);
+
+    // The bigquery sql table name must be enclosed in backticks
+    // and backticks are not valid in the parser
     final String filterParams =
         new ST(DATA_FILTER_TEMPLATE)
             .add("whereClause", QueryUtils.formatAndParseUserFilter(filter))
@@ -240,27 +243,6 @@ public enum BigQueryPdao {
             .add("offset", offset)
             .render();
 
-    // Only perform full query structure validation if the table name is not a reserved keyword
-    // Reserved keywords cause parsing issues, but the filter is already validated above
-    if (!isReservedKeyword(tableName)) {
-      final String sqlForValidation =
-          new ST(DATA_TEMPLATE)
-              .add("columns", columns)
-              .add("table", bqTableName(tdrResource, tableName))
-              .add("filterParams", filterParams)
-              .add("includeTotalRowCount", isDataset)
-              .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
-              .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
-              .add(
-                  "pdaoRowIdColumn",
-                  columnNames.contains(PDAO_ROW_ID_COLUMN) ? "" : PDAO_ROW_ID_COLUMN + ",")
-              .render();
-
-      // Parse the full query to validate structure (but filter is already validated)
-      Query.parse(sqlForValidation);
-    }
-
-    // Build the final BigQuery SQL with properly escaped table name (backticks)
     final String bigQuerySql =
         new ST(DATA_TEMPLATE)
             .add("columns", columns)

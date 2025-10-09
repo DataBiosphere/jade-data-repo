@@ -100,7 +100,7 @@ bool_expression : expr;
 
 count : number;
 
-name : ID | '"' name '"' | '(' name ')' | '\'' name '\'' ;
+name : ID | QUOTED_STRING | '(' name ')' | '\'' name '\'' ;
 
 unary_operator : '-' | '~' | NOT;
 

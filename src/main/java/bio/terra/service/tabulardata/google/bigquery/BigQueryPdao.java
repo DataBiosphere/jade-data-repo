@@ -164,14 +164,6 @@ public enum BigQueryPdao {
         .render();
   }
 
-  public static String bqTableNameForParsing(FSContainerInterface tdrResource, String tableName) {
-    // Use double quotes (SQL standard) to escape reserved keywords for parsing validation
-    // Only quote the table name part, not the entire dataset.table expression
-    String datasetPrefix =
-        tdrResource.isDataset() ? PDAO_PREFIX + tdrResource.getName() : tdrResource.getName();
-    return datasetPrefix + ".\"" + tableName + "\"";
-  }
-
   public static String bqTableName(FSContainerInterface tdrResource, String tableName) {
     return new ST(BQ_TABLE_NAME_TEMPLATE)
         .add("pdaoPrefix", tdrResource.isDataset() ? PDAO_PREFIX : "")
@@ -218,7 +210,7 @@ public enum BigQueryPdao {
     final String sqlForValidation =
         new ST(DATA_TEMPLATE)
             .add("columns", columns)
-            .add("table", bqTableNameForParsing(tdrResource, tableName))
+            .add("table", bqTableName(tdrResource, tableName))
             .add("filterParams", QueryUtils.formatAndParseUserFilter(filter))
             .add("includeTotalRowCount", isDataset)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)

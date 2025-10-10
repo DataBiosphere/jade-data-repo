@@ -164,12 +164,12 @@ public enum BigQueryPdao {
         .render();
   }
 
-  public static String bqTableName(FSContainerInterface tdrResource, String tableName) {
-    return new ST(BQ_TABLE_NAME_TEMPLATE)
-        .add("pdaoPrefix", tdrResource.isDataset() ? PDAO_PREFIX : "")
-        .add("resourceName", tdrResource.getName())
-        .add("tableName", tableName)
-        .render();
+  public static String bqTableNameForParsing(FSContainerInterface tdrResource, String tableName) {
+    // Use double quotes (SQL standard) to escape reserved keywords for parsing validation
+    // Only quote the table name part, not the entire dataset.table expression
+    String datasetPrefix =
+        tdrResource.isDataset() ? PDAO_PREFIX + tdrResource.getName() : tdrResource.getName();
+    return datasetPrefix + ".\"" + tableName + "\"";
   }
 
   public static int getTableTotalRowCount(FSContainerInterface tdrResource, String tableName) {
@@ -207,12 +207,10 @@ public enum BigQueryPdao {
     boolean isDataset = tdrResource.getCollectionType() == CollectionType.DATASET;
 
     String columns = String.join(",", columnNames);
-    // Parse before querying because the where clause is user-provided
-    // TODO - This code should be shared with Azure equivalent call (DR-2937)
-    final String sql =
+    final String sqlForValidation =
         new ST(DATA_TEMPLATE)
             .add("columns", columns)
-            .add("table", bqTableName(tdrResource, tableName))
+            .add("table", bqTableNameForParsing(tdrResource, tableName))
             .add("filterParams", QueryUtils.formatAndParseUserFilter(filter))
             .add("includeTotalRowCount", isDataset)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
@@ -221,9 +219,13 @@ public enum BigQueryPdao {
                 "pdaoRowIdColumn",
                 columnNames.contains(PDAO_ROW_ID_COLUMN) ? "" : PDAO_ROW_ID_COLUMN + ",")
             .render();
-    Query.parse(sql);
+
+    // Parse before querying to ensure the query is valid
+    // and because the where clause is user-provided
+    Query.parse(sqlForValidation);
 
     // The bigquery sql table name must be enclosed in backticks
+    // and backticks are not valid in the parser
     final String filterParams =
         new ST(DATA_FILTER_TEMPLATE)
             .add("whereClause", QueryUtils.formatAndParseUserFilter(filter))
@@ -232,7 +234,8 @@ public enum BigQueryPdao {
             .add("limit", limit)
             .add("offset", offset)
             .render();
-    final String bigQuerySQL =
+
+    final String bigQuerySql =
         new ST(DATA_TEMPLATE)
             .add("columns", columns)
             .add("table", bqFullyQualifiedTableName(tdrResource, tableName))
@@ -244,8 +247,9 @@ public enum BigQueryPdao {
                 "pdaoRowIdColumn",
                 columnNames.contains(PDAO_ROW_ID_COLUMN) ? "" : PDAO_ROW_ID_COLUMN + ",")
             .render();
+
     final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
-    final TableResult result = bigQueryProject.query(bigQuerySQL);
+    final TableResult result = bigQueryProject.query(bigQuerySql);
     return aggregateTableData(result);
   }
 

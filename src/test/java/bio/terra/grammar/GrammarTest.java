@@ -59,6 +59,25 @@ class GrammarTest {
     assertThat("it found the right tables", tableNames, containsInAnyOrder("bar", "quux"));
   }
 
+  @Test
+  void testTableNamesKeywordUnquoted() {
+    assertThrows(
+        InvalidQueryException.class,
+        () ->
+            Query.parse(
+                "SELECT foo.interval.datarepo_row_id FROM foo.interval, baz.quux WHERE foo.interval.x = baz.quux.y"),
+        "Table name 'interval' is a reserved keyword and must be quoted with double quotes.");
+  }
+
+  @Test
+  void testTableNamesKeywordQuoted() {
+    Query query =
+        Query.parse(
+            "SELECT foo.\"interval\".datarepo_row_id FROM foo.\"interval\", baz.quux WHERE foo.\"interval\".x = baz.quux.y");
+    List<String> tableNames = query.getTableNames();
+    assertThat("it found the right tables", tableNames, containsInAnyOrder("\"interval\"", "quux"));
+  }
+
   static Stream<Arguments> testColumnNames() {
     return Stream.of(
         Arguments.of(

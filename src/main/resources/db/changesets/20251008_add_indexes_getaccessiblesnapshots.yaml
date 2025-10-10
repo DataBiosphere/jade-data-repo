@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: add_indexes_getaccessiblesnapshots
+      author: rjohanek
+      changes:
+        - createIndex:
+            indexName: snapshot_source_snapshot_id_idx
+            tableName: snapshot_source
+            columns:
+              - column:
+                  name: snapshot_id
+        - createIndex:
+            indexName: snapshot_consent_code_idx
+            tableName: snapshot
+            columns:
+              - column:
+                  name: consent_code
+        - createIndex:
+            indexName: dataset_phs_id_idx
+            tableName: dataset
+            columns:
+              - column:
+                  name: phs_id

@@ -535,11 +535,10 @@ public class SnapshotService {
 
     // We could have multiple TDRs talking to the same Sam (as for dev environments),
     // so should only return authorized snapshot UUIDs also present in TDR.
-    Set<UUID> tdrSnapshotUuids = new HashSet<>(snapshotDao.getSnapshotIds());
+    Set<UUID> tdrSnapshotUuids = snapshotDao.getSnapshotIds(authorizedSnapshots.keySet());
 
     Map<String, List<String>> roleMap =
-        authorizedSnapshots.keySet().stream()
-            .filter(tdrSnapshotUuids::contains)
+        tdrSnapshotUuids.stream()
             .collect(
                 Collectors.toMap(
                     UUID::toString,

@@ -42,10 +42,12 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import javax.sql.DataSource;
 import org.apache.commons.lang3.StringUtils;
@@ -540,6 +542,23 @@ public class SnapshotDao implements TaggableResourceDao {
       readOnly = true)
   public List<UUID> getSnapshotIds() {
     return jdbcTemplate.query("SELECT snapshot.id FROM snapshot", new UuidMapper("id"));
+  }
+
+  /**
+   * @return a list of all snapshot IDs
+   */
+  @WithSpan
+  @Transactional(
+      propagation = Propagation.REQUIRED,
+      isolation = Isolation.SERIALIZABLE,
+      readOnly = true)
+  public Set<UUID> getSnapshotIds(Set<UUID> snapshotIds) {
+    if (snapshotIds == null || snapshotIds.isEmpty()) {
+      return Set.of();
+    }
+    String sql = "SELECT snapshot.id FROM snapshot WHERE snapshot.id IN (:snapshotIds)";
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue("snapshotIds", snapshotIds);
+    return new HashSet<>(jdbcTemplate.query(sql, params, new UuidMapper("id")));
   }
 
   /**

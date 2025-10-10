@@ -1134,20 +1134,20 @@ class BigQueryPdaoUnitTest {
   }
 
   @Test
-  void testBQDatasetTableName() {
+  void testBQDatasetTableNameForParsing() {
     Dataset dataset = mockDataset();
     String tableName = "table";
-    String expected = PDAO_PREFIX + dataset.getName() + "." + tableName;
-    String actual = BigQueryPdao.bqTableName(dataset, tableName);
+    String expected = PDAO_PREFIX + dataset.getName() + ".\"" + tableName + "\"";
+    String actual = BigQueryPdao.bqTableNameForParsing(dataset, tableName);
     assertThat("Dataset BQ table name is correctly formatted", expected, equalTo(actual));
   }
 
   @Test
-  void testBQSnapshotTableName() {
+  void testBQSnapshotTableNameForParsing() {
     Snapshot snapshot = mockSnapshot();
     String tableName = "table";
-    String expected = snapshot.getName() + "." + tableName;
-    String actual = BigQueryPdao.bqTableName(snapshot, tableName);
+    String expected = snapshot.getName() + ".\"" + tableName + "\"";
+    String actual = BigQueryPdao.bqTableNameForParsing(snapshot, tableName);
     assertThat("Snapshot BQ table name is correctly formatted", expected, equalTo(actual));
   }
 

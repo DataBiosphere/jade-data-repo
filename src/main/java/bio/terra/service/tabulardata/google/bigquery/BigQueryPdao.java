@@ -172,14 +172,6 @@ public enum BigQueryPdao {
     return datasetPrefix + ".\"" + tableName + "\"";
   }
 
-  public static String bqTableName(FSContainerInterface tdrResource, String tableName) {
-    return new ST(BQ_TABLE_NAME_TEMPLATE)
-        .add("pdaoPrefix", tdrResource.isDataset() ? PDAO_PREFIX : "")
-        .add("resourceName", tdrResource.getName())
-        .add("tableName", tableName)
-        .render();
-  }
-
   public static int getTableTotalRowCount(FSContainerInterface tdrResource, String tableName) {
     final String bigQuerySQL =
         new ST(TABLE_ROW_COUNT_TEMPLATE)

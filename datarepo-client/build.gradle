@@ -26,7 +26,7 @@ dependencies {
         jersey = "3.1.11"
         jackson = "2.20.0"
         swaggerAnnotations = "2.2.38"
-        swaggerCli = "3.0.73"
+        swaggerCli = "3.0.74"
     }
 
     implementation group: 'org.glassfish.jersey.core', name: 'jersey-client', version: "${jersey}"

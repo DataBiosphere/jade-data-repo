@@ -15,6 +15,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.reset;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.TestUtils;
@@ -152,6 +153,10 @@ class DatasetServiceTest {
 
   @BeforeEach
   void setup() throws Exception {
+    // Reset mocks to avoid cross-test contamination
+    reset(resourceService, gcsPdao, azureContainerPdao, azureBlobStorePdao,
+        azureMonitoringService, metadataDataAccessUtils, azureSynapsePdao);
+
     BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
     billingProfile = profileDao.createBillingProfile(profileRequest, "hi@hi.hi");
     GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
@@ -164,7 +169,7 @@ class DatasetServiceTest {
 
   @Test
   void datasetOmopTest() throws IOException {
-    assertNotNull(createDataset("omop/it-dataset-omop.json"));
+    assertNotNull(createDataset("omop/it-dataset-omop.json", CloudPlatform.GCP));
   }
 
   @Test

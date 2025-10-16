@@ -160,6 +160,7 @@ public class GoogleResourceManagerService {
             policy.setBindings(bindingsList);
             SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
             resourceManager.projects().setIamPolicy(projectId, setIamPolicyRequest).execute();
+            logger.info("Set IAM policy: {}", policy);
             return null;
           } catch (IOException | GeneralSecurityException ex) {
             throw new AclUtils.AclRetryException(

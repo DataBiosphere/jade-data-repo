@@ -346,11 +346,13 @@ clean.doFirst {
 
 sourceSets {
     generated {
-        // compileClasspath = configurations.generatedCompile
+        java {
+            srcDirs = ["${buildDir}/generated-src/swagger/src/main/java"]
+        }
+        compileClasspath = configurations.generatedCompile
     }
     main {
         compileClasspath += generated.output
-        compileClasspath += configurations.generatedCompile
         runtimeClasspath += generated.output
     }
     test {
@@ -362,8 +364,6 @@ sourceSets {
 jacoco {
     toolVersion = '0.8.9'
 }
-
-sourceSets.main.java.srcDir "${buildDir}/generated-src/swagger/src/main/java"
 
 bootRun {
     classpath += sourceSets.generated.output

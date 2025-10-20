@@ -349,10 +349,10 @@ sourceSets {
         java {
             srcDirs = ["${buildDir}/generated-src/swagger/src/main/java"]
         }
+        compileClasspath += configurations.generatedCompile
     }
     main {
         compileClasspath += generated.output
-        compileClasspath += configurations.generatedCompile
         runtimeClasspath += generated.output
     }
     test {
@@ -540,5 +540,11 @@ sonar {
         property "sonar.projectName", "jade-data-repo"
         property "sonar.organization", "broad-databiosphere"
         property "sonar.host.url", "https://sonarcloud.io"
+        property "sonar.sources", "src/main/java"
+        property "sonar.tests", "src/test/java"
+        property "sonar.exclusions", "**/generated/**,build/generated-src/**"
+        // Explicitly exclude the generated source set from analysis
+        property "sonar.coverage.exclusions", "**/generated/**,build/generated-src/**"
     }
 }
+

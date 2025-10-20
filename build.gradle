@@ -345,13 +345,10 @@ clean.doFirst {
 }
 
 sourceSets {
-    generated {
+    main {
         java {
             srcDirs = ["${buildDir}/generated-src/swagger/src/main/java"]
         }
-        compileClasspath += configurations.generatedCompile
-    }
-    main {
         compileClasspath += generated.output
         runtimeClasspath += generated.output
     }
@@ -363,14 +360,6 @@ sourceSets {
 
 jacoco {
     toolVersion = '0.8.9'
-}
-
-bootRun {
-    classpath += sourceSets.generated.output
-}
-
-jar {
-    from sourceSets.generated.output
 }
 
 jib {
@@ -516,10 +505,9 @@ tasks.register('testAll', Test) {
     outputs.upToDateWhen { false }
 }
 
-compileGeneratedJava.dependsOn swaggerSources.server.code
-compileGeneratedJava.dependsOn generateGrammarSource
-classes.dependsOn generatedClasses
-compileJava.dependsOn compileGeneratedJava
+compileJava.dependsOn swaggerSources.server.code
+compileJava.dependsOn generateGrammarSource
+
 ideaModule.dependsOn swaggerSources.server.code
 idea.module.sourceDirs += file("$buildDir/generated-src/swagger/src/main/java")
 

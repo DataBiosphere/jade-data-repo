@@ -10,5 +10,6 @@
             "moby": false
         }
     },
+    "postCreateCommand": "./scripts/setup-devcontainer.sh",
     "remoteUser": "vscode"
 }

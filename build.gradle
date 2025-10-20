@@ -20,7 +20,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.74')
+        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.75')
         // Required for gradle liquibase plugin
         classpath ('org.liquibase:liquibase-core:4.33.0')
     }
@@ -63,8 +63,8 @@ allprojects {
             mavenBom SpringBootPlugin.BOM_COORDINATES
         }
         dependencies {
-            dependency 'io.swagger.core.v3:swagger-annotations:2.2.38'
-            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.74'
+            dependency 'io.swagger.core.v3:swagger-annotations:2.2.39'
+            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.75'
         }
     }
 }
@@ -204,7 +204,7 @@ dependencies {
     implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.10.0'
     implementation 'net.javacrumbs.shedlock:shedlock-spring:6.10.0'
 
-    implementation 'bio.terra:terra-common-lib:1.1.57-SNAPSHOT'
+    implementation 'bio.terra:terra-common-lib:1.1.61-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.415'
     implementation 'bio.terra:terra-policy-client:1.0.39-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.153-SNAPSHOT'
@@ -225,7 +225,7 @@ dependencies {
     implementation 'com.nimbusds:nimbus-jose-jwt:10.5'
 
     // Azure related dependencies
-    implementation 'com.azure:azure-identity:1.18.0'
+    implementation 'com.azure:azure-identity:1.18.1'
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.55.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'
@@ -238,7 +238,7 @@ dependencies {
     implementation('io.sentry:sentry-logback')
 
     // OpenTelemetry @WithSpan annotations:
-    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.20.1'
+    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.21.0'
     implementation 'io.opentelemetry:opentelemetry-sdk-extension-autoconfigure'
 
     testImplementation 'org.apache.parquet:parquet-common:1.16.0'
@@ -279,7 +279,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.webjars:webjars-locator-core'
     // NOTE: If this version is changed, the version in WebConfig.addResourceHandlers must be updated as well.
-    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.29.4'
+    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.29.5'
     generatedCompile 'io.swagger.core.v3:swagger-annotations'
 
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'

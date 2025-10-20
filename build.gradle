@@ -349,10 +349,10 @@ sourceSets {
         java {
             srcDirs = ["${buildDir}/generated-src/swagger/src/main/java"]
         }
-        compileClasspath += configurations.generatedCompile
     }
     main {
         compileClasspath += generated.output
+        compileClasspath += configurations.generatedCompile
         runtimeClasspath += generated.output
     }
     test {

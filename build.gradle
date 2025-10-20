@@ -346,10 +346,11 @@ clean.doFirst {
 
 sourceSets {
     generated {
-        compileClasspath = configurations.generatedCompile
+        // compileClasspath = configurations.generatedCompile
     }
     main {
         compileClasspath += generated.output
+        compileClasspath += configurations.generatedCompile
         runtimeClasspath += generated.output
     }
     test {
@@ -539,11 +540,5 @@ sonar {
         property "sonar.projectName", "jade-data-repo"
         property "sonar.organization", "broad-databiosphere"
         property "sonar.host.url", "https://sonarcloud.io"
-        property "sonar.sources", "src/main/java"
-        property "sonar.tests", "src/test/java"
-        property "sonar.java.source", "17"
-        property "sonar.exclusions", "**/generated/**"
-        property "sonar.java.binaries", "${buildDir}/classes/java/main"
-        property "sonar.java.test.binaries", "${buildDir}/classes/java/test"
     }
 }

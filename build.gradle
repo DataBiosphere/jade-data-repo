@@ -347,7 +347,7 @@ clean.doFirst {
 sourceSets {
     main {
         java {
-            srcDirs = ["${buildDir}/generated-src/swagger/src/main/java"]
+            srcDirs += ["${buildDir}/generated-src/swagger/src/main/java"]
         }
         compileClasspath += configurations.generatedCompile
         runtimeClasspath += configurations.generatedCompile

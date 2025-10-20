@@ -543,6 +543,7 @@ sonar {
         property "sonar.tests", "src/test/java"
         property "sonar.java.source", "17"
         property "sonar.exclusions", "**/generated/**"
+        property "sonar.java.binaries", "${buildDir}/classes/java/main"
+        property "sonar.java.test.binaries", "${buildDir}/classes/java/test"
     }
 }
-

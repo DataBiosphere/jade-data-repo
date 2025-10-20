@@ -385,7 +385,7 @@ public class GcsPdao implements CloudFileReader {
       List<Boolean> permissions = List.of();
       try {
         logger.info(
-            "Testing Iam permission: Bucket {}, Pet Service Account {}, Permission Requested {}, Dataset's Project ID {}",
+            "Testing Iam permission: Bucket {}, Pet Service Account {}, Permission Requested {}, Dataset's Project ID if available {}",
             bucket,
             token.getEmail(),
             List.of(GCS_SOURCE_BUCKET_REQUIRED_PERMISSION),
@@ -400,7 +400,7 @@ public class GcsPdao implements CloudFileReader {
         throw new StorageException(
             e.getCode(),
             String.format(
-                "Could not test permissions. Bucket %s, Pet Service Account %s, Permission Requested %s, Dataset's Project ID %s. %s",
+                "Could not test permissions. Bucket %s, Pet Service Account %s, Permission Requested %s, Dataset's Project ID if available %s. %s",
                 bucket,
                 token.getEmail(),
                 GCS_SOURCE_BUCKET_REQUIRED_PERMISSION,

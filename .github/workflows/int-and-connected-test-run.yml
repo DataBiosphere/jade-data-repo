@@ -12,7 +12,7 @@ jobs:
   test_unit:
     name: Unit tests
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -37,7 +37,7 @@ jobs:
           # extract service account credentials
           base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
           # assemble code, run unit tests, and generate scan
-          ./gradlew --scan assemble check jacocoTestReport sonar -Dorg.gradle.debug=true
+          ./gradlew --scan assemble check jacocoTestReport sonar
   test_connected:
     name: Connected tests
     runs-on: ubuntu-latest

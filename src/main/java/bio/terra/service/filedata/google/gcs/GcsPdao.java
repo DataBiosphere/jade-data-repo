@@ -393,7 +393,6 @@ public class GcsPdao implements CloudFileReader {
         permissions =
             storageAsPet.testIamPermissions(
                 bucket, List.of(GCS_SOURCE_BUCKET_REQUIRED_PERMISSION), options);
-        logger.info("Permissions test result: {}", permissions);
       } catch (StorageException e) {
         // This is a potential failure mode for permissions checking: not being able to make the
         // permissions check call at all

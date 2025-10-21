@@ -541,3 +541,18 @@ sonar {
         property "sonar.host.url", "https://sonarcloud.io"
     }
 }
+
+// Workaround for SonarQube Gradle plugin 7.0.0+ bug where skipped projects
+// still create empty properties files that cause NullPointerException.
+// Write minimal valid JSON to empty resolver files before the sonar task reads them.
+tasks.named('sonar').configure {
+    doFirst {
+        subprojects.each { subproject ->
+            def propsFile = subproject.layout.buildDirectory.file('sonar-resolver/properties').get().asFile
+            if (propsFile.exists() && propsFile.length() == 0) {
+                logger.warn("Writing minimal JSON for skipped project to avoid NullPointerException: ${propsFile}")
+                propsFile.text = '{"projectName":"' + subproject.path + '","isRootProject":false,"compileClasspath":[],"runtimeClasspath":[],"testCompileClasspath":[],"testRuntimeClasspath":[]}'
+            }
+        }
+    }
+}

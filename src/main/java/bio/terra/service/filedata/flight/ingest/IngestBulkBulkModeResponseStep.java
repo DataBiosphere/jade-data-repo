@@ -7,6 +7,7 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
+import java.util.List;
 import org.apache.commons.collections4.CollectionUtils;
 
 // It expects the following working map data:
@@ -34,7 +35,9 @@ public class IngestBulkBulkModeResponseStep extends DefaultUndoStep {
       // the values so presumably can return them back.  This is explicitly for the case where the
       // file data is loaded from a cloud file
       if (CollectionUtils.size(result.getLoadFileResults()) > MAX_FILE_RESULTS) {
-        result.loadFileResults(result.getLoadFileResults().subList(0, MAX_FILE_RESULTS));
+        // need copyOf so the result can be deserialized
+        result.loadFileResults(
+            List.copyOf(result.getLoadFileResults().subList(0, MAX_FILE_RESULTS)));
       }
       workingMap.put(JobMapKeys.RESPONSE.getKeyName(), result.getLoadSummary());
     }

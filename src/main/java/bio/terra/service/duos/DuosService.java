@@ -220,9 +220,7 @@ public class DuosService {
           firecloudGroup.getDuosId(),
           authorizedUsers.isEmpty() ? "none" : String.join(", ", authorizedUsers));
       iamService.overwriteGroupPolicyEmails(
-          firecloudGroup.getFirecloudGroupName(),
-          IamRole.MEMBER.toString(),
-          authorizedUsers);
+          firecloudGroup.getFirecloudGroupName(), IamRole.MEMBER.toString(), authorizedUsers);
       return new SyncResult(firecloudGroup.getId(), null);
     } catch (Exception ex) {
       String message = syncFirecloudGroupContentsErrorMessage(firecloudGroup);

@@ -213,10 +213,16 @@ public class DuosService {
    */
   private SyncResult syncFirecloudGroupContents(DuosFirecloudGroupModel firecloudGroup) {
     try {
+      List<String> authorizedUsers = getAuthorizedUsers(firecloudGroup.getDuosId());
+      logger.info(
+          "Syncing Firecloud group {} for DUOS dataset {} with authorized users: {}",
+          firecloudGroup.getFirecloudGroupEmail(),
+          firecloudGroup.getDuosId(),
+          authorizedUsers.isEmpty() ? "none" : String.join(", ", authorizedUsers));
       iamService.overwriteGroupPolicyEmails(
           firecloudGroup.getFirecloudGroupName(),
           IamRole.MEMBER.toString(),
-          getAuthorizedUsers(firecloudGroup.getDuosId()));
+          authorizedUsers);
       return new SyncResult(firecloudGroup.getId(), null);
     } catch (Exception ex) {
       String message = syncFirecloudGroupContentsErrorMessage(firecloudGroup);

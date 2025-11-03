@@ -453,7 +453,11 @@ public abstract class IngestBulkGcpStep extends DefaultUndoStep {
       String errorMessage =
           String.format(
               "More than %d file(s) failed to ingest, which was the allowed amount."
-                  + " For a full report, see the load history table for this dataset.",
+                  + " For a full report, see the load history table for this dataset."
+                  + " To view the load history table, use this endpoint"
+                  + " https://data.terra.bio/swagger-ui.html#/datasets/retrieveDataset"
+                  + " with the ACCESS_INFORMATION parameter. The response will include a"
+                  + " link to the view the table directly in the cloud console.",
               maxFailedFileLoads);
 
       Exception ex =

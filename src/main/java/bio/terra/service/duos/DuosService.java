@@ -127,12 +127,28 @@ public class DuosService {
   public DuosFirecloudGroupModel syncDuosDatasetAuthorizedUsers(String duosId) {
     DuosFirecloudGroupModel firecloudGroup = retrieveFirecloudGroup(duosId);
     Instant lastSyncedDate = Instant.now();
-    iamService.overwriteGroupPolicyEmails(
-        firecloudGroup.getFirecloudGroupName(),
-        IamRole.MEMBER.toString(),
-        getAuthorizedUsers(firecloudGroup.getDuosId()));
+    overwritePolicy(firecloudGroup);
     updateLastSynced(firecloudGroup, lastSyncedDate);
     return duosDao.retrieveFirecloudGroup(firecloudGroup.getId());
+  }
+
+  private void overwritePolicy(DuosFirecloudGroupModel firecloudGroup) {
+    List<String> currentUsers =
+        iamService.getGroupPolicyEmails(
+            firecloudGroup.getFirecloudGroupName(), IamRole.MEMBER.toString());
+    logger.info(
+        "Current members of Firecloud group {} for DUOS dataset {}: {}",
+        firecloudGroup.getFirecloudGroupEmail(),
+        firecloudGroup.getDuosId(),
+        currentUsers.isEmpty() ? "none" : String.join(", ", currentUsers));
+    List<String> authorizedUsers = getAuthorizedUsers(firecloudGroup.getDuosId());
+    iamService.overwriteGroupPolicyEmails(
+        firecloudGroup.getFirecloudGroupName(), IamRole.MEMBER.toString(), authorizedUsers);
+    logger.info(
+        "Overwrote policy members of Firecloud group {} for DUOS dataset {} with authorized users: {}",
+        firecloudGroup.getFirecloudGroupEmail(),
+        firecloudGroup.getDuosId(),
+        authorizedUsers.isEmpty() ? "none" : String.join(", ", authorizedUsers));
   }
 
   /**
@@ -213,14 +229,7 @@ public class DuosService {
    */
   private SyncResult syncFirecloudGroupContents(DuosFirecloudGroupModel firecloudGroup) {
     try {
-      List<String> authorizedUsers = getAuthorizedUsers(firecloudGroup.getDuosId());
-      logger.info(
-          "Syncing Firecloud group {} for DUOS dataset {} with authorized users: {}",
-          firecloudGroup.getFirecloudGroupEmail(),
-          firecloudGroup.getDuosId(),
-          authorizedUsers.isEmpty() ? "none" : String.join(", ", authorizedUsers));
-      iamService.overwriteGroupPolicyEmails(
-          firecloudGroup.getFirecloudGroupName(), IamRole.MEMBER.toString(), authorizedUsers);
+      overwritePolicy(firecloudGroup);
       return new SyncResult(firecloudGroup.getId(), null);
     } catch (Exception ex) {
       String message = syncFirecloudGroupContentsErrorMessage(firecloudGroup);

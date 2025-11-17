@@ -28,7 +28,7 @@ buildscript {
 
 plugins {
     // This is set back to 3.4.2 because of: https://github.com/GoogleContainerTools/jib/issues/4265
-    id 'com.google.cloud.tools.jib' version '3.4.2'
+    id 'com.google.cloud.tools.jib' version '3.5.0'
     id 'org.liquibase.gradle' version '3.0.2'
     id 'org.gradle.test-retry' version '1.6.4'
     id 'antlr'
@@ -208,7 +208,7 @@ dependencies {
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.415'
     implementation 'bio.terra:terra-policy-client:1.0.40-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.153-SNAPSHOT'
-    implementation 'bio.terra:externalcreds-client-resttemplate:1.120.0-SNAPSHOT'
+    implementation 'bio.terra:externalcreds-client-resttemplate:1.121.0-SNAPSHOT'
 
     implementation 'org.glassfish.jersey.inject:jersey-hk2'
 
@@ -233,7 +233,7 @@ dependencies {
     implementation 'com.azure:azure-storage-file-datalake:12.25.0'
     implementation 'com.azure:azure-data-tables:12.5.8'
 
-    implementation platform('io.sentry:sentry-bom:8.25.0') //import bom
+    implementation platform('io.sentry:sentry-bom:8.26.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')
     implementation('io.sentry:sentry-logback')
 
@@ -269,9 +269,9 @@ dependencies {
 
     testImplementation 'org.junit.vintage:junit-vintage-engine'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'io.zonky.test:embedded-database-spring-test:2.6.0'
-    testImplementation 'io.zonky.test:embedded-postgres:2.1.1'
-    implementation enforcedPlatform('io.zonky.test.postgres:embedded-postgres-binaries-bom:18.0.0')
+    testImplementation 'io.zonky.test:embedded-database-spring-test:2.7.0'
+    testImplementation 'io.zonky.test:embedded-postgres:2.2.0'
+    implementation enforcedPlatform('io.zonky.test.postgres:embedded-postgres-binaries-bom:18.1.0')
 
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'
     // boot-starter-validation required for jakarta.validation.Valid references, @Valid tags

@@ -25,7 +25,7 @@ dependencies {
     ext {
         jersey = "4.0.0"
         jackson = "2.20.1"
-        swaggerAnnotations = "2.2.40"
+        swaggerAnnotations = "2.2.41"
         swaggerCli = "3.0.75"
     }
 

@@ -201,8 +201,8 @@ dependencies {
     implementation 'com.microsoft.sqlserver:mssql-jdbc:12.3.0.jre17-preview'
 
     // For distributed locking of Spring @Scheduled tasks across multiple instances
-    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:7.2.0'
-    implementation 'net.javacrumbs.shedlock:shedlock-spring:7.2.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:7.2.1'
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:7.2.1'
 
     implementation 'bio.terra:terra-common-lib:1.1.65-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.415'
@@ -226,7 +226,7 @@ dependencies {
 
     // Azure related dependencies
     implementation 'com.azure:azure-identity:1.18.1'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.56.0'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.57.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'
     implementation 'com.azure:azure-storage-common:12.31.0'
@@ -279,7 +279,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.webjars:webjars-locator-core'
     // NOTE: If this version is changed, the version in WebConfig.addResourceHandlers must be updated as well.
-    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.30.2'
+    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.30.3'
     generatedCompile 'io.swagger.core.v3:swagger-annotations'
 
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'

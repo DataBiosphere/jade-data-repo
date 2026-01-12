@@ -201,10 +201,10 @@ dependencies {
     implementation 'com.microsoft.sqlserver:mssql-jdbc:13.3.0.jre11-preview'
 
     // For distributed locking of Spring @Scheduled tasks across multiple instances
-    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:7.4.0'
-    implementation 'net.javacrumbs.shedlock:shedlock-spring:7.4.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:7.5.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:7.5.0'
 
-    implementation 'bio.terra:terra-common-lib:1.1.68-SNAPSHOT'
+    implementation 'bio.terra:terra-common-lib:1.1.69-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.415'
     implementation 'bio.terra:terra-policy-client:1.0.41-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.153-SNAPSHOT'
@@ -222,7 +222,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     // JWT handling
-    implementation 'com.nimbusds:nimbus-jose-jwt:10.6'
+    implementation 'com.nimbusds:nimbus-jose-jwt:10.7'
 
     // Azure related dependencies
     implementation 'com.azure:azure-identity:1.18.1'

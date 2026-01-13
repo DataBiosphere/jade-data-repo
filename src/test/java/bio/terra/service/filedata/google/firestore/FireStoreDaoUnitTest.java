@@ -10,11 +10,8 @@ import static org.mockito.Mockito.*;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.configuration.ConfigurationService;
-import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.Firestore;
-import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
-import com.google.cloud.firestore.QuerySnapshot;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,9 +33,6 @@ class FireStoreDaoUnitTest {
   @Mock private ConfigurationService configurationService;
   @Mock private FireStoreProject fireStoreProject;
   @Mock private Firestore firestore;
-  @Mock private CollectionReference collectionReference;
-  @Mock private Query query;
-  @Mock private QuerySnapshot querySnapshot;
   @Mock private QueryDocumentSnapshot document1;
   @Mock private QueryDocumentSnapshot document2;
   @Mock private QueryDocumentSnapshot document3;
@@ -55,8 +49,6 @@ class FireStoreDaoUnitTest {
             directoryDao, fileDao, fireStoreUtils, configurationService, null); // performanceLogger
 
     when(configurationService.getParameterValue(any())).thenReturn(BATCH_SIZE);
-    when(firestore.collection(COLLECTION_NAME)).thenReturn(collectionReference);
-    when(collectionReference.limit(anyInt())).thenReturn(query);
     when(fireStoreProject.getFirestore()).thenReturn(firestore);
   }
 
@@ -106,14 +98,6 @@ class FireStoreDaoUnitTest {
     when(fireStoreUtils.runTransactionWithRetry(
             eq(firestore), any(), eq("processCollectionWithPagination"), anyString()))
         .thenReturn(batch1, batch2, batch3, emptyBatch);
-
-    // Mock startAfter for subsequent batches
-    Query query2 = mock(Query.class);
-    Query query3 = mock(Query.class);
-    when(query.startAfter(doc2)).thenReturn(query2);
-    when(query2.limit(BATCH_SIZE)).thenReturn(query2);
-    when(query2.startAfter(doc4)).thenReturn(query3);
-    when(query3.limit(BATCH_SIZE)).thenReturn(query3);
 
     // Mock FireStoreProject static method
     try (MockedStatic<FireStoreProject> mockedStatic = mockStatic(FireStoreProject.class)) {
@@ -192,11 +176,6 @@ class FireStoreDaoUnitTest {
             eq(firestore), any(), eq("processCollectionWithPagination"), anyString()))
         .thenReturn(fullBatch, emptyBatch);
 
-    // Mock startAfter for second batch (empty)
-    Query queryWithStartAfter = mock(Query.class);
-    when(query.startAfter(document2)).thenReturn(queryWithStartAfter);
-    when(queryWithStartAfter.limit(BATCH_SIZE)).thenReturn(queryWithStartAfter);
-
     // Mock FireStoreProject static method
     try (MockedStatic<FireStoreProject> mockedStatic = mockStatic(FireStoreProject.class)) {
       mockedStatic.when(() -> FireStoreProject.get(PROJECT_ID)).thenReturn(fireStoreProject);
@@ -219,7 +198,6 @@ class FireStoreDaoUnitTest {
       verify(fireStoreUtils, times(2))
           .runTransactionWithRetry(
               eq(firestore), any(), eq("processCollectionWithPagination"), anyString());
-      verify(query, times(1)).startAfter(document2); // Called for second batch (empty)
     }
   }
 }

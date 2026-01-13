@@ -54,8 +54,7 @@ class FireStoreDaoUnitTest {
         new FireStoreDao(
             directoryDao, fileDao, fireStoreUtils, configurationService, null); // performanceLogger
 
-    when(configurationService.getParameterValue(any()))
-        .thenReturn(BATCH_SIZE); 
+    when(configurationService.getParameterValue(any())).thenReturn(BATCH_SIZE);
     when(firestore.collection(COLLECTION_NAME)).thenReturn(collectionReference);
     when(collectionReference.limit(anyInt())).thenReturn(query);
     when(fireStoreProject.getFirestore()).thenReturn(firestore);

@@ -2,225 +2,237 @@ package bio.terra.service.filedata.google.firestore;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
 
-import bio.terra.common.category.Unit;
+import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.EmbeddedDatabaseTest;
+import bio.terra.common.category.Connected;
+import bio.terra.common.fixtures.ConnectedOperations;
+import bio.terra.model.BillingProfileModel;
+import bio.terra.model.DatasetSummaryModel;
+import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.configuration.ConfigurationService;
-import com.google.cloud.firestore.CollectionReference;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.filedata.FileMetadataUtils;
+import bio.terra.service.filedata.SnapshotCompute;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.service.snapshot.Snapshot;
 import com.google.cloud.firestore.Firestore;
-import com.google.cloud.firestore.Query;
-import com.google.cloud.firestore.QueryDocumentSnapshot;
-import com.google.cloud.firestore.QuerySnapshot;
+import com.google.common.collect.Streams;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@ExtendWith(MockitoExtension.class)
-@Tag(Unit.TAG)
+@ExtendWith(SpringExtension.class)
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles({"google", "connectedtest"})
+@Tag(Connected.TAG)
+@EmbeddedDatabaseTest
 class FireStoreDaoTest {
+  @Autowired private FireStoreDirectoryDao directoryDao;
+  @Autowired private FireStoreFileDao fileDao;
+  @Autowired private FireStoreDao dao;
+  @Autowired private FireStoreUtils fireStoreUtils;
+  @Autowired private FireStoreDependencyDao fireStoreDependencyDao;
+  @Autowired private ConnectedOperations connectedOperations;
+  @Autowired private ConnectedTestConfiguration testConfig;
+  @MockitoBean private IamProviderInterface samService;
+  @Autowired private ConfigurationService configService;
 
-  @Mock private FireStoreDirectoryDao directoryDao;
-  @Mock private FireStoreFileDao fileDao;
-  @Mock private FireStoreUtils fireStoreUtils;
-  @Mock private ConfigurationService configurationService;
-  @Mock private FireStoreProject fireStoreProject;
-  @Mock private Firestore firestore;
-  @Mock private CollectionReference collectionReference;
-  @Mock private Query query;
-  @Mock private QuerySnapshot querySnapshot;
-  @Mock private QueryDocumentSnapshot document1;
-  @Mock private QueryDocumentSnapshot document2;
-  @Mock private QueryDocumentSnapshot document3;
-
-  private FireStoreDao fireStoreDao;
-  private static final String PROJECT_ID = "test-project";
-  private static final String COLLECTION_NAME = "test-collection";
-  private static final int BATCH_SIZE = 2;
+  private Firestore firestore;
+  private String datasetId;
+  private String snapshotId;
+  private Dataset dataset;
+  private Snapshot snapshot;
 
   @BeforeEach
-  void setUp() {
-    fireStoreDao =
-        new FireStoreDao(
-            directoryDao, fileDao, fireStoreUtils, configurationService, null); // performanceLogger
+  public void setup() throws Exception {
+    connectedOperations.stubOutSamCalls(samService);
+    configService.reset();
 
-    when(configurationService.getParameterValue(any()))
-        .thenReturn(BATCH_SIZE); 
-    when(firestore.collection(COLLECTION_NAME)).thenReturn(collectionReference);
-    when(collectionReference.limit(anyInt())).thenReturn(query);
-    when(fireStoreProject.getFirestore()).thenReturn(firestore);
+    // Create dataset so that we have a firestore instance to test with
+    BillingProfileModel billingProfile =
+        connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
+    DatasetSummaryModel summaryModel =
+        connectedOperations.createDataset(billingProfile, "dataset-minimal.json");
+    GoogleProjectResource projectResource =
+        new GoogleProjectResource().googleProjectId(summaryModel.getDataProject());
+    dataset = new Dataset().id(summaryModel.getId()).projectResource(projectResource);
+    datasetId = summaryModel.getId().toString();
+    var snapshotIdUUID = UUID.randomUUID();
+    snapshotId = snapshotIdUUID.toString();
+    snapshot = new Snapshot().id(snapshotIdUUID).projectResource(projectResource);
+
+    // real case will have separate dataset and snapshot instances
+    // But, we can share this firestore instance for this test
+    firestore = TestFirestoreProvider.getFirestore(summaryModel.getDataProject());
   }
 
-  @Test
-  void testProcessCollectionWithPagination_EmptyCollection() throws Exception {
-    // Setup: Empty collection
-    List<QueryDocumentSnapshot> emptyBatch = List.of();
-    when(fireStoreUtils.runTransactionWithRetry(
-            eq(firestore), any(), eq("processCollectionWithPagination"), anyString()))
-        .thenReturn(emptyBatch);
-
-    // Mock FireStoreProject static method
-    try (MockedStatic<FireStoreProject> mockedStatic = mockStatic(FireStoreProject.class)) {
-      mockedStatic.when(() -> FireStoreProject.get(PROJECT_ID)).thenReturn(fireStoreProject);
-
-      // Execute
-      AtomicInteger processedCount = new AtomicInteger(0);
-      fireStoreDao.processCollectionWithPagination(
-          PROJECT_ID,
-          COLLECTION_NAME,
-          doc -> {
-            processedCount.incrementAndGet();
-          });
-
-      // Verify
-      assertEquals(0, processedCount.get());
-      verify(fireStoreUtils, times(1))
-          .runTransactionWithRetry(
-              eq(firestore), any(), eq("processCollectionWithPagination"), anyString());
+  @AfterEach
+  public void cleanup() throws Exception {
+    if (datasetId != null) {
+      directoryDao.deleteDirectoryEntriesFromCollection(firestore, datasetId);
+      directoryDao.deleteDirectoryEntriesFromCollection(firestore, snapshotId);
+      fireStoreDependencyDao.deleteSnapshotFileDependencies(dataset, snapshotId);
+      fileDao.deleteFilesFromDataset(firestore, datasetId, f -> {});
     }
+    connectedOperations.teardown();
   }
 
+  // Test for snapshot file system
+  // collectionId is the datasetId
+  // snapshotId is obvious
+  // - create dataset file system
+  // - create subset snapshot file system
+  // - do the compute and validate
+  // Use binary for the sizes so each size combo will be unique
   @Test
-  void testProcessCollectionWithPagination_LargeCollection() throws Exception {
-    // Setup: 5 documents across 3 batches (2, 2, 1)
-    QueryDocumentSnapshot doc1 = mock(QueryDocumentSnapshot.class);
-    QueryDocumentSnapshot doc2 = mock(QueryDocumentSnapshot.class);
-    QueryDocumentSnapshot doc3 = mock(QueryDocumentSnapshot.class);
-    QueryDocumentSnapshot doc4 = mock(QueryDocumentSnapshot.class);
-    QueryDocumentSnapshot doc5 = mock(QueryDocumentSnapshot.class);
+  void snapshotTest() throws Exception {
 
-    List<QueryDocumentSnapshot> batch1 = List.of(doc1, doc2);
-    List<QueryDocumentSnapshot> batch2 = List.of(doc3, doc4);
-    List<QueryDocumentSnapshot> batch3 = List.of(doc5);
-    List<QueryDocumentSnapshot> emptyBatch = List.of();
+    // Make files that will be in the snapshot
+    List<FireStoreDirectoryEntry> snapObjects = new ArrayList<>();
+    snapObjects.add(makeFileObject(datasetId, "/adir/A1", 1));
+    snapObjects.add(makeFileObject(datasetId, "/adir/bdir/B1", 2));
+    snapObjects.add(makeFileObject(datasetId, "/adir/bdir/cdir/C1", 4));
+    snapObjects.add(makeFileObject(datasetId, "/adir/bdir/cdir/C2", 8));
 
-    when(fireStoreUtils.runTransactionWithRetry(
-            eq(firestore), any(), eq("processCollectionWithPagination"), anyString()))
-        .thenReturn(batch1, batch2, batch3, emptyBatch);
+    // And some files that won't be in the snapshot
+    List<FireStoreDirectoryEntry> dsetObjects = new ArrayList<>();
+    dsetObjects.add(makeFileObject(datasetId, "/adir/bdir/B2", 16));
+    dsetObjects.add(makeFileObject(datasetId, "/adir/A2", 32));
 
-    // Mock startAfter for subsequent batches
-    Query query2 = mock(Query.class);
-    Query query3 = mock(Query.class);
-    when(query.startAfter(doc2)).thenReturn(query2);
-    when(query2.limit(BATCH_SIZE)).thenReturn(query2);
-    when(query2.startAfter(doc4)).thenReturn(query3);
-    when(query3.limit(BATCH_SIZE)).thenReturn(query3);
+    List<String> dsfileIdList =
+        Streams.concat(
+                dsetObjects.stream().map(FireStoreDirectoryEntry::getFileId),
+                snapObjects.stream().map(FireStoreDirectoryEntry::getFileId))
+            .toList();
 
-    // Mock FireStoreProject static method
-    try (MockedStatic<FireStoreProject> mockedStatic = mockStatic(FireStoreProject.class)) {
-      mockedStatic.when(() -> FireStoreProject.get(PROJECT_ID)).thenReturn(fireStoreProject);
-
-      // Execute
-      List<QueryDocumentSnapshot> processedDocuments = new ArrayList<>();
-      fireStoreDao.processCollectionWithPagination(
-          PROJECT_ID,
-          COLLECTION_NAME,
-          doc -> {
-            processedDocuments.add(doc);
-          });
-
-      // Verify
-      assertEquals(5, processedDocuments.size());
-      verify(fireStoreUtils, times(4))
-          .runTransactionWithRetry(
-              eq(firestore), any(), eq("processCollectionWithPagination"), anyString());
+    // Make the dataset file system
+    List<FireStoreDirectoryEntry> fileObjects = new ArrayList<>(snapObjects);
+    fileObjects.addAll(dsetObjects);
+    for (FireStoreDirectoryEntry fireStoreDirectoryEntry : fileObjects) {
+      directoryDao.createDirectoryEntry(firestore, datasetId, fireStoreDirectoryEntry);
     }
+
+    // Make the snapshot file system
+    List<String> snapfileIdList =
+        snapObjects.stream().map(FireStoreDirectoryEntry::getFileId).toList();
+    directoryDao.addEntriesToSnapshot(
+        firestore, datasetId, "dataset", firestore, snapshotId, snapfileIdList, false);
+
+    // Validate we can lookup files in the snapshot
+    for (FireStoreDirectoryEntry dsetObject : snapObjects) {
+      FireStoreDirectoryEntry snapObject =
+          directoryDao.retrieveById(firestore, snapshotId, dsetObject.getFileId());
+      assertThat("objectId matches", snapObject.getFileId(), equalTo(dsetObject.getFileId()));
+      assertThat("path does not match", snapObject.getPath(), not(dsetObject.getPath()));
+    }
+
+    // ------ test FireStoreDependencyDao ----
+    // Before setting up the dependency file system, assert datasetHasSnapshotReference returns
+    // false
+    boolean noDependencies = fireStoreDependencyDao.datasetHasSnapshotReference(dataset);
+    assertThat("Dataset should not yet have dependencies", noDependencies, is(false));
+
+    // Create dependency file system
+    fireStoreDependencyDao.storeSnapshotFileDependencies(dataset, snapshotId, snapfileIdList);
+
+    // Snapshot and File Dependency should now exist for dataset
+    boolean hasReference = fireStoreDependencyDao.datasetHasSnapshotReference(dataset);
+    assertThat("Dataset should have dependencies", hasReference);
+
+    List<String> snapshotReferenceIds =
+        fireStoreDependencyDao.getFileSnapshotReferences(dataset, snapObjects.get(0).getFileId());
+    assertEquals(List.of(snapshotId), snapshotReferenceIds);
+
+    // Validate dataset files do not have references
+    List<String> noSnapshotReferenceIds =
+        fireStoreDependencyDao.getFileSnapshotReferences(dataset, dsetObjects.get(0).getFileId());
+    assertThat(
+        "No dependency on files not referenced in snapshot", noSnapshotReferenceIds.size(), is(0));
+
+    // Validate we cannot lookup dataset files in the snapshot
+    for (FireStoreDirectoryEntry dsetObject : dsetObjects) {
+      FireStoreDirectoryEntry snapObject =
+          directoryDao.retrieveById(firestore, snapshotId, dsetObject.getFileId());
+      assertThat("object not found in snapshot", snapObject, is(nullValue()));
+    }
+
+    // Compute the size and checksums
+    FireStoreDirectoryEntry topDir = directoryDao.retrieveByPath(firestore, snapshotId, "/");
+    List<FireStoreDirectoryEntry> updateBatch = new ArrayList<>();
+    FireStoreDao.FirestoreComputeHelper helper = dao.getHelper(firestore, firestore, snapshotId);
+    SnapshotCompute.computeDirectory(helper, topDir, updateBatch);
+    directoryDao.batchStoreDirectoryEntry(firestore, snapshotId, updateBatch);
+
+    // Check the accumulated size on the root dir
+    FireStoreDirectoryEntry snapObject = directoryDao.retrieveByPath(firestore, snapshotId, "/");
+    assertThat("Total size is correct", snapObject.getSize(), equalTo(15L));
+
+    // Check that we can retrieve all with or without directories
+    assertThat(
+        "all dataset files and directories can be returned",
+        dao.retrieveAllFileIds(dataset, true),
+        hasSize(10));
+    assertThat(
+        "all dataset files (only) can be returned",
+        dao.retrieveAllFileIds(dataset, false).stream().sorted().toList(),
+        equalTo(dsfileIdList.stream().sorted().toList()));
+    assertThat(
+        "all snapshot files and directories can be returned",
+        dao.retrieveAllFileIds(snapshot, true),
+        hasSize(9));
+    assertThat(
+        "all snapshot files (only) can be returned",
+        dao.retrieveAllFileIds(snapshot, false).stream().sorted().toList(),
+        equalTo(snapfileIdList.stream().sorted().toList()));
   }
 
-  @Test
-  void testProcessCollectionWithPagination_InterruptedException() throws Exception {
-    // Setup: Throw InterruptedException from runTransactionWithRetry
-    when(fireStoreUtils.runTransactionWithRetry(
-            eq(firestore), any(), eq("processCollectionWithPagination"), anyString()))
-        .thenThrow(new InterruptedException("Test interruption"));
+  private FireStoreDirectoryEntry makeFileObject(String datasetId, String fullPath, long size)
+      throws InterruptedException {
 
-    // Mock FireStoreProject static method
-    try (MockedStatic<FireStoreProject> mockedStatic = mockStatic(FireStoreProject.class)) {
-      mockedStatic.when(() -> FireStoreProject.get(PROJECT_ID)).thenReturn(fireStoreProject);
+    String fileId = UUID.randomUUID().toString();
 
-      // Execute & Verify
-      org.junit.jupiter.api.Assertions.assertThrows(
-          InterruptedException.class,
-          () ->
-              fireStoreDao.processCollectionWithPagination(PROJECT_ID, COLLECTION_NAME, doc -> {}));
-    }
-  }
+    FireStoreFile newFile =
+        new FireStoreFile()
+            .fileId(fileId)
+            .mimeType("application/test")
+            .description("test")
+            .bucketResourceId("test")
+            .fileCreatedDate(Instant.now().toString())
+            .gspath("gs://" + datasetId + "/" + fileId)
+            .checksumCrc32c(SnapshotCompute.computeCrc32c(fullPath))
+            .checksumMd5(SnapshotCompute.computeMd5(fullPath))
+            .userSpecifiedMd5(false)
+            .size(size);
 
-  @Test
-  void testProcessCollectionWithPagination_DocumentProcessorThrowsInterruptedException()
-      throws Exception {
-    // Setup: First batch with documents, processor throws InterruptedException
-    List<QueryDocumentSnapshot> firstBatch = List.of(document1, document2);
-    when(fireStoreUtils.runTransactionWithRetry(
-            eq(firestore), any(), eq("processCollectionWithPagination"), anyString()))
-        .thenReturn(firstBatch);
+    fileDao.upsertFileMetadata(firestore, datasetId, newFile);
 
-    // Mock FireStoreProject static method
-    try (MockedStatic<FireStoreProject> mockedStatic = mockStatic(FireStoreProject.class)) {
-      mockedStatic.when(() -> FireStoreProject.get(PROJECT_ID)).thenReturn(fireStoreProject);
-
-      // Execute & Verify: DocumentProcessor throws InterruptedException
-      org.junit.jupiter.api.Assertions.assertThrows(
-          InterruptedException.class,
-          () ->
-              fireStoreDao.processCollectionWithPagination(
-                  PROJECT_ID,
-                  COLLECTION_NAME,
-                  doc -> {
-                    throw new InterruptedException("Processor interrupted");
-                  }));
-    }
-  }
-
-  @Test
-  void testProcessCollectionWithPagination_BatchSizeEqualsDocumentCount() throws Exception {
-    // Setup: Batch size equals document count (2 docs, batch size 2)
-    // First batch has exactly batchSize documents, second batch is empty
-    List<QueryDocumentSnapshot> fullBatch = List.of(document1, document2);
-    List<QueryDocumentSnapshot> emptyBatch = List.of();
-
-    when(fireStoreUtils.runTransactionWithRetry(
-            eq(firestore), any(), eq("processCollectionWithPagination"), anyString()))
-        .thenReturn(fullBatch, emptyBatch);
-
-    // Mock startAfter for second batch (empty)
-    Query queryWithStartAfter = mock(Query.class);
-    when(query.startAfter(document2)).thenReturn(queryWithStartAfter);
-    when(queryWithStartAfter.limit(BATCH_SIZE)).thenReturn(queryWithStartAfter);
-
-    // Mock FireStoreProject static method
-    try (MockedStatic<FireStoreProject> mockedStatic = mockStatic(FireStoreProject.class)) {
-      mockedStatic.when(() -> FireStoreProject.get(PROJECT_ID)).thenReturn(fireStoreProject);
-
-      // Execute
-      List<QueryDocumentSnapshot> processedDocuments = new ArrayList<>();
-      fireStoreDao.processCollectionWithPagination(
-          PROJECT_ID,
-          COLLECTION_NAME,
-          doc -> {
-            processedDocuments.add(doc);
-          });
-
-      // Verify: All documents processed, empty batch detected correctly
-      assertEquals(2, processedDocuments.size());
-      assertThat(processedDocuments.get(0), equalTo(document1));
-      assertThat(processedDocuments.get(1), equalTo(document2));
-
-      // Verify: Two calls - first batch and empty batch check
-      verify(fireStoreUtils, times(2))
-          .runTransactionWithRetry(
-              eq(firestore), any(), eq("processCollectionWithPagination"), anyString());
-      verify(query, times(1)).startAfter(document2); // Called for second batch (empty)
-    }
+    return new FireStoreDirectoryEntry()
+        .fileId(fileId)
+        .isFileRef(true)
+        .path(FileMetadataUtils.getDirectoryPath(fullPath))
+        .name(FileMetadataUtils.getName(fullPath))
+        .datasetId(datasetId)
+        .size(size)
+        .checksumCrc32c(SnapshotCompute.computeCrc32c(fullPath))
+        .checksumMd5(SnapshotCompute.computeMd5(fullPath));
   }
 }

@@ -20,8 +20,11 @@ import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
+import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.Query;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -29,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -381,25 +383,50 @@ public class FireStoreDao {
   }
 
   /**
-   * Given a snapshot, retrieve the -files metadata collection from its source Dataset Firestore
+   * Process all documents in a collection using pagination to avoid query timeouts. Documents are
+   * processed in batches as they are fetched using cursor-based pagination.
    *
-   * @param snapshot target snapshot
-   * @return QuerySnapshot representation of the -files collection in source Dataset.
+   * @param projectId The Google project ID
+   * @param collectionName The name of the collection to process
+   * @param documentProcessor A consumer that processes each document
+   * @throws InterruptedException If the operation is interrupted
    */
-  public QuerySnapshot retrieveFilesCollection(Snapshot snapshot)
-      throws ExecutionException, InterruptedException {
-    Dataset sourceDataset = snapshot.getSourceDataset();
-    String collectionName = String.format("%s-files", sourceDataset.getId());
-    return retrieveCollectionByName(
-        sourceDataset.getProjectResource().getGoogleProjectId(), collectionName);
-  }
-
-  public QuerySnapshot retrieveCollectionByName(String projectId, String collectionName)
-      throws ExecutionException, InterruptedException {
+  public void processCollectionWithPagination(
+      String projectId,
+      String collectionName,
+      InterruptibleConsumer<QueryDocumentSnapshot> documentProcessor)
+      throws InterruptedException {
     final Firestore db = FireStoreProject.get(projectId).getFirestore();
-    ;
     final CollectionReference collection = db.collection(collectionName);
-    return collection.get().get();
+    int batchSize = configurationService.getParameterValue(ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE);
+
+    int batchCount = 0;
+    List<QueryDocumentSnapshot> documents = new ArrayList<>();
+    do {
+      QueryDocumentSnapshot lastDocument =
+          documents.size() > 0 ? documents.get(documents.size() - 1) : null;
+
+      documents =
+          fireStoreUtils.runTransactionWithRetry(
+              db,
+              xn -> {
+                Query query = collection.limit(batchSize);
+                if (lastDocument != null) {
+                  query = query.startAfter(lastDocument);
+                }
+                ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
+                return querySnapshot.get().getDocuments();
+              },
+              "processCollectionWithPagination",
+              " scanning " + batchSize + " items for collection: " + collectionName);
+      batchCount++;
+      if (!documents.isEmpty()) {
+        logger.info("Visiting batch {} of ~{} documents", batchCount, batchSize);
+        for (QueryDocumentSnapshot document : documents) {
+          documentProcessor.accept(document);
+        }
+      }
+    } while (documents.size() > 0);
   }
 
   public FSItem retrieveBySnapshotAndId(SnapshotProject snapshot, String fileId, int enumerateDepth)

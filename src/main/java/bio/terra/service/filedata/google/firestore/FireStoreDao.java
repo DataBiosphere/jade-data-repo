@@ -20,12 +20,10 @@ import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
-import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
-import com.google.cloud.firestore.QuerySnapshot;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -384,7 +382,8 @@ public class FireStoreDao {
 
   /**
    * Process all documents in a collection using pagination to avoid query timeouts. Documents are
-   * processed in batches as they are fetched using cursor-based pagination.
+   * processed in batches as they are fetched using cursor-based pagination. Only the fileId and
+   * gspath fields are selected for efficiency.
    *
    * @param projectId The Google project ID
    * @param collectionName The name of the collection to process
@@ -400,33 +399,26 @@ public class FireStoreDao {
     final CollectionReference collection = db.collection(collectionName);
     int batchSize = configurationService.getParameterValue(ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE);
 
-    int batchCount = 0;
-    List<QueryDocumentSnapshot> documents = new ArrayList<>();
-    do {
-      QueryDocumentSnapshot lastDocument =
-          documents.size() > 0 ? documents.get(documents.size() - 1) : null;
+    // Create query with select to only fetch fileId and gspath fields
+    Query query =
+        collection.select(FireStoreFile.FILE_ID_FIELD_NAME, FireStoreFile.GS_PATH_FIELD_NAME);
 
-      documents =
-          fireStoreUtils.runTransactionWithRetry(
-              db,
-              xn -> {
-                Query query = collection.limit(batchSize);
-                if (lastDocument != null) {
-                  query = query.startAfter(lastDocument);
-                }
-                ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
-                return querySnapshot.get().getDocuments();
-              },
-              "processCollectionWithPagination",
-              " scanning " + batchSize + " items for collection: " + collectionName);
+    // Use FireStoreBatchQueryIterator to handle pagination
+    FireStoreBatchQueryIterator queryIterator =
+        new FireStoreBatchQueryIterator(query, batchSize, fireStoreUtils, 0, Integer.MAX_VALUE);
+
+    int batchCount = 0;
+    for (List<QueryDocumentSnapshot> batch = queryIterator.getBatch();
+        batch != null;
+        batch = queryIterator.getBatch()) {
       batchCount++;
-      if (!documents.isEmpty()) {
+      if (!batch.isEmpty()) {
         logger.info("Visiting batch {} of ~{} documents", batchCount, batchSize);
-        for (QueryDocumentSnapshot document : documents) {
+        for (QueryDocumentSnapshot document : batch) {
           documentProcessor.accept(document);
         }
       }
-    } while (documents.size() > 0);
+    }
   }
 
   public FSItem retrieveBySnapshotAndId(SnapshotProject snapshot, String fileId, int enumerateDepth)

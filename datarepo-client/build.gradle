@@ -23,10 +23,10 @@ repositories {
 
 dependencies {
     ext {
-        jersey = "4.0.0"
+        jersey = "4.0.1"
         jackson = "2.21.0"
-        swaggerAnnotations = "2.2.41"
-        swaggerCli = "3.0.75"
+        swaggerAnnotations = "2.2.42"
+        swaggerCli = "3.0.76"
     }
 
     implementation group: 'org.glassfish.jersey.core', name: 'jersey-client', version: "${jersey}"

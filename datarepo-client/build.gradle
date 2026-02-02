@@ -23,7 +23,9 @@ repositories {
 
 dependencies {
     ext {
-        jersey = "4.0.1"
+        // Jersey 4.0.1 looks incompatible with Java 17; see:
+        // https://github.com/eclipse-ee4j/jersey/issues/6064
+        jersey = "4.0.0"
         jackson = "2.21.0"
         swaggerAnnotations = "2.2.42"
         swaggerCli = "3.0.76"

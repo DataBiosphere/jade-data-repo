@@ -164,7 +164,7 @@ dependencies {
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
 
-    implementation platform('com.google.cloud:libraries-bom:26.74.0')
+    implementation platform('com.google.cloud:libraries-bom:26.75.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
     implementation 'com.google.cloud:google-cloud-bigquery'
@@ -201,12 +201,12 @@ dependencies {
     implementation 'com.microsoft.sqlserver:mssql-jdbc:13.3.1.jre11-preview'
 
     // For distributed locking of Spring @Scheduled tasks across multiple instances
-    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:7.5.0'
-    implementation 'net.javacrumbs.shedlock:shedlock-spring:7.5.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:7.6.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:7.6.0'
 
     implementation 'bio.terra:terra-common-lib:1.1.69-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.415'
-    implementation 'bio.terra:terra-policy-client:1.0.41-SNAPSHOT'
+    implementation 'bio.terra:terra-policy-client:1.0.42-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.153-SNAPSHOT'
     implementation 'bio.terra:externalcreds-client-resttemplate:1.126.0-SNAPSHOT'
 
@@ -226,12 +226,12 @@ dependencies {
 
     // Azure related dependencies
     implementation 'com.azure:azure-identity:1.18.2'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.58.0'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.59.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:2.1.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0'
-    implementation 'com.azure:azure-storage-common:12.32.0'
-    implementation 'com.azure:azure-storage-file-datalake:12.26.0'
-    implementation 'com.azure:azure-data-tables:12.5.8'
+    implementation 'com.azure:azure-storage-common:12.32.1'
+    implementation 'com.azure:azure-storage-file-datalake:12.26.1'
+    implementation 'com.azure:azure-data-tables:12.5.9'
 
     implementation platform('io.sentry:sentry-bom:8.31.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')

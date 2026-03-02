@@ -325,6 +325,7 @@ public class SnapshotCreateFlight extends Flight {
 
     if (platform.isGcp()) {
       // Make the firestore file system for the snapshot
+      RetryRule retryRule = new RetryRuleExponentialBackoff(2, 30, TimeUnit.MINUTES.toSeconds(10));
       addStep(
           new CreateSnapshotFireStoreDataStep(
               bigQuerySnapshotPdao,
@@ -333,7 +334,8 @@ public class SnapshotCreateFlight extends Flight {
               datasetService,
               snapshotReq,
               fileDao,
-              performanceLogger));
+              performanceLogger),
+          retryRule);
 
       // Calculate checksums and sizes for all directories in the snapshot
       RetryRule pdaoFirestoreDirCalcRetryRule =

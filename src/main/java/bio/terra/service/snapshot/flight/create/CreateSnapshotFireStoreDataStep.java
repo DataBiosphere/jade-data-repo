@@ -16,6 +16,7 @@ import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -67,62 +68,70 @@ public class CreateSnapshotFireStoreDataStep implements Step {
     // ensure that we don't reprocess the same file repeatedly since this can have sever performance
     // impacts
     // TODO: We may want to find a more memory efficient way to track this
-    for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
-      Set<String> uniqueRefIds = new HashSet<>();
-      int numFilesSeen = 0;
-      for (SnapshotMapTable mapTable : snapshotSource.getSnapshotMapTables()) {
-        for (SnapshotMapColumn mapColumn : mapTable.getSnapshotMapColumns()) {
-          TableDataType fromDatatype = mapColumn.getFromColumn().getType();
-          if (fromDatatype == TableDataType.FILEREF || fromDatatype == TableDataType.DIRREF) {
+    try {
+      for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
+        Set<String> uniqueRefIds = new HashSet<>();
+        int numFilesSeen = 0;
+        for (SnapshotMapTable mapTable : snapshotSource.getSnapshotMapTables()) {
+          for (SnapshotMapColumn mapColumn : mapTable.getSnapshotMapColumns()) {
+            TableDataType fromDatatype = mapColumn.getFromColumn().getType();
+            if (fromDatatype == TableDataType.FILEREF || fromDatatype == TableDataType.DIRREF) {
 
-            String bigQueryTimer = performanceLogger.timerStart();
-            List<String> refIds =
-                bigQuerySnapshotPdao.getSnapshotRefIds(
-                    snapshotSource.getDataset(),
-                    snapshot,
-                    mapTable.getFromTable().getName(),
-                    mapTable.getFromTable().getId().toString(),
-                    mapColumn.getFromColumn());
-            numFilesSeen += refIds.size();
-            uniqueRefIds.addAll(refIds);
-            performanceLogger.timerEndAndLog(
-                bigQueryTimer,
-                context.getFlightId(),
-                this.getClass().getName(),
-                "bigQueryPdao.getSnapshotRefIds",
-                refIds.size());
+              String bigQueryTimer = performanceLogger.timerStart();
+              List<String> refIds =
+                  bigQuerySnapshotPdao.getSnapshotRefIds(
+                      snapshotSource.getDataset(),
+                      snapshot,
+                      mapTable.getFromTable().getName(),
+                      mapTable.getFromTable().getId().toString(),
+                      mapColumn.getFromColumn());
+              numFilesSeen += refIds.size();
+              uniqueRefIds.addAll(refIds);
+              performanceLogger.timerEndAndLog(
+                  bigQueryTimer,
+                  context.getFlightId(),
+                  this.getClass().getName(),
+                  "bigQueryPdao.getSnapshotRefIds",
+                  refIds.size());
+            }
           }
         }
+
+        if (numFilesSeen != uniqueRefIds.size()) {
+          logger.info(
+              "some files are repeated. {} unique values across {} total file references",
+              uniqueRefIds.size(),
+              numFilesSeen);
+        }
+
+        List<String> uniqueRefIdsAsList = new ArrayList<>(uniqueRefIds);
+        Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
+
+        String addFilesTimer = performanceLogger.timerStart();
+        fileDao.addFilesToSnapshot(dataset, snapshot, uniqueRefIdsAsList);
+        performanceLogger.timerEndAndLog(
+            addFilesTimer,
+            context.getFlightId(),
+            this.getClass().getName(),
+            "fileDao.addFilesToSnapshot",
+            uniqueRefIds.size());
+
+        String addDependenciesTimer = performanceLogger.timerStart();
+        dependencyDao.storeSnapshotFileDependencies(
+            dataset, snapshot.getId().toString(), uniqueRefIdsAsList);
+        performanceLogger.timerEndAndLog(
+            addDependenciesTimer,
+            context.getFlightId(),
+            this.getClass().getName(),
+            "dependencyDao.storeSnapshotFileDependencies",
+            uniqueRefIds.size());
       }
-
-      if (numFilesSeen != uniqueRefIds.size()) {
-        logger.info(
-            "some files are repeated. {} unique values across {} total file references",
-            uniqueRefIds.size(),
-            numFilesSeen);
-      }
-
-      List<String> uniqueRefIdsAsList = new ArrayList<>(uniqueRefIds);
-      Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
-
-      String addFilesTimer = performanceLogger.timerStart();
-      fileDao.addFilesToSnapshot(dataset, snapshot, uniqueRefIdsAsList);
-      performanceLogger.timerEndAndLog(
-          addFilesTimer,
-          context.getFlightId(),
-          this.getClass().getName(),
-          "fileDao.addFilesToSnapshot",
-          uniqueRefIds.size());
-
-      String addDependenciesTimer = performanceLogger.timerStart();
-      dependencyDao.storeSnapshotFileDependencies(
-          dataset, snapshot.getId().toString(), uniqueRefIdsAsList);
-      performanceLogger.timerEndAndLog(
-          addDependenciesTimer,
-          context.getFlightId(),
-          this.getClass().getName(),
-          "dependencyDao.storeSnapshotFileDependencies",
-          uniqueRefIds.size());
+    }
+    // TODO - make this specifically catch the error type
+    // We're seeing a lot of errors reporting missing firestore database.
+    // Testing to see if a retry helps
+    catch (Exception e) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
     }
 
     return StepResult.getStepResultSuccess();

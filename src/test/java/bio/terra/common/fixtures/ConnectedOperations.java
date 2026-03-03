@@ -389,10 +389,7 @@ public class ConnectedOperations {
     if (expectedStatus == null) {
       assertFalse(responseStatus.is2xxSuccessful(), "Expect failure");
     } else {
-      // assertThat("Expect specific failure status", responseStatus, is(expectedStatus));
-      logger.info("expectedStatus=" + expectedStatus);
-      logger.info("responseStatus=" + responseStatus);
-      logger.info("responseBody=" + response.getContentAsString());
+      assertThat("Expect specific failure status", responseStatus, is(expectedStatus));
     }
 
     String responseBody = response.getContentAsString();

@@ -8,9 +8,6 @@ public final class TestFirestoreProvider {
   private TestFirestoreProvider() {}
 
   public static Firestore getFirestore(String googleProjectId) {
-    return FirestoreOptions.newBuilder()
-        .setProjectId(googleProjectId)
-        .build()
-        .getService();
+    return FirestoreOptions.newBuilder().setProjectId(googleProjectId).build().getService();
   }
 }

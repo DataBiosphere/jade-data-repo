@@ -23,7 +23,7 @@ public final class FireStoreProject {
     return projectId;
   }
 
-  Firestore getFirestore() {
+  public Firestore getFirestore() {
     return firestore;
   }
 

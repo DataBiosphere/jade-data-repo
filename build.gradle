@@ -170,6 +170,7 @@ dependencies {
     implementation 'com.google.cloud:google-cloud-bigquery'
     implementation 'com.google.cloud:google-cloud-storage'
     implementation 'com.google.cloud:google-cloud-firestore'
+    implementation 'com.google.cloud:google-cloud-firestore-admin'
     implementation 'com.google.cloud:google-cloud-pubsub'
     implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:7.4.3'
     implementation 'com.google.http-client:google-http-client'

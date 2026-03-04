@@ -231,22 +231,10 @@ public class FireStoreDao {
   public void addFilesToSnapshot(Dataset dataset, Snapshot snapshot, List<String> refIds)
       throws InterruptedException {
 
-    Firestore datasetFirestore;
-    Firestore snapshotFirestore;
-    try {
-      datasetFirestore =
-          FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
-    } catch (Exception e) {
-      logger.error("Error fetching firestore for dataset", e);
-      throw e;
-    }
-    try {
-      snapshotFirestore =
-          FireStoreProject.get(snapshot.getProjectResource().getGoogleProjectId()).getFirestore();
-    } catch (Exception e) {
-      logger.error("Error fetching firestore for snapshot", e);
-      throw e;
-    }
+    Firestore datasetFirestore =
+        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
+    Firestore snapshotFirestore =
+        FireStoreProject.get(snapshot.getProjectResource().getGoogleProjectId()).getFirestore();
     String datasetId = dataset.getId().toString();
     // TODO: Do we need to make sure the dataset name does not contain characters that are invalid
     // for paths?

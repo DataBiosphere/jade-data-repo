@@ -11,7 +11,6 @@ import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
-import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
@@ -26,10 +25,10 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
+import bio.terra.service.tabulardata.google.BigQueryProject;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.cloud.bigquery.Acl;
-import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Dataset;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -208,11 +207,11 @@ class SnapshotPermissionsIntegrationTest {
 
   private List<Acl> fetchSourceDatasetAcls(String datasetName) throws Exception {
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
 
-    // Fetch BQ Dataset
+    // Fetch BQ Dataset with retry logic
     String bqDatasetName = BigQueryPdao.prefixName(datasetName);
-    Dataset bqDataset = bigQuery.getDataset(bqDatasetName);
+    BigQueryProject bigQueryProject = BigQueryProject.get(dataset.getDataProject());
+    Dataset bqDataset = bigQueryProject.getBQDataset(bqDatasetName);
 
     // fetch Acls
     List<Acl> acls = bqDataset.getAcl();

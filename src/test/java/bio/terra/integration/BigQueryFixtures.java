@@ -2,14 +2,13 @@ package bio.terra.integration;
 
 import static org.junit.Assert.assertTrue;
 
+import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
-import com.google.cloud.bigquery.Dataset;
-import com.google.cloud.bigquery.DatasetId;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,10 +45,11 @@ public final class BigQueryFixtures {
   }
 
   public static boolean datasetExists(BigQuery bigQuery, String projectId, String datasetName) {
+    // Use BigQueryProject for retry logic on dataset lookups
+    // Note: This uses application default credentials, not the passed-in bigQuery instance
     try {
-      DatasetId datasetId = DatasetId.of(projectId, datasetName);
-      Dataset dataset = bigQuery.getDataset(datasetId);
-      return (dataset != null);
+      BigQueryProject bigQueryProject = BigQueryProject.get(projectId);
+      return bigQueryProject.datasetExists(datasetName);
     } catch (Exception ex) {
       throw new IllegalStateException("existence check failed for " + datasetName, ex);
     }

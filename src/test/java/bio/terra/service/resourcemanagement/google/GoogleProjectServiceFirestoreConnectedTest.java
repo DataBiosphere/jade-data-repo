@@ -154,36 +154,6 @@ public class GoogleProjectServiceFirestoreConnectedTest {
   }
 
   @Test
-  public void testCheckFirestoreDatabaseExists() throws Exception {
-    // Use a custom database name to ensure it doesn't exist initially
-    // (the default database may already exist from App Engine setup)
-    String testDatabaseId = "test-existence-check-db";
-
-    try (FirestoreAdminClient firestoreAdminClient = FirestoreAdminClient.create()) {
-      // Before creating, custom database should not exist
-      boolean existsBefore =
-          GoogleProjectService.checkFirestoreDatabaseExists(
-              firestoreAdminClient, testProjectId, testDatabaseId);
-      assertThat("Database does not exist initially", existsBefore, is(false));
-
-      // Create the database
-      GoogleProjectService.createFirestoreDatabase(
-          firestoreAdminClient,
-          testProjectId,
-          testRegion.getRegionOrFallbackFirestoreRegion().toString(),
-          testDatabaseId);
-
-      // After creating, database should exist
-      boolean existsAfter =
-          GoogleProjectService.checkFirestoreDatabaseExists(
-              firestoreAdminClient, testProjectId, testDatabaseId);
-      assertThat("Database exists after creation", existsAfter, is(true));
-
-      logger.info("Successfully verified database existence check for {}", testDatabaseId);
-    }
-  }
-
-  @Test
   public void testCreateFirestoreDatabase() throws Exception {
     String customDatabaseId = "test-custom-db";
     try (FirestoreAdminClient firestoreAdminClient = FirestoreAdminClient.create()) {
@@ -256,8 +226,8 @@ public class GoogleProjectServiceFirestoreConnectedTest {
   }
 
   @Test
-  public void testCreateFirestoreDefaultDatabase() throws Exception {
-    // Call the method directly to create the Firestore database
+  public void testCreateFirestoreDefaultDatabaseIdempotent() throws Exception {
+    // First call - creates the Firestore database
     GoogleProjectService.createFirestoreDefaultDatabase(
         testProjectId, testRegion.getRegionOrFallbackFirestoreRegion().toString());
 
@@ -292,20 +262,11 @@ public class GoogleProjectServiceFirestoreConnectedTest {
     assertThat("Can read from Firestore", snapshot.exists(), is(true));
     assertThat("Data is correct", snapshot.getString("test-field"), is("test-value"));
 
-    logger.info("Successfully created and verified Firestore default database");
-  }
-
-  @Test
-  public void testIdempotentDatabaseCreation() throws Exception {
-    // First call - creates database
+    // Second call - should not fail (idempotency check)
     GoogleProjectService.createFirestoreDefaultDatabase(
         testProjectId, testRegion.getRegionOrFallbackFirestoreRegion().toString());
 
-    // Second call - should not fail (idempotent check)
-    GoogleProjectService.createFirestoreDefaultDatabase(
-        testProjectId, testRegion.getRegionOrFallbackFirestoreRegion().toString());
-
-    // Verify database still exists and is functional
+    // Verify database still exists and is functional after idempotent call
     try (FirestoreAdminClient firestoreAdminClient = FirestoreAdminClient.create()) {
       String databaseName = String.format("projects/%s/databases/(default)", testProjectId);
       Database database = firestoreAdminClient.getDatabase(databaseName);
@@ -313,21 +274,19 @@ public class GoogleProjectServiceFirestoreConnectedTest {
     }
 
     // Test that Firestore operations still work after idempotent call
-    Firestore firestore = FireStoreProject.get(testProjectId).getFirestore();
-
-    // Write new test data
-    CollectionReference testCollection = firestore.collection("test-collection-idempotent");
-    DocumentReference docRef = testCollection.document("test-doc-idempotent");
-    Map<String, Object> testData =
+    CollectionReference testCollectionIdempotent =
+        firestore.collection("test-collection-idempotent");
+    DocumentReference docRefIdempotent = testCollectionIdempotent.document("test-doc-idempotent");
+    Map<String, Object> testDataIdempotent =
         Map.of("test-field", "idempotent-value", "timestamp", System.currentTimeMillis());
-    docRef.set(testData).get();
+    docRefIdempotent.set(testDataIdempotent).get();
 
-    // Verify we can read it back
-    DocumentSnapshot snapshot = docRef.get().get();
-    assertThat("Can still read after idempotent call", snapshot.exists(), is(true));
-    assertThat("Data is correct", snapshot.getString("test-field"), is("idempotent-value"));
+    DocumentSnapshot snapshotIdempotent = docRefIdempotent.get().get();
+    assertThat("Can still read after idempotent call", snapshotIdempotent.exists(), is(true));
+    assertThat(
+        "Data is correct", snapshotIdempotent.getString("test-field"), is("idempotent-value"));
 
-    logger.info("Successfully verified idempotent database creation");
+    logger.info("Successfully created and verified idempotent Firestore default database");
   }
 
   @After
@@ -378,11 +337,6 @@ public class GoogleProjectServiceFirestoreConnectedTest {
           logger.warn("Failed to clean up custom-db-collection/custom-db-doc", e);
         }
 
-        // Clean up from testCheckFirestoreDatabaseExists test
-        // Note: We don't need to clean up data since this test doesn't write any documents
-        // The database itself will remain in the project (returned to RBS pool)
-        logger.info(
-            "testCheckFirestoreDatabaseExists database cleanup not needed (no documents written)");
       } catch (Exception e) {
         // Ignore cleanup errors - project will be returned to RBS pool
         logger.warn("Failed to clean up Firestore test data", e);

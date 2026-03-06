@@ -1,5 +1,7 @@
 package bio.terra.app.controller;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -20,9 +22,13 @@ import bio.terra.model.DRSObject;
 import bio.terra.model.DRSPassportRequestModel;
 import bio.terra.service.filedata.DrsService;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
@@ -137,6 +143,137 @@ class DataRepositoryServiceApiControllerTest {
     when(drsService.lookupAuthorizationsByDrsId(DRS_ID))
         .thenThrow(DrsObjectNotFoundException.class);
     mvc.perform(options(GET_DRS_OBJECT_ENDPOINT, DRS_ID)).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void testGetAccessURLLogsUserProject() throws Exception {
+    String userProject = "my-gcp-project";
+    when(drsService.getAccessUrlForObjectId(TEST_USER, DRS_ID, DRS_ACCESS_ID, userProject))
+        .thenReturn(DRS_ACCESS_URL_OBJECT);
+
+    Logger controllerLogger =
+        (Logger) LoggerFactory.getLogger(DataRepositoryServiceApiController.class);
+    ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+    listAppender.start();
+    controllerLogger.addAppender(listAppender);
+
+    try {
+      mvc.perform(
+              get(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID)
+                  .header("x-user-project", userProject))
+          .andExpect(status().isOk());
+
+      assertThat(
+          "log message contains objectId",
+          listAppender.list.stream().anyMatch(e -> e.getFormattedMessage().contains(DRS_ID)),
+          is(true));
+      assertThat(
+          "log message contains accessId",
+          listAppender.list.stream().anyMatch(e -> e.getFormattedMessage().contains(DRS_ACCESS_ID)),
+          is(true));
+      assertThat(
+          "log message contains userProject",
+          listAppender.list.stream().anyMatch(e -> e.getFormattedMessage().contains(userProject)),
+          is(true));
+    } finally {
+      controllerLogger.detachAppender(listAppender);
+    }
+  }
+
+  @Test
+  void testGetAccessURLLogsNullUserProject() throws Exception {
+    when(drsService.getAccessUrlForObjectId(TEST_USER, DRS_ID, DRS_ACCESS_ID, null))
+        .thenReturn(DRS_ACCESS_URL_OBJECT);
+
+    Logger controllerLogger =
+        (Logger) LoggerFactory.getLogger(DataRepositoryServiceApiController.class);
+    ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+    listAppender.start();
+    controllerLogger.addAppender(listAppender);
+
+    try {
+      mvc.perform(get(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID))
+          .andExpect(status().isOk());
+
+      assertThat(
+          "log message contains objectId",
+          listAppender.list.stream().anyMatch(e -> e.getFormattedMessage().contains(DRS_ID)),
+          is(true));
+      assertThat(
+          "log message contains null for userProject",
+          listAppender.list.stream().anyMatch(e -> e.getFormattedMessage().contains("null")),
+          is(true));
+    } finally {
+      controllerLogger.detachAppender(listAppender);
+    }
+  }
+
+  @Test
+  void testPostAccessURLLogsUserProject() throws Exception {
+    String userProject = "my-gcp-project";
+    when(drsService.postAccessUrlForObjectId(DRS_ID, DRS_ACCESS_ID, PASSPORT, userProject))
+        .thenReturn(DRS_ACCESS_URL_OBJECT);
+
+    Logger controllerLogger =
+        (Logger) LoggerFactory.getLogger(DataRepositoryServiceApiController.class);
+    ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+    listAppender.start();
+    controllerLogger.addAppender(listAppender);
+
+    try {
+      mvc.perform(
+              post(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID)
+                  .header("x-user-project", userProject)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(TestUtils.mapToJson(PASSPORT)))
+          .andExpect(status().isOk());
+
+      assertThat(
+          "log message contains objectId",
+          listAppender.list.stream().anyMatch(e -> e.getFormattedMessage().contains(DRS_ID)),
+          is(true));
+      assertThat(
+          "log message contains accessId",
+          listAppender.list.stream().anyMatch(e -> e.getFormattedMessage().contains(DRS_ACCESS_ID)),
+          is(true));
+      assertThat(
+          "log message contains userProject",
+          listAppender.list.stream().anyMatch(e -> e.getFormattedMessage().contains(userProject)),
+          is(true));
+    } finally {
+      controllerLogger.detachAppender(listAppender);
+    }
+  }
+
+  @Test
+  void testPostAccessURLLogsNullUserProject() throws Exception {
+    when(drsService.postAccessUrlForObjectId(DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
+        .thenReturn(DRS_ACCESS_URL_OBJECT);
+
+    Logger controllerLogger =
+        (Logger) LoggerFactory.getLogger(DataRepositoryServiceApiController.class);
+    ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+    listAppender.start();
+    controllerLogger.addAppender(listAppender);
+
+    try {
+      mvc.perform(
+              post(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(TestUtils.mapToJson(PASSPORT)))
+          .andExpect(status().isOk());
+
+      assertThat(
+          "log message contains objectId",
+          listAppender.list.stream().anyMatch(e -> e.getFormattedMessage().contains(DRS_ID)),
+          is(true));
+      assertThat(
+          "log message contains null for userProject",
+          listAppender.list.stream().anyMatch(e -> e.getFormattedMessage().contains("null")),
+          is(true));
+    } finally {
+      controllerLogger.detachAppender(listAppender);
+    }
   }
 
   @Test

@@ -2,13 +2,17 @@ package bio.terra.integration;
 
 import static org.junit.Assert.assertTrue;
 
+import bio.terra.common.AclUtils;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.Dataset;
+import com.google.cloud.bigquery.DatasetId;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,15 +48,21 @@ public final class BigQueryFixtures {
     return getBigQuery(projectId, googleCredentials);
   }
 
-  public static boolean datasetExists(BigQuery bigQuery, String projectId, String datasetName) {
-    // Use BigQueryProject for retry logic on dataset lookups
-    // Note: This uses application default credentials, not the passed-in bigQuery instance
-    try {
-      BigQueryProject bigQueryProject = BigQueryProject.get(projectId);
-      return bigQueryProject.datasetExists(datasetName);
-    } catch (Exception ex) {
-      throw new IllegalStateException("existence check failed for " + datasetName, ex);
-    }
+  public static boolean datasetExists(BigQuery bigQuery, String projectId, String datasetName)
+      throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.get(projectId);
+    Dataset dataset =
+        AclUtils.aclUpdateRetry(
+            () -> {
+              try {
+                DatasetId datasetId = DatasetId.of(projectId, datasetName);
+                return bigQuery.getDataset(datasetId);
+              } catch (BigQueryException ex) {
+                bigQueryProject.bigQueryAclUpdateShouldRetry(ex);
+              }
+              return null;
+            });
+    return dataset != null;
   }
 
   private static final int WAIT_FOR_ACCESS_SECONDS = 180;

@@ -177,7 +177,7 @@ public final class BigQueryProject {
   }
 
   @VisibleForTesting
-  void bigQueryAclUpdateShouldRetry(BigQueryException ex) {
+  public void bigQueryAclUpdateShouldRetry(BigQueryException ex) {
     String message = ex.getMessage();
     if (message.startsWith("IAM setPolicy") && message.endsWith("does not exist.")) {
       throw new AclUtils.AclRetryException(

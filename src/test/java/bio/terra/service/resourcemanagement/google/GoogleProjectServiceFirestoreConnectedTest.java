@@ -11,7 +11,6 @@ import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
-import bio.terra.model.BillingProfileModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import bio.terra.service.resourcemanagement.BufferService;
@@ -62,16 +61,12 @@ public class GoogleProjectServiceFirestoreConnectedTest {
   @Autowired private GoogleResourceConfiguration resourceConfiguration;
   @MockitoBean private IamProviderInterface samService;
 
-  private BillingProfileModel billingProfile;
   private String testProjectId;
   private GoogleRegion testRegion = GoogleRegion.US_CENTRAL1;
 
   @Before
   public void setup() throws Exception {
     connectedOperations.stubOutSamCalls(samService);
-    billingProfile =
-        connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
-
     // Get a project from RBS
     ResourceInfo resource = bufferService.handoutResource(false);
     testProjectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();

@@ -428,24 +428,20 @@ public class GoogleProjectService {
     blockUntilAppengineOperationComplete(appengine, operation, googleProjectId, timeout);
     logger.info("Firestore was enabled successfully");
 
-    // Explicitly create the "(default)" database
-    // In newer versions of GCP, creating an App Engine app no longer automatically creates the
-    // database
+    // Explicitly create the "(default)" database if it does not exist
     createFirestoreDefaultDatabase(googleProjectId, firestoreRegion.toString());
   }
 
   /**
-   * Create the "(default)" Firestore database in the specified project and location. This is
-   * required because creating an App Engine application no longer automatically creates the
-   * Firestore database.
+   * Create the "(default)" Firestore database in the specified project and location.
    *
    * @param googleProjectId the Google project ID
    * @param locationId the location/region for the database (e.g., "us-central1")
-   * @throws IOException if the API call fails
+   * @throws GoogleResourceException if the API call fails
    */
   @VisibleForTesting
   static void createFirestoreDefaultDatabase(String googleProjectId, String locationId)
-      throws IOException {
+      throws GoogleResourceException {
     logger.info("Creating Firestore (default) database in project {}", googleProjectId);
 
     try (FirestoreAdminClient firestoreAdminClient = FirestoreAdminClient.create()) {
@@ -460,9 +456,10 @@ public class GoogleProjectService {
       logger.info(
           "Firestore (default) database created successfully in project {}", googleProjectId);
     } catch (Exception e) {
-      logger.error(
-          "Failed to create Firestore (default) database in project {}", googleProjectId, e);
-      throw new IOException("Failed to create Firestore database", e);
+      throw new GoogleResourceException(
+          String.format(
+              "Failed to create Firestore (default) database with error %s", e.getMessage()),
+          e);
     }
   }
 
@@ -479,7 +476,7 @@ public class GoogleProjectService {
       FirestoreAdminClient firestoreAdminClient, String googleProjectId, String databaseId) {
     String databaseName = String.format("projects/%s/databases/%s", googleProjectId, databaseId);
     try {
-      Database existingDb = firestoreAdminClient.getDatabase(databaseName);
+      firestoreAdminClient.getDatabase(databaseName);
       logger.info("Firestore database {} exists in project {}", databaseId, googleProjectId);
       return true;
     } catch (Exception e) {
@@ -501,7 +498,7 @@ public class GoogleProjectService {
    * @param locationId the location/region for the database (e.g., "us-central1")
    * @param databaseId the database ID (e.g., "(default)" or a custom name)
    * @return the created Database object
-   * @throws IOException if the API call fails
+   * @throws GoogleResourceException if the API call fails
    */
   @VisibleForTesting
   static Database createFirestoreDatabase(
@@ -509,7 +506,7 @@ public class GoogleProjectService {
       String googleProjectId,
       String locationId,
       String databaseId)
-      throws IOException {
+      throws GoogleResourceException {
     logger.info(
         "Creating Firestore database {} in project {} at location {}",
         databaseId,
@@ -539,9 +536,9 @@ public class GoogleProjectService {
           createdDatabase.getName());
       return createdDatabase;
     } catch (Exception e) {
-      logger.error(
-          "Failed to create Firestore database {} in project {}", databaseId, googleProjectId, e);
-      throw new IOException(String.format("Failed to create Firestore database %s", databaseId), e);
+      throw new GoogleResourceException(
+          String.format(
+              "Failed to create Firestore database %s with error %s", databaseId, e.getMessage()));
     }
   }
 

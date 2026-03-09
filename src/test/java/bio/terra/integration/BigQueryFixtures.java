@@ -48,21 +48,14 @@ public final class BigQueryFixtures {
     return getBigQuery(projectId, googleCredentials);
   }
 
-  public static boolean datasetExists(BigQuery bigQuery, String projectId, String datasetName)
-      throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.get(projectId);
-    Dataset dataset =
-        AclUtils.aclUpdateRetry(
-            () -> {
-              try {
-                DatasetId datasetId = DatasetId.of(projectId, datasetName);
-                return bigQuery.getDataset(datasetId);
-              } catch (BigQueryException ex) {
-                bigQueryProject.bigQueryAclUpdateShouldRetry(ex);
-              }
-              return null;
-            });
-    return dataset != null;
+  public static boolean datasetExists(BigQuery bigQuery, String projectId, String datasetName) {
+    try {
+      DatasetId datasetId = DatasetId.of(projectId, datasetName);
+      Dataset dataset = bigQuery.getDataset(datasetId);
+      return (dataset != null);
+    } catch (Exception ex) {
+      throw new IllegalStateException("existence check failed for " + datasetName, ex);
+    }
   }
 
   private static final int WAIT_FOR_ACCESS_SECONDS = 180;

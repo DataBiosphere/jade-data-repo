@@ -2,6 +2,7 @@ package bio.terra.service.filedata.google.firestore;
 
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreOptions;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +24,7 @@ public final class FireStoreProject {
     return projectId;
   }
 
+  @VisibleForTesting
   public Firestore getFirestore() {
     return firestore;
   }

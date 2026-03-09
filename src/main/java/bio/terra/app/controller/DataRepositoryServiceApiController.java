@@ -128,6 +128,11 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
   @Override
   public ResponseEntity<DRSAccessURL> getAccessURL(
       String objectId, String accessId, String userProject) {
+    logger.info(
+        "getAccessURL called for object {} access {} with x-user-project: {}",
+        objectId,
+        accessId,
+        userProject);
     AuthenticatedUserRequest authUser = getAuthenticatedInfo();
     DRSAccessURL accessURL =
         drsService.getAccessUrlForObjectId(authUser, objectId, accessId, userProject);
@@ -140,6 +145,11 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
       String accessId,
       DRSPassportRequestModel drsPassportRequestModel,
       String userProject) {
+    logger.info(
+        "postAccessURL called for object {} access {} with x-user-project: {}",
+        objectId,
+        accessId,
+        userProject);
     DRSAccessURL accessURL =
         drsService.postAccessUrlForObjectId(
             objectId, accessId, drsPassportRequestModel, userProject);

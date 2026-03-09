@@ -111,9 +111,15 @@ public final class BigQueryFixtures {
             DatasetId datasetId = DatasetId.of(googleProjectId, datasetBQName);
             return providedBigQuery.getDataset(datasetId);
           } catch (BigQueryException ex) {
-            bigQueryProject.bigQueryAclUpdateShouldRetry(ex);
+            String message = ex.getMessage();
+            if (message.startsWith("Access Denied")) {
+              throw new AclUtils.AclRetryException(
+                  "User does not have access to the BigQueryDataset. Retrying to wait for propagation",
+                  ex,
+                  "propagation");
+            }
+            throw ex;
           }
-          return null;
         });
   }
 }

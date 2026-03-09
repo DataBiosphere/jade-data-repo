@@ -104,4 +104,23 @@ public final class BigQueryFixtures {
         "BigQuery dataset exists and is accessible",
         BigQueryFixtures.datasetExists(bigQuery, dataProject, bqDatasetName));
   }
+
+  // Fixture that should replicate BigQueryProject.getBQDataset, but allows providing a
+  // BigQuery instance with a user token so you can test if a particular user has access
+  // on the BigQuery instance
+  public static Dataset getBQDataset(
+      BigQuery providedBigQuery, String googleProjectId, String datasetBQName)
+      throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.get(googleProjectId);
+    return AclUtils.aclUpdateRetry(
+        () -> {
+          try {
+            DatasetId datasetId = DatasetId.of(googleProjectId, datasetBQName);
+            return providedBigQuery.getDataset(datasetId);
+          } catch (BigQueryException ex) {
+            bigQueryProject.bigQueryAclUpdateShouldRetry(ex);
+          }
+          return null;
+        });
+  }
 }

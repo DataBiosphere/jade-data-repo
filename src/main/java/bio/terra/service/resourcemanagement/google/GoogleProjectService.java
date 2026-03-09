@@ -373,7 +373,9 @@ public class GoogleProjectService {
   }
 
   /** Create a client to speak to the appengine admin api */
-  private Appengine appengine() throws GeneralSecurityException, IOException {
+  @VisibleForTesting
+  static Appengine createAppengineClient(String applicationName)
+      throws GeneralSecurityException, IOException {
     HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
     JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
 
@@ -385,19 +387,27 @@ public class GoogleProjectService {
     }
 
     return new Appengine.Builder(httpTransport, jsonFactory, credential)
-        .setApplicationName(resourceConfiguration.applicationName())
+        .setApplicationName(applicationName)
         .build();
   }
 
+  private Appengine appengine() throws GeneralSecurityException, IOException {
+    return createAppengineClient(resourceConfiguration.applicationName());
+  }
+
   /**
-   * Enable Firestore in native mode in an existing project
+   * Create an App Engine application in Firestore native mode. This is a prerequisite for creating
+   * Firestore databases.
    *
    * @param appengine appengine client
-   * @param googleProjectId name of the google project to create the Firestore DB in
+   * @param googleProjectId name of the google project
    * @param region the region of the project
    * @param timeout how long to wait for the creation operation
+   * @throws IOException if the API call fails
+   * @throws InterruptedException if the wait is interrupted
    */
-  private static void enableFirestore(
+  @VisibleForTesting
+  static void createAppEngineApplication(
       final Appengine appengine,
       final String googleProjectId,
       final GoogleRegion region,
@@ -405,9 +415,8 @@ public class GoogleProjectService {
       throws IOException, InterruptedException {
     GoogleRegion firestoreRegion = region.getRegionOrFallbackFirestoreRegion();
     logger.info(
-        "Enabling Firestore in project {} in location {}",
-        googleProjectId,
-        firestoreRegion.toString());
+        "Creating App Engine application in project {} at {}", googleProjectId, firestoreRegion);
+
     // Create a request object
     Appengine.Apps.Create createRequest =
         appengine
@@ -424,11 +433,30 @@ public class GoogleProjectService {
     // Execute the request
     com.google.api.services.appengine.v1.model.Operation operation = createRequest.execute();
 
-    // Wait for the Firestore creation to finish
+    // Wait for the App Engine application creation to complete
     blockUntilAppengineOperationComplete(appengine, operation, googleProjectId, timeout);
-    logger.info("Firestore was enabled successfully");
+    logger.info("App Engine application created successfully");
+  }
+
+  /**
+   * Enable Firestore in native mode in an existing project
+   *
+   * @param appengine appengine client
+   * @param googleProjectId name of the google project to create the Firestore DB in
+   * @param region the region of the project
+   * @param timeout how long to wait for the creation operation
+   */
+  private static void enableFirestore(
+      final Appengine appengine,
+      final String googleProjectId,
+      final GoogleRegion region,
+      final long timeout)
+      throws IOException, InterruptedException {
+    // Create App Engine application (prerequisite for Firestore databases)
+    createAppEngineApplication(appengine, googleProjectId, region, timeout);
 
     // Explicitly create the "(default)" database if it does not exist
+    GoogleRegion firestoreRegion = region.getRegionOrFallbackFirestoreRegion();
     createFirestoreDefaultDatabase(googleProjectId, firestoreRegion.toString());
   }
 

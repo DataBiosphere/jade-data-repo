@@ -14,22 +14,14 @@ import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import bio.terra.service.resourcemanagement.BufferService;
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.appengine.v1.Appengine;
-import com.google.api.services.appengine.v1.model.Application;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.v1.FirestoreAdminClient;
 import com.google.firestore.admin.v1.Database;
-import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -72,80 +64,11 @@ public class GoogleProjectServiceFirestoreConnectedTest {
     testProjectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
 
     // Enable Firestore using App Engine API (prerequisite for database creation)
-    // This is what enableFirestore() does before calling createFirestoreDefaultDatabase
-    enableFirestoreApp(testProjectId, testRegion);
-  }
-
-  /**
-   * Enable Firestore by creating an App Engine application. This is extracted from
-   * GoogleProjectService.enableFirestore() to serve as the prerequisite setup before testing
-   * createFirestoreDefaultDatabase directly.
-   */
-  private void enableFirestoreApp(String projectId, GoogleRegion region) throws Exception {
-    Appengine appengine = createAppengineClient();
-    GoogleRegion firestoreRegion = region.getRegionOrFallbackFirestoreRegion();
-
-    logger.info("Creating App Engine application in project {} at {}", projectId, firestoreRegion);
-
-    Application app =
-        new Application()
-            .setId(projectId)
-            .setLocationId(firestoreRegion.toString())
-            .setDatabaseType("CLOUD_FIRESTORE");
-
-    Appengine.Apps.Create createRequest = appengine.apps().create(app);
-    createRequest.getRequestHeaders().set("X-Goog-User-Project", projectId);
-
-    com.google.api.services.appengine.v1.model.Operation operation = createRequest.execute();
-
-    // Wait for App Engine application creation to complete
-    long timeout = resourceConfiguration.projectCreateTimeoutSeconds();
-    waitForAppengineOperation(appengine, operation, projectId, timeout);
-    logger.info("App Engine application created successfully");
-  }
-
-  private Appengine createAppengineClient() throws Exception {
-    HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-    JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
-
-    GoogleCredential credential = GoogleCredential.getApplicationDefault();
-    if (credential.createScopedRequired()) {
-      credential =
-          credential.createScoped(
-              Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
-    }
-
-    return new Appengine.Builder(httpTransport, jsonFactory, credential)
-        .setApplicationName(resourceConfiguration.applicationName())
-        .build();
-  }
-
-  private void waitForAppengineOperation(
-      Appengine appengine,
-      com.google.api.services.appengine.v1.model.Operation operation,
-      String appId,
-      long timeoutSeconds)
-      throws Exception {
-    long start = System.currentTimeMillis();
-    final long pollInterval = TimeUnit.SECONDS.toMillis(10);
-    final String opName = operation.getName();
-    final String opId = GoogleProjectService.extractOperationIdFromName(appId, opName);
-
-    while (operation != null && (operation.getDone() == null || !operation.getDone())) {
-      com.google.api.services.appengine.v1.model.Status error = operation.getError();
-      if (error != null) {
-        throw new RuntimeException("Error while waiting for operation: " + error.getMessage());
-      }
-      Thread.sleep(pollInterval);
-      long elapsed = System.currentTimeMillis() - start;
-      if (elapsed >= TimeUnit.SECONDS.toMillis(timeoutSeconds)) {
-        throw new RuntimeException("Timed out waiting for operation to complete");
-      }
-      logger.info("Checking App Engine operation: {}", opId);
-      Appengine.Apps.Operations.Get request = appengine.apps().operations().get(appId, opId);
-      request.getRequestHeaders().set("X-Goog-User-Project", appId);
-      operation = request.execute();
-    }
+    // This creates the App Engine application but not the default database
+    Appengine appengine =
+        GoogleProjectService.createAppengineClient(resourceConfiguration.applicationName());
+    GoogleProjectService.createAppEngineApplication(
+        appengine, testProjectId, testRegion, resourceConfiguration.projectCreateTimeoutSeconds());
   }
 
   @Test

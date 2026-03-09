@@ -209,57 +209,6 @@ public class GoogleProjectServiceFirestoreConnectedTest {
 
   @After
   public void teardown() throws Exception {
-    // Clean up test data in Firestore if needed
-    if (testProjectId != null) {
-      try {
-        Firestore firestore = FireStoreProject.get(testProjectId).getFirestore();
-
-        // Clean up from first test
-        try {
-          firestore.collection("test-collection").document("test-doc").delete().get();
-        } catch (Exception e) {
-          logger.warn("Failed to clean up test-collection/test-doc", e);
-        }
-
-        // Clean up from idempotency test
-        try {
-          firestore
-              .collection("test-collection-idempotent")
-              .document("test-doc-idempotent")
-              .delete()
-              .get();
-        } catch (Exception e) {
-          logger.warn("Failed to clean up test-collection-idempotent/test-doc-idempotent", e);
-        }
-
-        // Clean up from testCreateFirestoreDatabase test (custom database)
-        try {
-          String customDatabaseId = "test-custom-db";
-          com.google.cloud.firestore.FirestoreOptions firestoreOptions =
-              com.google.cloud.firestore.FirestoreOptions.newBuilder()
-                  .setProjectId(testProjectId)
-                  .setDatabaseId(customDatabaseId)
-                  .build();
-          Firestore customFirestore = firestoreOptions.getService();
-          try {
-            customFirestore
-                .collection("custom-db-collection")
-                .document("custom-db-doc")
-                .delete()
-                .get();
-            logger.info("Cleaned up custom database test data");
-          } finally {
-            customFirestore.close();
-          }
-        } catch (Exception e) {
-          logger.warn("Failed to clean up custom-db-collection/custom-db-doc", e);
-        }
-
-      } catch (Exception e) {
-        // Ignore cleanup errors - project will be returned to RBS pool
-        logger.warn("Failed to clean up Firestore test data", e);
-      }
-    }
     connectedOperations.teardown();
   }
 }

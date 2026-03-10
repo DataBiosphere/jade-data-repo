@@ -12,6 +12,7 @@ import bio.terra.app.usermetrics.BardEventProperties;
 import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.FutureUtils;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.exception.UnauthorizedException;
@@ -509,6 +510,16 @@ public class DrsService {
     }
 
     CloudPlatformWrapper platform = CloudPlatformWrapper.of(cachedSnapshot.cloudPlatform);
+    if (platform.isGcp() && cachedSnapshot.requireUserProject()) {
+      if (StringUtils.isEmpty(userProject)) {
+        throw new BadRequestException(
+            "Snapshot requires an x-user-project header for DRS access URL requests");
+      }
+      if (userProject.equals(cachedSnapshot.googleProjectId())) {
+        throw new BadRequestException(
+            "The supplied x-user-project must not be the snapshot's own project");
+      }
+    }
     if (platform.isGcp()) {
       return signGoogleUrl(cachedSnapshot, fsFile.getCloudPath(), authUser, userProject);
     } else if (platform.isAzure()) {
@@ -1044,6 +1055,7 @@ public class DrsService {
       String name,
       boolean isSelfHosted,
       boolean globalFileIds,
+      boolean requireUserProject,
       BillingProfileModel datasetBillingProfileModel,
       UUID snapshotBillingProfileId,
       CloudPlatform cloudPlatform,
@@ -1057,6 +1069,7 @@ public class DrsService {
           snapshot.getName(),
           snapshot.isSelfHosted(),
           snapshot.hasGlobalFileIds(),
+          snapshot.isRequireUserProject(),
           snapshot.getSourceDataset().getDatasetSummary().getDefaultBillingProfile(),
           snapshot.getProfileId(),
           snapshot.getCloudPlatform(),

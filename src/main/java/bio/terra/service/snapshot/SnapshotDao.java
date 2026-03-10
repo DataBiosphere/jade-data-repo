@@ -215,11 +215,11 @@ public class SnapshotDao implements TaggableResourceDao {
             INSERT INTO snapshot
             (name, description, profile_id, project_resource_id, id, consent_code, flightid,
               creation_information, properties, global_file_ids, compact_id_prefix,
-              duos_firecloud_group_id, tags)
+              duos_firecloud_group_id, tags, require_user_project)
             VALUES
             (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid,
               :creation_information::jsonb, :properties::jsonb, :global_file_ids, :compact_id_prefix,
-              :duos_firecloud_group_id, :tags)
+              :duos_firecloud_group_id, :tags, :require_user_project)
             """;
     String creationInfo;
     try {
@@ -249,7 +249,8 @@ public class SnapshotDao implements TaggableResourceDao {
             .addValue("global_file_ids", snapshot.hasGlobalFileIds())
             .addValue("compact_id_prefix", snapshot.getCompactIdPrefix())
             .addValue("duos_firecloud_group_id", snapshot.getDuosFirecloudGroupId())
-            .addValue("tags", tags);
+            .addValue("tags", tags)
+            .addValue("require_user_project", snapshot.isRequireUserProject());
 
     try {
       jdbcTemplate.update(sql, params);
@@ -402,6 +403,7 @@ public class SnapshotDao implements TaggableResourceDao {
                               rs.getString("creation_information")))
                       .consentCode(rs.getString("consent_code"))
                       .globalFileIds(rs.getBoolean("global_file_ids"))
+                      .requireUserProject(rs.getBoolean("require_user_project"))
                       .compactIdPrefix(rs.getString("compact_id_prefix"))
                       .properties(
                           DaoUtils.stringToProperties(objectMapper, rs.getString("properties")))
@@ -660,7 +662,7 @@ public class SnapshotDao implements TaggableResourceDao {
 
     String sql =
         "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
-            + "snapshot.global_file_ids, snapshot.tags, snapshot.flightid, "
+            + "snapshot.global_file_ids, snapshot.require_user_project, snapshot.tags, snapshot.flightid, "
             + "snapshot_source.id, "
             + "dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id,"
             + "dataset.self_hosted, dfg.duos_id,"
@@ -715,7 +717,7 @@ public class SnapshotDao implements TaggableResourceDao {
     try {
       String sql =
           "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
-              + "snapshot.consent_code, snapshot.global_file_ids, snapshot.tags, snapshot.flightid, "
+              + "snapshot.consent_code, snapshot.global_file_ids, snapshot.require_user_project, snapshot.tags, snapshot.flightid, "
               + "dataset.secure_monitoring, dataset.phs_id, dataset.self_hosted, dfg.duos_id, "
               + summaryCloudPlatformQuery
               + snapshotSourceStorageQuery
@@ -847,6 +849,7 @@ public class SnapshotDao implements TaggableResourceDao {
           .phsId(rs.getString("phs_id"))
           .selfHosted(rs.getBoolean("self_hosted"))
           .globalFileIds(rs.getBoolean("global_file_ids"))
+          .requireUserProject(rs.getBoolean("require_user_project"))
           .tags(DaoUtils.getStringList(rs, "tags"))
           .resourceLocks(new ResourceLocks().exclusive(rs.getString("flightid")))
           .duosId(rs.getString("duos_id"));

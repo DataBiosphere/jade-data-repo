@@ -42,6 +42,7 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
   private UUID duosFirecloudGroupId;
   private DuosFirecloudGroupModel duosFirecloudGroup;
   private boolean globalFileIds;
+  private boolean requireUserProject;
   private String compactIdPrefix;
   private List<String> tags;
   private ResourceLocks resourceLocks;
@@ -253,6 +254,15 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
 
   public Snapshot globalFileIds(boolean globalFileIds) {
     this.globalFileIds = globalFileIds;
+    return this;
+  }
+
+  public boolean isRequireUserProject() {
+    return requireUserProject;
+  }
+
+  public Snapshot requireUserProject(boolean requireUserProject) {
+    this.requireUserProject = requireUserProject;
     return this;
   }
 

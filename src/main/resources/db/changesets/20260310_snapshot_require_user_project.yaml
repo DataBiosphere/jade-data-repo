@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: snapshot_require_user_project
+      author: fboulnoi
+      changes:
+        - addColumn:
+            tableName: snapshot
+            columns:
+              name: require_user_project
+              type: boolean
+              defaultValue: false
+              constraints:
+                nullable: false

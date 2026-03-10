@@ -36,6 +36,7 @@ import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.TestUtils;
 import bio.terra.common.UriUtils;
 import bio.terra.common.category.Unit;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.externalcreds.model.ValidatePassportResult;
@@ -858,6 +859,85 @@ class DrsServiceTest {
         "contains requester email",
         UriUtils.getValueFromQueryParameter(url.getUrl(), GcsConstants.REQUESTED_BY_QUERY_PARAM),
         equalTo(TEST_USER.getEmail()));
+  }
+
+  @Test
+  void getAccessUrlRequiresUserProjectWhenFlagSet() {
+    Snapshot snapshot =
+        mockSnapshot(snapshotId, billingProfile.getId(), CloudPlatform.GCP, SNAPSHOT_DATA_PROJECT);
+    snapshot.requireUserProject(true);
+    when(snapshotService.retrieve(snapshotId)).thenReturn(snapshot);
+
+    DRSObject drsObject = drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false);
+    assertThrows(
+        BadRequestException.class,
+        () ->
+            drsService.getAccessUrlForObjectId(
+                TEST_USER,
+                googleDrsObjectId,
+                drsObject.getAccessMethods().get(0).getAccessId(),
+                null));
+  }
+
+  @Test
+  void getAccessUrlRejectsSnapshotProjectWhenFlagSet() {
+    Snapshot snapshot =
+        mockSnapshot(snapshotId, billingProfile.getId(), CloudPlatform.GCP, SNAPSHOT_DATA_PROJECT);
+    snapshot.requireUserProject(true);
+    when(snapshotService.retrieve(snapshotId)).thenReturn(snapshot);
+
+    DRSObject drsObject = drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false);
+    assertThrows(
+        BadRequestException.class,
+        () ->
+            drsService.getAccessUrlForObjectId(
+                TEST_USER,
+                googleDrsObjectId,
+                drsObject.getAccessMethods().get(0).getAccessId(),
+                SNAPSHOT_DATA_PROJECT));
+  }
+
+  @Test
+  void getAccessUrlSucceedsWithDifferentUserProject() {
+    Snapshot snapshot =
+        mockSnapshot(snapshotId, billingProfile.getId(), CloudPlatform.GCP, SNAPSHOT_DATA_PROJECT);
+    snapshot.requireUserProject(true);
+    when(snapshotService.retrieve(snapshotId)).thenReturn(snapshot);
+    when(snapshotService.retrieveSnapshotSummary(snapshotId))
+        .thenReturn(new SnapshotSummaryModel().id(snapshotId));
+
+    String differentProject = "my-other-project";
+    Storage storage = mock(Storage.class);
+    when(drsService.initStorage(SNAPSHOT_DATA_PROJECT)).thenReturn(storage);
+    when(storage.signUrl(any(), any(long.class), any(), any(), any()))
+        .thenAnswer(a -> new java.net.URL("https://storage.googleapis.com/path/to/file.txt"));
+
+    DRSObject drsObject = drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false);
+    DRSAccessURL result =
+        drsService.getAccessUrlForObjectId(
+            TEST_USER,
+            googleDrsObjectId,
+            drsObject.getAccessMethods().get(0).getAccessId(),
+            differentProject);
+    assertThat("returns a URL", result.getUrl(), containsString("storage.googleapis.com"));
+  }
+
+  @Test
+  void getAccessUrlWithoutRequireUserProjectFlagSucceedsWithoutUserProject() {
+    // Default snapshot has requireUserProject = false; no userProject supplied → should pass
+    DRSObject drsObject = drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false);
+    when(snapshotService.retrieveSnapshotSummary(snapshotId))
+        .thenReturn(new SnapshotSummaryModel().id(snapshotId));
+
+    Storage storage = mock(Storage.class);
+    when(drsService.initStorage(SNAPSHOT_DATA_PROJECT)).thenReturn(storage);
+    when(storage.signUrl(any(), any(long.class), any(), any(), any()))
+        .thenAnswer(a -> new java.net.URL("https://storage.googleapis.com/path/to/file.txt"));
+
+    DRSAccessURL result =
+        drsService.getAccessUrlForObjectId(
+            TEST_USER, googleDrsObjectId, drsObject.getAccessMethods().get(0).getAccessId(), null);
+    assertThat("returns a URL", result.getUrl(), containsString("storage.googleapis.com"));
   }
 
   @Test

@@ -13,8 +13,8 @@ import org.slf4j.LoggerFactory;
 public class AclUtils {
   private static final Logger logger = LoggerFactory.getLogger(AclUtils.class);
 
-  private static final int RETRIES = 30;
-  private static final int MAX_WAIT_SECONDS = 60;
+  private static final int RETRIES = 15;
+  private static final int MAX_WAIT_SECONDS = 30;
   private static final int INITIAL_WAIT_SECONDS = 2;
   private static final Random RANDOM = new Random();
 

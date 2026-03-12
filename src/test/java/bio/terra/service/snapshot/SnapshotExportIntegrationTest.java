@@ -82,7 +82,7 @@ class SnapshotExportIntegrationTest {
 
   private static final Logger logger = LoggerFactory.getLogger(SnapshotExportIntegrationTest.class);
   private Users.TestUsers testUsers;
-  private String stewardToken;
+  private String custodianToken;
   private String readerToken;
   private UUID profileId;
   private final List<UUID> createdDatasetsIds = new ArrayList<>();
@@ -103,7 +103,7 @@ class SnapshotExportIntegrationTest {
   @BeforeEach
   public void setup() throws Exception {
     testUsers = users.testUsers();
-    stewardToken = authService.getDirectAccessAuthToken(steward().email());
+    custodianToken = authService.getDirectAccessAuthToken(custodian().email());
     readerToken = authService.getDirectAccessAuthToken(reader().email());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     dataRepoFixtures.addPolicyMember(
@@ -252,7 +252,7 @@ class SnapshotExportIntegrationTest {
             .getService();
     Storage authedStorage =
         StorageOptions.newBuilder()
-            .setCredentials(new GoogleCredentials(new AccessToken(stewardToken, null)))
+            .setCredentials(new GoogleCredentials(new AccessToken(custodianToken, null)))
             .build()
             .getService();
 

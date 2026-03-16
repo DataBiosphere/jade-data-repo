@@ -880,7 +880,7 @@ class DrsServiceTest {
   }
 
   @Test
-  void getAccessUrlRejectsSnapshotProjectWhenFlagSet() {
+  void getAccessUrlRejectsBlankUserProjectWhenFlagSet() {
     Snapshot snapshot =
         mockSnapshot(snapshotId, billingProfile.getId(), CloudPlatform.GCP, SNAPSHOT_DATA_PROJECT);
     snapshot.requireUserProject(true);
@@ -894,7 +894,39 @@ class DrsServiceTest {
                 TEST_USER,
                 googleDrsObjectId,
                 drsObject.getAccessMethods().get(0).getAccessId(),
-                SNAPSHOT_DATA_PROJECT));
+                "   "));
+  }
+
+  @Test
+  void getAccessUrlRejectsSnapshotProjectWhenFlagSet() {
+    Snapshot snapshot =
+        mockSnapshot(snapshotId, billingProfile.getId(), CloudPlatform.GCP, SNAPSHOT_DATA_PROJECT);
+    snapshot.requireUserProject(true);
+    when(snapshotService.retrieve(snapshotId)).thenReturn(snapshot);
+
+    DRSObject drsObject = drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false);
+    String accessId = drsObject.getAccessMethods().get(0).getAccessId();
+
+    // exact match
+    assertThrows(
+        BadRequestException.class,
+        () ->
+            drsService.getAccessUrlForObjectId(
+                TEST_USER, googleDrsObjectId, accessId, SNAPSHOT_DATA_PROJECT));
+
+    // mixed-case bypass attempt
+    assertThrows(
+        BadRequestException.class,
+        () ->
+            drsService.getAccessUrlForObjectId(
+                TEST_USER, googleDrsObjectId, accessId, SNAPSHOT_DATA_PROJECT.toUpperCase()));
+
+    // whitespace-padded bypass attempt
+    assertThrows(
+        BadRequestException.class,
+        () ->
+            drsService.getAccessUrlForObjectId(
+                TEST_USER, googleDrsObjectId, accessId, "  " + SNAPSHOT_DATA_PROJECT + "  "));
   }
 
   @Test

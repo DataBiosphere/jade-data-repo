@@ -511,13 +511,13 @@ public class DrsService {
 
     CloudPlatformWrapper platform = CloudPlatformWrapper.of(cachedSnapshot.cloudPlatform);
     if (platform.isGcp() && cachedSnapshot.requireUserProject()) {
-      if (StringUtils.isEmpty(userProject)) {
+      if (StringUtils.isBlank(userProject)) {
         // Note: This error message is relied upon by DRSHub to determine if it needs to retry the
         // request with a user project.
         throw new BadRequestException(
             "Snapshot requires an x-user-project header for DRS access URL requests");
       }
-      if (userProject.equals(cachedSnapshot.googleProjectId())) {
+      if (userProject.strip().equalsIgnoreCase(cachedSnapshot.googleProjectId())) {
         throw new BadRequestException(
             "The supplied x-user-project must not be the snapshot's own project");
       }

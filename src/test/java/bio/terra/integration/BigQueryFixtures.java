@@ -2,11 +2,14 @@ package bio.terra.integration;
 
 import static org.junit.Assert.assertTrue;
 
+import bio.terra.common.AclUtils;
+import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
@@ -93,5 +96,30 @@ public final class BigQueryFixtures {
     assertTrue(
         "BigQuery dataset exists and is accessible",
         BigQueryFixtures.datasetExists(bigQuery, dataProject, bqDatasetName));
+  }
+
+  // Fixture that should replicate BigQueryProject.getBQDataset, but allows providing a
+  // BigQuery instance with a user token so you can test if a particular user has access
+  // on the BigQuery instance
+  public static Dataset getBQDataset(
+      BigQuery providedBigQuery, String googleProjectId, String datasetBQName)
+      throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.get(googleProjectId);
+    return AclUtils.aclUpdateRetry(
+        () -> {
+          try {
+            DatasetId datasetId = DatasetId.of(googleProjectId, datasetBQName);
+            return providedBigQuery.getDataset(datasetId);
+          } catch (BigQueryException ex) {
+            String message = ex.getMessage();
+            if (message.startsWith("Access Denied")) {
+              throw new AclUtils.AclRetryException(
+                  "User does not have access to the BigQueryDataset. Retrying to wait for propagation",
+                  ex,
+                  "propagation");
+            }
+            throw ex;
+          }
+        });
   }
 }

@@ -64,7 +64,7 @@ class SnapshotPermissionsIntegrationTest {
   @Autowired private Users users;
 
   private Users.TestUsers testUsers;
-  private String stewardToken;
+  private String custodianToken;
   private UUID profileId;
   private UUID datasetId;
   private DatasetSummaryModel datasetSummaryModel;
@@ -81,7 +81,7 @@ class SnapshotPermissionsIntegrationTest {
   @BeforeEach
   public void setup() throws Exception {
     testUsers = users.testUsers();
-    stewardToken = authService.getDirectAccessAuthToken(steward().email());
+    custodianToken = authService.getDirectAccessAuthToken(custodian().email());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     dataRepoFixtures.addPolicyMember(
         steward(), profileId, IamRole.USER, custodian().email(), IamResourceType.SPEND_PROFILE);
@@ -207,12 +207,15 @@ class SnapshotPermissionsIntegrationTest {
   }
 
   private List<Acl> fetchSourceDatasetAcls(String datasetName) throws Exception {
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
+    // Instead check if the custodian has access to BQ
+    // As of 3/11/26, our steward test users were not correctly getting added to the policy group
+    DatasetModel dataset = dataRepoFixtures.getDataset(custodian(), datasetId);
+    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), custodianToken);
 
-    // Fetch BQ Dataset
+    // Fetch BQ Dataset with retry logic
     String bqDatasetName = BigQueryPdao.prefixName(datasetName);
-    Dataset bqDataset = bigQuery.getDataset(bqDatasetName);
+    Dataset bqDataset =
+        BigQueryFixtures.getBQDataset(bigQuery, dataset.getDataProject(), bqDatasetName);
 
     // fetch Acls
     List<Acl> acls = bqDataset.getAcl();

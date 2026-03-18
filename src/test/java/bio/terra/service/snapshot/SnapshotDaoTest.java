@@ -826,6 +826,41 @@ class SnapshotDaoTest {
   }
 
   @Test
+  void patchSnapshotRequireUserProject() {
+    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
+    Snapshot created = createSnapshot(snapshotRequest);
+    UUID snapshotId = created.getId();
+
+    assertThat(
+        "snapshot requireUserProject defaults to false before any patch",
+        snapshotDao.retrieveSnapshot(snapshotId).isRequireUserProject(),
+        equalTo(false));
+
+    // Enable the flag
+    snapshotDao.patch(
+        snapshotId, new SnapshotPatchRequestModel().requireUserProject(true), TEST_USER);
+    assertThat(
+        "snapshot requireUserProject is set to true after patch",
+        snapshotDao.retrieveSnapshot(snapshotId).isRequireUserProject(),
+        equalTo(true));
+
+    // Null in patch leaves value unchanged
+    snapshotDao.patch(snapshotId, new SnapshotPatchRequestModel(), TEST_USER);
+    assertThat(
+        "snapshot requireUserProject is unchanged when not specified in patch",
+        snapshotDao.retrieveSnapshot(snapshotId).isRequireUserProject(),
+        equalTo(true));
+
+    // Explicitly set back to false
+    snapshotDao.patch(
+        snapshotId, new SnapshotPatchRequestModel().requireUserProject(false), TEST_USER);
+    assertThat(
+        "snapshot requireUserProject is set back to false after patch",
+        snapshotDao.retrieveSnapshot(snapshotId).isRequireUserProject(),
+        equalTo(false));
+  }
+
+  @Test
   void getAccessibleSnapshots() {
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
     UUID snapshotId = createSnapshot(snapshotRequest).getId();

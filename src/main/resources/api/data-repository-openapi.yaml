@@ -6855,6 +6855,12 @@ components:
         properties:
           type: object
           description: Additional JSON metadata about the snapshot (this does not need to adhere to a particular schema)
+        requireUserProject:
+          type: boolean
+          description: >
+            If true, callers must supply an x-user-project header differing from the
+            snapshot's own project when requesting a DRS access URL. Setting this to
+            false disables the requirement. Null leaves the current value unchanged.
       description: >
         A 'lite' snapshot definition (used to modify supported fields of a snapshot).
         Null assignments will be ignored.

@@ -6731,6 +6731,13 @@ components:
           description: >
             if false, the drs ids will be in the format: v1_<snapshotid>_<fileid>
             if true, drs ids will be in the format: v2_<fileid>
+        requireUserProject:
+          type: boolean
+          default: false
+          description: >
+            If true, callers must supply an x-user-project header that differs from the
+            snapshot's own Google project when requesting a signed DRS access URL. This
+            prevents the snapshot's billing project from being charged for egress.
         compactIdPrefix:
           $ref: '#/components/schemas/CompactIdPrefix'
         tags:
@@ -6909,6 +6916,13 @@ components:
           description: >
             if false, the drs ids will be in the format: v1_<snapshotid>_<fileid>
             if true, drs ids will be in the format: v2_<fileid>
+        requireUserProject:
+          type: boolean
+          default: false
+          description: >
+            If true, callers must supply an x-user-project header that differs from the
+            snapshot's own Google project when requesting a signed DRS access URL. This
+            prevents the snapshot's billing project from being charged for egress.
         tags:
           type: array
           items:
@@ -7028,6 +7042,13 @@ components:
           description: >
             if false, the drs ids will be in the format: v1_<snapshotid>_<fileid>
             if true, drs ids will be in the format: v2_<fileid>
+        requireUserProject:
+          type: boolean
+          default: false
+          description: >
+            If true, callers must supply an x-user-project header that differs from the
+            snapshot's own Google project when requesting a signed DRS access URL. This
+            prevents the snapshot's billing project from being charged for egress.
         compactIdPrefix:
           $ref: '#/components/schemas/CompactIdPrefix'
         tags:

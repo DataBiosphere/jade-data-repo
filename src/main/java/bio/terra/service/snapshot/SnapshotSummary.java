@@ -26,6 +26,7 @@ public class SnapshotSummary {
   private String phsId;
   private boolean selfHosted;
   private boolean globalFileIds;
+  private boolean requireUserProject;
   private List<String> tags;
   private ResourceLocks resourceLocks;
   private String duosId;
@@ -156,6 +157,15 @@ public class SnapshotSummary {
     return this;
   }
 
+  public boolean isRequireUserProject() {
+    return requireUserProject;
+  }
+
+  public SnapshotSummary requireUserProject(boolean requireUserProject) {
+    this.requireUserProject = requireUserProject;
+    return this;
+  }
+
   public List<String> getTags() {
     return tags;
   }
@@ -199,6 +209,7 @@ public class SnapshotSummary {
         .phsId(getPhsId())
         .selfHosted(isSelfHosted())
         .globalFileIds(isGlobalFileIds())
+        .requireUserProject(isRequireUserProject())
         .tags(getTags())
         .resourceLocks(getResourceLocks())
         .duosId(getDuosId());

@@ -693,6 +693,7 @@ public class SnapshotService {
         .consentCode(snapshotRequestModel.getConsentCode())
         .properties(snapshotRequestModel.getProperties())
         .globalFileIds(snapshotRequestModel.isGlobalFileIds())
+        .requireUserProject(Boolean.TRUE.equals(snapshotRequestModel.isRequireUserProject()))
         .compactIdPrefix(snapshotRequestModel.getCompactIdPrefix())
         .tags(TagUtils.sanitizeTags(snapshotRequestModel.getTags()));
   }
@@ -1300,6 +1301,7 @@ public class SnapshotService {
             .consentCode(snapshot.getConsentCode())
             .cloudPlatform(snapshot.getCloudPlatform())
             .globalFileIds(snapshot.hasGlobalFileIds())
+            .requireUserProject(snapshot.isRequireUserProject())
             .compactIdPrefix(snapshot.getCompactIdPrefix())
             .tags(snapshot.getTags())
             .resourceLocks(snapshot.getResourceLocks());

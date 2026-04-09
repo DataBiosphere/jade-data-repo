@@ -770,13 +770,16 @@ public class SnapshotDao implements TaggableResourceDao {
     String sql =
         "UPDATE snapshot SET consent_code = COALESCE(:consent_code, consent_code), "
             + "description = COALESCE(:description, description), "
-            + "properties = COALESCE(:properties::jsonb, properties) WHERE id = :id";
+            + "properties = COALESCE(:properties::jsonb, properties), "
+            + "require_user_project = COALESCE(:require_user_project, require_user_project) "
+            + "WHERE id = :id";
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("consent_code", patchRequest.getConsentCode())
             .addValue("description", patchRequest.getDescription())
             .addValue("id", id)
+            .addValue("require_user_project", patchRequest.isRequireUserProject())
             .addValue(
                 "properties",
                 DaoUtils.propertiesToString(objectMapper, patchRequest.getProperties()));

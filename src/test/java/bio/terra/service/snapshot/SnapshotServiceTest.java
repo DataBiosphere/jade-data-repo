@@ -470,6 +470,11 @@ class SnapshotServiceTest {
         service.patchSnapshotIamActions(
             new SnapshotPatchRequestModel().description("a description")),
         containsInAnyOrder(IamAction.UPDATE_SNAPSHOT));
+
+    assertThat(
+        "Patch with requireUserProject update requires only UPDATE_SNAPSHOT",
+        service.patchSnapshotIamActions(new SnapshotPatchRequestModel().requireUserProject(true)),
+        containsInAnyOrder(IamAction.UPDATE_SNAPSHOT));
   }
 
   @Test

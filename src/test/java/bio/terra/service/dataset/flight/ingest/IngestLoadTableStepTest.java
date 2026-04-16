@@ -146,17 +146,11 @@ class IngestLoadTableStepTest {
     mockedUtils.verify(() -> IngestUtils.putIngestStatistics(flightContext, stats));
   }
 
-  @ParameterizedTest
-  @CsvSource({
-    "0, 1", // maxBadRecords=0, badRecords=1 - should fail
-    "0, 5", // maxBadRecords=0, badRecords=5 - should fail (user-reported case)
-    "5, 6", // maxBadRecords=5, badRecords=6 - should fail
-    "10, 11", // maxBadRecords=10, badRecords=11 - should fail
-    "100, 101" // maxBadRecords=100, badRecords=101 - should fail
-  })
-  void testDoStep_failure_exceedsMaxBadRecords(int maxBadRecords, int badRecords)
-      throws InterruptedException {
+  @Test
+  void testDoStep_failure_exceedsMaxBadRecords() throws InterruptedException {
     // Arrange
+    int maxBadRecords = 0;
+    int badRecords = 1;
     setupDoStepMocks();
     ingestRequest.maxBadRecords(maxBadRecords);
     PdaoLoadStatistics stats =

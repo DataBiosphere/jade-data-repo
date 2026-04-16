@@ -5,11 +5,13 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import java.util.List;
 
 public class IngestLoadTableStep implements Step {
   private final DatasetService datasetService;
@@ -39,6 +41,20 @@ public class IngestLoadTableStep implements Step {
     // Save away the stats in the working map. We will use some of them later
     // when we make the annotations. Others are returned on the ingest response.
     IngestUtils.putIngestStatistics(context, ingestStatistics);
+
+    // Validate that bad records don't exceed the threshold
+    // This matches the validation performed for Azure ingests in IngestValidateScratchTableStep
+    long badRecords = ingestStatistics.getBadRecords();
+    Integer maxBadRecords = ingestRequest.getMaxBadRecords();
+    if (maxBadRecords != null && badRecords > maxBadRecords) {
+      throw new IngestFailureException(
+          String.format("Failed to load data into dataset %s", dataset.getId()),
+          List.of(
+              String.format(
+                  "%d records failed to ingest, which is equal to or more than the %d allowed failed records",
+                  badRecords, maxBadRecords),
+              "Check that all records have data for columns marked as required in the dataset schema."));
+    }
 
     return StepResult.getStepResultSuccess();
   }

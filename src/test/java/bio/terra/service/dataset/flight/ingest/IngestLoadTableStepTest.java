@@ -74,7 +74,7 @@ class IngestLoadTableStepTest {
     when(IngestUtils.getDatasetTable(flightContext, dataset)).thenReturn(datasetTable);
     when(IngestUtils.getStagingTableName(flightContext)).thenReturn("staging_table");
     when(IngestUtils.getIngestRequestModel(flightContext)).thenReturn(ingestRequest);
-    when(workingMap.get(eq(IngestMapKeys.INGEST_CONTROL_FILE_PATH), eq(String.class)))
+    when(workingMap.get(IngestMapKeys.INGEST_CONTROL_FILE_PATH, String.class))
         .thenReturn("gs://test-bucket/test-file.json");
   }
 

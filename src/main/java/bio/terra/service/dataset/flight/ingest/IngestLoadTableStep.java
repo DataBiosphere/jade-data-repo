@@ -11,6 +11,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import java.util.List;
 
 public class IngestLoadTableStep implements Step {
@@ -47,13 +48,14 @@ public class IngestLoadTableStep implements Step {
     long badRecords = ingestStatistics.getBadRecords();
     Integer maxBadRecords = ingestRequest.getMaxBadRecords();
     if (maxBadRecords != null && badRecords > maxBadRecords) {
-      throw new IngestFailureException(
-          String.format("Failed to load data into dataset %s", dataset.getId()),
-          List.of(
-              String.format(
-                  "%d records failed to ingest, which is equal to or more than the %d allowed failed records",
-                  badRecords, maxBadRecords),
-              "Check that all records have data for columns marked as required in the dataset schema."));
+      return new StepResult(
+          StepStatus.STEP_RESULT_FAILURE_FATAL,
+          new IngestFailureException(
+              String.format("Failed to load data into dataset %s", dataset.getId()),
+              List.of(
+                  String.format(
+                      "%d records failed to ingest, which is equal to or more than the %d allowed failed records",
+                      badRecords, maxBadRecords))));
     }
 
     return StepResult.getStepResultSuccess();

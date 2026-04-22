@@ -534,9 +534,9 @@ class DrsServiceTest {
             new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
     DRSPassportRequestModel drsPassportRequestModel =
         new DRSPassportRequestModel().addPassportsItem("longPassportToken").expand(false);
-    when(snapshotService.verifyPassportAuth(any(), any(), any()))
+    when(snapshotService.verifyPassportAuth(any(), any()))
         .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(true));
-    drsService.verifyPassportAuth(snapshotId, drsPassportRequestModel, TEST_USER);
+    drsService.verifyPassportAuth(snapshotId, drsPassportRequestModel);
   }
 
   @Test
@@ -545,13 +545,13 @@ class DrsServiceTest {
     when(snapshotService.retrieveSnapshotSummary(snapshotId))
         .thenReturn(
             new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
-    when(snapshotService.verifyPassportAuth(any(), any(), any()))
+    when(snapshotService.verifyPassportAuth(any(), any()))
         .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(false));
     DRSPassportRequestModel drsPassportRequestModel =
         new DRSPassportRequestModel().addPassportsItem("longPassportToken").expand(false);
     assertThrows(
         UnauthorizedException.class,
-        () -> drsService.verifyPassportAuth(snapshotId, drsPassportRequestModel, TEST_USER));
+        () -> drsService.verifyPassportAuth(snapshotId, drsPassportRequestModel));
   }
 
   @Test
@@ -563,14 +563,14 @@ class DrsServiceTest {
     when(snapshotService.retrieveSnapshotSummary(nresSnapshotId)).thenReturn(nresSnapshot);
 
     // Mock bypass returning true (public NRES)
-    when(snapshotService.verifyPassportAuth(any(), any(), any()))
+    when(snapshotService.verifyPassportAuth(any(), any()))
         .thenReturn(new ValidatePassportResult().valid(true));
 
     DRSPassportRequestModel drsPassportRequestModel =
         new DRSPassportRequestModel().addPassportsItem("anyPassportToken").expand(false);
 
     // Should not throw - bypasses validation
-    drsService.verifyPassportAuth(nresSnapshotId, drsPassportRequestModel, TEST_USER);
+    drsService.verifyPassportAuth(nresSnapshotId, drsPassportRequestModel);
   }
 
   @Test
@@ -580,7 +580,7 @@ class DrsServiceTest {
         new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("NRES");
 
     when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(nresPublicSnapshot);
-    when(snapshotService.verifyPassportAuth(any(), any(), any()))
+    when(snapshotService.verifyPassportAuth(any(), any()))
         .thenReturn(new ValidatePassportResult().valid(true));
 
     DRSPassportRequestModel drsPassportRequestModel =
@@ -588,8 +588,7 @@ class DrsServiceTest {
 
     // Should succeed with public NRES
     DRSObject result =
-        drsService.lookupObjectByDrsIdPassport(
-            googleDrsObjectId, drsPassportRequestModel, TEST_USER);
+        drsService.lookupObjectByDrsIdPassport(googleDrsObjectId, drsPassportRequestModel);
 
     assertThat("DRS object is returned", result != null);
   }
@@ -683,11 +682,10 @@ class DrsServiceTest {
         .thenReturn(
             new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
     // provide valid passport
-    when(snapshotService.verifyPassportAuth(any(), any(), any()))
+    when(snapshotService.verifyPassportAuth(any(), any()))
         .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(true));
     DRSObject object =
-        drsService.lookupObjectByDrsIdPassport(
-            googleDrsObjectId, drsPassportRequestModel, TEST_USER);
+        drsService.lookupObjectByDrsIdPassport(googleDrsObjectId, drsPassportRequestModel);
     verifyRequestCountMetricsCollection();
     DRSAccessMethod accessMethod = object.getAccessMethods().get(0);
     assertThat(
@@ -707,13 +705,11 @@ class DrsServiceTest {
         .thenReturn(
             new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
     // provide invalid passport
-    when(snapshotService.verifyPassportAuth(any(), any(), any()))
+    when(snapshotService.verifyPassportAuth(any(), any()))
         .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(false));
     assertThrows(
         UnauthorizedException.class,
-        () ->
-            drsService.lookupObjectByDrsIdPassport(
-                googleDrsObjectId, drsPassportRequestModel, TEST_USER));
+        () -> drsService.lookupObjectByDrsIdPassport(googleDrsObjectId, drsPassportRequestModel));
     verifyRequestCountMetricsCollection();
   }
 
@@ -723,7 +719,7 @@ class DrsServiceTest {
         .thenReturn(
             new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
     // provide valid passport
-    when(snapshotService.verifyPassportAuth(any(), any(), any()))
+    when(snapshotService.verifyPassportAuth(any(), any()))
         .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(true));
     // mock storage
     Snapshot snapshot =
@@ -759,18 +755,14 @@ class DrsServiceTest {
         .thenReturn(
             new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
     // provide invalid passport
-    when(snapshotService.verifyPassportAuth(any(), any(), any()))
+    when(snapshotService.verifyPassportAuth(any(), any()))
         .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(false));
 
     assertThrows(
         UnauthorizedException.class,
         () ->
             drsService.postAccessUrlForObjectId(
-                googleDrsObjectId,
-                "gcp-passport-us-central1",
-                drsPassportRequestModel,
-                null,
-                TEST_USER));
+                googleDrsObjectId, "gcp-passport-us-central1", drsPassportRequestModel, null));
   }
 
   @Test

@@ -593,7 +593,7 @@ class SnapshotServiceTest {
         new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID).consentCode(CONSENT_CODE);
     assertThrows(
         InvalidAuthorizationMethod.class,
-        () -> service.verifyPassportAuth(snapshotSummaryModel, List.of(), null));
+        () -> service.verifyPassportAuth(snapshotSummaryModel, List.of()));
     verifyNoInteractions(ecmService);
   }
 
@@ -603,7 +603,7 @@ class SnapshotServiceTest {
         new SnapshotSummaryModel().id(snapshotId).consentCode(CONSENT_CODE);
     assertThrows(
         InvalidAuthorizationMethod.class,
-        () -> service.verifyPassportAuth(snapshotSummaryModel, List.of("passportJwt"), null));
+        () -> service.verifyPassportAuth(snapshotSummaryModel, List.of("passportJwt")));
     verifyNoInteractions(ecmService);
   }
 
@@ -613,7 +613,7 @@ class SnapshotServiceTest {
         new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID);
     assertThrows(
         InvalidAuthorizationMethod.class,
-        () -> service.verifyPassportAuth(snapshotSummaryModel, List.of("passportJwt"), null));
+        () -> service.verifyPassportAuth(snapshotSummaryModel, List.of("passportJwt")));
     verifyNoInteractions(ecmService);
   }
 
@@ -671,7 +671,7 @@ class SnapshotServiceTest {
         .thenReturn(true);
 
     ValidatePassportResult result =
-        service.verifyPassportAuth(nresSnapshot, List.of("fake-passport"), "fake-token");
+        service.verifyPassportAuth(nresSnapshot, List.of("fake-passport"));
 
     assertThat("Validation result is valid", result.isValid(), is(true));
     // Verify that ECM was NOT called for passport validation
@@ -706,7 +706,7 @@ class SnapshotServiceTest {
     when(ecmService.validatePassport(any())).thenReturn(mockResult);
 
     ValidatePassportResult result =
-        service.verifyPassportAuth(nresSnapshot, List.of("valid-passport"), "fake-token");
+        service.verifyPassportAuth(nresSnapshot, List.of("valid-passport"));
 
     assertThat("Validation result is valid", result.isValid(), is(true));
     // Verify that ECM WAS called for validation
@@ -723,7 +723,7 @@ class SnapshotServiceTest {
 
     // Pass null token (edge case) - should fall back to normal validation
     ValidatePassportResult result =
-        service.verifyPassportAuth(nresSnapshot, List.of("valid-passport"), null);
+        service.verifyPassportAuth(nresSnapshot, List.of("valid-passport"));
 
     assertThat("Validation result is valid", result.isValid(), is(true));
     // Verify that ECM WAS called because we couldn't bypass without a token
@@ -739,7 +739,7 @@ class SnapshotServiceTest {
     when(ecmService.validatePassport(any())).thenReturn(mockResult);
 
     ValidatePassportResult result =
-        service.verifyPassportAuth(nonNresSnapshot, List.of("valid-passport"), "fake-token");
+        service.verifyPassportAuth(nonNresSnapshot, List.of("valid-passport"));
 
     assertThat("Validation result is valid", result.isValid(), is(true));
     // Verify that ECM WAS called - non-NRES always validates

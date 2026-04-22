@@ -743,8 +743,7 @@ class DrsServiceTest {
             googleDrsObjectId,
             "gcp-passport-us-central1*" + snapshotId,
             drsPassportRequestModel,
-            null,
-            TEST_USER);
+            null);
 
     assertThat("returns url", url.getUrl(), containsString(expectedUrl));
   }

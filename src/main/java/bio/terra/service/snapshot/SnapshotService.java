@@ -105,6 +105,7 @@ import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.service.tags.TagUtils;
 import bio.terra.stairway.FlightStatus;
 import com.google.common.annotations.VisibleForTesting;
+import jakarta.annotation.Nullable;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -858,12 +859,66 @@ public class SnapshotService {
   }
 
   /**
+   * Check if a snapshot is publicly accessible with NRES consent code, allowing passport validation
+   * to be bypassed. This is specifically for determining if passport validation can be skipped for
+   * public NRES snapshots.
+   *
+   * @param snapshotId the snapshot UUID
+   * @param userToken bearer token from authenticated user request (nullable for defensive coding)
+   * @return true if snapshot has NRES consent code AND public reader policy
+   */
+  public boolean canBypassPassportValidation(UUID snapshotId, @Nullable String userToken) {
+    SnapshotSummaryModel summary = retrieveSnapshotSummary(snapshotId);
+
+    // First check: Must have NRES consent code
+    if (!SnapshotSummary.isPublicConsentCode(summary)) {
+      return false;
+    }
+
+    // Second check: Must be public
+    try {
+      // Token is required to check SAM public status
+      if (userToken == null) {
+        logger.debug(
+            "No token available to check public status for snapshot {}, cannot bypass passport"
+                + " validation",
+            snapshotId);
+        return false;
+      }
+
+      return iamService.getPolicyPublicV2(
+          userToken, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.READER.name());
+    } catch (Exception e) {
+      logger.warn(
+          "Error checking public status for snapshot {}, cannot bypass passport validation",
+          snapshotId,
+          e);
+      return false;
+    }
+  }
+
+  /**
+   * @param snapshotSummary snapshot summary model
    * @param passports RAS passports as JWT tokens
+   * @param userToken bearer token from authenticated user request (nullable for defensive coding,
+   *     but typically always present)
    * @return ValidatePassportResult indicating whether the snapshot's contents are accessible via
-   *     one of the supplied RAS passports
+   *     one of the supplied RAS passports, or if validation was bypassed for public NRES snapshots
    */
   public ValidatePassportResult verifyPassportAuth(
-      SnapshotSummaryModel snapshotSummary, List<String> passports) {
+      SnapshotSummaryModel snapshotSummary, List<String> passports, @Nullable String userToken) {
+
+    // Check if this is an NRES snapshot that is also public - if so, bypass passport validation
+    if (SnapshotSummary.isPublicConsentCode(snapshotSummary)) {
+      if (canBypassPassportValidation(snapshotSummary.getId(), userToken)) {
+        logger.info(
+            "Bypassing passport validation for public NRES snapshot {}", snapshotSummary.getId());
+        // Return a valid result without actually validating the passport
+        return new ValidatePassportResult().valid(true);
+      }
+    }
+
+    // Original validation logic
     if (passports.isEmpty()) {
       throw new InvalidAuthorizationMethod("No RAS Passports supplied for accessing snapshot");
     }
@@ -903,7 +958,8 @@ public class SnapshotService {
     try {
       String passport = ecmService.getRasProviderPassport(userReq);
       if (passport != null) {
-        if (verifyPassportAuth(snapshotSummary, List.of(passport)).isValid()) {
+        // Pass the user's token so we can check public status for NRES bypass
+        if (verifyPassportAuth(snapshotSummary, List.of(passport), userReq.getToken()).isValid()) {
           accessible = true;
         } else {
           causes.add(passportInvalidForSnapshotErrorMsg(userReq.getEmail()));

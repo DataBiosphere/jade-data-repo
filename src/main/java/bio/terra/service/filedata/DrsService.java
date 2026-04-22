@@ -229,13 +229,16 @@ public class DrsService {
    * @param drsPassportRequestModel includes RAS passport, used for authorization and 'expand' var -
    *     if expand is false and drsObjectId refers to a bundle, then the returned array contains
    *     only those objects directly contained in the bundle
+   * @param authUser the authenticated user making the request (for bearer token)
    * @return the DRS object for this ID
    * @throws IllegalArgumentException if there is an issue with the object id
    * @throws SnapshotNotFoundException if the snapshot for the DRS object cannot be found
    * @throws TooManyRequestsException if there are too many concurrent DRS lookup requests
    */
   public DRSObject lookupObjectByDrsIdPassport(
-      String drsObjectId, DRSPassportRequestModel drsPassportRequestModel) {
+      String drsObjectId,
+      DRSPassportRequestModel drsPassportRequestModel,
+      AuthenticatedUserRequest authUser) {
     try (DrsRequestResource r = new DrsRequestResource()) {
       DrsId resolvedDrsObjectId = resolveDrsObjectId(drsObjectId);
       List<Future<SnapshotCacheResult>> futures =
@@ -246,7 +249,7 @@ public class DrsService {
                           () -> {
                             try {
                               // Only look at snapshots that the user has access to
-                              verifyPassportAuth(s.id, drsPassportRequestModel);
+                              verifyPassportAuth(s.id, drsPassportRequestModel, authUser);
                               return s;
                             } catch (UnauthorizedException e) {
                               return null;
@@ -416,10 +419,15 @@ public class DrsService {
     }
   }
 
-  void verifyPassportAuth(UUID snapshotId, DRSPassportRequestModel drsPassportRequestModel) {
+  void verifyPassportAuth(
+      UUID snapshotId,
+      DRSPassportRequestModel drsPassportRequestModel,
+      AuthenticatedUserRequest authUser) {
     SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshotId);
     List<String> passports = drsPassportRequestModel.getPassports();
-    if (!snapshotService.verifyPassportAuth(snapshotSummary, passports).isValid()) {
+    // Pass the user's bearer token so public NRES bypass can check if snapshot is public
+    String userToken = authUser != null ? authUser.getToken() : null;
+    if (!snapshotService.verifyPassportAuth(snapshotSummary, passports, userToken).isValid()) {
       throw new UnauthorizedException("User is not authorized to see drs object.");
     }
   }
@@ -462,8 +470,9 @@ public class DrsService {
       String objectId,
       String accessId,
       DRSPassportRequestModel passportRequestModel,
-      String userProject) {
-    DRSObject drsObject = lookupObjectByDrsIdPassport(objectId, passportRequestModel);
+      String userProject,
+      AuthenticatedUserRequest authUser) {
+    DRSObject drsObject = lookupObjectByDrsIdPassport(objectId, passportRequestModel, authUser);
     return getAccessURL(null, drsObject, accessId, userProject);
   }
 

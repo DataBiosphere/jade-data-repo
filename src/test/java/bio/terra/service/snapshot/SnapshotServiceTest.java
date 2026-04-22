@@ -593,7 +593,7 @@ class SnapshotServiceTest {
         new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID).consentCode(CONSENT_CODE);
     assertThrows(
         InvalidAuthorizationMethod.class,
-        () -> service.verifyPassportAuth(snapshotSummaryModel, List.of()));
+        () -> service.verifyPassportAuth(snapshotSummaryModel, List.of(), null));
     verifyNoInteractions(ecmService);
   }
 
@@ -603,7 +603,7 @@ class SnapshotServiceTest {
         new SnapshotSummaryModel().id(snapshotId).consentCode(CONSENT_CODE);
     assertThrows(
         InvalidAuthorizationMethod.class,
-        () -> service.verifyPassportAuth(snapshotSummaryModel, List.of("passportJwt")));
+        () -> service.verifyPassportAuth(snapshotSummaryModel, List.of("passportJwt"), null));
     verifyNoInteractions(ecmService);
   }
 
@@ -613,8 +613,137 @@ class SnapshotServiceTest {
         new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID);
     assertThrows(
         InvalidAuthorizationMethod.class,
-        () -> service.verifyPassportAuth(snapshotSummaryModel, List.of("passportJwt")));
+        () -> service.verifyPassportAuth(snapshotSummaryModel, List.of("passportJwt"), null));
     verifyNoInteractions(ecmService);
+  }
+
+  @Test
+  void isPublicConsentCodeForNRES() {
+    SnapshotSummaryModel nresSnapshot =
+        new SnapshotSummaryModel().phsId(PHS_ID).consentCode("NRES");
+    assertThat(
+        "NRES consent code is recognized as public",
+        SnapshotSummary.isPublicConsentCode(nresSnapshot));
+
+    SnapshotSummaryModel nresLowercase =
+        new SnapshotSummaryModel().phsId(PHS_ID).consentCode("nres");
+    assertThat(
+        "NRES consent code is case-insensitive",
+        SnapshotSummary.isPublicConsentCode(nresLowercase));
+  }
+
+  @Test
+  void isPublicConsentCodeForNonNRES() {
+    SnapshotSummaryModel nonNres = new SnapshotSummaryModel().phsId(PHS_ID).consentCode("c99");
+    assertThat(
+        "Non-NRES consent code is not public", !SnapshotSummary.isPublicConsentCode(nonNres));
+  }
+
+  @Test
+  void isPublicConsentCodeRequiresPhsId() {
+    SnapshotSummaryModel nresWithoutPhsId = new SnapshotSummaryModel().consentCode("NRES");
+    assertThat(
+        "NRES without phsId is not public", !SnapshotSummary.isPublicConsentCode(nresWithoutPhsId));
+  }
+
+  @Test
+  void verifyPassportAuthBypassForPublicNRES() {
+    SnapshotSummaryModel nresSnapshot =
+        new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID).consentCode("NRES");
+
+    SnapshotSummary snapshotSummary =
+        new SnapshotSummary()
+            .id(snapshotId)
+            .phsId(PHS_ID)
+            .consentCode("NRES")
+            .profileId(profileId)
+            .name(SNAPSHOT_NAME)
+            .description(SNAPSHOT_DESCRIPTION)
+            .createdDate(createdDate)
+            .storage(List.of());
+
+    when(snapshotDao.retrieveSummaryById(snapshotId)).thenReturn(snapshotSummary);
+    when(iamService.getPolicyPublicV2(
+            anyString(),
+            eq(IamResourceType.DATASNAPSHOT),
+            eq(snapshotId),
+            eq(IamRole.READER.name())))
+        .thenReturn(true);
+
+    ValidatePassportResult result =
+        service.verifyPassportAuth(nresSnapshot, List.of("fake-passport"), "fake-token");
+
+    assertThat("Validation result is valid", result.isValid(), is(true));
+    // Verify that ECM was NOT called for passport validation
+    verifyNoInteractions(ecmService);
+  }
+
+  @Test
+  void verifyPassportAuthRequiresValidationForPrivateNRES() {
+    SnapshotSummaryModel nresSnapshot =
+        new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID).consentCode("NRES");
+
+    SnapshotSummary snapshotSummary =
+        new SnapshotSummary()
+            .id(snapshotId)
+            .phsId(PHS_ID)
+            .consentCode("NRES")
+            .profileId(profileId)
+            .name(SNAPSHOT_NAME)
+            .description(SNAPSHOT_DESCRIPTION)
+            .createdDate(createdDate)
+            .storage(List.of());
+
+    when(snapshotDao.retrieveSummaryById(snapshotId)).thenReturn(snapshotSummary);
+    when(iamService.getPolicyPublicV2(
+            anyString(),
+            eq(IamResourceType.DATASNAPSHOT),
+            eq(snapshotId),
+            eq(IamRole.READER.name())))
+        .thenReturn(false); // Not public
+
+    ValidatePassportResult mockResult = new ValidatePassportResult().valid(true);
+    when(ecmService.validatePassport(any())).thenReturn(mockResult);
+
+    ValidatePassportResult result =
+        service.verifyPassportAuth(nresSnapshot, List.of("valid-passport"), "fake-token");
+
+    assertThat("Validation result is valid", result.isValid(), is(true));
+    // Verify that ECM WAS called for validation
+    verify(ecmService, times(1)).validatePassport(any());
+  }
+
+  @Test
+  void verifyPassportAuthBypassNotAvailableWithoutToken() {
+    SnapshotSummaryModel nresSnapshot =
+        new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID).consentCode("NRES");
+
+    ValidatePassportResult mockResult = new ValidatePassportResult().valid(true);
+    when(ecmService.validatePassport(any())).thenReturn(mockResult);
+
+    // Pass null token (edge case) - should fall back to normal validation
+    ValidatePassportResult result =
+        service.verifyPassportAuth(nresSnapshot, List.of("valid-passport"), null);
+
+    assertThat("Validation result is valid", result.isValid(), is(true));
+    // Verify that ECM WAS called because we couldn't bypass without a token
+    verify(ecmService, times(1)).validatePassport(any());
+  }
+
+  @Test
+  void verifyPassportAuthNonNRESAlwaysValidates() {
+    SnapshotSummaryModel nonNresSnapshot =
+        new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID).consentCode("c99");
+
+    ValidatePassportResult mockResult = new ValidatePassportResult().valid(true);
+    when(ecmService.validatePassport(any())).thenReturn(mockResult);
+
+    ValidatePassportResult result =
+        service.verifyPassportAuth(nonNresSnapshot, List.of("valid-passport"), "fake-token");
+
+    assertThat("Validation result is valid", result.isValid(), is(true));
+    // Verify that ECM WAS called - non-NRES always validates
+    verify(ecmService, times(1)).validatePassport(any());
   }
 
   @Test

@@ -150,9 +150,10 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
         objectId,
         accessId,
         userProject);
+    AuthenticatedUserRequest authUser = getAuthenticatedInfo();
     DRSAccessURL accessURL =
         drsService.postAccessUrlForObjectId(
-            objectId, accessId, drsPassportRequestModel, userProject);
+            objectId, accessId, drsPassportRequestModel, userProject, authUser);
     return new ResponseEntity<>(accessURL, HttpStatus.OK);
   }
 
@@ -173,7 +174,9 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
   @Override
   public ResponseEntity<DRSObject> postObject(
       String objectId, DRSPassportRequestModel drsPassportRequestModel) {
-    DRSObject drsObject = drsService.lookupObjectByDrsIdPassport(objectId, drsPassportRequestModel);
+    AuthenticatedUserRequest authUser = getAuthenticatedInfo();
+    DRSObject drsObject =
+        drsService.lookupObjectByDrsIdPassport(objectId, drsPassportRequestModel, authUser);
     return new ResponseEntity<>(drsObject, HttpStatus.OK);
   }
 

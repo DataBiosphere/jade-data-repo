@@ -617,24 +617,21 @@ class SnapshotServiceTest {
     verifyNoInteractions(ecmService);
   }
 
-  @Test
-  void isPublicConsentCodeForNRES() {
+  @ParameterizedTest
+  @ValueSource(strings = {"NRES", "nres", "NRes", "nRES"})
+  void isPublicConsentCodeForNRESVariations(String consentCode) {
     SnapshotSummaryModel nresSnapshot =
-        new SnapshotSummaryModel().phsId(PHS_ID).consentCode("NRES");
+        new SnapshotSummaryModel().phsId(PHS_ID).consentCode(consentCode);
     assertThat(
-        "NRES consent code is recognized as public",
+        "NRES consent code is recognized as public (case-insensitive)",
         SnapshotSummary.isPublicConsentCode(nresSnapshot));
-
-    SnapshotSummaryModel nresLowercase =
-        new SnapshotSummaryModel().phsId(PHS_ID).consentCode("nres");
-    assertThat(
-        "NRES consent code is case-insensitive",
-        SnapshotSummary.isPublicConsentCode(nresLowercase));
   }
 
-  @Test
-  void isPublicConsentCodeForNonNRES() {
-    SnapshotSummaryModel nonNres = new SnapshotSummaryModel().phsId(PHS_ID).consentCode("c99");
+  @ParameterizedTest
+  @ValueSource(strings = {"c99", "c1", "GRU", ""})
+  void isPublicConsentCodeForNonNRES(String consentCode) {
+    SnapshotSummaryModel nonNres =
+        new SnapshotSummaryModel().phsId(PHS_ID).consentCode(consentCode);
     assertThat(
         "Non-NRES consent code is not public", !SnapshotSummary.isPublicConsentCode(nonNres));
   }
@@ -647,27 +644,86 @@ class SnapshotServiceTest {
   }
 
   @Test
+  void isPublicConsentCodeRequiresConsentCode() {
+    SnapshotSummaryModel phsIdWithoutConsent = new SnapshotSummaryModel().phsId(PHS_ID);
+    assertThat(
+        "PhsId without consent code is not public",
+        !SnapshotSummary.isPublicConsentCode(phsIdWithoutConsent));
+  }
+
+  @Test
+  void canBypassPassportValidationForPublicNRES() {
+    SnapshotSummaryModel nresSnapshot =
+        new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID).consentCode("NRES");
+
+    when(iamService.getPolicyPublicV2AsSA(
+            eq(IamResourceType.DATASNAPSHOT), eq(snapshotId), eq(IamRole.READER.name())))
+        .thenReturn(true);
+
+    assertThat(
+        "Public NRES snapshot can bypass validation",
+        service.canBypassPassportValidation(nresSnapshot));
+    verify(iamService, times(1))
+        .getPolicyPublicV2AsSA(
+            eq(IamResourceType.DATASNAPSHOT), eq(snapshotId), eq(IamRole.READER.name()));
+  }
+
+  @Test
+  void canBypassPassportValidationForPrivateNRES() {
+    SnapshotSummaryModel nresSnapshot =
+        new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID).consentCode("NRES");
+
+    when(iamService.getPolicyPublicV2AsSA(
+            eq(IamResourceType.DATASNAPSHOT), eq(snapshotId), eq(IamRole.READER.name())))
+        .thenReturn(false);
+
+    assertThat(
+        "Private NRES snapshot cannot bypass validation",
+        !service.canBypassPassportValidation(nresSnapshot));
+    verify(iamService, times(1))
+        .getPolicyPublicV2AsSA(
+            eq(IamResourceType.DATASNAPSHOT), eq(snapshotId), eq(IamRole.READER.name()));
+  }
+
+  @Test
+  void canBypassPassportValidationForNonNRES() {
+    SnapshotSummaryModel nonNresSnapshot =
+        new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID).consentCode("c99");
+
+    assertThat(
+        "Non-NRES snapshot cannot bypass validation",
+        !service.canBypassPassportValidation(nonNresSnapshot));
+    verify(iamService, never()).getPolicyPublicV2AsSA(any(), any(), anyString());
+  }
+
+  @Test
+  void canBypassPassportValidationWithoutPhsId() {
+    SnapshotSummaryModel nresWithoutPhsId =
+        new SnapshotSummaryModel().id(snapshotId).consentCode("NRES");
+
+    assertThat(
+        "Cannot bypass without phsId", !service.canBypassPassportValidation(nresWithoutPhsId));
+    verify(iamService, never()).getPolicyPublicV2AsSA(any(), any(), anyString());
+  }
+
+  @Test
+  void canBypassPassportValidationWithoutConsentCode() {
+    SnapshotSummaryModel phsIdWithoutConsent =
+        new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID);
+
+    assertThat(
+        "Cannot bypass without consent code",
+        !service.canBypassPassportValidation(phsIdWithoutConsent));
+    verify(iamService, never()).getPolicyPublicV2AsSA(any(), any(), anyString());
+  }
+
+  @Test
   void verifyPassportAuthBypassForPublicNRES() {
     SnapshotSummaryModel nresSnapshot =
         new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID).consentCode("NRES");
 
-    SnapshotSummary snapshotSummary =
-        new SnapshotSummary()
-            .id(snapshotId)
-            .phsId(PHS_ID)
-            .consentCode("NRES")
-            .profileId(profileId)
-            .name(SNAPSHOT_NAME)
-            .description(SNAPSHOT_DESCRIPTION)
-            .createdDate(createdDate)
-            .storage(List.of());
-
-    when(snapshotDao.retrieveSummaryById(snapshotId)).thenReturn(snapshotSummary);
-    when(iamService.getPolicyPublicV2(
-            anyString(),
-            eq(IamResourceType.DATASNAPSHOT),
-            eq(snapshotId),
-            eq(IamRole.READER.name())))
+    when(iamService.getPolicyPublicV2AsSA(
+            eq(IamResourceType.DATASNAPSHOT), eq(snapshotId), eq(IamRole.READER.name())))
         .thenReturn(true);
 
     ValidatePassportResult result =
@@ -683,23 +739,8 @@ class SnapshotServiceTest {
     SnapshotSummaryModel nresSnapshot =
         new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID).consentCode("NRES");
 
-    SnapshotSummary snapshotSummary =
-        new SnapshotSummary()
-            .id(snapshotId)
-            .phsId(PHS_ID)
-            .consentCode("NRES")
-            .profileId(profileId)
-            .name(SNAPSHOT_NAME)
-            .description(SNAPSHOT_DESCRIPTION)
-            .createdDate(createdDate)
-            .storage(List.of());
-
-    when(snapshotDao.retrieveSummaryById(snapshotId)).thenReturn(snapshotSummary);
-    when(iamService.getPolicyPublicV2(
-            anyString(),
-            eq(IamResourceType.DATASNAPSHOT),
-            eq(snapshotId),
-            eq(IamRole.READER.name())))
+    when(iamService.getPolicyPublicV2AsSA(
+            eq(IamResourceType.DATASNAPSHOT), eq(snapshotId), eq(IamRole.READER.name())))
         .thenReturn(false); // Not public
 
     ValidatePassportResult mockResult = new ValidatePassportResult().valid(true);
@@ -718,16 +759,16 @@ class SnapshotServiceTest {
     SnapshotSummaryModel nresSnapshot =
         new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID).consentCode("NRES");
 
-    ValidatePassportResult mockResult = new ValidatePassportResult().valid(true);
-    when(ecmService.validatePassport(any())).thenReturn(mockResult);
+    when(iamService.getPolicyPublicV2AsSA(
+            eq(IamResourceType.DATASNAPSHOT), eq(snapshotId), eq(IamRole.READER.name())))
+        .thenReturn(true);
 
-    // Pass null token (edge case) - should fall back to normal validation
     ValidatePassportResult result =
-        service.verifyPassportAuth(nresSnapshot, List.of("valid-passport"));
+        service.verifyPassportAuth(nresSnapshot, List.of("fake-passport"));
 
     assertThat("Validation result is valid", result.isValid(), is(true));
-    // Verify that ECM WAS called because we couldn't bypass without a token
-    verify(ecmService, times(1)).validatePassport(any());
+    // Verify that ECM was NOT called - bypass should work even without separate user token
+    verifyNoInteractions(ecmService);
   }
 
   @Test

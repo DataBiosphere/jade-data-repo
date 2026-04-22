@@ -862,18 +862,25 @@ public class SnapshotService {
    * to be bypassed. This is specifically for determining if passport validation can be skipped for
    * public NRES snapshots.
    *
-   * @param snapshotId the snapshot UUID
+   * @param summary the snapshot summary model including the snapshot ID
    * @return true if snapshot has NRES consent code AND public reader policy
    */
-  public boolean canBypassPassportValidation(UUID snapshotId) {
-    SnapshotSummaryModel summary = retrieveSnapshotSummary(snapshotId);
-
+  public boolean canBypassPassportValidation(SnapshotSummaryModel summary) {
     // First check: Must have NRES consent code
     if (!SnapshotSummary.isPublicConsentCode(summary)) {
       return false;
     }
 
-    // Second check: Must be public
+    // Second check: Snapshot must be public
+    return isSnapshotPublic(summary.getId());
+  }
+
+  /*
+   * Check if snapshot is marked as public in SAM
+   * Perform check as the TDR Service Account
+   */
+  @VisibleForTesting
+  boolean isSnapshotPublic(UUID snapshotId) {
     try {
       return iamService.getPolicyPublicV2AsSA(
           IamResourceType.DATASNAPSHOT, snapshotId, IamRole.READER.name());
@@ -895,14 +902,11 @@ public class SnapshotService {
   public ValidatePassportResult verifyPassportAuth(
       SnapshotSummaryModel snapshotSummary, List<String> passports) {
 
-    // Check if this is an NRES snapshot that is also public - if so, bypass passport validation
-    if (SnapshotSummary.isPublicConsentCode(snapshotSummary)) {
-      if (canBypassPassportValidation(snapshotSummary.getId())) {
-        logger.info(
-            "Bypassing passport validation for public NRES snapshot {}", snapshotSummary.getId());
-        // Return a valid result without actually validating the passport
-        return new ValidatePassportResult().valid(true);
-      }
+    if (canBypassPassportValidation(snapshotSummary)) {
+      logger.info(
+          "Bypassing passport validation for public NRES snapshot {}", snapshotSummary.getId());
+      // Return a valid result without actually validating the passport
+      return new ValidatePassportResult().valid(true);
     }
 
     // Original validation logic

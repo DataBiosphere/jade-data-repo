@@ -236,6 +236,7 @@ public class SnapshotSummary {
    */
   public static boolean isPublicConsentCode(SnapshotSummaryModel model) {
     return !StringUtils.isBlank(model.getPhsId())
+        && !StringUtils.isBlank(model.getConsentCode())
         && NRES_CONSENT_CODE.equalsIgnoreCase(model.getConsentCode());
   }
 }

@@ -904,7 +904,7 @@
           },
           {
             "name": "file_ref_column",
-            "datatype": "dirref"
+            "datatype": "fileref"
           },
           {
             "name": "float_column",

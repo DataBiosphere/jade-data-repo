@@ -858,12 +858,58 @@ public class SnapshotService {
   }
 
   /**
+   * Check if a snapshot is publicly accessible with NRES consent code, allowing passport validation
+   * to be bypassed. This is specifically for determining if passport validation can be skipped for
+   * public NRES snapshots.
+   *
+   * @param summary the snapshot summary model including the snapshot ID
+   * @return true if snapshot has NRES consent code AND public reader policy
+   */
+  public boolean canBypassPassportValidation(SnapshotSummaryModel summary) {
+    // First check: Must have NRES consent code
+    if (!SnapshotSummary.isPublicConsentCode(summary)) {
+      return false;
+    }
+
+    // Second check: Snapshot must be public
+    return isSnapshotPublic(summary.getId());
+  }
+
+  /*
+   * Check if snapshot is marked as public in SAM
+   * Perform check as the TDR Service Account
+   */
+  @VisibleForTesting
+  boolean isSnapshotPublic(UUID snapshotId) {
+    try {
+      return iamService.getPolicyPublicV2AsSA(
+          IamResourceType.DATASNAPSHOT, snapshotId, IamRole.READER.name());
+    } catch (Exception e) {
+      logger.warn(
+          "Error checking public status for snapshot {}, cannot bypass passport validation",
+          snapshotId,
+          e);
+      return false;
+    }
+  }
+
+  /**
+   * @param snapshotSummary snapshot summary model
    * @param passports RAS passports as JWT tokens
    * @return ValidatePassportResult indicating whether the snapshot's contents are accessible via
-   *     one of the supplied RAS passports
+   *     one of the supplied RAS passports, or if validation was bypassed for public NRES snapshots
    */
   public ValidatePassportResult verifyPassportAuth(
       SnapshotSummaryModel snapshotSummary, List<String> passports) {
+
+    if (canBypassPassportValidation(snapshotSummary)) {
+      logger.info(
+          "Bypassing passport validation for public NRES snapshot {}", snapshotSummary.getId());
+      // Return a valid result without actually validating the passport
+      return new ValidatePassportResult().valid(true);
+    }
+
+    // Original validation logic
     if (passports.isEmpty()) {
       throw new InvalidAuthorizationMethod("No RAS Passports supplied for accessing snapshot");
     }

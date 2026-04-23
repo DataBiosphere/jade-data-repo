@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
 public class SnapshotSummary {
+  public static final String NRES_CONSENT_CODE = "NRES";
+
   private UUID id;
   private String name;
   private String description;
@@ -225,5 +227,16 @@ public class SnapshotSummary {
    */
   public static boolean passportAuthorizationAvailable(SnapshotSummaryModel model) {
     return !StringUtils.isBlank(model.getPhsId()) && !StringUtils.isBlank(model.getConsentCode());
+  }
+
+  /**
+   * @param model a SnapshotSummaryModel
+   * @return whether the snapshot has a public consent code (NRES) that allows bypass of passport
+   *     validation when the snapshot is also publicly accessible
+   */
+  public static boolean isPublicConsentCode(SnapshotSummaryModel model) {
+    return !StringUtils.isBlank(model.getPhsId())
+        && !StringUtils.isBlank(model.getConsentCode())
+        && NRES_CONSENT_CODE.equalsIgnoreCase(model.getConsentCode());
   }
 }

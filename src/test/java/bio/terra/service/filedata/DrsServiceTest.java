@@ -554,6 +554,45 @@ class DrsServiceTest {
         () -> drsService.verifyPassportAuth(snapshotId, drsPassportRequestModel));
   }
 
+  @Test
+  void verifyPassportAuthPublicNRESBypass() {
+    // Public NRES snapshot should bypass passport validation
+    UUID nresSnapshotId = UUID.randomUUID();
+    SnapshotSummaryModel nresSnapshot =
+        new SnapshotSummaryModel().id(nresSnapshotId).phsId("phs100789").consentCode("NRES");
+    when(snapshotService.retrieveSnapshotSummary(nresSnapshotId)).thenReturn(nresSnapshot);
+
+    // Mock bypass returning true (public NRES)
+    when(snapshotService.verifyPassportAuth(any(), any()))
+        .thenReturn(new ValidatePassportResult().valid(true));
+
+    DRSPassportRequestModel drsPassportRequestModel =
+        new DRSPassportRequestModel().addPassportsItem("anyPassportToken").expand(false);
+
+    // Should not throw - bypasses validation
+    drsService.verifyPassportAuth(nresSnapshotId, drsPassportRequestModel);
+  }
+
+  @Test
+  void lookupObjectByDrsIdPassportWithPublicNRES() {
+    // Setup public NRES snapshot
+    SnapshotSummaryModel nresPublicSnapshot =
+        new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("NRES");
+
+    when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(nresPublicSnapshot);
+    when(snapshotService.verifyPassportAuth(any(), any()))
+        .thenReturn(new ValidatePassportResult().valid(true));
+
+    DRSPassportRequestModel drsPassportRequestModel =
+        new DRSPassportRequestModel().addPassportsItem("anyPassport").expand(false);
+
+    // Should succeed with public NRES
+    DRSObject result =
+        drsService.lookupObjectByDrsIdPassport(googleDrsObjectId, drsPassportRequestModel);
+
+    assertThat("DRS object is returned", result != null);
+  }
+
   private void verifyAuthorizationsWithoutPassport(DRSAuthorizations auths) {
     assertThat(
         "BearerAuth is only type supported",

@@ -3,8 +3,10 @@ package bio.terra.app.controller;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.common.exception.BadRequestException;
+import bio.terra.common.exception.ErrorReportException;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;
+import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.DataRepositoryServiceApi;
@@ -103,6 +105,20 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     DRSError error =
         new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.UNAUTHORIZED.value());
     return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
+  }
+
+  @ExceptionHandler
+  public ResponseEntity<DRSError> unauthorizedExceptionHandler(UnauthorizedException ex) {
+    DRSError error =
+        new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.UNAUTHORIZED.value());
+    return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
+  }
+
+  @ExceptionHandler
+  public ResponseEntity<DRSError> errorReportExceptionHandler(ErrorReportException ex) {
+    HttpStatus exceptionStatus = ex.getStatusCode();
+    DRSError error = new DRSError().msg(ex.getMessage()).statusCode(exceptionStatus.value());
+    return new ResponseEntity<>(error, exceptionStatus);
   }
 
   @ExceptionHandler

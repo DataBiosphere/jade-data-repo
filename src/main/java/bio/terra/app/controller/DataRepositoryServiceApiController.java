@@ -115,9 +115,10 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
   }
 
   @ExceptionHandler
-  public ResponseEntity<DRSError> forbiddenHandler(ErrorReportException ex) {
-    DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.FORBIDDEN.value());
-    return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+  public ResponseEntity<DRSError> errorReportExceptionHandler(ErrorReportException ex) {
+    HttpStatus exceptionStatus = ex.getStatusCode();
+    DRSError error = new DRSError().msg(ex.getMessage()).statusCode(exceptionStatus.value());
+    return new ResponseEntity<>(error, exceptionStatus);
   }
 
   @ExceptionHandler

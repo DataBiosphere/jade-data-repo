@@ -446,13 +446,16 @@ public class DrsService {
     SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshotId);
     List<String> passports = drsPassportRequestModel.getPassports();
     ValidatePassportResult result = snapshotService.verifyPassportAuth(snapshotSummary, passports);
-    if (!result.isValid()) {
-      logger.warn(
-          "[Passport Auth] Passport validation failed for snapshot {}: passportResult={}",
-          snapshotId,
-          result);
-      throw new UnauthorizedException("User is not authorized to see drs object.");
+    if (Boolean.TRUE.equals(result.isValid())) {
+      logger.info(
+          "[Passport Auth] Access to snapshot {} has been successfully verified", snapshotId);
+      return;
     }
+    logger.warn(
+        "[Passport Auth] Passport validation failed for snapshot {}: isValid={}",
+        snapshotId,
+        result.isValid());
+    throw new UnauthorizedException("User is not authorized to see drs object.");
   }
 
   private DRSObject lookupDRSObjectAfterAuth(

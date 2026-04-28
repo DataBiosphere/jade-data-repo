@@ -446,7 +446,8 @@ public class DrsService {
     SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshotId);
     List<String> passports = drsPassportRequestModel.getPassports();
     ValidatePassportResult result = snapshotService.verifyPassportAuth(snapshotSummary, passports);
-    if (Boolean.TRUE.equals(result.isValid())) {
+    Boolean isValid = result.isValid();
+    if (isValid != null && isValid) {
       logger.info(
           "[Passport Auth] Access to snapshot {} has been successfully verified", snapshotId);
       return;

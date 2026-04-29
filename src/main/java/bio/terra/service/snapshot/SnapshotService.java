@@ -920,10 +920,10 @@ public class SnapshotService {
     String consentCode = snapshotSummary.getConsentCode();
     var criterion = new RASv1Dot1VisaCriterion().consentCode(consentCode).phsId(phsId);
     ecmService.addRasIssuerAndType(criterion);
-
+    logger.info("[Passport Auth] Ras Issuer added: {}", criterion.getIssuer());
     var validatePassportRequest =
         new ValidatePassportRequest().passports(passports).criteria(List.of(criterion));
-
+    logger.info("[Passport Auth] Validating passport: {}", validatePassportRequest);
     return ecmService.validatePassport(validatePassportRequest);
   }
 
@@ -947,7 +947,9 @@ public class SnapshotService {
     boolean accessible = false;
     List<String> causes = new ArrayList<>();
     try {
+      logger.info("[Passport Auth] Retrieving Ras provider passport: {}", snapshotSummary.getId());
       String passport = ecmService.getRasProviderPassport(userReq);
+      logger.info("[Passport Auth] Ras provider passport retrieved: {}", passport);
       if (passport != null) {
         if (verifyPassportAuth(snapshotSummary, List.of(passport)).isValid()) {
           accessible = true;

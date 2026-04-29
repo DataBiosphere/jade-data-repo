@@ -17,6 +17,7 @@ import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.externalcreds.model.ValidatePassportResult;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DRSAccessMethod;
@@ -84,6 +85,8 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Component;
@@ -94,6 +97,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class DrsService {
+
+  private static final Logger logger = LoggerFactory.getLogger(DrsService.class);
 
   private static final String ACCESS_ID_PREFIX_GCP = "gcp-";
   private static final String ACCESS_ID_PREFIX_AZURE = "az-";
@@ -238,25 +243,46 @@ public class DrsService {
       String drsObjectId, DRSPassportRequestModel drsPassportRequestModel) {
     try (DrsRequestResource r = new DrsRequestResource()) {
       DrsId resolvedDrsObjectId = resolveDrsObjectId(drsObjectId);
+      List<SnapshotCacheResult> snapshots = lookupSnapshotsForDRSObject(resolvedDrsObjectId);
+      logger.info(
+          "[Passport Auth] DRS ID {}: found {} candidate snapshot(s)",
+          drsObjectId,
+          snapshots.size());
       List<Future<SnapshotCacheResult>> futures =
-          lookupSnapshotsForDRSObject(resolvedDrsObjectId).stream()
+          snapshots.stream()
               .map(
                   s ->
                       executor.submit(
                           () -> {
                             try {
                               // Only look at snapshots that the user has access to
+                              logger.info(
+                                  "[Passport Auth] Verifying passport auth for snapshot {}", s.id);
                               verifyPassportAuth(s.id, drsPassportRequestModel);
+                              logger.info("[Passport Auth] Auth succeeded for snapshot {}", s.id);
                               return s;
                             } catch (UnauthorizedException e) {
+                              logger.warn(
+                                  "[Passport Auth] Auth failed for snapshot {}: {}",
+                                  s.id,
+                                  e.getMessage());
                               return null;
                             }
                           }))
               .toList();
       List<SnapshotCacheResult> cachedSnapshots = FutureUtils.waitFor(futures);
       if (cachedSnapshots.isEmpty()) {
+        logger.warn(
+            "[Passport Auth] Auth failed for DRS ID {}: no accessible snapshots out of {} candidates",
+            drsObjectId,
+            snapshots.size());
         throw new UnauthorizedException("User does not have access");
       }
+      logger.info(
+          "[Passport Auth] Auth succeeded for DRS ID {}: {} accessible snapshot(s) out of {} candidates",
+          drsObjectId,
+          cachedSnapshots.size(),
+          snapshots.size());
       return resolveDRSObject(
           null, resolvedDrsObjectId, drsPassportRequestModel.isExpand(), cachedSnapshots, true);
     }
@@ -419,9 +445,18 @@ public class DrsService {
   void verifyPassportAuth(UUID snapshotId, DRSPassportRequestModel drsPassportRequestModel) {
     SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshotId);
     List<String> passports = drsPassportRequestModel.getPassports();
-    if (!snapshotService.verifyPassportAuth(snapshotSummary, passports).isValid()) {
-      throw new UnauthorizedException("User is not authorized to see drs object.");
+    ValidatePassportResult result = snapshotService.verifyPassportAuth(snapshotSummary, passports);
+    Boolean isValid = result.isValid();
+    if (isValid != null && isValid) {
+      logger.info(
+          "[Passport Auth] Access to snapshot {} has been successfully verified", snapshotId);
+      return;
     }
+    logger.warn(
+        "[Passport Auth] Passport validation failed for snapshot {}: isValid={}",
+        snapshotId,
+        result.isValid());
+    throw new UnauthorizedException("User is not authorized to see drs object.");
   }
 
   private DRSObject lookupDRSObjectAfterAuth(

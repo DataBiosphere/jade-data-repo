@@ -67,7 +67,9 @@ public class EcmService {
 
   public ValidatePassportResult validatePassport(ValidatePassportRequest validatePassportRequest) {
     var passportApi = getPassportApi();
+    logger.info("[Passport Auth] Validating passport: {}", validatePassportRequest);
     var result = passportApi.validatePassport(validatePassportRequest);
+    logger.info("[Passport Auth] Passport: {}", result);
 
     if (result.isValid()) {
       var auditInfo = result.getAuditInfo();
@@ -87,6 +89,8 @@ public class EcmService {
           ApplicationConfiguration.APPLICATION_NAME,
           ((RASv1Dot1VisaCriterion) result.getMatchedCriterion()).getPhsId(),
           df.format(new Date(System.currentTimeMillis())));
+    } else {
+      logger.info("[Passport Auth] Invalid passport: {}", validatePassportRequest);
     }
 
     return result;
@@ -101,8 +105,10 @@ public class EcmService {
       return oidcApiService.getOidcApi(userReq).getProviderPassport(PassportProvider.RAS);
     } catch (HttpClientErrorException ex) {
       if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
+        logger.info("[Passport Auth] Ras provider not found: {}", userReq);
         return null;
       }
+      logger.warn("[Passport Auth] Error retrieving Ras provider: {}", userReq);
       throw ex;
     }
   }

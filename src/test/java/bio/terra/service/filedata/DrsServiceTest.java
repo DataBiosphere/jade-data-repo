@@ -1380,6 +1380,37 @@ class DrsServiceTest {
     assertThat(googleDrsObject.getName(), is(googleFsFile.getPath()));
   }
 
+  @ParameterizedTest
+  @MethodSource("provideValidatePassportAuthTestCases")
+  void testVerifyPassportAuth(Boolean isValid, boolean shouldThrow) {
+    UUID snapshotId = UUID.randomUUID();
+    DRSPassportRequestModel passportRequest = new DRSPassportRequestModel();
+    passportRequest.setPassports(List.of("mock-passport"));
+
+    SnapshotSummaryModel snapshotSummary = new SnapshotSummaryModel();
+    snapshotSummary.setId(snapshotId);
+
+    ValidatePassportResult validationResult = new ValidatePassportResult();
+    validationResult.setValid(isValid);
+
+    when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(snapshotSummary);
+    when(snapshotService.verifyPassportAuth(eq(snapshotSummary), any()))
+        .thenReturn(validationResult);
+
+    if (shouldThrow) {
+      assertThrows(
+          UnauthorizedException.class,
+          () -> drsService.verifyPassportAuth(snapshotId, passportRequest));
+    } else {
+      drsService.verifyPassportAuth(snapshotId, passportRequest);
+    }
+  }
+
+  private static Stream<Arguments> provideValidatePassportAuthTestCases() {
+    return Stream.of(
+        arguments(Boolean.TRUE, false), arguments(Boolean.FALSE, true), arguments(null, true));
+  }
+
   private DRSObject createFileDrsObject(
       String id,
       String path,

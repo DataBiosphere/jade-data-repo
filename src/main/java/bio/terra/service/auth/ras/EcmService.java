@@ -105,7 +105,6 @@ public class EcmService {
       return oidcApiService.getOidcApi(userReq).getProviderPassport(PassportProvider.RAS);
     } catch (HttpClientErrorException ex) {
       if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
-        logger.info("[Passport Auth] Ras provider not found: {}", userReq);
         return null;
       }
       logger.warn("[Passport Auth] Error retrieving Ras provider: {}", userReq);

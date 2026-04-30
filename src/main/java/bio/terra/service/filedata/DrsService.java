@@ -351,6 +351,7 @@ public class DrsService {
       boolean passportAuth) {
 
     Map<UUID, UUID> snapshotToBillingSnapshot = chooseBillingSnapshotsPerSnapshot(cachedSnapshots);
+
     List<Future<DRSObject>> futures =
         cachedSnapshots.stream()
             .map(
@@ -630,6 +631,14 @@ public class DrsService {
       String gsPath,
       AuthenticatedUserRequest authUser,
       String userProject) {
+    logger.info(
+        "Signing Google URL for snapshot {}: gsPath='{}', userProject='{}', authUser={}, isSelfHosted={}",
+        cachedSnapshot.id,
+        gsPath,
+        userProject,
+        authUser != null ? "present" : "null",
+        cachedSnapshot.isSelfHosted);
+
     BlobId locator = GcsUriUtils.parseBlobUri(gsPath);
 
     BlobInfo blobInfo = BlobInfo.newBuilder(locator).build();
@@ -647,14 +656,34 @@ public class DrsService {
       // If a userProject is explicitly passed in, then use that to sign the url.
       // Note: the expectation is that this is a Terra hosted bucket
       if (!StringUtils.isEmpty(userProject)) {
-        return new DRSAccessURL()
-            .url(samService.signUrlForBlob(authUser, userProject, gsPath, URL_TTL));
+        // For passport auth, authUser will be null. In that case, we can't sign via SAM because
+        // there is no bearer token. Fall through to signing with the dataset's service account.
+        if (authUser != null) {
+          logger.info(
+              "Signing URL via SAM for snapshot {} with userProject '{}'",
+              cachedSnapshot.id,
+              userProject);
+          return new DRSAccessURL()
+              .url(samService.signUrlForBlob(authUser, userProject, gsPath, URL_TTL));
+        } else {
+          logger.info(
+              "authUser is null (passport auth), falling through to sign with dataset service account for snapshot {}",
+              cachedSnapshot.id);
+        }
       }
       // In the base case of a self-hosted dataset, use the dataset's service account to sign the
       // url
+      logger.info(
+          "Signing URL with dataset service account for snapshot {} (project: {})",
+          cachedSnapshot.id,
+          cachedSnapshot.datasetProjectId);
       signedUrl =
           signUrlFunction.apply(gcsProjectFactory.getStorage(cachedSnapshot.datasetProjectId));
     } else {
+      logger.info(
+          "Signing URL with snapshot's Google project for snapshot {} (project: {})",
+          cachedSnapshot.id,
+          cachedSnapshot.googleProjectId);
       try (Storage storage = initStorage(cachedSnapshot.googleProjectId)) {
         signedUrl = signUrlFunction.apply(storage);
       } catch (Exception e) {
@@ -662,6 +691,7 @@ public class DrsService {
       }
     }
 
+    logger.info("Successfully signed URL for snapshot {}", cachedSnapshot.id);
     return new DRSAccessURL().url(signedUrl.toString());
   }
 
@@ -701,6 +731,14 @@ public class DrsService {
     if (signingUser != null) {
       queryParams.put(REQUESTED_BY_QUERY_PARAM, signingUser);
     }
+
+    logger.info(
+        "URL signing options for snapshot {}: signingProject='{}', signingUser='{}', userProject='{}'",
+        cachedSnapshot.id,
+        signingProject,
+        signingUser,
+        userProject);
+
     return new Storage.SignUrlOption[] {
       Storage.SignUrlOption.withQueryParams(queryParams), Storage.SignUrlOption.withV4Signature()
     };
@@ -847,6 +885,7 @@ public class DrsService {
         prefix
             + region
             + Optional.ofNullable(billingProject).map(b -> ACCESS_ID_SEPARATOR + b).orElse("");
+
     DRSAccessMethod httpsAccessMethod =
         new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.HTTPS)

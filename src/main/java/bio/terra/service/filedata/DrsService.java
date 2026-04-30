@@ -352,14 +352,6 @@ public class DrsService {
 
     Map<UUID, UUID> snapshotToBillingSnapshot = chooseBillingSnapshotsPerSnapshot(cachedSnapshots);
 
-    logger.info(
-        "Resolving DRS object for DRS ID {} with {} snapshots. Billing snapshot mapping: {}",
-        drsId.toDrsObjectId(),
-        cachedSnapshots.size(),
-        snapshotToBillingSnapshot.entrySet().stream()
-            .map(e -> e.getKey() + " -> " + e.getValue())
-            .toList());
-
     List<Future<DRSObject>> futures =
         cachedSnapshots.stream()
             .map(
@@ -565,14 +557,6 @@ public class DrsService {
         throw new BadRequestException(
             "The supplied x-user-project must not be the snapshot's own project");
       }
-      if (authUser == null) {
-        logger.warn(
-            "Using passport auth with requester-pays snapshot {} and userProject '{}'. "
-                + "Will sign with dataset's service account and include userProject parameter, "
-                + "but billing authorization may fail at access time.",
-            cachedSnapshot.id,
-            userProject);
-      }
     }
     if (platform.isGcp()) {
       return signGoogleUrl(cachedSnapshot, fsFile.getCloudPath(), authUser, userProject);
@@ -707,8 +691,7 @@ public class DrsService {
       }
     }
 
-    logger.info(
-        "Successfully signed URL for snapshot {}", cachedSnapshot.id);
+    logger.info("Successfully signed URL for snapshot {}", cachedSnapshot.id);
     return new DRSAccessURL().url(signedUrl.toString());
   }
 
@@ -902,14 +885,6 @@ public class DrsService {
         prefix
             + region
             + Optional.ofNullable(billingProject).map(b -> ACCESS_ID_SEPARATOR + b).orElse("");
-
-    logger.info(
-        "Creating access method: prefix='{}', region='{}', passportAuth={}, billingProject='{}', resulting accessId='{}'",
-        prefix,
-        region,
-        passportAuth,
-        billingProject,
-        accessId);
 
     DRSAccessMethod httpsAccessMethod =
         new DRSAccessMethod()

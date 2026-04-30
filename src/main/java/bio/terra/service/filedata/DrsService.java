@@ -678,7 +678,7 @@ public class DrsService {
           cachedSnapshot.id,
           cachedSnapshot.datasetProjectId);
       signedUrl =
-          signUrlFunction.apply(gcsProjectFactory.getStorage(cachedSnapshot.datasetProjectId));
+          signUrlFunction.apply(gcsProjectFactory.getStorage(cachedSnapshot.datasetProjectId, true));
     } else {
       logger.info(
           "Signing URL with snapshot's Google project for snapshot {} (project: {})",

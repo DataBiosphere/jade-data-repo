@@ -194,6 +194,8 @@ def create_dataset(clients, dataset_to_upload, profile_id):
         dataset_request["cloudPlatform"] = dataset_to_upload["cloud_platform"]
         dataset_request["name"] = dataset_name
         dataset_request["defaultProfileId"] = profile_id
+        dataset_request["dedicatedIngestServiceAccount"] = False
+        dataset_request["phsId"] = "phs000424"
         print(f"Creating dataset {dataset_name}")
         dataset = wait_for_job(
             clients, clients.datasets_api.create_dataset(dataset=dataset_request)
@@ -260,6 +262,7 @@ def create_snapshots(clients, dataset_name, snapshots, profile_id):
                 "description": snapshot_to_upload["description"],
                 "contents": [{"datasetName": dataset_name, "mode": "byFullView"}],
                 "profileId": profile_id,
+                "consentCode": "c1"
             }
             snapshot = wait_for_job(
                 clients,

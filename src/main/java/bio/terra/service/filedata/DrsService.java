@@ -34,6 +34,7 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
+import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.filedata.DrsDao.DrsAlias;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
@@ -495,12 +496,13 @@ public class DrsService {
   }
 
   public DRSAccessURL postAccessUrlForObjectId(
+      AuthenticatedUserRequest authUserOnlyForUserProjectAccess,
       String objectId,
       String accessId,
       DRSPassportRequestModel passportRequestModel,
       String userProject) {
     DRSObject drsObject = lookupObjectByDrsIdPassport(objectId, passportRequestModel);
-    return getAccessURL(null, drsObject, accessId, userProject);
+    return getAccessURL(authUserOnlyForUserProjectAccess, drsObject, accessId, userProject);
   }
 
   public DRSAccessURL getAccessUrlForObjectId(
@@ -656,8 +658,6 @@ public class DrsService {
       // If a userProject is explicitly passed in, then use that to sign the url.
       // Note: the expectation is that this is a Terra hosted bucket
       if (!StringUtils.isEmpty(userProject)) {
-        // For passport auth, authUser will be null. In that case, we can't sign via SAM because
-        // there is no bearer token. Fall through to signing with the dataset's service account.
         if (authUser != null) {
           logger.info(
               "Signing URL via SAM for snapshot {} with userProject '{}'",
@@ -666,9 +666,10 @@ public class DrsService {
           return new DRSAccessURL()
               .url(samService.signUrlForBlob(authUser, userProject, gsPath, URL_TTL));
         } else {
-          logger.info(
-              "authUser is null (passport auth), falling through to sign with dataset service account for snapshot {}",
-              cachedSnapshot.id);
+          throw new InvalidAuthorizationMethod(
+              String.format(
+                  "Bearer token required when using userProject with passport auth (snapshot: %s, userProject: %s)",
+                  cachedSnapshot.id, userProject));
         }
       }
       // In the base case of a self-hosted dataset, use the dataset's service account to sign the

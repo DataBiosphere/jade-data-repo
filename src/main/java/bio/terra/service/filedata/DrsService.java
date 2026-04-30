@@ -668,7 +668,7 @@ public class DrsService {
         } else {
           throw new InvalidAuthorizationMethod(
               String.format(
-                  "When providing a userProject, the bearer token authorization must also be provided in addition to the passport for snapshot %s and userProject %s",
+                  "Bearer token required when using userProject with passport auth (snapshot: %s, userProject: %s)",
                   cachedSnapshot.id, userProject));
         }
       }

@@ -740,6 +740,7 @@ class DrsServiceTest {
     when(drsService.initStorage(snapshotProject)).thenReturn(storage);
     DRSAccessURL url =
         drsService.postAccessUrlForObjectId(
+            TEST_USER,
             googleDrsObjectId,
             "gcp-passport-us-central1*" + snapshotId,
             drsPassportRequestModel,
@@ -761,7 +762,11 @@ class DrsServiceTest {
         UnauthorizedException.class,
         () ->
             drsService.postAccessUrlForObjectId(
-                googleDrsObjectId, "gcp-passport-us-central1", drsPassportRequestModel, null));
+                TEST_USER,
+                googleDrsObjectId,
+                "gcp-passport-us-central1",
+                drsPassportRequestModel,
+                null));
   }
 
   @Test

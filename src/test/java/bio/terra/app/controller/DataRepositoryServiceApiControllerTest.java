@@ -109,7 +109,7 @@ class DataRepositoryServiceApiControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(TestUtils.mapToJson(PASSPORT)));
 
-    when(drsService.postAccessUrlForObjectId(DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
+    when(drsService.postAccessUrlForObjectId(TEST_USER, DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
         .thenThrow(DrsObjectNotFoundException.class);
     mvc.perform(
             post(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID)
@@ -128,7 +128,7 @@ class DataRepositoryServiceApiControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(DRS_ID));
 
-    when(drsService.postAccessUrlForObjectId(DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
+    when(drsService.postAccessUrlForObjectId(TEST_USER, DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
         .thenReturn(DRS_ACCESS_URL_OBJECT);
     mvc.perform(
             post(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID)
@@ -211,7 +211,8 @@ class DataRepositoryServiceApiControllerTest {
   @Test
   void testPostAccessURLLogsUserProject() throws Exception {
     String userProject = "my-gcp-project";
-    when(drsService.postAccessUrlForObjectId(DRS_ID, DRS_ACCESS_ID, PASSPORT, userProject))
+    when(drsService.postAccessUrlForObjectId(
+            TEST_USER, DRS_ID, DRS_ACCESS_ID, PASSPORT, userProject))
         .thenReturn(DRS_ACCESS_URL_OBJECT);
 
     Logger controllerLogger =
@@ -247,7 +248,7 @@ class DataRepositoryServiceApiControllerTest {
 
   @Test
   void testPostAccessURLLogsNullUserProject() throws Exception {
-    when(drsService.postAccessUrlForObjectId(DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
+    when(drsService.postAccessUrlForObjectId(TEST_USER, DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
         .thenReturn(DRS_ACCESS_URL_OBJECT);
 
     Logger controllerLogger =

@@ -166,9 +166,14 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
         objectId,
         accessId,
         userProject);
+    AuthenticatedUserRequest authUserOnlyForUserProjectAccess = getAuthenticatedInfo();
     DRSAccessURL accessURL =
         drsService.postAccessUrlForObjectId(
-            objectId, accessId, drsPassportRequestModel, userProject);
+            authUserOnlyForUserProjectAccess,
+            objectId,
+            accessId,
+            drsPassportRequestModel,
+            userProject);
     return new ResponseEntity<>(accessURL, HttpStatus.OK);
   }
 

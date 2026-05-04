@@ -1,6 +1,6 @@
 [
   {
-    "name": "V2F_GWAS_Summary_Statistics_Passport_Test",
+    "name": "V2F_GWAS_Summary_Statistics_Self_hosted_Test",
     "cloud_platform": "gcp",
     "schema": "V2F_GWAS_Summary_Statistics",
     "tables": [
@@ -13,7 +13,7 @@
     "snapshot_creators": [],
     "snapshots": [
       {
-        "name": "V2FGWASSummaryStatisticsSnapshot_PassportTest",
+        "name": "V2FGWASSummaryStatisticsSnapshot_SelfHostedTest",
         "description": "Test Snapshot",
         "readers": ["DataRepoTestResourceAccess@dev.test.firecloud.org"]
       }

@@ -196,6 +196,7 @@ def create_dataset(clients, dataset_to_upload, profile_id):
         dataset_request["defaultProfileId"] = profile_id
         dataset_request["dedicatedIngestServiceAccount"] = False
         dataset_request["phsId"] = "phs000424"
+        dataset_request["experimentalSelfHosted"] = True
         print(f"Creating dataset {dataset_name}")
         dataset = wait_for_job(
             clients, clients.datasets_api.create_dataset(dataset=dataset_request)

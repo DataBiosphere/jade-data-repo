@@ -658,7 +658,7 @@ public class DrsService {
       // If a userProject is explicitly passed in, then use that to sign the url.
       // Note: the expectation is that this is a Terra hosted bucket
       if (!StringUtils.isEmpty(userProject)) {
-        if (authUser != null) {
+        if (authUser != null && authUser.getToken() != null && !authUser.getToken().isBlank()) {
           logger.info(
               "Signing URL via SAM for snapshot {} with userProject '{}'",
               cachedSnapshot.id,

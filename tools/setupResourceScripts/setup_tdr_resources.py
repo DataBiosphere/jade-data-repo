@@ -195,7 +195,7 @@ def create_dataset(clients, dataset_to_upload, profile_id):
         dataset_request["name"] = dataset_name
         dataset_request["defaultProfileId"] = profile_id
         dataset_request["dedicatedIngestServiceAccount"] = False
-        dataset_request["phsId"] = "phs000424"
+        dataset_request["phsId"] = "phs000710"
         dataset_request["experimentalSelfHosted"] = True
         print(f"Creating dataset {dataset_name}")
         dataset = wait_for_job(
@@ -263,7 +263,7 @@ def create_snapshots(clients, dataset_name, snapshots, profile_id):
                 "description": snapshot_to_upload["description"],
                 "contents": [{"datasetName": dataset_name, "mode": "byFullView"}],
                 "profileId": profile_id,
-                "consentCode": "c1"
+                "consentCode": "c99"
             }
             snapshot = wait_for_job(
                 clients,

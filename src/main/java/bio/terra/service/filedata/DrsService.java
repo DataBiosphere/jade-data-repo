@@ -658,12 +658,14 @@ public class DrsService {
       // If a userProject is explicitly passed in, then use that to sign the url.
       // Note: the expectation is that this is a Terra hosted bucket
       if (!StringUtils.isEmpty(userProject)) {
-        if (authUser != null && authUser.getToken() != null) {
+        if (authUser != null
+            && authUser.getToken() != null
+            && StringUtils.isNotEmpty(authUser.getToken())) {
           logger.info(
               "Signing URL via SAM for snapshot {} with userProject '{}' and token (starts with {} has length {})",
               cachedSnapshot.id,
               userProject,
-              authUser.getToken().subSequence(0,5),
+              authUser.getToken().subSequence(0, 5),
               authUser.getToken().length());
           return new DRSAccessURL()
               .url(samService.signUrlForBlob(authUser, userProject, gsPath, URL_TTL));

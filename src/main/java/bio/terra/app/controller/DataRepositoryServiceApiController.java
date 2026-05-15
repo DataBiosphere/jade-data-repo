@@ -86,13 +86,21 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     var authSample = authHeader.map(s -> s.subSequence(0, Math.min(25, s.length())));
     var tokenSample = tokenHeader.map(s -> s.subSequence(0, Math.min(25, s.length())));
 
+    var isSameToken = authHeader.equals(tokenHeader);
+
+    var authenticatedUserRequest = authenticatedUserRequestFactory.from(request);
+
+    var userObjectSample =
+        Optional.ofNullable(authenticatedUserRequest.getToken())
+            .map(s -> s.subSequence(0, Math.min(25, s.length())));
+
     logger.info(
-        "getAuthenticatedInfo for {} {} - auth header: [{}] | token header: [{}] | extracted token length: {}",
+        "getAuthenticatedInfo for {} {} headers equal? {}, auth header: [{}] | token header: [{}] | user object: [{}]",
         request.getMethod(),
         request.getRequestURI(),
         authSample,
         tokenSample,
-        token != null ? token.length() : 0);
+        userObjectSample);
 
     // Use the deprecated factory for now, but with the token from BearerTokenFactory
     AuthenticatedUserRequest authUser = authenticatedUserRequestFactory.from(request);

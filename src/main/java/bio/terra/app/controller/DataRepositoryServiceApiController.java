@@ -79,15 +79,22 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
 
     var isSameToken = authHeader.equals(tokenHeader);
 
+    var authenticatedUserRequest = authenticatedUserRequestFactory.from(request);
+
+    var userObjectSample =
+        Optional.ofNullable(authenticatedUserRequest.getToken())
+            .map(s -> s.subSequence(0, Math.min(25, s.length())));
+
     logger.info(
-        "getAuthenticatedInfo for {} {} headers equal? {}, auth header: [{}] | token header: [{}]",
+        "getAuthenticatedInfo for {} {} headers equal? {}, auth header: [{}] | token header: [{}] | user object: [{}]",
         request.getMethod(),
         request.getRequestURI(),
         isSameToken,
         authSample,
-        tokenSample);
+        tokenSample,
+        userObjectSample);
 
-    return authenticatedUserRequestFactory.from(request);
+    return authenticatedUserRequest;
   }
 
   @ExceptionHandler

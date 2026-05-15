@@ -9,6 +9,7 @@ import bio.terra.common.exception.NotImplementedException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import bio.terra.common.iam.BearerTokenFactory;
 import bio.terra.controller.DataRepositoryServiceApi;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSAuthorizations;
@@ -24,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +44,7 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
   private final HttpServletRequest request;
   private final DrsService drsService;
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  private final BearerTokenFactory bearerTokenFactory;
 
   // needed for local testing w/o proxy
   private final ApplicationConfiguration appConfig;
@@ -52,12 +55,14 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
       HttpServletRequest request,
       DrsService drsService,
       ApplicationConfiguration appConfig,
-      AuthenticatedUserRequestFactory authenticatedUserRequestFactory) {
+      AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
+      BearerTokenFactory bearerTokenFactory) {
     this.objectMapper = objectMapper;
     this.request = request;
     this.appConfig = appConfig;
     this.drsService = drsService;
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
+    this.bearerTokenFactory = bearerTokenFactory;
   }
 
   @Override
@@ -71,23 +76,36 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
   }
 
   private AuthenticatedUserRequest getAuthenticatedInfo() {
-    var authHeader = Optional.of(request.getHeader("Authorization"));
-    var tokenHeader = Optional.of(request.getHeader("OIDC_ACCESS_token"));
+    // Use BearerTokenFactory to extract token from Authorization header
+    var bearerToken = bearerTokenFactory.from(request);
+    String token = bearerToken != null ? bearerToken.getToken() : null;
+
+    var authHeader = Optional.ofNullable(request.getHeader("Authorization"));
+    var tokenHeader = Optional.ofNullable(request.getHeader("OIDC_ACCESS_token"));
 
     var authSample = authHeader.map(s -> s.subSequence(0, Math.min(25, s.length())));
     var tokenSample = tokenHeader.map(s -> s.subSequence(0, Math.min(25, s.length())));
 
-    var isSameToken = authHeader.equals(tokenHeader);
-
     logger.info(
-        "getAuthenticatedInfo for {} {} headers equal? {}, auth header: [{}] | token header: [{}]",
+        "getAuthenticatedInfo for {} {} - auth header: [{}] | token header: [{}] | extracted token length: {}",
         request.getMethod(),
         request.getRequestURI(),
-        isSameToken,
         authSample,
-        tokenSample);
+        tokenSample,
+        token != null ? token.length() : 0);
 
-    return authenticatedUserRequestFactory.from(request);
+    // Use the deprecated factory for now, but with the token from BearerTokenFactory
+    AuthenticatedUserRequest authUser = authenticatedUserRequestFactory.from(request);
+    // Override with the correct token from Authorization header if it was empty
+    if (StringUtils.isEmpty(authUser.getToken()) && token != null) {
+      logger.info("Token was empty from factory, using token from BearerTokenFactory");
+      return AuthenticatedUserRequest.builder()
+          .setEmail(authUser.getEmail())
+          .setSubjectId(authUser.getSubjectId())
+          .setToken(token)
+          .build();
+    }
+    return authUser;
   }
 
   @ExceptionHandler

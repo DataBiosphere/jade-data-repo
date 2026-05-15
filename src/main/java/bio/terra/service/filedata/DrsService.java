@@ -505,6 +505,21 @@ public class DrsService {
     return getAccessURL(authUserOnlyForUserProjectAccess, drsObject, accessId, userProject);
   }
 
+  public DRSAccessURL postAccessUrlForObjectId(
+      bio.terra.common.iam.BearerToken bearerToken,
+      String objectId,
+      String accessId,
+      DRSPassportRequestModel passportRequestModel,
+      String userProject) {
+    DRSObject drsObject = lookupObjectByDrsIdPassport(objectId, passportRequestModel);
+    // Build AuthenticatedUserRequest from BearerToken for SAM
+    AuthenticatedUserRequest authUser =
+        AuthenticatedUserRequest.builder()
+            .setToken(bearerToken != null ? bearerToken.getToken() : null)
+            .build();
+    return getAccessURL(authUser, drsObject, accessId, userProject);
+  }
+
   public DRSAccessURL getAccessUrlForObjectId(
       AuthenticatedUserRequest authUser, String objectId, String accessId, String userProject) {
     DRSObject drsObject = lookupObjectByDrsId(authUser, objectId, false);

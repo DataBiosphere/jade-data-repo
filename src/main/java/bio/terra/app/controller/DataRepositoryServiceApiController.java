@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Optional;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,12 +75,8 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
   }
 
   private AuthenticatedUserRequest getAuthenticatedInfo() {
-    // Use BearerTokenFactory to extract token from Authorization header
-    var bearerToken = bearerTokenFactory.from(request);
-    String token = bearerToken != null ? bearerToken.getToken() : null;
-
-    var authHeader = Optional.ofNullable(request.getHeader("Authorization"));
-    var tokenHeader = Optional.ofNullable(request.getHeader("OIDC_ACCESS_token"));
+    var authHeader = Optional.of(request.getHeader("Authorization"));
+    var tokenHeader = Optional.of(request.getHeader("OIDC_ACCESS_token"));
 
     var authSample = authHeader.map(s -> s.subSequence(0, Math.min(25, s.length())));
     var tokenSample = tokenHeader.map(s -> s.subSequence(0, Math.min(25, s.length())));
@@ -98,22 +93,12 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
         "getAuthenticatedInfo for {} {} headers equal? {}, auth header: [{}] | token header: [{}] | user object: [{}]",
         request.getMethod(),
         request.getRequestURI(),
+        isSameToken,
         authSample,
         tokenSample,
         userObjectSample);
 
-    // Use the deprecated factory for now, but with the token from BearerTokenFactory
-    AuthenticatedUserRequest authUser = authenticatedUserRequestFactory.from(request);
-    // Override with the correct token from Authorization header if it was empty
-    if (StringUtils.isEmpty(authUser.getToken()) && token != null) {
-      logger.info("Token was empty from factory, using token from BearerTokenFactory");
-      return AuthenticatedUserRequest.builder()
-          .setEmail(authUser.getEmail())
-          .setSubjectId(authUser.getSubjectId())
-          .setToken(token)
-          .build();
-    }
-    return authUser;
+    return authenticatedUserRequestFactory.from(request);
   }
 
   @ExceptionHandler
@@ -208,14 +193,11 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
         objectId,
         accessId,
         userProject);
-    AuthenticatedUserRequest authUserOnlyForUserProjectAccess = getAuthenticatedInfo();
+    // Use BearerTokenFactory to get token from Authorization header
+    var bearerToken = bearerTokenFactory.from(request);
     DRSAccessURL accessURL =
         drsService.postAccessUrlForObjectId(
-            authUserOnlyForUserProjectAccess,
-            objectId,
-            accessId,
-            drsPassportRequestModel,
-            userProject);
+            bearerToken, objectId, accessId, drsPassportRequestModel, userProject);
     return new ResponseEntity<>(accessURL, HttpStatus.OK);
   }
 

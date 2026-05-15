@@ -663,7 +663,7 @@ public class DrsService {
               "Signing URL via SAM for snapshot {} with userProject '{}' and token (starts with {} has length {})",
               cachedSnapshot.id,
               userProject,
-              authUser.getToken().subSequence(0, Math.min(15, authUser.getToken().length())),
+              authUser.getToken().subSequence(0, Math.min(16, authUser.getToken().length())),
               authUser.getToken().length());
           return new DRSAccessURL()
               .url(samService.signUrlForBlob(authUser, userProject, gsPath, URL_TTL));

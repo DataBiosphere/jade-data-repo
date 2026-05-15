@@ -71,6 +71,19 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
   }
 
   private AuthenticatedUserRequest getAuthenticatedInfo() {
+    var authHeader = Optional.of(request.getHeader("Authorization"));
+    var tokenHeader = Optional.of(request.getHeader("OIDC_ACCESS_token"));
+
+    var authSample = authHeader.map(s -> s.subSequence(0, Math.min(25, s.length())));
+    var tokenSample = tokenHeader.map(s -> s.subSequence(0, Math.min(25, s.length())));
+
+    var isSameToken = authHeader.equals(tokenHeader);
+
+    logger.info("getAuthenticatedInfo for {} {} headers equal? {}, auth header: [{}] | token header: [{}]",
+        request.getMethod(),
+        request.getRequestURI(),
+        isSameToken, authSample, tokenSample);
+
     return authenticatedUserRequestFactory.from(request);
   }
 

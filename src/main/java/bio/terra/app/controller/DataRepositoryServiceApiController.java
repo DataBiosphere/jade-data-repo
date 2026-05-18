@@ -95,13 +95,15 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
             .map(s -> s.subSequence(0, Math.min(25, s.length())));
 
     logger.info(
-        "getAuthenticatedInfo for {} {}, headers equal? {} | auth header: [{}] | token header: [{}] | user object: [{}] | header names: [{}]",
+        "getAuthenticatedInfo for {} {}, headers equal? {} | auth header: [{}] | token header: [{}] | user object: [{}] | email header: [{}] | userid header: [{}] | header names: [{}]",
         request.getMethod(),
         request.getRequestURI(),
         isEqual,
         authSample,
         tokenSample,
         userObjectSample,
+        request.getHeader("OIDC_CLAIM_email"),
+        request.getHeader("OIDC_CLAIM_user_id"),
         StringUtils.joinWith(",", Collections.list(request.getHeaderNames()).toArray()));
 
     return authenticatedUserRequestFactory.from(request);

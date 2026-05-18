@@ -77,37 +77,6 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
   }
 
   private AuthenticatedUserRequest getAuthenticatedInfo() {
-    var authHeader =
-        Optional.of(request.getHeader("Authorization")).orElse("#header did not exist#");
-    var tokenHeader =
-        Optional.of(request.getHeader("OIDC_ACCESS_token")).orElse("#header did not exist#");
-
-    var authHeaderWithoutPrefix = authHeader.replaceFirst("Bearer ", "");
-
-    var authSample =
-        authHeaderWithoutPrefix.subSequence(0, Math.min(25, authHeaderWithoutPrefix.length()));
-    var tokenSample = tokenHeader.subSequence(0, Math.min(25, tokenHeader.length()));
-
-    var isEqual = tokenHeader.equals(authHeaderWithoutPrefix);
-
-    var authenticatedUserRequest = authenticatedUserRequestFactory.from(request);
-
-    var userObjectSample =
-        Optional.ofNullable(authenticatedUserRequest.getToken())
-            .map(s -> s.subSequence(0, Math.min(25, s.length())));
-
-    logger.info(
-        "getAuthenticatedInfo for {} {}, headers equal? {} | auth header: [{}] | token header: [{}] | user object: [{}] | email header: [{}] | userid header: [{}] | header names: [{}]",
-        request.getMethod(),
-        request.getRequestURI(),
-        isEqual,
-        authSample,
-        tokenSample,
-        userObjectSample,
-        request.getHeader("OIDC_CLAIM_email"),
-        request.getHeader("OIDC_CLAIM_user_id"),
-        StringUtils.joinWith(",", Collections.list(request.getHeaderNames()).toArray()));
-
     return authenticatedUserRequestFactory.from(request);
   }
 

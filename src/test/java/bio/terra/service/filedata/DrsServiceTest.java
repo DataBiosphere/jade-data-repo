@@ -38,7 +38,6 @@ import bio.terra.common.UriUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.UnauthorizedException;
-import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.BearerToken;
 import bio.terra.externalcreds.model.ValidatePassportResult;

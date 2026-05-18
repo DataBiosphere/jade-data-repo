@@ -216,7 +216,7 @@ class DataRepositoryServiceApiControllerTest {
   void testPostAccessURLLogsUserProject() throws Exception {
     String userProject = "my-gcp-project";
     when(drsService.postAccessUrlForObjectId(
-        TEST_TOKEN, DRS_ID, DRS_ACCESS_ID, PASSPORT, userProject))
+            TEST_TOKEN, DRS_ID, DRS_ACCESS_ID, PASSPORT, userProject))
         .thenReturn(DRS_ACCESS_URL_OBJECT);
 
     Logger controllerLogger =
@@ -285,7 +285,7 @@ class DataRepositoryServiceApiControllerTest {
   void testPostAccessURLRequiresBearerTokenWithUserProject() throws Exception {
     String userProject = "my-gcp-project";
     when(drsService.postAccessUrlForObjectId(
-        TEST_TOKEN, DRS_ID, DRS_ACCESS_ID, PASSPORT, userProject))
+            TEST_TOKEN, DRS_ID, DRS_ACCESS_ID, PASSPORT, userProject))
         .thenThrow(
             new InvalidAuthorizationMethod(
                 "Bearer token required when using userProject with passport auth"));

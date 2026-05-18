@@ -203,18 +203,12 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
         objectId,
         accessId,
         userProject);
-    //    // Use BearerTokenFactory to get token from Authorization header
-    //    var bearerToken = bearerTokenFactory.from(request);
-
-    AuthenticatedUserRequest authUserOnlyForUserProjectAccess = getAuthenticatedInfo();
+    // Use BearerTokenFactory to get token from Authorization header
+    var bearerToken = bearerTokenFactory.from(request);
 
     DRSAccessURL accessURL =
         drsService.postAccessUrlForObjectId(
-            authUserOnlyForUserProjectAccess,
-            objectId,
-            accessId,
-            drsPassportRequestModel,
-            userProject);
+            bearerToken, objectId, accessId, drsPassportRequestModel, userProject);
     return new ResponseEntity<>(accessURL, HttpStatus.OK);
   }
 

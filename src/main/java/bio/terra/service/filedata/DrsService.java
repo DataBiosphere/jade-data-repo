@@ -516,6 +516,8 @@ public class DrsService {
     AuthenticatedUserRequest authUser =
         AuthenticatedUserRequest.builder()
             .setToken(bearerToken != null ? bearerToken.getToken() : null)
+            .setEmail("n/a")
+            .setSubjectId("n/a")
             .build();
     return getAccessURL(authUser, drsObject, accessId, userProject);
   }

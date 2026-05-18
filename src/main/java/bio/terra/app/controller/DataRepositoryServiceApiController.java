@@ -77,16 +77,18 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
   }
 
   private AuthenticatedUserRequest getAuthenticatedInfo() {
-    var authHeader = Optional.of(request.getHeader("Authorization")).orElse("#header did not exist#");
-    var tokenHeader = Optional.of(request.getHeader("OIDC_ACCESS_token")).orElse("#header did not exist#");
+    var authHeader =
+        Optional.of(request.getHeader("Authorization")).orElse("#header did not exist#");
+    var tokenHeader =
+        Optional.of(request.getHeader("OIDC_ACCESS_token")).orElse("#header did not exist#");
 
     var authHeaderWithoutPrefix = authHeader.replaceFirst("Bearer ", "");
 
-    var authSample = authHeaderWithoutPrefix.subSequence(0, Math.min(25, authHeaderWithoutPrefix.length()));
+    var authSample =
+        authHeaderWithoutPrefix.subSequence(0, Math.min(25, authHeaderWithoutPrefix.length()));
     var tokenSample = tokenHeader.subSequence(0, Math.min(25, tokenHeader.length()));
 
     var isEqual = tokenHeader.equals(authHeaderWithoutPrefix);
-
 
     var authenticatedUserRequest = authenticatedUserRequestFactory.from(request);
 

@@ -17,6 +17,7 @@ import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.common.iam.BearerToken;
+import bio.terra.common.iam.BearerTokenFactory;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSAuthorizations;
 import bio.terra.model.DRSObject;
@@ -65,6 +66,7 @@ class DataRepositoryServiceApiControllerTest {
   @MockitoBean private ApplicationConfiguration applicationConfiguration;
   @MockitoBean private DrsService drsService;
   @MockitoBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockitoBean private BearerTokenFactory bearerTokenFactory;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -74,6 +76,7 @@ class DataRepositoryServiceApiControllerTest {
   @BeforeEach
   void setUp() {
     when(authenticatedUserRequestFactory.from(any())).thenReturn(TEST_USER);
+    when(bearerTokenFactory.from(any())).thenReturn(TEST_TOKEN);
   }
 
   @Test

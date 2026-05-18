@@ -38,7 +38,9 @@ import bio.terra.common.UriUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.UnauthorizedException;
+import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.BearerToken;
 import bio.terra.externalcreds.model.ValidatePassportResult;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
@@ -124,6 +126,8 @@ class DrsServiceTest {
           .setEmail("dataset@unit.com")
           .setToken("token")
           .build();
+
+  private static final BearerToken TEST_TOKEN = new BearerToken(TEST_USER.getToken());
 
   private static final String RAS_ISSUER = "https://stsstg.nih.gov";
   private static final String SNAPSHOT_DATA_PROJECT = "snapshot-google-project";
@@ -741,7 +745,7 @@ class DrsServiceTest {
     when(drsService.initStorage(snapshotProject)).thenReturn(storage);
     DRSAccessURL url =
         drsService.postAccessUrlForObjectId(
-            TEST_USER,
+            TEST_TOKEN,
             googleDrsObjectId,
             "gcp-passport-us-central1*" + snapshotId,
             drsPassportRequestModel,
@@ -763,7 +767,7 @@ class DrsServiceTest {
         UnauthorizedException.class,
         () ->
             drsService.postAccessUrlForObjectId(
-                TEST_USER,
+                TEST_TOKEN,
                 googleDrsObjectId,
                 "gcp-passport-us-central1",
                 drsPassportRequestModel,

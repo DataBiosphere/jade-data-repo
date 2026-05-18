@@ -203,7 +203,14 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
         objectId,
         accessId,
         userProject);
-    // Use BearerTokenFactory to get token from Authorization header
+    /*
+     Use BearerTokenFactory to get token from Authorization header.
+       Because this endpoint lives under /ga4gh instead of /api, TDR's auth proxy does not
+       set OIDC_CLAIM_email and OIDC_CLAIM_user_id headers. Because those headers are not set,
+       the ProxiedAuthenticatedUserRequestFactory class will fail to create an AuthenticatedUserRequest
+       object. Therefore, we must create a BearerToken instead of an AuthenticatedUserRequest like
+       other endpoints do.
+    */
     var bearerToken = bearerTokenFactory.from(request);
 
     DRSAccessURL accessURL =

@@ -24,7 +24,9 @@ import bio.terra.service.filedata.exception.InvalidDrsIdException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.Collections;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -81,8 +83,6 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     var authSample = authHeader.map(s -> s.subSequence(0, Math.min(25, s.length())));
     var tokenSample = tokenHeader.map(s -> s.subSequence(0, Math.min(25, s.length())));
 
-    var isSameToken = authHeader.equals(tokenHeader);
-
     var authenticatedUserRequest = authenticatedUserRequestFactory.from(request);
 
     var userObjectSample =
@@ -90,13 +90,13 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
             .map(s -> s.subSequence(0, Math.min(25, s.length())));
 
     logger.info(
-        "getAuthenticatedInfo for {} {} headers equal? {}, auth header: [{}] | token header: [{}] | user object: [{}]",
+        "getAuthenticatedInfo for {} {}, auth header: [{}] | token header: [{}] | user object: [{}] | header names: [{}]",
         request.getMethod(),
         request.getRequestURI(),
-        isSameToken,
         authSample,
         tokenSample,
-        userObjectSample);
+        userObjectSample,
+        StringUtils.joinWith(",", Collections.list(request.getHeaderNames()).toArray()));
 
     return authenticatedUserRequestFactory.from(request);
   }

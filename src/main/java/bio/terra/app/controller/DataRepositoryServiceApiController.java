@@ -24,9 +24,7 @@ import bio.terra.service.filedata.exception.InvalidDrsIdException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.Collections;
 import java.util.Optional;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -177,8 +175,8 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
        Because this endpoint lives under /ga4gh instead of /api, TDR's auth proxy does not
        set OIDC_CLAIM_email and OIDC_CLAIM_user_id headers. Because those headers are not set,
        the ProxiedAuthenticatedUserRequestFactory class will fail to create an AuthenticatedUserRequest
-       object. Therefore, we must create a BearerToken instead of an AuthenticatedUserRequest like
-       other endpoints do.
+       object. Therefore, we must create a BearerToken instead of using getAuthenticatedInfo() to
+       create an AuthenticatedUserRequest like other endpoints do.
     */
     var bearerToken = bearerTokenFactory.from(request);
 

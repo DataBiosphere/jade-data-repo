@@ -509,13 +509,13 @@ public class DrsService {
        Because AuthenticatedUserRequest requires email/subjectid, we have to supply dummy
        values.
     */
-    AuthenticatedUserRequest authUser =
+    AuthenticatedUserRequest authUserOnlyForUserProjectAccess =
         AuthenticatedUserRequest.builder()
             .setToken(bearerToken != null ? bearerToken.getToken() : null)
             .setEmail("n/a")
             .setSubjectId("n/a")
             .build();
-    return getAccessURL(authUser, drsObject, accessId, userProject);
+    return getAccessURL(authUserOnlyForUserProjectAccess, drsObject, accessId, userProject);
   }
 
   public DRSAccessURL getAccessUrlForObjectId(
@@ -671,13 +671,11 @@ public class DrsService {
       // If a userProject is explicitly passed in, then use that to sign the url.
       // Note: the expectation is that this is a Terra hosted bucket
       if (!StringUtils.isEmpty(userProject)) {
-        if (authUser != null && StringUtils.isNotEmpty(authUser.getToken())) {
+        if (authUser != null && StringUtils.isNotBlank(authUser.getToken())) {
           logger.info(
-              "Signing URL via SAM for snapshot {} with userProject '{}' and token (starts with {} has length {})",
+              "Signing URL via SAM for snapshot {} with userProject '{}'",
               cachedSnapshot.id,
-              userProject,
-              authUser.getToken().subSequence(0, Math.min(16, authUser.getToken().length())),
-              authUser.getToken().length());
+              userProject);
           return new DRSAccessURL()
               .url(samService.signUrlForBlob(authUser, userProject, gsPath, URL_TTL));
         } else {

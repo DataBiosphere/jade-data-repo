@@ -17,6 +17,7 @@ import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.BearerToken;
 import bio.terra.externalcreds.model.ValidatePassportResult;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
@@ -496,12 +497,24 @@ public class DrsService {
   }
 
   public DRSAccessURL postAccessUrlForObjectId(
-      AuthenticatedUserRequest authUserOnlyForUserProjectAccess,
+      BearerToken bearerToken,
       String objectId,
       String accessId,
       DRSPassportRequestModel passportRequestModel,
       String userProject) {
     DRSObject drsObject = lookupObjectByDrsIdPassport(objectId, passportRequestModel);
+    /* Translate the BearerToken to an AuthenticatedUserRequest.
+       The BearerToken comes from the /ga4gh/drs/v1/objects/{object_id}/access/{access_id} endpoint,
+       which only has an access token and does not have the user's email or subjectid.
+       Because AuthenticatedUserRequest requires email/subjectid, we have to supply dummy
+       values.
+    */
+    AuthenticatedUserRequest authUserOnlyForUserProjectAccess =
+        AuthenticatedUserRequest.builder()
+            .setToken(bearerToken != null ? bearerToken.getToken() : null)
+            .setEmail("n/a")
+            .setSubjectId("n/a")
+            .build();
     return getAccessURL(authUserOnlyForUserProjectAccess, drsObject, accessId, userProject);
   }
 
@@ -658,7 +671,7 @@ public class DrsService {
       // If a userProject is explicitly passed in, then use that to sign the url.
       // Note: the expectation is that this is a Terra hosted bucket
       if (!StringUtils.isEmpty(userProject)) {
-        if (authUser != null) {
+        if (authUser != null && StringUtils.isNotBlank(authUser.getToken())) {
           logger.info(
               "Signing URL via SAM for snapshot {} with userProject '{}'",
               cachedSnapshot.id,

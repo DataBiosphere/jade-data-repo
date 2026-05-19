@@ -39,6 +39,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.BearerToken;
 import bio.terra.externalcreds.model.ValidatePassportResult;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
@@ -55,6 +56,7 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
+import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
@@ -123,6 +125,8 @@ class DrsServiceTest {
           .setEmail("dataset@unit.com")
           .setToken("token")
           .build();
+
+  private static final BearerToken TEST_TOKEN = new BearerToken(TEST_USER.getToken());
 
   private static final String RAS_ISSUER = "https://stsstg.nih.gov";
   private static final String SNAPSHOT_DATA_PROJECT = "snapshot-google-project";
@@ -740,7 +744,7 @@ class DrsServiceTest {
     when(drsService.initStorage(snapshotProject)).thenReturn(storage);
     DRSAccessURL url =
         drsService.postAccessUrlForObjectId(
-            TEST_USER,
+            TEST_TOKEN,
             googleDrsObjectId,
             "gcp-passport-us-central1*" + snapshotId,
             drsPassportRequestModel,
@@ -762,7 +766,7 @@ class DrsServiceTest {
         UnauthorizedException.class,
         () ->
             drsService.postAccessUrlForObjectId(
-                TEST_USER,
+                TEST_TOKEN,
                 googleDrsObjectId,
                 "gcp-passport-us-central1",
                 drsPassportRequestModel,
@@ -903,6 +907,69 @@ class DrsServiceTest {
         "contains requester email",
         UriUtils.getValueFromQueryParameter(url.getUrl(), GcsConstants.REQUESTED_BY_QUERY_PARAM),
         equalTo(TEST_USER.getEmail()));
+  }
+
+  private static Stream<Arguments> testSignGcpUrlWithTokenVariations() {
+    return Stream.of(
+        arguments("", true), // empty token should throw
+        arguments("valid-bearer-token-123456", false)); // valid token should not throw
+  }
+
+  @ParameterizedTest
+  @MethodSource
+  void testSignGcpUrlWithTokenVariations(String token, boolean shouldThrow) {
+    // Test token validation for self-hosted with userProject
+    SnapshotSummaryModel snapshotSummary =
+        new SnapshotSummaryModel().id(snapshotId).selfHosted(true);
+    Snapshot snapshot =
+        mockSnapshot(snapshotId, billingProfile.getId(), CloudPlatform.GCP, SNAPSHOT_DATA_PROJECT);
+    snapshot.getSourceDataset().getDatasetSummary().selfHosted(true);
+    when(snapshotService.retrieve(snapshotId)).thenReturn(snapshot);
+    when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(snapshotSummary);
+
+    // Mock storage and bucket for self-hosted dataset
+    Storage storage = mock(Storage.class);
+    Bucket bucket = mock(Bucket.class);
+    when(bucket.getLocation()).thenReturn("us-central1");
+    String datasetProject = snapshot.getSourceDataset().getProjectResource().getGoogleProjectId();
+    String sourcePath = googleFsFile.getCloudPath();
+    when(gcsProjectFactory.getStorage(datasetProject)).thenReturn(storage);
+    when(storage.get(eq(BlobId.fromGsUtilUri(sourcePath).getBucket()), any())).thenReturn(bucket);
+
+    // Create user with the test token
+    AuthenticatedUserRequest testUser =
+        AuthenticatedUserRequest.builder()
+            .setSubjectId("DatasetUnit")
+            .setEmail("dataset@unit.com")
+            .setToken(token)
+            .build();
+
+    // Mock SAM service for valid token case
+    if (!shouldThrow) {
+      when(samService.signUrlForBlob(testUser, "myProject", sourcePath, URL_TTL))
+          .thenReturn(
+              "https://storage.googleapis.com/path/to/file.txt"
+                  + "?requestedBy=%s&userProject=%s"
+                      .formatted(
+                          URLEncoder.encode(testUser.getEmail(), StandardCharsets.UTF_8),
+                          "myProject"));
+    }
+
+    DRSObject object = drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false);
+    String accessId = object.getAccessMethods().get(0).getAccessId();
+
+    if (shouldThrow) {
+      assertThrows(
+          InvalidAuthorizationMethod.class,
+          () ->
+              drsService.getAccessUrlForObjectId(
+                  testUser, googleDrsObjectId, accessId, "myProject"));
+    } else {
+      // Should succeed with valid token
+      DRSAccessURL url =
+          drsService.getAccessUrlForObjectId(testUser, googleDrsObjectId, accessId, "myProject");
+      assertThat("returns url", url.getUrl(), containsString("storage.googleapis.com"));
+    }
   }
 
   @Test

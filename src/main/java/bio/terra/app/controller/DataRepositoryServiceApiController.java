@@ -9,6 +9,7 @@ import bio.terra.common.exception.NotImplementedException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import bio.terra.common.iam.BearerTokenFactory;
 import bio.terra.controller.DataRepositoryServiceApi;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSAuthorizations;
@@ -42,6 +43,7 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
   private final HttpServletRequest request;
   private final DrsService drsService;
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  private final BearerTokenFactory bearerTokenFactory;
 
   // needed for local testing w/o proxy
   private final ApplicationConfiguration appConfig;
@@ -52,12 +54,14 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
       HttpServletRequest request,
       DrsService drsService,
       ApplicationConfiguration appConfig,
-      AuthenticatedUserRequestFactory authenticatedUserRequestFactory) {
+      AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
+      BearerTokenFactory bearerTokenFactory) {
     this.objectMapper = objectMapper;
     this.request = request;
     this.appConfig = appConfig;
     this.drsService = drsService;
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
+    this.bearerTokenFactory = bearerTokenFactory;
   }
 
   @Override
@@ -166,14 +170,19 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
         objectId,
         accessId,
         userProject);
-    AuthenticatedUserRequest authUserOnlyForUserProjectAccess = getAuthenticatedInfo();
+    /*
+     Use BearerTokenFactory to get the token from Authorization header.
+       Because this endpoint lives under /ga4gh instead of /api, TDR's auth proxy always sets the
+       OIDC_CLAIM_email and OIDC_CLAIM_user_id headers to the empty string. Because those headers are
+       empty, the ProxiedAuthenticatedUserRequestFactory class will fail to create an
+       AuthenticatedUserRequest object. Therefore, we must create a BearerToken instead of using
+       getAuthenticatedInfo() to create an AuthenticatedUserRequest like other endpoints do.
+    */
+    var bearerToken = bearerTokenFactory.from(request);
+
     DRSAccessURL accessURL =
         drsService.postAccessUrlForObjectId(
-            authUserOnlyForUserProjectAccess,
-            objectId,
-            accessId,
-            drsPassportRequestModel,
-            userProject);
+            bearerToken, objectId, accessId, drsPassportRequestModel, userProject);
     return new ResponseEntity<>(accessURL, HttpStatus.OK);
   }
 

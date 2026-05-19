@@ -16,6 +16,8 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import bio.terra.common.iam.BearerToken;
+import bio.terra.common.iam.BearerTokenFactory;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSAuthorizations;
 import bio.terra.model.DRSObject;
@@ -64,13 +66,17 @@ class DataRepositoryServiceApiControllerTest {
   @MockitoBean private ApplicationConfiguration applicationConfiguration;
   @MockitoBean private DrsService drsService;
   @MockitoBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockitoBean private BearerTokenFactory bearerTokenFactory;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
 
+  private static final BearerToken TEST_TOKEN = new BearerToken(TEST_USER.getToken());
+
   @BeforeEach
   void setUp() {
     when(authenticatedUserRequestFactory.from(any())).thenReturn(TEST_USER);
+    when(bearerTokenFactory.from(any())).thenReturn(TEST_TOKEN);
   }
 
   @Test
@@ -110,7 +116,7 @@ class DataRepositoryServiceApiControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(TestUtils.mapToJson(PASSPORT)));
 
-    when(drsService.postAccessUrlForObjectId(TEST_USER, DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
+    when(drsService.postAccessUrlForObjectId(TEST_TOKEN, DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
         .thenThrow(DrsObjectNotFoundException.class);
     mvc.perform(
             post(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID)
@@ -129,7 +135,7 @@ class DataRepositoryServiceApiControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(DRS_ID));
 
-    when(drsService.postAccessUrlForObjectId(TEST_USER, DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
+    when(drsService.postAccessUrlForObjectId(TEST_TOKEN, DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
         .thenReturn(DRS_ACCESS_URL_OBJECT);
     mvc.perform(
             post(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID)
@@ -213,7 +219,7 @@ class DataRepositoryServiceApiControllerTest {
   void testPostAccessURLLogsUserProject() throws Exception {
     String userProject = "my-gcp-project";
     when(drsService.postAccessUrlForObjectId(
-            TEST_USER, DRS_ID, DRS_ACCESS_ID, PASSPORT, userProject))
+            TEST_TOKEN, DRS_ID, DRS_ACCESS_ID, PASSPORT, userProject))
         .thenReturn(DRS_ACCESS_URL_OBJECT);
 
     Logger controllerLogger =
@@ -249,7 +255,7 @@ class DataRepositoryServiceApiControllerTest {
 
   @Test
   void testPostAccessURLLogsNullUserProject() throws Exception {
-    when(drsService.postAccessUrlForObjectId(TEST_USER, DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
+    when(drsService.postAccessUrlForObjectId(TEST_TOKEN, DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
         .thenReturn(DRS_ACCESS_URL_OBJECT);
 
     Logger controllerLogger =
@@ -282,7 +288,7 @@ class DataRepositoryServiceApiControllerTest {
   void testPostAccessURLRequiresBearerTokenWithUserProject() throws Exception {
     String userProject = "my-gcp-project";
     when(drsService.postAccessUrlForObjectId(
-            TEST_USER, DRS_ID, DRS_ACCESS_ID, PASSPORT, userProject))
+            TEST_TOKEN, DRS_ID, DRS_ACCESS_ID, PASSPORT, userProject))
         .thenThrow(
             new InvalidAuthorizationMethod(
                 "Bearer token required when using userProject with passport auth"));

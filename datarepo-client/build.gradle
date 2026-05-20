@@ -26,9 +26,9 @@ dependencies {
         // Jersey 4.0.1 looks incompatible with Java 17; see:
         // https://github.com/eclipse-ee4j/jersey/issues/6064
         jersey = "4.0.2"
-        jackson = "2.21.0"
-        swaggerAnnotations = "2.2.42"
-        swaggerCli = "3.0.77"
+        jackson = "2.21.3"
+        swaggerAnnotations = "2.2.50"
+        swaggerCli = "3.0.81"
     }
 
     implementation group: 'org.glassfish.jersey.core', name: 'jersey-client', version: "${jersey}"

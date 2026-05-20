@@ -65,6 +65,8 @@ allprojects {
         dependencies {
             dependency 'io.swagger.core.v3:swagger-annotations:2.2.42'
             dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.77'
+            dependency 'org.thymeleaf:thymeleaf:3.1.5.RELEASE'
+            dependency 'org.thymeleaf:thymeleaf-spring6:3.1.5.RELEASE'
         }
     }
 }

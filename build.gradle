@@ -69,6 +69,15 @@ allprojects {
             dependency 'org.thymeleaf:thymeleaf-spring6:3.1.5.RELEASE'
         }
     }
+    // CVE-2026-42587: force all io.netty 4.1.x artifacts to patched version
+    configurations.all {
+        resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+            if (details.requested.group == 'io.netty' && details.requested.version ==~ /4\.1\..*/) {
+                details.useVersion '4.1.133.Final'
+                details.because 'CVE-2026-42587'
+            }
+        }
+    }
 }
 
 apply from: 'debug.gradle'

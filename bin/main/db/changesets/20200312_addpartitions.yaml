@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: addpartitions
+      author: danmoran
+      changes:
+        - addColumn:
+            tableName: dataset_table
+            columns:
+              - column:
+                  name: bigquery_partition_config
+                  type: jsonb
+        - sql:
+            comment: Backfill
+            sql: >
+              UPDATE dataset_table SET bigquery_partition_config = '{"version":1,"mode":"NONE"}'::jsonb
+        - addNotNullConstraint:
+            tableName: dataset_table
+            columnName: bigquery_partition_config

@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: removeadditionalprofileid
+      author: dd
+      changes:
+        - dropColumn:
+            tableName: dataset
+            columns:
+              - column:
+                  name: additional_project_id
+                  type: ${uuid_type}[]
+

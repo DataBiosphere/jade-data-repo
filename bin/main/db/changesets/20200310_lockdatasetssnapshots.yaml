@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: lockdatasetssnapshots
+      author: marikomedlock
+      changes:
+        - addColumn:
+            tableName: dataset
+            columns:
+              - column:
+                  name: flightid
+                  type: varchar(36)
+                  constraints:
+                    nullable: true
+
+        - addColumn:
+            tableName: snapshot
+            columns:
+              - column:
+                  name: flightid
+                  type: varchar(36)
+                  constraints:
+                    nullable: true

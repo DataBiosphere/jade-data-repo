@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: snapshot_properties
+      author: sehsan
+      changes:
+        - addColumn:
+            tableName: snapshot
+            columns:
+              name: properties
+              type: jsonb
+              constraints:
+                nullable: true

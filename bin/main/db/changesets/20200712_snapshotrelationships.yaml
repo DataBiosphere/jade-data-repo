@@ -1,0 +1,50 @@
+databaseChangeLog:
+  - changeSet:
+      id: snapshotRelationships
+      author: jhert
+      changes:
+        - createTable:
+            tableName: snapshot_relationship
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: ${identifier_type}
+              - column:
+                  name: from_column
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_snapshot_relationship_snapshot_column_from
+                    references: snapshot_column(id)
+                    deleteCascade: true
+              - column:
+                  name: from_table
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_snapshot_relationship_snapshot_table_from
+                    references: snapshot_table(id)
+                    deleteCascade: true
+              - column:
+                  name: to_column
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_snapshot_relationship_snapshot_column_to
+                    references: snapshot_column(id)
+                    deleteCascade: true
+              - column:
+                  name: to_table
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_snapshot_relationship_snapshot_table_to
+                    references: snapshot_table(id)
+                    deleteCascade: true

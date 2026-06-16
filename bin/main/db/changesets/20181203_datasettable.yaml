@@ -1,0 +1,232 @@
+databaseChangeLog:
+  - changeSet:
+      id: dataset_init
+      author: jhert
+      changes:
+        - createTable:
+            tableName: dataset
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: ${identifier_type}
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: description
+                  type: ${description_type}
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_date
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: dataset_table
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: dataset_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_dataset_table_dataset
+                    references: dataset(id)
+                    deleteCascade: true
+              - column:
+                  name: name
+                  type: ${identifier_type}
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: dataset_column
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: table_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_dataset_column_dataset_table
+                    references: dataset_table(id)
+                    deleteCascade: true
+              - column:
+                  name: name
+                  type: ${identifier_type}
+              - column:
+                  name: type
+                  type: varchar(127)
+              - column:
+                  name: array_of
+                  type: boolean
+
+        - createTable:
+            tableName: dataset_relationship
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: ${identifier_type}
+              - column:
+                  name: from_cardinality
+                  type: varchar(32)
+              - column:
+                  name: to_cardinality
+                  type: varchar(32)
+              - column:
+                  name: from_column
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_dataset_relationship_dataset_column_from
+                    references: dataset_column(id)
+                    deleteCascade: true
+              - column:
+                  name: from_table
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_dataset_relationship_dataset_table_from
+                    references: dataset_table(id)
+                    deleteCascade: true
+              - column:
+                  name: to_column
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_dataset_relationship_dataset_column_to
+                    references: dataset_column(id)
+                    deleteCascade: true
+              - column:
+                  name: to_table
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_dataset_relationship_dataset_table_to
+                    references: dataset_table(id)
+                    deleteCascade: true
+
+        - createTable:
+            tableName: asset_specification
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: dataset_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_asset_specification_dataset
+                    references: dataset(id)
+                    deleteCascade: true
+              - column:
+                  name: name
+                  type: ${identifier_type}
+              - column:
+                  name: root_table_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_asset_specification_dataset_table
+                    references: dataset_table(id)
+              - column:
+                  name: root_column_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_asset_specification_dataset_column
+                    references: dataset_column(id)
+              - column:
+                  name: created_date
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: asset_column
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: asset_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_asset_column_asset_specification
+                    references: asset_specification(id)
+                    deleteCascade: true
+              - column:
+                  name: dataset_column_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_asset_column_dataset_column
+                    references: dataset_column(id)
+                    deleteCascade: true
+
+        - createTable:
+            tableName: asset_relationship
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: asset_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_asset_relationship_asset_specification
+                    references: asset_specification(id)
+                    deleteCascade: true
+              - column:
+                  name: relationship_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_asset_relationship_dataset_relationship
+                    references: dataset_relationship(id)
+                    deleteCascade: true

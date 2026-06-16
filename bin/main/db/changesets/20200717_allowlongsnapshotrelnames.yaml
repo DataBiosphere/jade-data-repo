@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: allowlongsnapshotrelnames
+      author: danmoran
+      changes:
+        - modifyDataType:
+            tableName: snapshot_relationship
+            columnName: name
+            newDataType: text

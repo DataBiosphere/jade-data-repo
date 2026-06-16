@@ -1,0 +1,68 @@
+databaseChangeLog:
+  - changeSet:
+      id: journal
+      author: otchet
+      changes:
+        - createTable:
+            tableName: journal
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: entry_type
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_email
+                  type: varchar(2047)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: resource_key
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+              - column:
+                  name: resource_type
+                  type: varchar(2047)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: class_name
+                  type: varchar(2047)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: method_name
+                  type: varchar(2047)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: note
+                  type: varchar(2047)
+              - column:
+                  name: mutation
+                  type: jsonb
+              - column:
+                  name: entry_timestamp
+                  type: timestamp
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: journal_resource_key_resource_type_entry_timestamp_idx
+            tableName: journal
+            columns:
+            - column:
+                name: resource_key
+            - column:
+                name: resource_type
+            - column:
+                name: entry_timestamp
+
+

@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: drop_settings_dataset_id_column_add_constraint
+      author: rjohanek
+      changes:
+        - dropColumn:
+            columnName: dataset_id
+            tableName: snapshot_builder_settings
+        - delete:
+            tableName: snapshot_builder_settings
+            where: snapshot_id IS NULL
+        -  addNotNullConstraint:
+             columnName: snapshot_id
+             tableName: snapshot_builder_settings

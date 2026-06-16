@@ -1,0 +1,33 @@
+{
+  "name": "DatasetCombined",
+  "description": "A dataset to test combined metadata and file ingest",
+  "defaultProfileId": "deadbeef-face-cafe-bead-0ddba11deed5",
+  "schema": {
+    "tables": [
+      {
+        "name": "sample_vcf",
+        "columns": [
+          {
+            "name": "sample_name",
+            "datatype": "string"
+          },
+          {
+            "name": "data_type",
+            "datatype": "string"
+          },
+          {
+            "name": "vcf_file_ref",
+            "datatype": "fileref",
+            "required": true
+          },
+          {
+            "name": "vcf_index_file_ref",
+            "datatype": "fileref",
+            "required": true
+          }
+        ]
+      }
+    ]
+  },
+  "cloudPlatform": "azure"
+}

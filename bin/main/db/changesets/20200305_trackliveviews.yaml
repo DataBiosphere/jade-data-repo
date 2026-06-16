@@ -1,0 +1,25 @@
+databaseChangeLog:
+  - changeSet:
+      id: trackliveviews
+      author: danmoran
+      changes:
+        - addColumn:
+            tableName: dataset_table
+            columns:
+              - column:
+                  name: raw_table_name
+                  type: text
+              - column:
+                  name: soft_delete_table_name
+                  type: text
+        - sql:
+            comment: Backfill
+            sql: >
+              UPDATE dataset_table SET raw_table_name = name,
+              soft_delete_table_name = 'datarepo_sd_' || name
+        - addNotNullConstraint:
+            tableName: dataset_table
+            columnName: raw_table_name
+        - addNotNullConstraint:
+            tableName: dataset_table
+            columnName: soft_delete_table_name

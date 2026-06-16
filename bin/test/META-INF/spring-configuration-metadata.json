@@ -1,0 +1,230 @@
+{
+  "groups": [
+    {
+      "name": "ct",
+      "type": "bio.terra.app.configuration.ConnectedTestConfiguration",
+      "sourceType": "bio.terra.app.configuration.ConnectedTestConfiguration"
+    },
+    {
+      "name": "db.datarepo",
+      "type": "bio.terra.app.configuration.EmbeddedDataRepoTestConfiguration",
+      "sourceType": "bio.terra.app.configuration.EmbeddedDataRepoTestConfiguration"
+    },
+    {
+      "name": "db.stairway",
+      "type": "bio.terra.app.configuration.EmbeddedStairwayTestConfiguration",
+      "sourceType": "bio.terra.app.configuration.EmbeddedStairwayTestConfiguration"
+    },
+    {
+      "name": "it",
+      "type": "bio.terra.common.configuration.TestConfiguration",
+      "sourceType": "bio.terra.common.configuration.TestConfiguration"
+    }
+  ],
+  "properties": [
+    {
+      "name": "ct.azure-managed-resource-group-name",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.ConnectedTestConfiguration"
+    },
+    {
+      "name": "ct.destination-storage-account-name",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.ConnectedTestConfiguration"
+    },
+    {
+      "name": "ct.google-billing-account-id",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.ConnectedTestConfiguration"
+    },
+    {
+      "name": "ct.ingest-request-container",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.ConnectedTestConfiguration"
+    },
+    {
+      "name": "ct.ingest-requester-pays-bucket",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.ConnectedTestConfiguration"
+    },
+    {
+      "name": "ct.ingest-requester-pays-bucket-billing-project",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.ConnectedTestConfiguration"
+    },
+    {
+      "name": "ct.ingestbucket",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.ConnectedTestConfiguration"
+    },
+    {
+      "name": "ct.no-spend-google-billing-account-id",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.ConnectedTestConfiguration"
+    },
+    {
+      "name": "ct.non-default-region-ingest-bucket",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.ConnectedTestConfiguration"
+    },
+    {
+      "name": "ct.source-storage-account-name",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.ConnectedTestConfiguration"
+    },
+    {
+      "name": "ct.target-application-name",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.ConnectedTestConfiguration"
+    },
+    {
+      "name": "ct.target-resource-group-name",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.ConnectedTestConfiguration"
+    },
+    {
+      "name": "ct.target-subscription-id",
+      "type": "java.util.UUID",
+      "sourceType": "bio.terra.app.configuration.ConnectedTestConfiguration"
+    },
+    {
+      "name": "ct.target-tenant-id",
+      "type": "java.util.UUID",
+      "sourceType": "bio.terra.app.configuration.ConnectedTestConfiguration"
+    },
+    {
+      "name": "db.datarepo.changeset-file",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.EmbeddedDataRepoTestConfiguration"
+    },
+    {
+      "name": "db.datarepo.password",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.EmbeddedDataRepoTestConfiguration"
+    },
+    {
+      "name": "db.datarepo.pool-max-idle",
+      "type": "java.lang.Integer",
+      "sourceType": "bio.terra.app.configuration.EmbeddedDataRepoTestConfiguration"
+    },
+    {
+      "name": "db.datarepo.pool-max-total",
+      "type": "java.lang.Integer",
+      "sourceType": "bio.terra.app.configuration.EmbeddedDataRepoTestConfiguration"
+    },
+    {
+      "name": "db.datarepo.uri",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.EmbeddedDataRepoTestConfiguration"
+    },
+    {
+      "name": "db.datarepo.username",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.EmbeddedDataRepoTestConfiguration"
+    },
+    {
+      "name": "db.stairway.changeset-file",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.EmbeddedStairwayTestConfiguration"
+    },
+    {
+      "name": "db.stairway.password",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.EmbeddedStairwayTestConfiguration"
+    },
+    {
+      "name": "db.stairway.pool-max-idle",
+      "type": "java.lang.Integer",
+      "sourceType": "bio.terra.app.configuration.EmbeddedStairwayTestConfiguration"
+    },
+    {
+      "name": "db.stairway.pool-max-total",
+      "type": "java.lang.Integer",
+      "sourceType": "bio.terra.app.configuration.EmbeddedStairwayTestConfiguration"
+    },
+    {
+      "name": "db.stairway.uri",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.EmbeddedStairwayTestConfiguration"
+    },
+    {
+      "name": "db.stairway.username",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.app.configuration.EmbeddedStairwayTestConfiguration"
+    },
+    {
+      "name": "it.google-billing-account-id",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.common.configuration.TestConfiguration"
+    },
+    {
+      "name": "it.google-project-id",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.common.configuration.TestConfiguration"
+    },
+    {
+      "name": "it.ingest-request-container",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.common.configuration.TestConfiguration"
+    },
+    {
+      "name": "it.ingestbucket",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.common.configuration.TestConfiguration"
+    },
+    {
+      "name": "it.jade-api-url",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.common.configuration.TestConfiguration"
+    },
+    {
+      "name": "it.jade-email",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.common.configuration.TestConfiguration"
+    },
+    {
+      "name": "it.jade-pem-file-name",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.common.configuration.TestConfiguration"
+    },
+    {
+      "name": "it.source-storage-account-name",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.common.configuration.TestConfiguration"
+    },
+    {
+      "name": "it.target-application-name",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.common.configuration.TestConfiguration"
+    },
+    {
+      "name": "it.target-managed-resource-group-name",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.common.configuration.TestConfiguration"
+    },
+    {
+      "name": "it.target-resource-group-name",
+      "type": "java.lang.String",
+      "sourceType": "bio.terra.common.configuration.TestConfiguration"
+    },
+    {
+      "name": "it.target-subscription-id",
+      "type": "java.util.UUID",
+      "sourceType": "bio.terra.common.configuration.TestConfiguration"
+    },
+    {
+      "name": "it.target-tenant-id",
+      "type": "java.util.UUID",
+      "sourceType": "bio.terra.common.configuration.TestConfiguration"
+    },
+    {
+      "name": "it.users",
+      "type": "java.util.List<bio.terra.common.configuration.TestConfiguration$User>",
+      "sourceType": "bio.terra.common.configuration.TestConfiguration"
+    }
+  ],
+  "hints": [],
+  "ignored": {
+    "properties": []
+  }
+}

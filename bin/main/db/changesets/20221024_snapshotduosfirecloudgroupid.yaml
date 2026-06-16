@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: snapshotduosfirecloudgroupid
+      author: okotsopo
+      changes:
+        - addColumn:
+            tableName: snapshot
+            columns:
+              name: duos_firecloud_group_id
+              type: ${uuid_type}
+              constraints:
+                nullable: true
+                foreignKeyName: fk_snapshot_duos_firecloud_group
+                references: duos_firecloud_group(id)
+                deleteCascade: false

@@ -78,6 +78,15 @@ allprojects {
             }
         }
     }
+    // CVE-2026-33117: force azure-security-keyvault-keys to patched version
+    configurations.all {
+        resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+            if (details.requested.group == 'com.azure' && details.requested.name == 'azure-security-keyvault-keys') {
+                details.useVersion '4.10.6'
+                details.because 'CVE-2026-33117'
+            }
+        }
+    }
 }
 
 apply from: 'debug.gradle'

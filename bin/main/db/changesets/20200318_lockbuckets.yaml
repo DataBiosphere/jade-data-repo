@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: lockbuckets
+      author: marikomedlock
+      changes:
+        - addColumn:
+            tableName: bucket_resource
+            columns:
+              - column:
+                  name: flightid
+                  type: varchar(36)
+                  constraints:
+                    nullable: true

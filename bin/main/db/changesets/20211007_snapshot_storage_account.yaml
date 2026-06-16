@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: azure_snapshot_storage_account
+      author: tlangs
+      changes:
+        - addColumn:
+            tableName: snapshot
+            columns:
+              - column:
+                  name: storage_account_resource_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: true
+                    foreignKeyName: fk_snapshot_storage_acct
+                    references: storage_account_resource(id)
+                    deleteCascade: true

@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: datasetUniqueAsset
+      author: myessail
+      changes:
+        - addUniqueConstraint:
+            catalogName: datarepo
+            columnNames: dataset_id, name
+            constraintName: dataset_unique_asset
+            schemaName: public
+            tableName: asset_specification

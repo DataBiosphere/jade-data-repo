@@ -1,0 +1,5 @@
+{"id":"participant_1","age":65,"children":["participant_3","participant_4"],"donated":["sample1"],"jsonData": "{\"testField\": \"value42\", \"numericField\": 42}"}
+{"id":"participant_2","age":42,"children":["participant_3","participant_5"],"donated":["sample2","sample5"],"jsonData": "{\"testField\": \"value1\", \"numericField\": 1}"}
+{"id":"participant_3","age":15,"children":[],"donated":["sample3","sample4"],"jsonData": "{\"testField\": \"value5\", \"numericField\": 5}"}
+{"id":"participant_4","age":27,"children":["participant_5"],"donated":[],"jsonData": "{\"testField\": \"value4.0\", \"numericField\": 4}"}
+{"id":"participant_5","age":3,"children":[],"donated":["sample5"],"jsonData": "{\"testField\": \"value100\", \"numericField\": 100}"}

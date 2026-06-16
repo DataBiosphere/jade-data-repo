@@ -1,0 +1,41 @@
+databaseChangeLog:
+  - changeSet:
+      id: required_columns
+      author: tlangs
+      changes:
+        - addColumn:
+            tableName: dataset_column
+            columns:
+              name: required
+              type: boolean
+              defaultValue: false
+              constraints:
+                nullable: false
+        - sql:
+            comment: Backfill dataset PK columns
+            sql: >
+              update dataset_column
+              set required = true
+              where id in (
+                select dc.id
+                from dataset_table dt
+              	  left join dataset_column dc
+              		on dc.name = ANY(dt.primary_key) and dc.table_id = dt.id)
+        - addColumn:
+            tableName: snapshot_column
+            columns:
+              name: required
+              type: boolean
+              defaultValue: false
+              constraints:
+                nullable: false
+        - sql:
+            comment: Backfill snapshot PK columns
+            sql: >
+              update snapshot_column
+              set required = true
+              where id in (
+                select sc.id
+                from snapshot_table st
+              	  left join snapshot_column sc
+              		on sc.name = ANY(st.primary_key) and sc.table_id = st.id)

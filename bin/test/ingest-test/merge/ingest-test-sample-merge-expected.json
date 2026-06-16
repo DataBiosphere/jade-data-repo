@@ -1,0 +1,2 @@
+{"id":"sample1","participant_ids":["participant_1", "participant2"],"date_collected":"2019-02-27","derived_from":"sample7"}
+{"id":"sample2","participant_ids":["participant_2"],"date_collected":"2020-03-01","derived_from":null}

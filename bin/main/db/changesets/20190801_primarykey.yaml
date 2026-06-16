@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: primarykey
+      author: bcarlin
+      changes:
+        - addColumn:
+            tableName: dataset_table
+            columns:
+              - column:
+                  name: primary_key
+                  # NOTE: Without quotes here, liquibase seems to lose track of the
+                  # trailing '[]' and creates a scalar column instead.
+                  type: "${identifier_type} []"
+                  constraints:
+                    nullable: false

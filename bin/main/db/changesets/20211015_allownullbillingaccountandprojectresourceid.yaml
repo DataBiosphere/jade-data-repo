@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: allownullbillingaccountandprojectresourceid
+      author: se
+      changes:
+        -  dropNotNullConstraint:
+             columnName:  billing_account_id
+             tableName:  billing_profile
+        -  dropNotNullConstraint:
+             columnName:  project_resource_id
+             tableName:  dataset
+        - dropNotNullConstraint:
+            columnName:  project_resource_id
+            tableName:  snapshot

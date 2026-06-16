@@ -1,0 +1,21 @@
+databaseChangeLog:
+  - changeSet:
+      id: snapshotmetadata
+      author: ps
+      changes:
+        - createTable:
+            tableName: snapshot_search_metadata
+            columns:
+              - column:
+                  name: snapshot_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_snapshot_metadata_snapshot_id
+                    references: snapshot(id)
+                    deleteCascade: true
+                    primaryKey: true
+                    primaryKeyName: pkey_snapshot_search_metadata
+              - column:
+                  name: metadata
+                  type: jsonb

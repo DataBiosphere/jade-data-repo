@@ -1,0 +1,10 @@
+{
+  "name":        "snapshot_from_dataset_minimal",
+  "description": "Full View snapshot of dataset_minimal for testing",
+  "contents": [
+    {
+      "datasetName": "dataset_minimal",
+      "mode": "byFullView"
+    }
+  ]
+}

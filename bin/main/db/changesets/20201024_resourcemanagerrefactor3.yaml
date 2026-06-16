@@ -1,0 +1,47 @@
+databaseChangeLog:
+  - changeSet:
+      id: resource_manager_refactor_step3
+      # In step 1 we add all the new columns.
+      # In step 2 we moved the data from the old columns to the new columns.
+      # In step 3 we remove the old tables and add new FK constraints
+      author: dd
+      changes:
+        - dropTable:
+            tableName: dataset_data_project
+            cascadeConstraints: false
+
+        - dropTable:
+            tableName: snapshot_data_project
+            cascadeConstraints: false
+
+        - dropColumn:
+            tableName: project_resource
+            columnName: service_ids
+
+        - addForeignKeyConstraint:
+            constraintName: fk_dataset_project_resource
+            baseTableName: dataset
+            baseColumnNames: project_resource_id
+            referencedTableName: project_resource
+            referencedColumnNames: id
+            onDelete: NO ACTION
+            onUpdate: NO ACTION
+            validate: true
+        - addNotNullConstraint:
+            tableName: dataset
+            columnName: project_resource_id
+
+        - addForeignKeyConstraint:
+            constraintName: fk_snapshot_project_resource
+            baseTableName: snapshot
+            baseColumnNames: project_resource_id
+            referencedTableName: project_resource
+            referencedColumnNames: id
+            onDelete: NO ACTION
+            onUpdate: NO ACTION
+            validate: true
+        - addNotNullConstraint:
+            tableName: snapshot
+            columnName: project_resource_id
+
+

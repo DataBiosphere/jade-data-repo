@@ -1,0 +1,16 @@
+{
+  "sample_name":"name",
+  "data_type": "type",
+  "vcf_file_ref": {
+    "description": "A file",
+    "mimeType": "text/plain",
+    "sourcePath": "gs://jade-testdata-fake/vcfs/downsampled/NA12878_PLUMBING_wgs.g.vcf.gz.tbi",
+    "targetPath": "/vcfs/downsampled/wgs/NA12878_PLUMBING.g.vcf.gz"
+  },
+  "vcf_index_file_ref": {
+    "description": "A file",
+    "mimeType": "text/plain",
+    "sourcePath": "gs://jade-testdata-fake/vcfs/downsampled/NA12878_PLUMBING_wgs.g.vcf.gz.tbi",
+    "targetPath": "/vcfs/downsampled/wgs/NA12878_PLUMBING.g.vcf.gz"
+  }
+}

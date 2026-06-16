@@ -1,0 +1,64 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "storageAccountNamePrefix": {
+      "type": "string",
+      "defaultValue": "tdr"
+    },
+    "storageAccountType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS"
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+    },
+    "applicationResourceName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "managedResourceGroupId": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "managedIdentity": {
+      "type": "object",
+      "defaultValue": {}
+    }
+  },
+  "variables": {
+    "managedResourceGroupId": "[if(empty(parameters('managedResourceGroupId')),concat(subscription().id,'/resourceGroups/',take(concat(resourceGroup().name,'-',uniquestring(resourceGroup().id),uniquestring(parameters('applicationResourceName'))),90)),parameters('managedResourceGroupId'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Solutions/applications",
+      "apiVersion": "2017-09-01",
+      "location": "[resourceGroup().Location]",
+      "kind": "MarketPlace",
+      "name": "[parameters('applicationResourceName')]",
+      "plan": {
+        "name": "tdr-dev",
+        "product": "tdr-dev-preview",
+        "publisher": "thebroadinstituteinc1615909626976",
+        "version": "0.0.1"
+      },
+      "identity": "[if(empty(parameters('managedIdentity')),json('null'),parameters('managedIdentity'))]",
+      "properties": {
+        "managedResourceGroupId": "[variables('managedResourceGroupId')]",
+        "parameters": {
+          "storageAccountNamePrefix": {
+            "value": "[parameters('storageAccountNamePrefix')]"
+          },
+          "storageAccountType": {
+            "value": "[parameters('storageAccountType')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          }
+        },
+        "jitAccessPolicy": null
+      }
+    }
+  ]
+}

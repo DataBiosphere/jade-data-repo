@@ -1,0 +1,2 @@
+{"relationship_id": "Subsumes", "relationship_name": "Subsumes", "is_hierarchical": "1", "defines_ancestry": "1", "reverse_relationship_id": "Is a", "relationship_concept_id": 44818723}
+{"relationship_id": "Is a", "relationship_name": "Is a", "is_hierarchical": "1", "defines_ancestry": "0", "reverse_relationship_id": "Subsumes", "relationship_concept_id": 44818821}

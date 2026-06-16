@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: sharestorageaccounts
+      author: nm
+      changes:
+        - addColumn:
+            tableName: storage_account_resource
+            columns:
+              name: toplevelcontainer
+              type: text
+        - dropUniqueConstraint:
+            tableName: storage_account_resource
+            constraintName: storage_account_resource_name_key
+        - addUniqueConstraint:
+            tableName: storage_account_resource
+            columnNames: name, toplevelcontainer

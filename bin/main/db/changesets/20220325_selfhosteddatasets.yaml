@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: self_hosted_datasets
+      author: tlangs
+      changes:
+        - addColumn:
+            tableName: dataset
+            columns:
+              name: self_hosted
+              type: boolean
+              defaultValue: false
+              constraints:
+                nullable: false

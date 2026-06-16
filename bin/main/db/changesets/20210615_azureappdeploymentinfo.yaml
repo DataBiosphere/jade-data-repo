@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: azure_storage
+      author: nm
+      changes:
+        - addColumn:
+            tableName: billing_profile
+            columns:
+              - column:
+                  name: application_deployment_name
+                  type: text

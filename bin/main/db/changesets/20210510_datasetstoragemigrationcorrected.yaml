@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: storage_resource_migration_corrected
+      author: tl
+      changes:
+        - sql:
+            comment: update storage records for existing bigquery datasets
+            sql: >
+              UPDATE storage_resource
+              SET cloud_resource = 'BIGQUERY', cloud_platform = 'GCP'
+              WHERE cloud_resource = 'bigquery'
+        - sql:
+            comment: update storage records for existing gcs buckets
+            sql: >
+              UPDATE storage_resource
+              SET cloud_resource = 'BUCKET', cloud_platform = 'GCP', region = 'US_CENTRAL1'
+              WHERE cloud_resource = 'bucket' and region = 'us-central1'
+        - sql:
+            comment: update storage records for existing firestore databases
+            sql: >
+              UPDATE storage_resource
+              SET cloud_resource = 'FIRESTORE', cloud_platform = 'GCP', region = 'US_CENTRAL1'
+              WHERE cloud_resource = 'firestore' and region = 'us-central1'

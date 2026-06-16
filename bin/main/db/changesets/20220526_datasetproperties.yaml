@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: dataset_properties
+      author: sehsan
+      changes:
+        - addColumn:
+            tableName: dataset
+            columns:
+              name: properties
+              type: jsonb
+              constraints:
+                nullable: true

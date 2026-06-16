@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: snapshottablerowcounts
+      author: jh
+      changes:
+        - addColumn:
+            tableName: snapshot_table
+            columns:
+              - column:
+                  name: row_count
+                  type: integer

@@ -1,0 +1,17 @@
+{
+  "name":"demo",
+  "description":"desc",
+  "contents":[
+    {
+      "datasetName":"Minimal",
+      "mode": "byAsset",
+      "assetSpec": {
+        "assetName": "sample",
+        "rootValues": [
+          "sample1",
+          "sample2"
+        ]
+      }
+    }
+  ]
+}

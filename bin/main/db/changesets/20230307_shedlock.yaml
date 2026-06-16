@@ -1,0 +1,32 @@
+databaseChangeLog:
+  - changeSet:
+      id: shedlock
+      author: okotsopo
+      changes:
+        - createTable:
+            tableName: shedlock
+            remarks: |
+              This table is required for ShedLock's JdbcTemplate implementation of LockProvider.
+              https://github.com/lukas-krecan/ShedLock#jdbctemplate
+            columns:
+              - column:
+                  name: name
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: lock_until
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+              - column:
+                  name: locked_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+              - column:
+                  name: locked_by
+                  type: varchar(255)
+                  constraints:
+                    nullable: false

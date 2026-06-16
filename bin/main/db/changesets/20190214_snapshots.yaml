@@ -1,0 +1,189 @@
+databaseChangeLog:
+  - changeSet:
+      id: snapshot_tables
+      author: dd
+      changes:
+        - createTable:
+            tableName: snapshot
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: ${identifier_type}
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: description
+                  type: ${description_type}
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_date
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: snapshot_table
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: parent_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_snapshot_table_snapshot
+                    references: snapshot(id)
+                    deleteCascade: true
+              - column:
+                  name: name
+                  type: ${identifier_type}
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: snapshot_column
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: table_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_snapshot_column_snapshot_table
+                    references: snapshot_table(id)
+                    deleteCascade: true
+              - column:
+                  name: name
+                  type: ${identifier_type}
+              - column:
+                  name: type
+                  type: varchar(127)
+              - column:
+                  name: array_of
+                  type: boolean
+
+        - createTable:
+            tableName: snapshot_source
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: snapshot_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_snapshot_source_snapshot
+                    references: snapshot(id)
+                    deleteCascade: true
+              - column:
+                  name: dataset_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_snapshot_source_dataset
+                    references: dataset(id)
+                    deleteCascade: true
+              - column:
+                  name: asset_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_snapshot_source_asset_specification
+                    references: asset_specification(id)
+                    deleteCascade: true
+
+        - createTable:
+            tableName: snapshot_map_table
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: source_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_snapshot_map_snapshot_source
+                    references: snapshot_source(id)
+                    deleteCascade: true
+              - column:
+                  name: from_table_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_snapshot_map_dataset_table
+                    references: dataset_table(id)
+                    deleteCascade: true
+              - column:
+                  name: to_table_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_snapshot_map_snapshot_table
+                    references: snapshot_table(id)
+                    deleteCascade: true
+
+        - createTable:
+            tableName: snapshot_map_column
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: map_table_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_snapshot_map_column_snapshot_map_table
+                    references: snapshot_map_table(id)
+                    deleteCascade: true
+              - column:
+                  name: from_column_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_snapshot_map_column_dataset_column
+                    references: dataset_column(id)
+                    deleteCascade: true
+              - column:
+                  name: to_column_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_snapshot_map_column_snapshot_column
+                    references: snapshot_column(id)
+                    deleteCascade: true

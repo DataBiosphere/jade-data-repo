@@ -1,0 +1,60 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+  "handler": "Microsoft.Azure.CreateUIDef",
+  "version": "0.1.2-preview",
+  "parameters": {
+    "basics": [
+      {}
+    ],
+    "steps": [
+      {
+        "name": "storageConfig",
+        "label": "Terra Data Repository settings",
+        "subLabel": {
+          "preValidation": "Configure the infrastructure settings",
+          "postValidation": "Done"
+        },
+        "bladeTitle": "Terra Data Repository settings",
+        "elements": [
+          {
+            "name": "storageAccounts",
+            "type": "Microsoft.Storage.MultiStorageAccountCombo",
+            "tooltip": "Configure the options that will be used when creating storage accounts",
+            "label": {
+              "prefix": "Storage account name prefix",
+              "type": "Storage account type"
+            },
+            "defaultValue": {
+              "type": "Standard_LRS"
+            },
+            "constraints": {
+              "allowedTypes": [
+                "Standard_LRS",
+                "Standard_GRS"
+              ]
+            }
+          },
+          {
+            "name": "authorizedTDRUser",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Email",
+            "defaultValue": "",
+            "toolTip": "Please enter the email account for the TDR user that will create a billing profile from this application deployment",
+            "constraints": {
+              "required": true,
+              "regex": "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$",
+              "validationMessage": "Email is not valid. Please re-enter."
+            },
+            "visible": true
+          }
+        ]
+      }
+    ],
+    "outputs": {
+      "storageAccountNamePrefix": "[steps('storageConfig').storageAccounts.prefix]",
+      "storageAccountType": "[steps('storageConfig').storageAccounts.type]",
+      "location": "[location()]",
+      "authorizedTDRUser":"[steps('storageConfig').authorizedTDRUser]"
+    }
+  }
+}

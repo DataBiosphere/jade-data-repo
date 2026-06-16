@@ -1,0 +1,14 @@
+{
+  "name":        "snapshot_test",
+  "description": "Very simple snapshot for test",
+  "contents": [
+    {
+      "datasetName": "replaceMe",
+      "mode": "byQuery",
+      "querySpec": {
+        "assetName": "sample_centric",
+        "query": "SELECT * FROM replaceMe.sample WHERE replaceMe.sample.id = 'string'"
+      }
+    }
+  ]
+}

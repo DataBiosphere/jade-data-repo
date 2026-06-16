@@ -1,5 +1,0 @@
-{
-    "table":"participant",
-    "path":"gs://jadedatarepodd_testdata/ingest-test-participant.json",
-    "format":"json"
-}

@@ -81,6 +81,16 @@ dependencies {
     implementation "org.broadinstitute.dsde.workbench:sam-client_2.13:${samClient}"
 }
 
+// CVE-2026-33117: force azure-security-keyvault-keys to patched version
+configurations.all {
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        if (details.requested.group == 'com.azure' && details.requested.name == 'azure-security-keyvault-keys') {
+            details.useVersion '4.10.6'
+            details.because 'CVE-2026-33117'
+        }
+    }
+}
+
 group 'bio.terra'
 version '1.0-SNAPSHOT'
 

@@ -116,7 +116,7 @@ class DataRepositoryServiceApiControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(TestUtils.mapToJson(PASSPORT)));
 
-    when(drsService.postAccessUrlForObjectId(TEST_TOKEN, DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
+    when(drsService.postAccessUrlForObjectId(null, DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
         .thenThrow(DrsObjectNotFoundException.class);
     mvc.perform(
             post(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID)
@@ -135,7 +135,7 @@ class DataRepositoryServiceApiControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(DRS_ID));
 
-    when(drsService.postAccessUrlForObjectId(TEST_TOKEN, DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
+    when(drsService.postAccessUrlForObjectId(null, DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
         .thenReturn(DRS_ACCESS_URL_OBJECT);
     mvc.perform(
             post(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID)
@@ -218,8 +218,7 @@ class DataRepositoryServiceApiControllerTest {
   @Test
   void testPostAccessURLLogsUserProject() throws Exception {
     String userProject = "my-gcp-project";
-    when(drsService.postAccessUrlForObjectId(
-            TEST_TOKEN, DRS_ID, DRS_ACCESS_ID, PASSPORT, userProject))
+    when(drsService.postAccessUrlForObjectId(null, DRS_ID, DRS_ACCESS_ID, PASSPORT, userProject))
         .thenReturn(DRS_ACCESS_URL_OBJECT);
 
     Logger controllerLogger =
@@ -255,7 +254,7 @@ class DataRepositoryServiceApiControllerTest {
 
   @Test
   void testPostAccessURLLogsNullUserProject() throws Exception {
-    when(drsService.postAccessUrlForObjectId(TEST_TOKEN, DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
+    when(drsService.postAccessUrlForObjectId(null, DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
         .thenReturn(DRS_ACCESS_URL_OBJECT);
 
     Logger controllerLogger =
@@ -287,8 +286,7 @@ class DataRepositoryServiceApiControllerTest {
   @Test
   void testPostAccessURLRequiresBearerTokenWithUserProject() throws Exception {
     String userProject = "my-gcp-project";
-    when(drsService.postAccessUrlForObjectId(
-            TEST_TOKEN, DRS_ID, DRS_ACCESS_ID, PASSPORT, userProject))
+    when(drsService.postAccessUrlForObjectId(null, DRS_ID, DRS_ACCESS_ID, PASSPORT, userProject))
         .thenThrow(
             new InvalidAuthorizationMethod(
                 "Bearer token required when using userProject with passport auth"));
@@ -299,6 +297,33 @@ class DataRepositoryServiceApiControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtils.mapToJson(PASSPORT)))
         .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void testPostAccessURLPassesNullTokenWhenNoAuthHeader() throws Exception {
+    when(drsService.postAccessUrlForObjectId(null, DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
+        .thenReturn(DRS_ACCESS_URL_OBJECT);
+
+    mvc.perform(
+            post(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(TestUtils.mapToJson(PASSPORT)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.url").value(DRS_ACCESS_URL));
+  }
+
+  @Test
+  void testPostAccessURLPassesTokenWhenAuthHeaderPresent() throws Exception {
+    when(drsService.postAccessUrlForObjectId(TEST_TOKEN, DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
+        .thenReturn(DRS_ACCESS_URL_OBJECT);
+
+    mvc.perform(
+            post(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID)
+                .header("Authorization", "Bearer " + TEST_USER.getToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(TestUtils.mapToJson(PASSPORT)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.url").value(DRS_ACCESS_URL));
   }
 
   @Test

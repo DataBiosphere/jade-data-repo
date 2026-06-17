@@ -177,8 +177,13 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
        empty, the ProxiedAuthenticatedUserRequestFactory class will fail to create an
        AuthenticatedUserRequest object. Therefore, we must create a BearerToken instead of using
        getAuthenticatedInfo() to create an AuthenticatedUserRequest like other endpoints do.
+
+     The bearer token is only required for self-hosted snapshots accessed with an x-user-project
+     header. For other cases (e.g. non-self-hosted snapshots), the token is not needed and we
+     defer any auth enforcement to the service layer.
     */
-    var bearerToken = bearerTokenFactory.from(request);
+    var authorizationHeader = request.getHeader("Authorization");
+    var bearerToken = authorizationHeader != null ? bearerTokenFactory.from(request) : null;
 
     DRSAccessURL accessURL =
         drsService.postAccessUrlForObjectId(

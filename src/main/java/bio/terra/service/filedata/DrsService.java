@@ -107,7 +107,8 @@ public class DrsService {
   private static final String ACCESS_ID_PREFIX_PASSPORT = "passport-";
   private static final String ACCESS_ID_SEPARATOR = "*";
   private static final String DRS_OBJECT_VERSION = "0";
-  @VisibleForTesting static final Duration URL_TTL = Duration.ofMinutes(15);
+  // Increased from 15 to 60 minutes to allow more time to start download (CTM-542)
+  @VisibleForTesting static final Duration URL_TTL = Duration.ofMinutes(60);
   static final Duration AZURE_URL_TTL = Duration.ofMinutes(60);
   private final SnapshotService snapshotService;
   private final FileService fileService;

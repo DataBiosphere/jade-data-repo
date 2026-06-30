@@ -736,7 +736,7 @@ class DrsServiceTest {
     String expectedUrl = "https://storage.googleapis.com/path/to/file.txt";
     when(storage.signUrl(
             eq(BlobInfo.newBuilder(GcsUriUtils.parseBlobUri(sourcePath)).build()),
-            eq(15L),
+            eq(60L),
             eq(TimeUnit.MINUTES),
             any(),
             any()))
@@ -854,7 +854,7 @@ class DrsServiceTest {
       // Google doesn't implement equals/hashcode on their {@link SignUrlOption} class
       when(storage.signUrl(
               eq(BlobInfo.newBuilder(GcsUriUtils.parseBlobUri(sourcePath)).build()),
-              eq(15L),
+              eq(60L),
               eq(TimeUnit.MINUTES),
               any(),
               any()))

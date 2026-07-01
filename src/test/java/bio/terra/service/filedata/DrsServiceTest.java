@@ -179,6 +179,7 @@ class DrsServiceTest {
                 drsConfiguration,
                 jobService,
                 performanceLogger,
+                azureBlobStorePdao,
                 gcsProjectFactory,
                 ecmConfiguration,
                 drsDao,

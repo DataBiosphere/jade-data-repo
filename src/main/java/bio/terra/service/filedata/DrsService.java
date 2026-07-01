@@ -334,8 +334,8 @@ public class DrsService {
 
   /**
    * Given the precalculated list of associated snapshots, look up the DRS object in the various
-   * firestore table dbs and merged into a single DRSObject. Note: this will fail if object
-   * overlap in invalid ways, such as mismatched checksums, multiple names, etc.
+   * firestore table dbs and merged into a single DRSObject. Note: this will fail if object overlap
+   * in invalid ways, such as mismatched checksums, multiple names, etc.
    */
   private DRSObject resolveDRSObject(
       AuthenticatedUserRequest authUser,

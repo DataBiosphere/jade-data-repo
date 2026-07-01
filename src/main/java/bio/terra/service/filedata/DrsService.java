@@ -38,8 +38,6 @@ import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.filedata.DrsDao.DrsAlias;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
-import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.GoogleInternalServerErrorException;
@@ -48,7 +46,6 @@ import bio.terra.service.filedata.exception.InvalidDrsObjectException;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
@@ -56,7 +53,6 @@ import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSummary;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
-import com.azure.storage.blob.sas.BlobSasPermission;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Bucket;
@@ -103,13 +99,11 @@ public class DrsService {
   private static final Logger logger = LoggerFactory.getLogger(DrsService.class);
 
   private static final String ACCESS_ID_PREFIX_GCP = "gcp-";
-  private static final String ACCESS_ID_PREFIX_AZURE = "az-";
   private static final String ACCESS_ID_PREFIX_PASSPORT = "passport-";
   private static final String ACCESS_ID_SEPARATOR = "*";
   private static final String DRS_OBJECT_VERSION = "0";
   // Increased from 15 to 60 minutes to allow more time to start download (CTM-542)
   @VisibleForTesting static final Duration URL_TTL = Duration.ofMinutes(60);
-  static final Duration AZURE_URL_TTL = Duration.ofMinutes(60);
   private final SnapshotService snapshotService;
   private final FileService fileService;
   private final DrsIdService drsIdService;
@@ -118,7 +112,6 @@ public class DrsService {
   private final DrsConfiguration drsConfiguration;
   private final JobService jobService;
   private final PerformanceLogger performanceLogger;
-  private final AzureBlobStorePdao azureBlobStorePdao;
   private final GcsProjectFactory gcsProjectFactory;
   private final EcmConfiguration ecmConfiguration;
   private final DrsDao drsDao;
@@ -142,7 +135,6 @@ public class DrsService {
       DrsConfiguration drsConfiguration,
       JobService jobService,
       PerformanceLogger performanceLogger,
-      AzureBlobStorePdao azureBlobStorePdao,
       GcsProjectFactory gcsProjectFactory,
       EcmConfiguration ecmConfiguration,
       DrsDao drsDao,
@@ -157,7 +149,6 @@ public class DrsService {
     this.drsConfiguration = drsConfiguration;
     this.jobService = jobService;
     this.performanceLogger = performanceLogger;
-    this.azureBlobStorePdao = azureBlobStorePdao;
     this.gcsProjectFactory = gcsProjectFactory;
     this.ecmConfiguration = ecmConfiguration;
     this.drsDao = drsDao;
@@ -343,7 +334,7 @@ public class DrsService {
 
   /**
    * Given the precalculated list of associated snapshots, look up the DRS object in the various
-   * firestore/azure table dbs and merged into a single DRSObject. Note: this will fail if object
+   * firestore table dbs and merged into a single DRSObject. Note: this will fail if object
    * overlap in invalid ways, such as mismatched checksums, multiple names, etc.
    */
   private DRSObject resolveDRSObject(
@@ -576,8 +567,6 @@ public class DrsService {
     }
     if (platform.isGcp()) {
       return signGoogleUrl(cachedSnapshot, fsFile.getCloudPath(), authUser, userProject);
-    } else if (platform.isAzure()) {
-      return signAzureUrl(billingProfileModel, fsFile, authUser);
     } else {
       throw new FeatureNotImplementedException("Cloud platform not implemented");
     }
@@ -624,22 +613,6 @@ public class DrsService {
         .filter(drsAccessMethod -> Objects.equals(drsAccessMethod.getAccessId(), accessId))
         .findFirst()
         .orElseThrow(illegalArgumentExceptionSupplier);
-  }
-
-  private DRSAccessURL signAzureUrl(
-      BillingProfileModel profileModel, FSItem fsItem, AuthenticatedUserRequest authUser) {
-    AzureStorageAccountResource storageAccountResource =
-        resourceService.lookupStorageAccountMetadata(((FSFile) fsItem).getBucketResourceId());
-    return new DRSAccessURL()
-        .url(
-            azureBlobStorePdao.signFile(
-                profileModel,
-                storageAccountResource,
-                ((FSFile) fsItem).getCloudPath(),
-                new BlobSasTokenOptions(
-                    AZURE_URL_TTL,
-                    new BlobSasPermission().setReadPermission(true),
-                    authUser.getEmail())));
   }
 
   private DRSAccessURL signGoogleUrl(
@@ -783,23 +756,6 @@ public class DrsService {
             getDrsAccessMethodsOnGcp(
                 fsFile, authUser, gcpRegion, cachedSnapshot.googleProjectId, billingSnapshot);
       }
-    } else if (platform.isAzure()) {
-      String azureRegion = retrieveAzureSnapshotRegion(fsFile);
-      if (passportAuth) {
-        accessMethods =
-            getDrsSignedURLAccessMethods(
-                ACCESS_ID_PREFIX_AZURE + ACCESS_ID_PREFIX_PASSPORT,
-                azureRegion,
-                passportAuth,
-                cachedSnapshot.globalFileIds ? billingSnapshot : null);
-      } else {
-        accessMethods =
-            getDrsSignedURLAccessMethods(
-                ACCESS_ID_PREFIX_AZURE,
-                azureRegion,
-                passportAuth,
-                cachedSnapshot.globalFileIds ? billingSnapshot : null);
-      }
     } else {
       throw new InvalidCloudPlatformException();
     }
@@ -848,13 +804,6 @@ public class DrsService {
     }
 
     return region.getValue();
-  }
-
-  private String retrieveAzureSnapshotRegion(FSFile fsFile) {
-    AzureStorageAccountResource storageAccountResource =
-        resourceService.lookupStorageAccountMetadata(fsFile.getBucketResourceId());
-
-    return storageAccountResource.getRegion().getValue();
   }
 
   private List<DRSAccessMethod> getDrsAccessMethodsOnGcp(

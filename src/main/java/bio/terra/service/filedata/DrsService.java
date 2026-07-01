@@ -109,7 +109,6 @@ public class DrsService {
   private static final String DRS_OBJECT_VERSION = "0";
   // Increased from 15 to 60 minutes to allow more time to start download (CTM-542)
   @VisibleForTesting static final Duration URL_TTL = Duration.ofMinutes(60);
-  static final Duration AZURE_URL_TTL = Duration.ofMinutes(60);
   private final SnapshotService snapshotService;
   private final FileService fileService;
   private final DrsIdService drsIdService;
@@ -637,7 +636,7 @@ public class DrsService {
                 storageAccountResource,
                 ((FSFile) fsItem).getCloudPath(),
                 new BlobSasTokenOptions(
-                    AZURE_URL_TTL,
+                    URL_TTL,
                     new BlobSasPermission().setReadPermission(true),
                     authUser.getEmail())));
   }

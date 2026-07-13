@@ -24,10 +24,22 @@ buildscript {
         // Required for gradle liquibase plugin
         classpath ('org.liquibase:liquibase-core:4.33.0')
     }
+    // Pin Jackson libs in the buildScript to 2.19.4 to support Jib. This is only for the buildScript.
+    // Note that Jackson used at runtime and compile time is 2.21.4 as of this writing, as specified
+    // by Spring Boot.
+    // jackson-annotations 2.20+ changed JsonProperty.isRequired() to return
+    // OptBoolean instead of boolean, which breaks jib with a NoSuchMethodError at :jib task execution.
+    configurations.classpath {
+        resolutionStrategy {
+            force 'com.fasterxml.jackson.core:jackson-annotations:2.19.4'
+            force 'com.fasterxml.jackson.core:jackson-databind:2.19.4'
+            force 'com.fasterxml.jackson.core:jackson-core:2.19.4'
+            force 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.19.4'
+        }
+    }
 }
 
 plugins {
-    // This is set back to 3.4.2 because of: https://github.com/GoogleContainerTools/jib/issues/4265
     id 'com.google.cloud.tools.jib' version '3.5.3'
     id 'org.liquibase.gradle' version '3.1.0'
     id 'org.gradle.test-retry' version '1.6.4'

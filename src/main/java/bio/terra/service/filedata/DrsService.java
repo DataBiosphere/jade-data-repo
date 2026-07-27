@@ -106,6 +106,12 @@ public class DrsService {
   private static final String ACCESS_ID_PREFIX_AZURE = "az-";
   private static final String ACCESS_ID_PREFIX_PASSPORT = "passport-";
   private static final String ACCESS_ID_SEPARATOR = "*";
+  // DRS 1.5 `cloud` values (CSP names) emitted on each access method so consumers (e.g. DRSHub) can
+  // select the right cloud without inferring it from the access-id prefix. `type: https` alone
+  // cannot name a cloud (a signed URL is https for every CSP). See DRSAccessMethod.cloud in
+  // data-repository-openapi.yaml.
+  private static final String DRS_CLOUD_GCP = "gcp";
+  private static final String DRS_CLOUD_AZURE = "azure";
   private static final String DRS_OBJECT_VERSION = "0";
   // Increased from 15 to 60 minutes to allow more time to start download (CTM-542)
   @VisibleForTesting static final Duration URL_TTL = Duration.ofMinutes(60);
@@ -775,6 +781,7 @@ public class DrsService {
             getDrsSignedURLAccessMethods(
                 ACCESS_ID_PREFIX_GCP + ACCESS_ID_PREFIX_PASSPORT,
                 gcpRegion,
+                DRS_CLOUD_GCP,
                 passportAuth,
                 billingSnapshot);
       } else {
@@ -789,6 +796,7 @@ public class DrsService {
             getDrsSignedURLAccessMethods(
                 ACCESS_ID_PREFIX_AZURE + ACCESS_ID_PREFIX_PASSPORT,
                 azureRegion,
+                DRS_CLOUD_AZURE,
                 passportAuth,
                 cachedSnapshot.globalFileIds ? billingSnapshot : null);
       } else {
@@ -796,6 +804,7 @@ public class DrsService {
             getDrsSignedURLAccessMethods(
                 ACCESS_ID_PREFIX_AZURE,
                 azureRegion,
+                DRS_CLOUD_AZURE,
                 passportAuth,
                 cachedSnapshot.globalFileIds ? billingSnapshot : null);
       }
@@ -875,6 +884,7 @@ public class DrsService {
             .accessUrl(gsAccessURL)
             .accessId(accessId)
             .region(region)
+            .cloud(DRS_CLOUD_GCP)
             .authorizations(authorizationsBearerOnly);
 
     DRSAccessURL httpsAccessURL =
@@ -887,13 +897,16 @@ public class DrsService {
             .type(DRSAccessMethod.TypeEnum.HTTPS)
             .accessUrl(httpsAccessURL)
             .region(region)
+            .cloud(DRS_CLOUD_GCP)
             .authorizations(authorizationsBearerOnly);
 
     return List.of(gsAccessMethod, httpsAccessMethod);
   }
 
+  // Shared by GCP-passport, Azure-passport, and Azure-bearer access methods (all typed `https`), so
+  // the DRS 1.5 `cloud` value is passed in explicitly rather than inferred from `prefix`.
   private List<DRSAccessMethod> getDrsSignedURLAccessMethods(
-      String prefix, String region, boolean passportAuth, String billingProject) {
+      String prefix, String region, String cloud, boolean passportAuth, String billingProject) {
     DRSAuthorizations authorizations = buildDRSAuth(passportAuth);
     String accessId =
         prefix
@@ -905,6 +918,7 @@ public class DrsService {
             .type(DRSAccessMethod.TypeEnum.HTTPS)
             .accessId(accessId)
             .region(region)
+            .cloud(cloud)
             .authorizations(authorizations);
 
     return List.of(httpsAccessMethod);

@@ -79,6 +79,9 @@ allprojects {
             dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.77'
             dependency 'org.thymeleaf:thymeleaf:3.1.5.RELEASE'
             dependency 'org.thymeleaf:thymeleaf-spring6:3.1.5.RELEASE'
+            dependency 'org.bouncycastle:bcpkix-jdk18on:1.85'
+            dependency 'org.bouncycastle:bcprov-jdk18on:1.85'
+            dependency 'org.bouncycastle:bcutil-jdk18on:1.85'
         }
     }
     // CVE-2026-33117: force azure-security-keyvault-keys to patched version

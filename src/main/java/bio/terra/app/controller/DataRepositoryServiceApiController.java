@@ -182,8 +182,12 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
      header. For other cases (e.g. non-self-hosted snapshots), the token is not needed and we
      defer any auth enforcement to the service layer.
     */
-    var authorizationHeader = request.getHeader("Authorization");
-    var bearerToken = authorizationHeader != null ? bearerTokenFactory.from(request) : null;
+    try {
+      var bearerToken = bearerTokenFactory.from(request);
+    } catch (Exception e) {
+      logger.error("Error occurred while retrieving bearer token", e);
+      var bearerToken = null;
+    }
 
     DRSAccessURL accessURL =
         drsService.postAccessUrlForObjectId(

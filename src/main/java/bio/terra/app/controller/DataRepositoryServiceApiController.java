@@ -9,6 +9,7 @@ import bio.terra.common.exception.NotImplementedException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import bio.terra.common.iam.BearerToken;
 import bio.terra.common.iam.BearerTokenFactory;
 import bio.terra.controller.DataRepositoryServiceApi;
 import bio.terra.model.DRSAccessURL;
@@ -177,8 +178,17 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
        empty, the ProxiedAuthenticatedUserRequestFactory class will fail to create an
        AuthenticatedUserRequest object. Therefore, we must create a BearerToken instead of using
        getAuthenticatedInfo() to create an AuthenticatedUserRequest like other endpoints do.
+
+     The bearer token is only required for self-hosted snapshots accessed with an x-user-project
+     header. For other cases (e.g. non-self-hosted snapshots), the token is not needed and we
+     defer any auth enforcement to the service layer.
     */
-    var bearerToken = bearerTokenFactory.from(request);
+    BearerToken bearerToken = null;
+    try {
+      bearerToken = bearerTokenFactory.from(request);
+    } catch (Exception e) {
+      logger.info("Bearer token was not provided or there was an error retrieving the token", e);
+    }
 
     DRSAccessURL accessURL =
         drsService.postAccessUrlForObjectId(

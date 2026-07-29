@@ -9,6 +9,7 @@ import bio.terra.common.exception.NotImplementedException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import bio.terra.common.iam.BearerToken;
 import bio.terra.common.iam.BearerTokenFactory;
 import bio.terra.controller.DataRepositoryServiceApi;
 import bio.terra.model.DRSAccessURL;
@@ -182,11 +183,11 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
      header. For other cases (e.g. non-self-hosted snapshots), the token is not needed and we
      defer any auth enforcement to the service layer.
     */
+    BearerToken bearerToken = null;
     try {
-      var bearerToken = bearerTokenFactory.from(request);
+      bearerToken = bearerTokenFactory.from(request);
     } catch (Exception e) {
-      logger.error("Error occurred while retrieving bearer token", e);
-      var bearerToken = null;
+      logger.info("Bearer token was not provided or there was an error retrieving the token", e);
     }
 
     DRSAccessURL accessURL =

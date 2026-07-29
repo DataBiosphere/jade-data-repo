@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
+import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
@@ -28,6 +29,7 @@ import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -76,7 +78,15 @@ class DataRepositoryServiceApiControllerTest {
   @BeforeEach
   void setUp() {
     when(authenticatedUserRequestFactory.from(any())).thenReturn(TEST_USER);
-    when(bearerTokenFactory.from(any())).thenReturn(TEST_TOKEN);
+    when(bearerTokenFactory.from(any()))
+        .thenAnswer(
+            invocation -> {
+              HttpServletRequest servletRequest = invocation.getArgument(0);
+              if (servletRequest.getHeader("Authorization") == null) {
+                throw new UnauthorizedException("Authorization header missing");
+              }
+              return TEST_TOKEN;
+            });
   }
 
   @Test

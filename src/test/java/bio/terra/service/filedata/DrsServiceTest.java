@@ -754,6 +754,44 @@ class DrsServiceTest {
   }
 
   @Test
+  void postAccessUrlForObjectIdNullTokenNoUserProject() throws MalformedURLException {
+    // Passport-only callers (no Authorization header, e.g. external RAS access) send a null
+    // BearerToken. The signing path should tolerate a null authUser and still return a signed
+    // URL, so long as no x-user-project is required.
+    when(snapshotService.retrieveSnapshotSummary(snapshotId))
+        .thenReturn(
+            new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
+    when(snapshotService.verifyPassportAuth(any(), any()))
+        .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(true));
+    Snapshot snapshot =
+        mockSnapshot(snapshotId, billingProfile.getId(), CloudPlatform.GCP, SNAPSHOT_DATA_PROJECT);
+    String snapshotProject = snapshot.getProjectResource().getGoogleProjectId();
+    Storage storage = mock(Storage.class);
+    when(gcsProjectFactory.getStorage(snapshot.getProjectResource().getGoogleProjectId()))
+        .thenReturn(storage);
+    String sourcePath = googleFsFile.getCloudPath();
+    String expectedUrl = "https://storage.googleapis.com/path/to/file.txt";
+    when(storage.signUrl(
+            eq(BlobInfo.newBuilder(GcsUriUtils.parseBlobUri(sourcePath)).build()),
+            eq(60L),
+            eq(TimeUnit.MINUTES),
+            any(),
+            any()))
+        .thenReturn(new URL(expectedUrl));
+    when(drsService.initStorage(snapshotProject)).thenReturn(storage);
+
+    DRSAccessURL url =
+        drsService.postAccessUrlForObjectId(
+            null,
+            googleDrsObjectId,
+            "gcp-passport-us-central1*" + snapshotId,
+            drsPassportRequestModel,
+            null);
+
+    assertThat("returns url", url.getUrl(), containsString(expectedUrl));
+  }
+
+  @Test
   void postAccessUrlForObjectIdInvalidPassport() {
     when(snapshotService.retrieveSnapshotSummary(snapshotId))
         .thenReturn(

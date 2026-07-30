@@ -507,14 +507,18 @@ public class DrsService {
        The BearerToken comes from the /ga4gh/drs/v1/objects/{object_id}/access/{access_id} endpoint,
        which only has an access token and does not have the user's email or subjectid.
        Because AuthenticatedUserRequest requires email/subjectid, we have to supply dummy
-       values.
+       values. AuthenticatedUserRequest.Builder.build() rejects a null/empty token, so skip
+       building one entirely when there's no bearer token (e.g. passport-only callers) -- the
+       GCS signing path tolerates a null authUser.
     */
     AuthenticatedUserRequest authUserOnlyForUserProjectAccess =
-        AuthenticatedUserRequest.builder()
-            .setToken(bearerToken != null ? bearerToken.getToken() : null)
-            .setEmail("n/a")
-            .setSubjectId("n/a")
-            .build();
+        bearerToken == null
+            ? null
+            : AuthenticatedUserRequest.builder()
+                .setToken(bearerToken.getToken())
+                .setEmail("n/a")
+                .setSubjectId("n/a")
+                .build();
     return getAccessURL(authUserOnlyForUserProjectAccess, drsObject, accessId, userProject);
   }
 
@@ -638,7 +642,7 @@ public class DrsService {
                 new BlobSasTokenOptions(
                     URL_TTL,
                     new BlobSasPermission().setReadPermission(true),
-                    authUser.getEmail())));
+                    authUser != null ? authUser.getEmail() : null)));
   }
 
   private DRSAccessURL signGoogleUrl(

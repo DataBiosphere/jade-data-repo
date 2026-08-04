@@ -644,6 +644,25 @@ class DrsServiceTest {
   }
 
   @Test
+  void lookupAuthorizationsByDrsIdWithPublicNRESWithoutPHS() {
+    SnapshotSummaryModel snapshotSummary =
+        new SnapshotSummaryModel().id(snapshotId).consentCode("NRES");
+    when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(snapshotSummary);
+    when(snapshotService.canBypassPassportValidation(snapshotSummary)).thenReturn(true);
+
+    assertThat(
+        "Passport authorization not directly available without PHS ID",
+        !SnapshotSummary.passportAuthorizationAvailable(snapshotSummary));
+    DRSAuthorizations auths = drsService.lookupAuthorizationsByDrsId(googleDrsObjectId);
+    assertThat(
+        "PassportAuth is still supported via public NRES bypass",
+        auths.getSupportedTypes(),
+        contains(
+            DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH,
+            DRSAuthorizations.SupportedTypesEnum.BEARERAUTH));
+  }
+
+  @Test
   void lookupAuthorizationsByDrsIdWithPassportIdentifiers() {
     SnapshotSummaryModel snapshotSummary =
         new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99");

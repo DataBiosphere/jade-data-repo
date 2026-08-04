@@ -232,11 +232,11 @@ public class SnapshotSummary {
   /**
    * @param model a SnapshotSummaryModel
    * @return whether the snapshot has a public consent code (NRES) that allows bypass of passport
-   *     validation when the snapshot is also publicly accessible
+   *     validation when the snapshot is also publicly accessible. PhsId is not required, since NRES
+   *     snapshots don't need a RAS visa to be validated against.
    */
   public static boolean isPublicConsentCode(SnapshotSummaryModel model) {
-    return !StringUtils.isBlank(model.getPhsId())
-        && !StringUtils.isBlank(model.getConsentCode())
+    return !StringUtils.isBlank(model.getConsentCode())
         && NRES_CONSENT_CODE.equalsIgnoreCase(model.getConsentCode());
   }
 }

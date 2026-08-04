@@ -196,12 +196,13 @@ public class DrsService {
       List<SnapshotSummaryModel> snapshotSummaries =
           snapshots.stream().map(SnapshotCacheResult::id).map(this::getSnapshotSummary).toList();
 
-      return buildDRSAuth(
+      boolean passportAuthorizationAvailable =
           snapshotSummaries.stream()
               .anyMatch(
                   summary ->
                       SnapshotSummary.passportAuthorizationAvailable(summary)
-                          || snapshotService.canBypassPassportValidation(summary)));
+                          || snapshotService.canBypassPassportValidation(summary));
+      return buildDRSAuth(passportAuthorizationAvailable);
     }
   }
 

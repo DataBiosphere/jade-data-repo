@@ -648,14 +648,13 @@ class DrsServiceTest {
     SnapshotSummaryModel snapshotSummary =
         new SnapshotSummaryModel().id(snapshotId).consentCode("NRES");
     when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(snapshotSummary);
-    when(snapshotService.canBypassPassportValidation(snapshotSummary)).thenReturn(true);
 
     assertThat(
-        "Passport authorization not directly available without PHS ID",
-        !SnapshotSummary.passportAuthorizationAvailable(snapshotSummary));
+        "Passport authorization is available for NRES snapshots without a PHS ID",
+        SnapshotSummary.passportAuthorizationAvailable(snapshotSummary));
     DRSAuthorizations auths = drsService.lookupAuthorizationsByDrsId(googleDrsObjectId);
     assertThat(
-        "PassportAuth is still supported via public NRES bypass",
+        "PassportAuth is supported via NRES bypass",
         auths.getSupportedTypes(),
         contains(
             DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH,

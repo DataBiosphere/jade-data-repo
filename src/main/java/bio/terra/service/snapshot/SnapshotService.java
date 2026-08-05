@@ -858,39 +858,13 @@ public class SnapshotService {
   }
 
   /**
-   * Check if a snapshot is publicly accessible with NRES consent code, allowing passport validation
-   * to be bypassed. This is specifically for determining if passport validation can be skipped for
-   * public NRES snapshots.
+   * Check if a snapshot has an NRES consent code, allowing passport validation to be bypassed.
    *
    * @param summary the snapshot summary model including the snapshot ID
-   * @return true if snapshot has NRES consent code AND public reader policy
+   * @return true if snapshot has NRES consent code
    */
   public boolean canBypassPassportValidation(SnapshotSummaryModel summary) {
-    // First check: Must have NRES consent code
-    if (!SnapshotSummary.isPublicConsentCode(summary)) {
-      return false;
-    }
-
-    // Second check: Snapshot must be public
-    return isSnapshotPublic(summary.getId());
-  }
-
-  /*
-   * Check if snapshot is marked as public in SAM
-   * Perform check as the TDR Service Account
-   */
-  @VisibleForTesting
-  boolean isSnapshotPublic(UUID snapshotId) {
-    try {
-      return iamService.getPolicyPublicV2AsSA(
-          IamResourceType.DATASNAPSHOT, snapshotId, IamRole.READER.name());
-    } catch (Exception e) {
-      logger.warn(
-          "Error checking public status for snapshot {}, cannot bypass passport validation",
-          snapshotId,
-          e);
-      return false;
-    }
+    return SnapshotSummary.isPublicConsentCode(summary);
   }
 
   /**

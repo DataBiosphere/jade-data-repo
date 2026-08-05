@@ -633,12 +633,6 @@ public class IamService {
         () -> iamProvider.getPolicyPublicV2(token, iamResourceType, resourceId, policyName));
   }
 
-  public boolean getPolicyPublicV2AsSA(
-      IamResourceType iamResourceType, UUID resourceId, String policyName) {
-    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
-    return getPolicyPublicV2(tdrSaAccessToken, iamResourceType, resourceId, policyName);
-  }
-
   public void setPolicyPublicV2(
       String token,
       IamResourceType iamResourceType,

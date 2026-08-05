@@ -637,10 +637,11 @@ class SnapshotServiceTest {
   }
 
   @Test
-  void isPublicConsentCodeRequiresPhsId() {
+  void isPublicConsentCodeDoesNotRequirePhsId() {
     SnapshotSummaryModel nresWithoutPhsId = new SnapshotSummaryModel().consentCode("NRES");
     assertThat(
-        "NRES without phsId is not public", !SnapshotSummary.isPublicConsentCode(nresWithoutPhsId));
+        "NRES without phsId is still public",
+        SnapshotSummary.isPublicConsentCode(nresWithoutPhsId));
   }
 
   @Test
@@ -676,7 +677,8 @@ class SnapshotServiceTest {
         new SnapshotSummaryModel().id(snapshotId).consentCode("NRES");
 
     assertThat(
-        "Cannot bypass without phsId", !service.canBypassPassportValidation(nresWithoutPhsId));
+        "NRES snapshot can bypass validation even without phsId",
+        service.canBypassPassportValidation(nresWithoutPhsId));
   }
 
   @Test
@@ -693,6 +695,19 @@ class SnapshotServiceTest {
   void verifyPassportAuthBypassForNRES() {
     SnapshotSummaryModel nresSnapshot =
         new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID).consentCode("NRES");
+
+    ValidatePassportResult result =
+        service.verifyPassportAuth(nresSnapshot, List.of("fake-passport"));
+
+    assertThat("Validation result is valid", result.isValid(), is(true));
+    // Verify that ECM was NOT called for passport validation
+    verifyNoInteractions(ecmService);
+  }
+
+  @Test
+  void verifyPassportAuthBypassForNRESWithoutPhsId() {
+    SnapshotSummaryModel nresSnapshot =
+        new SnapshotSummaryModel().id(snapshotId).consentCode("NRES");
 
     ValidatePassportResult result =
         service.verifyPassportAuth(nresSnapshot, List.of("fake-passport"));

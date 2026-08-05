@@ -198,10 +198,7 @@ public class DrsService {
 
       boolean passportAuthorizationAvailable =
           snapshotSummaries.stream()
-              .anyMatch(
-                  summary ->
-                      SnapshotSummary.passportAuthorizationAvailable(summary)
-                          || snapshotService.canBypassPassportValidation(summary));
+              .anyMatch(summary -> SnapshotSummary.passportAuthorizationAvailable(summary));
       return buildDRSAuth(passportAuthorizationAvailable);
     }
   }

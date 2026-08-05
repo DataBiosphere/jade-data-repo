@@ -197,8 +197,7 @@ public class DrsService {
           snapshots.stream().map(SnapshotCacheResult::id).map(this::getSnapshotSummary).toList();
 
       boolean passportAuthorizationAvailable =
-          snapshotSummaries.stream()
-              .anyMatch(summary -> SnapshotSummary.passportAuthorizationAvailable(summary));
+          snapshotSummaries.stream().anyMatch(SnapshotSummary::passportAuthorizationAvailable);
       return buildDRSAuth(passportAuthorizationAvailable);
     }
   }

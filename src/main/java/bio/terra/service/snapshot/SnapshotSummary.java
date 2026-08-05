@@ -226,7 +226,10 @@ public class SnapshotSummary {
    * @return whether the underlying snapshot can be accessed via RAS passport authorization
    */
   public static boolean passportAuthorizationAvailable(SnapshotSummaryModel model) {
-    return !StringUtils.isBlank(model.getPhsId()) && !StringUtils.isBlank(model.getConsentCode());
+    var passportAvailable =
+        !StringUtils.isBlank(model.getPhsId()) && !StringUtils.isBlank(model.getConsentCode());
+    var publicConsentCode = isPublicConsentCode(model);
+    return passportAvailable || publicConsentCode;
   }
 
   /**

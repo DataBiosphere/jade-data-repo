@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -884,6 +885,10 @@ class DrsServiceTest {
     Snapshot snapshot =
         mockSnapshot(snapshotId, billingProfile.getId(), CloudPlatform.GCP, SNAPSHOT_DATA_PROJECT);
     snapshot.getSourceDataset().getDatasetSummary().selfHosted(selfHostedDataset);
+    // When a billing project is supplied, requireUserProject must be true for it to be honored
+    if (billingProject != null) {
+      snapshot.requireUserProject(true);
+    }
 
     Storage storage = mock(Storage.class);
     Bucket bucket = mock(Bucket.class);
@@ -980,6 +985,7 @@ class DrsServiceTest {
     Snapshot snapshot =
         mockSnapshot(snapshotId, billingProfile.getId(), CloudPlatform.GCP, SNAPSHOT_DATA_PROJECT);
     snapshot.getSourceDataset().getDatasetSummary().selfHosted(true);
+    snapshot.requireUserProject(true);
     when(snapshotService.retrieve(snapshotId)).thenReturn(snapshot);
     when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(snapshotSummary);
 
@@ -1137,6 +1143,29 @@ class DrsServiceTest {
         drsService.getAccessUrlForObjectId(
             TEST_USER, googleDrsObjectId, drsObject.getAccessMethods().get(0).getAccessId(), null);
     assertThat("returns a URL", result.getUrl(), containsString("storage.googleapis.com"));
+  }
+
+  @Test
+  void getAccessUrlIgnoresUserProjectForNonRequesterPaysSnapshot() throws Exception {
+    // Non-RP snapshot with userProject provided → should succeed without billing the caller
+    DRSObject drsObject = drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false);
+    when(snapshotService.retrieveSnapshotSummary(snapshotId))
+        .thenReturn(new SnapshotSummaryModel().id(snapshotId));
+
+    Storage storage = mock(Storage.class);
+    when(drsService.initStorage(SNAPSHOT_DATA_PROJECT)).thenReturn(storage);
+    when(storage.signUrl(any(), any(long.class), any(), any(), any()))
+        .thenAnswer(a -> new java.net.URL("https://storage.googleapis.com/path/to/file.txt"));
+
+    DRSAccessURL result =
+        drsService.getAccessUrlForObjectId(
+            TEST_USER,
+            googleDrsObjectId,
+            drsObject.getAccessMethods().get(0).getAccessId(),
+            "caller-project");
+    assertThat("returns a URL", result.getUrl(), containsString("storage.googleapis.com"));
+    // SAM should not be called — the caller's project must not be used for billing
+    verify(samService, never()).signUrlForBlob(any(), any(), any(), any());
   }
 
   @Test

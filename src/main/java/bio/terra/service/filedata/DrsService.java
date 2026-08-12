@@ -672,9 +672,9 @@ public class DrsService {
 
     final URL signedUrl;
     if (cachedSnapshot.isSelfHosted) {
-      // If a userProject is explicitly passed in, then use that to sign the url.
-      // Note: the expectation is that this is a Terra hosted bucket
-      if (!StringUtils.isEmpty(userProject)) {
+      // If a userProject is explicitly passed in and the snapshot requires it, use it to sign the
+      // url. Note: the expectation is that this is a Terra hosted bucket
+      if (!StringUtils.isEmpty(userProject) && cachedSnapshot.requireUserProject) {
         if (authUser != null && StringUtils.isNotBlank(authUser.getToken())) {
           logger.info(
               "Signing URL via SAM for snapshot {} with userProject '{}'",
@@ -730,10 +730,10 @@ public class DrsService {
       SnapshotCacheResult cachedSnapshot, String userProject, AuthenticatedUserRequest authUser) {
     final String signingProject;
     final String signingUser;
-    // If a user specifies a billing project in the request, prefer that over the snapshot's
-    // project.  If a billing project is required to access the data, and it is not provided,
-    // nothing will fail until the user tries to access the signed URL.
-    if (!StringUtils.isEmpty(userProject)) {
+    // Only use the caller's billing project if the snapshot requires requester pays.
+    // Ignoring a provided userProject for non-RP snapshots prevents incorrectly charging callers
+    // for data that is not intended to be requester-pays (e.g. HCA, LungMAP).
+    if (!StringUtils.isEmpty(userProject) && cachedSnapshot.requireUserProject) {
       signingProject = userProject;
     } else {
       signingProject = cachedSnapshot.googleProjectId;

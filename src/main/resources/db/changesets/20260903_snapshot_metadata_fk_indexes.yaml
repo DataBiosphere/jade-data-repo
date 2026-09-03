@@ -1,0 +1,32 @@
+databaseChangeLog:
+  - changeSet:
+      id: snapshot_metadata_fk_indexes
+      author: davidan
+      remarks: |
+        Add indexes for the foreign keys that SnapshotDao.retrieveSnapshot
+        uses for GET /api/repository/v1/snapshots/{id}.
+      changes:
+        - createIndex:
+            indexName: snapshot_table_parent_id_idx
+            tableName: snapshot_table
+            columns:
+              - column:
+                  name: parent_id
+        - createIndex:
+            indexName: snapshot_column_table_id_idx
+            tableName: snapshot_column
+            columns:
+              - column:
+                  name: table_id
+        - createIndex:
+            indexName: snapshot_map_table_source_id_idx
+            tableName: snapshot_map_table
+            columns:
+              - column:
+                  name: source_id
+        - createIndex:
+            indexName: snapshot_map_column_map_table_id_idx
+            tableName: snapshot_map_column
+            columns:
+              - column:
+                  name: map_table_id

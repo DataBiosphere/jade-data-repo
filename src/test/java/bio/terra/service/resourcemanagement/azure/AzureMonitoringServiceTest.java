@@ -1,6 +1,5 @@
 package bio.terra.service.resourcemanagement.azure;
 
-import static bio.terra.service.filedata.azure.util.AzureConstants.NOT_FOUND_CODE;
 import static bio.terra.service.filedata.azure.util.AzureConstants.RESOURCE_NOT_FOUND_CODE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -22,13 +21,6 @@ import com.azure.resourcemanager.loganalytics.models.Workspace;
 import com.azure.resourcemanager.loganalytics.models.Workspaces;
 import com.azure.resourcemanager.monitor.models.DiagnosticSetting;
 import com.azure.resourcemanager.monitor.models.DiagnosticSettings;
-import com.azure.resourcemanager.securityinsights.SecurityInsightsManager;
-import com.azure.resourcemanager.securityinsights.models.AlertRule;
-import com.azure.resourcemanager.securityinsights.models.AlertRules;
-import com.azure.resourcemanager.securityinsights.models.AutomationRule;
-import com.azure.resourcemanager.securityinsights.models.AutomationRules;
-import com.azure.resourcemanager.securityinsights.models.SentinelOnboardingState;
-import com.azure.resourcemanager.securityinsights.models.SentinelOnboardingStates;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -46,7 +38,6 @@ class AzureMonitoringServiceTest {
   // Azure clients
   @Mock private LogAnalyticsManager logAnalyticsManager;
   @Mock private AzureResourceManager azureResourceManager;
-  @Mock private SecurityInsightsManager securityInsightsManager;
 
   private AzureMonitoringService service;
 
@@ -168,99 +159,9 @@ class AzureMonitoringServiceTest {
         is(nullValue()));
   }
 
-  @Test
-  void testGetSentinel() {
-    mockSecurityInsightsClient();
-    SentinelOnboardingStates sentinelClient = mock(SentinelOnboardingStates.class);
-    when(securityInsightsManager.sentinelOnboardingStates()).thenReturn(sentinelClient);
-    SentinelOnboardingState sentinel = mock(SentinelOnboardingState.class);
-    when(sentinelClient.get(RESOURCE_GROUP, STORAGE_ACCOUNT_NAME, "default")).thenReturn(sentinel);
-    assertThat(
-        "value returned when found",
-        service.getSentinel(PROFILE_MODEL, STORAGE_ACCOUNT),
-        is(sentinel));
-  }
-
-  @Test
-  void testGetSentinelNotFound() {
-    mockSecurityInsightsClient();
-    SentinelOnboardingStates sentinelClient = mock(SentinelOnboardingStates.class);
-    when(securityInsightsManager.sentinelOnboardingStates()).thenReturn(sentinelClient);
-    when(sentinelClient.get(RESOURCE_GROUP, STORAGE_ACCOUNT_NAME, "default"))
-        .thenThrow(
-            new ManagementException("Not found", null, new ManagementError(NOT_FOUND_CODE, null)));
-    assertThat(
-        "null returned when not found",
-        service.getSentinel(PROFILE_MODEL, STORAGE_ACCOUNT),
-        is(nullValue()));
-  }
-
-  @Test
-  void testGetSentinelAlertRule() {
-    mockSecurityInsightsClient();
-    AlertRules alertRulesClient = mock(AlertRules.class);
-    when(securityInsightsManager.alertRules()).thenReturn(alertRulesClient);
-    AlertRule alertRule = mock(AlertRule.class);
-    when(alertRulesClient.get(RESOURCE_GROUP, STORAGE_ACCOUNT_NAME, "UnauthorizedAccess"))
-        .thenReturn(alertRule);
-    assertThat(
-        "value returned when found",
-        service.getSentinelRuleUnauthorizedAccess(PROFILE_MODEL, STORAGE_ACCOUNT),
-        is(alertRule));
-  }
-
-  @Test
-  void testGetSentinelAlertRuleNotFound() {
-    mockSecurityInsightsClient();
-    AlertRules alertRulesClient = mock(AlertRules.class);
-    when(securityInsightsManager.alertRules()).thenReturn(alertRulesClient);
-    when(alertRulesClient.get(RESOURCE_GROUP, STORAGE_ACCOUNT_NAME, "UnauthorizedAccess"))
-        .thenThrow(
-            new ManagementException("Not found", null, new ManagementError(NOT_FOUND_CODE, null)));
-    assertThat(
-        "null returned when not found",
-        service.getSentinelRuleUnauthorizedAccess(PROFILE_MODEL, STORAGE_ACCOUNT),
-        is(nullValue()));
-  }
-
-  @Test
-  void testNotificationRule() {
-    mockSecurityInsightsClient();
-    AutomationRules automationRulesClient = mock(AutomationRules.class);
-    when(securityInsightsManager.automationRules()).thenReturn(automationRulesClient);
-    AutomationRule automationRule = mock(AutomationRule.class);
-    when(automationRulesClient.get(
-            RESOURCE_GROUP, STORAGE_ACCOUNT_NAME, "runSendSlackNotificationPlaybook"))
-        .thenReturn(automationRule);
-    assertThat(
-        "value returned when found",
-        service.getNotificationRule(PROFILE_MODEL, STORAGE_ACCOUNT),
-        is(automationRule));
-  }
-
-  @Test
-  void testNotificationRuleNotFound() {
-    mockSecurityInsightsClient();
-    AutomationRules automationRulesClient = mock(AutomationRules.class);
-    when(securityInsightsManager.automationRules()).thenReturn(automationRulesClient);
-    when(automationRulesClient.get(
-            RESOURCE_GROUP, STORAGE_ACCOUNT_NAME, "runSendSlackNotificationPlaybook"))
-        .thenThrow(
-            new ManagementException("Not found", null, new ManagementError(NOT_FOUND_CODE, null)));
-    assertThat(
-        "null returned when not found",
-        service.getNotificationRule(PROFILE_MODEL, STORAGE_ACCOUNT),
-        is(nullValue()));
-  }
-
   private void mockLogAnalyticsClient() {
     when(resourceConfiguration.getLogAnalyticsManagerClient(SUBSCRIPTION_ID))
         .thenReturn(logAnalyticsManager);
-  }
-
-  private void mockSecurityInsightsClient() {
-    when(resourceConfiguration.getSecurityInsightsManagerClient(SUBSCRIPTION_ID))
-        .thenReturn(securityInsightsManager);
   }
 
   private void mockArmClient() {

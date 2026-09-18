@@ -1,12 +1,10 @@
 package bio.terra.service.resourcemanagement.flight;
 
-import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 import static bio.terra.stairway.RetryRuleNone.getRetryRuleNone;
 
 import bio.terra.app.model.AzureRegion;
 import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
 import bio.terra.stairway.RetryRule;
-import bio.terra.stairway.RetryRuleExponentialBackoff;
 import bio.terra.stairway.Step;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +31,6 @@ public class AzureStorageMonitoringStepProvider {
    */
   public List<StepDef> configureSteps(boolean isSecureMonitoringEnabled, AzureRegion region) {
     List<StepDef> steps = new ArrayList<>();
-    RetryRuleExponentialBackoff expBackoffRetry = getDefaultExponentialBackoffRetryRule();
 
     // Deploy a Log Analytics Workspace if it doesn't exist already
     steps.add(new StepDef(new CreateLogAnalyticsWorkspaceStep(monitoringService, region)));
@@ -48,24 +45,12 @@ public class AzureStorageMonitoringStepProvider {
       // will be retained for longer than the default 90 day minimum that the Log Analytics
       // Workspace stores
       steps.add(new StepDef(new CreateExportRuleStep(monitoringService, region)));
-      // Deploy a Sentinel Workspace if it doesn't exist already
-      steps.add(new StepDef(new CreateSentinelStep(monitoringService, region)));
-      // Add any rules to Sentinel that will detect events of interest.  It takes a little bit for
-      // Sentinel to be available so adding a retry rule here.
-      steps.add(
-          new StepDef(
-              new CreateSentinelAlertRulesStep(monitoringService, region), expBackoffRetry));
-      // Add a notification playbook rule to the Sentinel instance.  This ensures that a Slack
-      // notification is sent when an alert is triggered.
-      steps.add(new StepDef(new CreateSentinelNotificationRuleStep(monitoringService, region)));
     }
     return steps;
   }
 
   public List<StepDef> configureDeleteSteps() {
-    return List.of(
-        new StepDef(new DeleteSentinelStep(monitoringService)),
-        new StepDef(new DeleteLogAnalyticsWorkspaceStep(monitoringService)));
+    return List.of(new StepDef(new DeleteLogAnalyticsWorkspaceStep(monitoringService)));
   }
 
   public record StepDef(Step step, RetryRule retryRule) {

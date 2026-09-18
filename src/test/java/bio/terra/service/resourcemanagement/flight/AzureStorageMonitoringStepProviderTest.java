@@ -26,10 +26,7 @@ class AzureStorageMonitoringStepProviderTest {
       List.of(
           CreateLogAnalyticsWorkspaceStep.class,
           CreateDiagnosticSettingStep.class,
-          CreateExportRuleStep.class,
-          CreateSentinelStep.class,
-          CreateSentinelAlertRulesStep.class,
-          CreateSentinelNotificationRuleStep.class);
+          CreateExportRuleStep.class);
 
   @Mock AzureMonitoringService monitoringService;
 

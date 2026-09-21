@@ -77,16 +77,11 @@ public class DatasetIngestFlight extends Flight {
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
-    AzureSynapsePdao azureSynapsePdao = appContext.getBean(AzureSynapsePdao.class);
-    AzureAuthService azureAuthService = appContext.getBean(AzureAuthService.class);
-    TableDirectoryDao tableDirectoryDao = appContext.getBean(TableDirectoryDao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
-    AzureContainerPdao azureContainerPdao = appContext.getBean(AzureContainerPdao.class);
     FileService fileService = appContext.getBean(FileService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     JournalService journalService = appContext.getBean(JournalService.class);
-    AzureMonitoringService monitoringService = appContext.getBean(AzureMonitoringService.class);
 
     IngestRequestModel ingestRequestModel =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
@@ -97,9 +92,6 @@ public class DatasetIngestFlight extends Flight {
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
-
-    AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
-        new AzureStorageMonitoringStepProvider(monitoringService);
 
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());

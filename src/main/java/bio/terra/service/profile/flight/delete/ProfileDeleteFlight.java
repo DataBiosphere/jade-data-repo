@@ -10,8 +10,6 @@ import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
@@ -26,9 +24,6 @@ public class ProfileDeleteFlight extends Flight {
     ProfileService profileService = appContext.getBean(ProfileService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     JournalService journalService = appContext.getBean(JournalService.class);
-    AzureMonitoringService monitoringService = appContext.getBean(AzureMonitoringService.class);
-    AzureStorageAccountService azureStorageAccountService =
-        appContext.getBean(AzureStorageAccountService.class);
 
     UUID profileId = inputParameters.get(ProfileMapKeys.PROFILE_ID, UUID.class);
 

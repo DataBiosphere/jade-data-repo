@@ -23,10 +23,6 @@ import bio.terra.service.duos.DuosDao;
 import bio.terra.service.duos.DuosService;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsService;
-import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
-import bio.terra.service.filedata.azure.tables.TableDao;
-import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -39,10 +35,6 @@ import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureAuthService;
-import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
-import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
-import bio.terra.service.resourcemanagement.flight.AzureStorageMonitoringStepProvider;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
@@ -86,11 +78,6 @@ public class SnapshotCreateFlight extends Flight {
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     PerformanceLogger performanceLogger = appContext.getBean(PerformanceLogger.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
-    AzureSynapsePdao azureSynapsePdao = appContext.getBean(AzureSynapsePdao.class);
-    AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
-    TableDao tableDao = appContext.getBean(TableDao.class);
-    AzureAuthService azureAuthService = appContext.getBean(AzureAuthService.class);
-    TableDependencyDao tableDependencyDao = appContext.getBean(TableDependencyDao.class);
     GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
     GoogleResourceManagerService googleResourceManagerService =
         appContext.getBean(GoogleResourceManagerService.class);
@@ -102,10 +89,6 @@ public class SnapshotCreateFlight extends Flight {
     DuosService duosService = appContext.getBean(DuosService.class);
     PolicyService policyService = appContext.getBean(PolicyService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
-    AzureContainerPdao azureContainerPdao = appContext.getBean(AzureContainerPdao.class);
-    AzureMonitoringService monitoringService = appContext.getBean(AzureMonitoringService.class);
-    AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
-        new AzureStorageMonitoringStepProvider(monitoringService);
     SnapshotRequestDao snapshotRequestDao = appContext.getBean(SnapshotRequestDao.class);
     SnapshotBuilderService snapshotBuilderService =
         appContext.getBean(SnapshotBuilderService.class);
@@ -136,7 +119,6 @@ public class SnapshotCreateFlight extends Flight {
 
     UUID datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), UUID.class);
     Dataset sourceDataset = datasetService.retrieve(datasetId);
-    String datasetName = sourceDataset.getName();
 
     var platform =
         CloudPlatformWrapper.of(sourceDataset.getDatasetSummary().getStorageCloudPlatform());

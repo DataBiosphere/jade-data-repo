@@ -101,7 +101,6 @@ public class DrsService {
   private static final Logger logger = LoggerFactory.getLogger(DrsService.class);
 
   private static final String ACCESS_ID_PREFIX_GCP = "gcp-";
-  private static final String ACCESS_ID_PREFIX_AZURE = "az-";
   private static final String ACCESS_ID_PREFIX_PASSPORT = "passport-";
   private static final String ACCESS_ID_SEPARATOR = "*";
   private static final String DRS_OBJECT_VERSION = "0";
@@ -543,8 +542,6 @@ public class DrsService {
       snapshotId = UUID.fromString(parts[1]);
     }
     SnapshotCacheResult cachedSnapshot = getSnapshot(snapshotId);
-
-    BillingProfileModel billingProfileModel = cachedSnapshot.datasetBillingProfileModel;
 
     logAdditionalProperties(cachedSnapshot);
 

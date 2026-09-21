@@ -15,7 +15,6 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.CloudFileReader;
@@ -35,7 +34,6 @@ import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
-import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -74,11 +72,8 @@ public class FileIngestBulkFlight extends Flight {
     ProfileService profileService = appContext.getBean(ProfileService.class);
     IamService iamService = appContext.getBean(IamService.class);
     DatasetBucketDao datasetBucketDao = appContext.getBean(DatasetBucketDao.class);
-    DatasetStorageAccountDao datasetStorageAccountDao =
-        appContext.getBean(DatasetStorageAccountDao.class);
     GoogleProjectService googleProjectService = appContext.getBean(GoogleProjectService.class);
     GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
-    StorageTableService storageTableService = appContext.getBean(StorageTableService.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     ExecutorService executor = appContext.getBean("performanceThreadpool", ExecutorService.class);
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);

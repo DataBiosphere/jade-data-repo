@@ -15,9 +15,7 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
@@ -28,9 +26,6 @@ import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
-import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
-import bio.terra.service.resourcemanagement.flight.AzureStorageMonitoringStepProvider;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.Flight;
@@ -56,22 +51,14 @@ public class DatasetCreateFlight extends Flight {
     IamService iamService = appContext.getBean(IamService.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
-    AzureContainerPdao azureContainerPdao = appContext.getBean(AzureContainerPdao.class);
-    DatasetStorageAccountDao datasetStorageAccountDao =
-        appContext.getBean(DatasetStorageAccountDao.class);
-    AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
     GoogleResourceManagerService googleResourceManagerService =
         appContext.getBean(GoogleResourceManagerService.class);
     JournalService journalService = appContext.getBean(JournalService.class);
-    AzureMonitoringService monitoringService = appContext.getBean(AzureMonitoringService.class);
     RawlsService rawlsService = appContext.getBean(RawlsService.class);
 
     DatasetRequestModel datasetRequest =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
-
-    AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
-        new AzureStorageMonitoringStepProvider(monitoringService);
 
     var platform = CloudPlatformWrapper.of(datasetRequest.getCloudPlatform());
 

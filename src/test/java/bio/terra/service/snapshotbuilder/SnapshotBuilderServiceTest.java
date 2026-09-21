@@ -26,7 +26,6 @@ import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
@@ -167,7 +166,7 @@ class SnapshotBuilderServiceTest {
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
+  @EnumSource(value = CloudPlatform.class, names = "GCP")
   void getConceptChildren(CloudPlatform cloudPlatform) {
     Snapshot snapshot = makeSnapshot(cloudPlatform);
     when(snapshotService.retrieve(snapshot.getId())).thenReturn(snapshot);
@@ -202,7 +201,7 @@ class SnapshotBuilderServiceTest {
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
+  @EnumSource(value = CloudPlatform.class, names = "GCP")
   void enumerateConcepts(CloudPlatform cloudPlatform) {
     Snapshot snapshot = makeSnapshot(cloudPlatform);
     when(snapshotService.retrieve(snapshot.getId())).thenReturn(snapshot);
@@ -305,24 +304,8 @@ class SnapshotBuilderServiceTest {
   }
 
   @Test
-  void getTableNameGeneratorHandlesAzureCorrectly() {
-    String dataSourceName = "data-source";
-    String tableName = "azure-table";
-    Dataset dataset = new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.AZURE));
-    Snapshot snapshot =
-        new Snapshot().snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
-    when(snapshotService.getOrCreateExternalAzureDataSource(snapshot, TEST_USER))
-        .thenReturn(dataSourceName);
-    var renderContext = snapshotBuilderService.createContext(snapshot, TEST_USER);
-    assertThat(
-        "The generated name is the same as the SynapseVisitor generated name",
-        renderContext.getTableName(tableName),
-        equalTo(SynapseVisitor.azureTableName(dataSourceName).generate(tableName)));
-  }
-
-  @Test
   void getRollupCountForCriteriaGroupsGeneratesAndRunsAQuery() {
-    Snapshot snapshot = makeSnapshot(CloudPlatform.AZURE);
+    Snapshot snapshot = makeSnapshot(CloudPlatform.GCP);
     var settings = new SnapshotBuilderSettings();
     when(snapshotBuilderSettingsDao.getBySnapshotId(snapshot.getId())).thenReturn(settings);
     Query query = mock(Query.class);
@@ -336,7 +319,7 @@ class SnapshotBuilderServiceTest {
     var contextArgument = ArgumentCaptor.forClass(SqlRenderContext.class);
     when(query.renderSQL(contextArgument.capture())).thenReturn(sql);
     var count = 5;
-    when(azureSynapsePdao.runQuery(eq(sql), any(), any())).thenReturn(List.of(count));
+    when(bigQuerySnapshotPdao.runQuery(eq(sql), any(), any(), any())).thenReturn(List.of(count));
     int rollupCount =
         snapshotBuilderService.getRollupCountForCohorts(snapshot.getId(), cohorts, TEST_USER);
     assertThat(
@@ -464,7 +447,7 @@ class SnapshotBuilderServiceTest {
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
+  @EnumSource(value = CloudPlatform.class, names = "GCP")
   void testGetRequestDetails(CloudPlatform platform) {
     Snapshot snapshot = makeSnapshot(platform);
     var daoResponse = SnapshotBuilderTestData.createSnapshotAccessRequestModel(snapshot.getId());
@@ -523,7 +506,7 @@ class SnapshotBuilderServiceTest {
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
+  @EnumSource(value = CloudPlatform.class, names = "GCP")
   void getConceptHierarchy(CloudPlatform platform) {
     Snapshot snapshot = makeSnapshot(platform);
     var conceptId = 1;

@@ -11,7 +11,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
@@ -263,12 +262,6 @@ class DrsServiceTest {
     assertThat(googleDrsObject.getId(), is(googleDrsObjectId));
     assertThat(googleDrsObject.getSize(), is(googleFsFile.getSize()));
     assertThat(googleDrsObject.getName(), is(googleFsFile.getPath()));
-
-    DRSObject azureDrsObject = drsService.lookupObjectByDrsId(TEST_USER, azureDrsObjectId, false);
-    verifyRequestCountMetricsCollection(2);
-    assertThat(azureDrsObject.getId(), is(azureDrsObjectId));
-    assertThat(azureDrsObject.getSize(), is(azureFsFile.getSize()));
-    assertThat(azureDrsObject.getName(), is(azureFsFile.getPath()));
   }
 
   @Test
@@ -281,11 +274,6 @@ class DrsServiceTest {
         IamForbiddenException.class,
         () -> drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false));
     verifyRequestCountMetricsCollection();
-
-    assertThrows(
-        IamForbiddenException.class,
-        () -> drsService.lookupObjectByDrsId(TEST_USER, azureDrsObjectId, false));
-    verifyRequestCountMetricsCollection(2);
   }
 
   @Test
@@ -412,7 +400,8 @@ class DrsServiceTest {
 
     Snapshot snp1 =
         mockSnapshot(snpId1, billingIdA, CloudPlatform.GCP, "google-project-1").globalFileIds(true);
-    Snapshot snp2 = mockSnapshot(snpId2, billingIdB, CloudPlatform.AZURE, null).globalFileIds(true);
+    Snapshot snp2 =
+        mockSnapshot(snpId2, billingIdB, CloudPlatform.GCP, "google-project-2").globalFileIds(true);
     when(snapshotService.retrieve(snpId1)).thenReturn(snp1);
     when(snapshotService.retrieve(snpId2)).thenReturn(snp2);
     when(snapshotService.retrieveSnapshotProject(any()))
@@ -425,11 +414,11 @@ class DrsServiceTest {
     GoogleBucketResource bucketA =
         new GoogleBucketResource().resourceId(UUID.randomUUID()).region(GoogleRegion.US_CENTRAL1);
     // Used for snapshot 2
-    AzureStorageAccountResource bucketB =
-        new AzureStorageAccountResource().resourceId(UUID.randomUUID()).region(AzureRegion.ASIA);
+    GoogleBucketResource bucketB =
+        new GoogleBucketResource().resourceId(UUID.randomUUID()).region(GoogleRegion.ASIA_EAST1);
     when(resourceService.lookupBucketMetadata(bucketA.getResourceId().toString()))
         .thenReturn(bucketA);
-    when(resourceService.lookupStorageAccountMetadata(bucketB.getResourceId().toString()))
+    when(resourceService.lookupBucketMetadata(bucketB.getResourceId().toString()))
         .thenReturn(bucketB);
     DrsId drsId = new DrsId("", "v2", null, googleFileId.toString(), false);
     when(drsDao.retrieveReferencedSnapshotIds(any())).thenReturn(List.of(snpId1, snpId2));
@@ -446,7 +435,7 @@ class DrsServiceTest {
                 cloudPlatform = CloudPlatform.GCP;
               } else {
                 bucketId = bucketB.getResourceId().toString();
-                cloudPlatform = CloudPlatform.AZURE;
+                cloudPlatform = CloudPlatform.GCP;
               }
               return new FSFile()
                   .createdDate(Instant.now())
@@ -464,13 +453,13 @@ class DrsServiceTest {
     assertThat(drsObject.getId(), is(drsId.toDrsObjectId()));
     assertThat(drsObject.getSize(), is(googleFsFile.getSize()));
     assertThat(drsObject.getName(), is(googleFsFile.getPath()));
-    // 3 access methods should be present: 2 for snapshot 1 and 1 for snapshot 2 (Azure drs ids
-    // have only one access method)
-    assertThat("access methods were combined", drsObject.getAccessMethods(), hasSize(3));
+    // 4 access methods should be present: 2 for each of the two referenced snapshots
+    assertThat("access methods were combined", drsObject.getAccessMethods(), hasSize(4));
     assertThat(
         "all regions are accounted for",
         drsObject.getAccessMethods().stream().map(DRSAccessMethod::getRegion).distinct().toList(),
-        containsInAnyOrder(GoogleRegion.US_CENTRAL1.getValue(), AzureRegion.ASIA.getValue()));
+        containsInAnyOrder(
+            GoogleRegion.US_CENTRAL1.getValue(), GoogleRegion.ASIA_EAST1.getValue()));
   }
 
   @Test
@@ -1140,28 +1129,6 @@ class DrsServiceTest {
   }
 
   @Test
-  void testSignAzureUrl() throws InterruptedException {
-    UUID defaultProfileModelId = UUID.randomUUID();
-    Snapshot snapshot =
-        mockSnapshot(snapshotId, defaultProfileModelId, CloudPlatform.AZURE, SNAPSHOT_DATA_PROJECT);
-    // Make this a global file id snapshot to test access ids
-    snapshot.globalFileIds(true);
-    DrsId drsId = drsIdService.fromObjectId(azureDrsObjectId);
-    when(snapshotService.retrieve(UUID.fromString(drsId.getSnapshotId()))).thenReturn(snapshot);
-    AzureStorageAccountResource storageAccountResource =
-        new AzureStorageAccountResource().region(AzureRegion.DEFAULT_AZURE_REGION);
-    when(fileService.lookupSnapshotFSItem(any(), any(), eq(1))).thenReturn(azureFsFile);
-    when(resourceService.lookupStorageAccountMetadata(any())).thenReturn(storageAccountResource);
-    String urlString = "https://blahblah.core.windows.com/data/file.json";
-    when(azureBlobStorePdao.signFile(any(), any(), any(), any())).thenReturn(urlString);
-
-    DRSAccessURL result =
-        drsService.getAccessUrlForObjectId(
-            TEST_USER, azureDrsObjectId, "az-centralus*" + snapshotId, null);
-    assertEquals(urlString, result.getUrl());
-  }
-
-  @Test
   void testSnapshotCache() throws Exception {
     List<String> googleDrsObjectIds =
         IntStream.range(0, 5)
@@ -1179,25 +1146,6 @@ class DrsServiceTest {
       drsService.lookupObjectByDrsId(TEST_USER, drsId, false);
     }
     verifyRequestCountMetricsCollection(5);
-    verify(snapshotService).retrieve(any());
-    verify(snapshotService).retrieveSnapshotProject(any());
-
-    List<String> azureDrsObjectIds =
-        IntStream.range(0, 5)
-            .mapToObj(
-                i -> {
-                  UUID azureFileId = UUID.randomUUID();
-                  DrsId azureDrsId =
-                      new DrsId("", "v1", snapshotId.toString(), azureFileId.toString(), false);
-                  return azureDrsId.toDrsObjectId();
-                })
-            .toList();
-
-    when(fileService.lookupSnapshotFSItem(any(), any(), eq(1))).thenReturn(azureFsFile);
-    for (var drsId : azureDrsObjectIds) {
-      drsService.lookupObjectByDrsId(TEST_USER, drsId, false);
-    }
-    verifyRequestCountMetricsCollection(10);
     verify(snapshotService).retrieve(any());
     verify(snapshotService).retrieveSnapshotProject(any());
   }

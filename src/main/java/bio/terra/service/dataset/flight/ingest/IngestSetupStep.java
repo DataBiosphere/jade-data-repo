@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.exception.CommonExceptions;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.dataset.Dataset;
@@ -54,13 +55,7 @@ public class IngestSetupStep extends DefaultUndoStep {
       String sgName = DatasetUtils.generateAuxTableName(targetTable, "st");
       IngestUtils.putStagingTableName(context, sgName);
     } else if (cloudPlatform.isAzure()) {
-      // Don't validate if we are ingesting as a payload object
-      if (!IngestUtils.isIngestFromPayload(context.getInputParameters())) {
-        IngestUtils.validateBlobAzureBlobFileURL(ingestRequestModel.getPath());
-      }
-      workingMap.put(
-          IngestMapKeys.PARQUET_FILE_PATH,
-          IngestUtils.getParquetFilePath(targetTable.getName(), context.getFlightId()));
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
 
     return StepResult.getStepResultSuccess();

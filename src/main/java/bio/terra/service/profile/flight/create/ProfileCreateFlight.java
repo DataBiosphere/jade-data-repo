@@ -1,6 +1,7 @@
 package bio.terra.service.profile.flight.create;
 
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.service.job.JobMapKeys;
@@ -33,7 +34,7 @@ public class ProfileCreateFlight extends Flight {
       addStep(new CreateProfileVerifyAccountStep(profileService, request, user));
     }
     if (platform.isAzure()) {
-      addStep(new CreateProfileVerifyDeployedApplicationStep(profileService, request, user));
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
     addStep(new CreateProfileAuthzIamStep(profileService, request, user));
     addStep(new CreateProfileJournalEntryStep(journalService, user, request));

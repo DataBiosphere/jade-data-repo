@@ -6,6 +6,7 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.ValidateBucketAccessStep;
+import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.IngestRequestModel;
@@ -35,8 +36,6 @@ import bio.terra.service.filedata.flight.ingest.IngestBuildAndWriteScratchLoadFi
 import bio.terra.service.filedata.flight.ingest.IngestCleanFileStateStep;
 import bio.terra.service.filedata.flight.ingest.IngestCopyLoadHistoryToBQStep;
 import bio.terra.service.filedata.flight.ingest.IngestCopyLoadHistoryToStorageTableStep;
-import bio.terra.service.filedata.flight.ingest.IngestCreateAzureContainerStep;
-import bio.terra.service.filedata.flight.ingest.IngestCreateAzureStorageAccountStep;
 import bio.terra.service.filedata.flight.ingest.IngestDriverStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileAzureMakeStorageAccountLinkStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileGetProjectStep;
@@ -123,23 +122,11 @@ public class DatasetIngestFlight extends Flight {
     if (cloudPlatform.isGcp()) {
       addStep(new PerformPayloadIngestStep(new IngestLandingFileDeleteGcpStep(true, gcsPdao)));
     } else if (cloudPlatform.isAzure()) {
-      addStep(
-          new PerformPayloadIngestStep(
-              new IngestLandingFileDeleteAzureStep(true, azureContainerPdao)));
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
 
     if (cloudPlatform.isAzure()) {
-      addStep(
-          new AuthorizeBillingProfileUseStep(
-              profileService, ingestRequestModel.getProfileId(), userReq));
-
-      addStep(new IngestCreateAzureStorageAccountStep(resourceService, dataset));
-      addStep(new IngestCreateAzureContainerStep(resourceService, azureContainerPdao, dataset));
-      // Turn on logging and monitoring for the storage account associated with the dataset and
-      // billing profile
-      azureStorageMonitoringStepProvider
-          .configureSteps(dataset.isSecureMonitoringEnabled(), dataset.getStorageAccountRegion())
-          .forEach(s -> this.addStep(s.step(), s.retryRule()));
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
 
     // Originally we didn't exclusively lock the dataset, the thinking being that there might
@@ -213,21 +200,7 @@ public class DatasetIngestFlight extends Flight {
             loadHistoryWaitSeconds,
             loadHistoryChunkSize);
       } else if (cloudPlatform.isAzure()) {
-        addAzureJsonSteps(
-            appContext,
-            appConfig,
-            datasetService,
-            azureBlobStorePdao,
-            configService,
-            fileService,
-            ingestRequestModel,
-            userReq,
-            dataset,
-            profileId,
-            randomBackoffRetry,
-            driverRetry,
-            driverWaitSeconds,
-            loadHistoryChunkSize);
+        throw CommonExceptions.AZURE_NOT_SUPPORTED;
       }
     }
 
@@ -280,24 +253,7 @@ public class DatasetIngestFlight extends Flight {
         new IngestValidateIngestRowsStep(datasetService, true);
       }
     } else if (cloudPlatform.isAzure()) {
-      addStep(
-          new IngestCreateIngestRequestDataSourceStep(
-              azureSynapsePdao, azureBlobStorePdao, userReq));
-      addStep(new IngestCreateTargetDataSourceStep(azureSynapsePdao, azureBlobStorePdao, userReq));
-      addStep(
-          new IngestCreateScratchParquetFilesStep(
-              azureSynapsePdao, azureBlobStorePdao, datasetService, userReq));
-      addStep(new IngestValidateScratchTableStep(azureSynapsePdao, datasetService));
-      addStep(
-          new IngestValidateScratchTableFilerefsStep(
-              azureAuthService, datasetService, azureSynapsePdao, tableDirectoryDao));
-      addStep(
-          new IngestCreateParquetFilesStep(
-              azureSynapsePdao, azureBlobStorePdao, datasetService, userReq));
-      addStep(new IngestCleanAzureStep(azureSynapsePdao, azureBlobStorePdao, userReq));
-      addStep(
-          new PerformPayloadIngestStep(
-              new IngestLandingFileDeleteAzureStep(false, azureContainerPdao)));
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
 
     if (cloudPlatform.isGcp()) {

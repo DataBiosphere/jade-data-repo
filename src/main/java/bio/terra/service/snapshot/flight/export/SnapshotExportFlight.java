@@ -2,6 +2,7 @@ package bio.terra.service.snapshot.flight.export;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.common.JournalRecordUpdateEntryStep;
@@ -92,18 +93,7 @@ public class SnapshotExportFlight extends Flight {
               validatePrimaryKeyUniqueness,
               signUrls));
     } else if (platform.isAzure()) {
-      addStep(
-          new SnapshotExportListAzureParquetFilesStep(
-              snapshotService, snapshotId, azureBlobStorePdao, userReq));
-      addStep(
-          new SnapshotExportWriteManifestAzureStep(
-              snapshotId,
-              snapshotService,
-              objectMapper,
-              azureBlobStorePdao,
-              resourceService,
-              profileService,
-              userReq));
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
     if (platform.isGcp()) {
       addStep(new SnapshotExportGrantPermissionsStep(gcsPdao, userReq));

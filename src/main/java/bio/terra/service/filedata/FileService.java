@@ -5,6 +5,7 @@ import static bio.terra.service.common.azure.StorageTableName.SNAPSHOT;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.CollectionType;
+import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadArrayRequestModel;
@@ -267,16 +268,7 @@ public class FileService {
     if (cloudPlatformWrapper.isGcp()) {
       return fileDao.retrieveById(dataset, fileId, depth);
     } else if (cloudPlatformWrapper.isAzure()) {
-      AzureStorageAuthInfo storageAuthInfo = resourceService.getDatasetStorageAuthInfo(dataset);
-
-      return tableDao.retrieveById(
-          CollectionType.DATASET,
-          UUID.fromString(datasetId),
-          UUID.fromString(datasetId),
-          fileId,
-          depth,
-          storageAuthInfo,
-          storageAuthInfo);
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     } else {
       throw new FeatureNotImplementedException("Cloud platform not implemented");
     }

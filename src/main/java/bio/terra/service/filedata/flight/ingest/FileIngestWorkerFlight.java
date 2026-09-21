@@ -4,6 +4,7 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -84,10 +85,7 @@ public class FileIngestWorkerFlight extends FileIngestTypeFlight {
           fileDao, gcsPdao, configService, dataset, fileSystemRetry);
       addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
     } else if (platform.isAzure()) {
-      addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset), fileSystemRetry);
-      addFileCopyAndDirectoryRecordStepsAzure(
-          azureBlobStorePdao, configService, azureTableDao, userReq, dataset, fileSystemRetry);
-      addStep(new IngestFileAzureFileStep(azureTableDao, fileService, dataset), fileSystemRetry);
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
   }
 }

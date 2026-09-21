@@ -6,6 +6,7 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.ValidateBucketAccessStep;
+import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.auth.iam.IamService;
@@ -127,7 +128,7 @@ public class FileIngestFlight extends FileIngestTypeFlight {
 
     addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
     if (platform.isAzure()) {
-      addStep(new IngestFileValidateAzureBillingProfileStep(profileId, dataset));
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
     addStep(new IngestFileValidateCloudPlatformStep(dataset));
     addStep(new LockDatasetStep(datasetService, datasetId, true), randomBackoffRetry);
@@ -154,15 +155,7 @@ public class FileIngestFlight extends FileIngestTypeFlight {
           fileDao, gcsPdao, configService, dataset, randomBackoffRetry);
       addStep(new IngestFileFileStep(fileDao, fileService, dataset), randomBackoffRetry);
     } else if (platform.isAzure()) {
-      addStep(
-          new IngestFileAzurePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
-      addStep(
-          new IngestFileAzureMakeStorageAccountLinkStep(datasetStorageAccountDao, dataset),
-          randomBackoffRetry);
-      addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset), randomBackoffRetry);
-      addFileCopyAndDirectoryRecordStepsAzure(
-          azureBlobStorePdao, configService, azureTableDao, userReq, dataset, randomBackoffRetry);
-      addStep(new IngestFileAzureFileStep(azureTableDao, fileService, dataset), randomBackoffRetry);
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
     addStep(new LoadUnlockStep(loadService));
     addStep(new UnlockDatasetStep(datasetService, datasetId, true), randomBackoffRetry);

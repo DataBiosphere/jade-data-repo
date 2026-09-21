@@ -4,9 +4,9 @@ import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.app.model.AzureRegion;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.GetResourceBufferProjectStep;
+import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
@@ -127,22 +127,7 @@ public class DatasetCreateFlight extends Flight {
 
     // Get or create the storage account where the dataset resources will be created for Azure
     if (platform.isAzure()) {
-      addStep(
-          new CreateDatasetGetOrCreateStorageAccountStep(
-              resourceService, datasetRequest, azureBlobStorePdao),
-          getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads()));
-
-      // Create the top level container
-      addStep(
-          new CreateDatasetGetOrCreateContainerStep(
-              resourceService, datasetRequest, azureContainerPdao));
-
-      // Turn on logging and monitoring for the storage account associated with the dataset
-      azureStorageMonitoringStepProvider
-          .configureSteps(
-              datasetRequest.isEnableSecureMonitoring(),
-              AzureRegion.fromValue(datasetRequest.getRegion()))
-          .forEach(s -> this.addStep(s.step(), s.retryRule()));
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
 
     // Create dataset metadata objects in postgres and lock the dataset
@@ -152,8 +137,7 @@ public class DatasetCreateFlight extends Flight {
 
     // For azure backed datasets, add a link co connect the storage account to the dataset
     if (platform.isAzure()) {
-      addStep(
-          new CreateDatasetCreateStorageAccountLinkStep(datasetStorageAccountDao, datasetRequest));
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
 
     // Create the IAM resource for the dataset with any specified policy members.

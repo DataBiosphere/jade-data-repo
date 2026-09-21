@@ -4,15 +4,13 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.flight.ingest.CreateBucketForBigQueryScratchStep;
-import bio.terra.service.filedata.flight.ingest.IngestCreateAzureContainerStep;
-import bio.terra.service.filedata.flight.ingest.IngestCreateAzureStorageAccountStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
-import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
@@ -60,17 +58,7 @@ public class DatasetScratchFilePrepareFlight extends Flight {
           getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads()));
       addStep(new CreateScratchFileForGCPStep());
     } else if (cloudPlatform.isAzure()) {
-      addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
-      addStep(new IngestCreateAzureStorageAccountStep(resourceService, dataset));
-      addStep(new IngestCreateAzureContainerStep(resourceService, azureContainerPdao, dataset));
-      // Turn on logging and monitoring for the storage account associated with the dataset and
-      // billing profile
-      azureStorageMonitoringStepProvider
-          .configureSteps(dataset.isSecureMonitoringEnabled(), dataset.getStorageAccountRegion())
-          .forEach(s -> this.addStep(s.step(), s.retryRule()));
-      addStep(
-          new CreateScratchFileForAzureStep(azureContainerPdao),
-          getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads()));
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
   }
 }

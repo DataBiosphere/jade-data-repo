@@ -6,6 +6,7 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.ValidateBucketAccessStep;
+import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
@@ -156,7 +157,7 @@ public class FileIngestBulkFlight extends Flight {
     addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
     // For Azure datasets, the billing profile for file ingest must match the default
     if (platform.isAzure()) {
-      addStep(new IngestFileValidateAzureBillingProfileStep(profileId, dataset));
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
     addStep(new IngestFileValidateCloudPlatformStep(dataset));
     // If loading in bulk mode, request an exclusive lock on the dataset
@@ -179,11 +180,7 @@ public class FileIngestBulkFlight extends Flight {
         addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
       }
     } else if (platform.isAzure()) {
-      addStep(
-          new IngestFileAzurePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
-      addStep(
-          new IngestFileAzureMakeStorageAccountLinkStep(datasetStorageAccountDao, dataset),
-          randomBackoffRetry);
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
 
     if (isBulkMode) {
@@ -280,15 +277,7 @@ public class FileIngestBulkFlight extends Flight {
               isBulkMode),
           randomBackoffRetry);
     } else if (platform.isAzure()) {
-      addStep(
-          new IngestCopyLoadHistoryToStorageTableStep(
-              storageTableService,
-              loadService,
-              datasetService,
-              datasetUuid,
-              loadTag,
-              loadHistoryChunkSize),
-          randomBackoffRetry);
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
     if (!isBulkMode) {
       addStep(new IngestCleanFileStateStep(loadService));

@@ -254,7 +254,6 @@ dependencies {
     // Azure related dependencies
     implementation 'com.azure:azure-identity:1.18.2'
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.59.0'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:2.1.0'
     implementation 'com.azure:azure-storage-common:12.32.2'
     implementation 'com.azure:azure-storage-file-datalake:12.26.2'
     implementation 'com.azure:azure-data-tables:12.5.9'

@@ -7,7 +7,6 @@ import com.azure.core.management.AzureEnvironment;
 import com.azure.core.management.profile.AzureProfile;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.resourcemanager.AzureResourceManager;
-import com.azure.resourcemanager.loganalytics.LogAnalyticsManager;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -68,24 +67,6 @@ public record AzureResourceConfiguration(
         new AzureProfile(tenantId.toString(), subscriptionId.toString(), AzureEnvironment.AZURE);
     return AzureResourceManager.authenticate(getAppToken(tenantId), profile)
         .withSubscription(subscriptionId.toString());
-  }
-
-  /**
-   * Get a log analytics resource manager client to a user's tenant. This object can then be used to
-   * create/destroy resources Note: this is a separate method from the one above because the log
-   * analytics client is not GA yet so does not return a generic AzureResourceManager object
-   *
-   * @param subscriptionId The ID of the subscription that will be charged for the resources created
-   *     with this client
-   * @return An authenticated {@link LogAnalyticsManager} client
-   */
-  public LogAnalyticsManager getLogAnalyticsManagerClient(final UUID subscriptionId) {
-    final AzureProfile profile =
-        new AzureProfile(
-            credentials().getHomeTenantId().toString(),
-            subscriptionId.toString(),
-            AzureEnvironment.AZURE);
-    return LogAnalyticsManager.authenticate(getAppToken(), profile);
   }
 
   /**

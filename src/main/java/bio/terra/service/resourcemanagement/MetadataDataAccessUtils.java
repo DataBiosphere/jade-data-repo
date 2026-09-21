@@ -8,23 +8,16 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoBigQueryModel;
 import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.AccessInfoModel;
-import bio.terra.model.AccessInfoParquetModel;
-import bio.terra.model.AccessInfoParquetModelTable;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
-import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.profile.ProfileService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
-import com.azure.storage.blob.sas.BlobSasPermission;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -126,74 +119,6 @@ public final class MetadataDataAccessUtils {
     } else {
       throw new InvalidCloudPlatformException();
     }
-  }
-
-  private AccessInfoModel makeAccessInfoAzure(
-      final FSContainerInterface collection,
-      final AzureStorageAccountResource storageAccountResource,
-      final List<? extends Table> tables,
-      final BillingProfileModel profileModel,
-      final AuthenticatedUserRequest userRequest) {
-    AccessInfoModel accessInfoModel = new AccessInfoModel();
-
-    BlobSasTokenOptions blobSasTokenOptions =
-        new BlobSasTokenOptions(
-            AZURE_SAS_TOKEN_EXPIRATION,
-            new BlobSasPermission().setReadPermission(true).setListPermission(true),
-            userRequest.getEmail());
-
-    String blobName = FolderType.METADATA.getPath("parquet");
-    BiFunction<FSContainerInterface, Table, String> tableBlobGenerator =
-        (c, t) -> new ST(AZURE_BLOB_TEMPLATE).add("table", t.getName()).render();
-
-    String unsignedUrl =
-        new ST(AZURE_PARQUET_LINK)
-            .add("storageAccount", storageAccountResource.getName())
-            .add("container", storageAccountResource.getTopLevelContainer())
-            .add("blob", blobName)
-            .render();
-    String signedURL =
-        azureBlobStorePdao.signFile(
-            profileModel, storageAccountResource, unsignedUrl, blobSasTokenOptions);
-
-    UrlParts urlParts = UrlParts.fromUrl(signedURL);
-    accessInfoModel.parquet(
-        new AccessInfoParquetModel()
-            .datasetName(collection.getName())
-            .datasetId(
-                new ST(AZURE_DATASET_ID)
-                    .add("storageAccount", storageAccountResource.getName())
-                    .add("dataset", collection.getName())
-                    .render())
-            .storageAccountId(storageAccountResource.getResourceId().toString())
-            .url(urlParts.url)
-            .sasToken(urlParts.sasToken)
-            .tables(
-                tables.stream()
-                    .map(
-                        t -> {
-                          String tableBlob = tableBlobGenerator.apply(collection, t);
-                          String unsignedTableUrl =
-                              new ST(AZURE_PARQUET_LINK)
-                                  .add("storageAccount", storageAccountResource.getName())
-                                  .add("container", storageAccountResource.getTopLevelContainer())
-                                  .add("blob", tableBlob)
-                                  .render();
-                          String tableUrl =
-                              azureBlobStorePdao.signFile(
-                                  profileModel,
-                                  storageAccountResource,
-                                  unsignedTableUrl,
-                                  blobSasTokenOptions);
-                          UrlParts tableUrlParts = UrlParts.fromUrl(tableUrl);
-                          return new AccessInfoParquetModelTable()
-                              .name(t.getName())
-                              .url(tableUrlParts.url)
-                              .sasToken(tableUrlParts.sasToken);
-                        })
-                    .collect(Collectors.toList())));
-
-    return accessInfoModel;
   }
 
   private static AccessInfoModel makeAccessInfoBigQuery(

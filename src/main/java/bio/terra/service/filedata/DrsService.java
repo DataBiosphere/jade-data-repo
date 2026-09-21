@@ -40,7 +40,6 @@ import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.filedata.DrsDao.DrsAlias;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
-import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.GoogleInternalServerErrorException;
@@ -49,7 +48,6 @@ import bio.terra.service.filedata.exception.InvalidDrsObjectException;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
@@ -57,7 +55,6 @@ import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSummary;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
-import com.azure.storage.blob.sas.BlobSasPermission;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Bucket;
@@ -630,22 +627,6 @@ public class DrsService {
         .orElseThrow(illegalArgumentExceptionSupplier);
   }
 
-  private DRSAccessURL signAzureUrl(
-      BillingProfileModel profileModel, FSItem fsItem, AuthenticatedUserRequest authUser) {
-    AzureStorageAccountResource storageAccountResource =
-        resourceService.lookupStorageAccountMetadata(((FSFile) fsItem).getBucketResourceId());
-    return new DRSAccessURL()
-        .url(
-            azureBlobStorePdao.signFile(
-                profileModel,
-                storageAccountResource,
-                ((FSFile) fsItem).getCloudPath(),
-                new BlobSasTokenOptions(
-                    URL_TTL,
-                    new BlobSasPermission().setReadPermission(true),
-                    authUser != null ? authUser.getEmail() : null)));
-  }
-
   private DRSAccessURL signGoogleUrl(
       SnapshotCacheResult cachedSnapshot,
       String gsPath,
@@ -837,13 +818,6 @@ public class DrsService {
     }
 
     return region.getValue();
-  }
-
-  private String retrieveAzureSnapshotRegion(FSFile fsFile) {
-    AzureStorageAccountResource storageAccountResource =
-        resourceService.lookupStorageAccountMetadata(fsFile.getBucketResourceId());
-
-    return storageAccountResource.getRegion().getValue();
   }
 
   private List<DRSAccessMethod> getDrsAccessMethodsOnGcp(

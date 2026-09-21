@@ -13,8 +13,6 @@ import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
-import com.azure.storage.file.datalake.DataLakeServiceClient;
-import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
@@ -44,28 +42,6 @@ public class AzureAuthService {
             RetryPolicyType.EXPONENTIAL, maxRetries, retryTimeoutSeconds, null, null, null);
     // wrap the cache map with a synchronized map to safely share the cache across threads
     authorizedMap = Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
-  }
-
-  /**
-   * Return an authenticated {@link DataLakeServiceClient} using key-based authentication
-   *
-   * @param profileModel The object containing user tenant information
-   * @param storageAccountResource The storage account that DataLake client should be built from
-   * @return an authenticated DataLake client
-   */
-  public DataLakeServiceClient getDataLakeClient(
-      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
-    String key =
-        getStorageAccountKey(
-            profileModel.getSubscriptionId(),
-            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
-            storageAccountResource.getName());
-
-    // Create a data lake client by authenticating using the found key
-    return new DataLakeServiceClientBuilder()
-        .credential(new StorageSharedKeyCredential(storageAccountResource.getName(), key))
-        .endpoint("https://" + storageAccountResource.getName() + ".dfs.core.windows.net")
-        .buildClient();
   }
 
   /**

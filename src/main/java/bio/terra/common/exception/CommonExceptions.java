@@ -12,10 +12,6 @@ public class CommonExceptions {
   public static final FeatureNotImplementedException AZURE_NOT_SUPPORTED =
       new FeatureNotImplementedException("Azure is no longer supported by TDR");
 
-  /**
-   * Supplier for the Azure branch of a {@link bio.terra.common.CloudPlatformWrapper#choose} fork:
-   * always throws {@link #AZURE_NOT_SUPPORTED}.
-   */
   public static <T> Supplier<T> azureNotSupported() {
     return () -> {
       throw AZURE_NOT_SUPPORTED;

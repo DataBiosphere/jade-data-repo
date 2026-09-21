@@ -200,9 +200,7 @@ public class SnapshotCreateFlight extends Flight {
                 () ->
                     new CreateSnapshotPrimaryDataAssetGcpStep(
                         bigQuerySnapshotPdao, snapshotDao, snapshotService, snapshotReq),
-                () ->
-                    new CreateSnapshotByAssetParquetFilesAzureStep(
-                        azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
+                CommonExceptions.azureNotSupported()));
       }
       case BYFULLVIEW ->
           addStep(
@@ -214,9 +212,7 @@ public class SnapshotCreateFlight extends Flight {
                           snapshotService,
                           snapshotReq,
                           sourceDataset),
-                  () ->
-                      new CreateSnapshotByFullViewParquetFilesAzureStep(
-                          azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
+                  CommonExceptions.azureNotSupported()));
       case BYQUERY -> {
         addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
         addStep(
@@ -230,16 +226,7 @@ public class SnapshotCreateFlight extends Flight {
                         snapshotReq,
                         userReq,
                         sourceDataset),
-                () ->
-                    new CreateSnapshotByQueryParquetFilesAzureStep(
-                        azureSynapsePdao,
-                        snapshotDao,
-                        snapshotService,
-                        snapshotReq,
-                        datasetService,
-                        userReq,
-                        snapshotId,
-                        sourceDataset)));
+                CommonExceptions.azureNotSupported()));
       }
       case BYROWID ->
           addStep(
@@ -247,9 +234,7 @@ public class SnapshotCreateFlight extends Flight {
                   () ->
                       new CreateSnapshotPrimaryDataRowIdsStep(
                           bigQuerySnapshotPdao, snapshotDao, snapshotService, snapshotReq),
-                  () ->
-                      new CreateSnapshotByRowIdParquetFilesAzureStep(
-                          azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
+                  CommonExceptions.azureNotSupported()));
       case BYREQUESTID -> {
         addStep(new CreateSnapshotSamGroupNameStep(snapshotId, iamService));
         addStep(new CreateSnapshotSamGroupStep(iamService));
@@ -269,15 +254,7 @@ public class SnapshotCreateFlight extends Flight {
                         snapshotDao,
                         userReq,
                         bigQuerySnapshotPdao),
-                () ->
-                    new CreateSnapshotByRequestIdAzureStep(
-                        snapshotReq,
-                        snapshotService,
-                        snapshotBuilderService,
-                        snapshotDao,
-                        userReq,
-                        azureSynapsePdao,
-                        snapshotId)));
+                CommonExceptions.azureNotSupported()));
       }
     }
     if (platform.isAzure()) {

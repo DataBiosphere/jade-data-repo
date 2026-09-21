@@ -487,7 +487,7 @@ public class DatasetService {
             CloudPlatform.GCP,
             () -> bigQueryDatasetPdao.getLoadHistory(dataset, loadTag, offset, limit),
             CloudPlatform.AZURE,
-            () -> storageTableService.getLoadHistory(dataset, loadTag, offset, limit)));
+            CommonExceptions.azureNotSupported()));
   }
 
   /**

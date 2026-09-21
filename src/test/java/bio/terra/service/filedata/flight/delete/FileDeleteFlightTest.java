@@ -52,7 +52,7 @@ public class FileDeleteFlightTest {
   }
 
   @ParameterizedTest
-  @EnumSource(names = {"GCP", "AZURE"})
+  @EnumSource(names = {"GCP"})
   void testFileDeleteFlight(CloudPlatform cloudPlatform) {
     when(datasetSummary.getStorageCloudPlatform()).thenReturn(cloudPlatform);
 

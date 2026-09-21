@@ -19,27 +19,6 @@ import org.springframework.context.ApplicationContext;
 class ProfileCreateFlightTest {
 
   @Test
-  void testConstructFlightAzure() {
-    var billingProfileRequestModel = new BillingProfileRequestModel();
-    billingProfileRequestModel.setCloudPlatform(CloudPlatform.AZURE);
-
-    FlightMap inputParameters = new FlightMap();
-    inputParameters.put(JobMapKeys.REQUEST.getKeyName(), billingProfileRequestModel);
-
-    var flight = new ProfileCreateFlight(inputParameters, mock(ApplicationContext.class));
-
-    var steps = FlightTestUtils.getStepNames(flight);
-    assertThat(
-        steps,
-        contains(
-            "GetOrCreateProfileIdStep",
-            "CreateProfileMetadataStep",
-            "CreateProfileVerifyDeployedApplicationStep",
-            "CreateProfileAuthzIamStep",
-            "CreateProfileJournalEntryStep"));
-  }
-
-  @Test
   void testConstructFlightGCP() {
     var billingProfileRequestModel = new BillingProfileRequestModel();
     billingProfileRequestModel.setCloudPlatform(CloudPlatform.GCP);

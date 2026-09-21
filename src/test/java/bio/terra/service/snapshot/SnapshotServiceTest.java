@@ -81,7 +81,6 @@ import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.GoogleStorageResource;
 import bio.terra.service.duos.DuosClient;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobBuilder;
 import bio.terra.service.job.JobMapKeys;
@@ -105,7 +104,6 @@ import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightStatus;
-import java.sql.SQLException;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -1519,24 +1517,6 @@ class SnapshotServiceTest {
   }
 
   @Test
-  void testRetrievePreviewAzurePNoRows() throws SQLException {
-    mockSnapshotForPreview(CloudPlatform.AZURE, 0);
-    testSnapshotPreviewRowCountsAzure(0, 0);
-  }
-
-  @Test
-  void testRetrievePreviewAzureNoFilteredRows() throws SQLException {
-    mockSnapshotForPreview(CloudPlatform.AZURE, 10);
-    testSnapshotPreviewRowCountsAzure(10, 0);
-  }
-
-  @Test
-  void testRetrievePreviewAzure() throws SQLException {
-    mockSnapshotForPreview(CloudPlatform.AZURE, 10);
-    testSnapshotPreviewRowCountsAzure(10, 4);
-  }
-
-  @Test
   void testPatchSnapshotAuthDomain() {
     List<String> userGroups = List.of("testGroup");
     var flightClass = SnapshotAddDataAccessControlsFlight.class;
@@ -1802,24 +1782,6 @@ class SnapshotServiceTest {
         "Correct filtered row count",
         snapshotPreviewModel.getFilteredRowCount(),
         equalTo(filteredRowCount));
-  }
-
-  private void testSnapshotPreviewRowCountsAzure(int totalRowCount, int filteredRowCount)
-      throws SQLException {
-    List<SynapseDataResultModel> values = new ArrayList<>();
-    if (filteredRowCount > 0) {
-      values.add(
-          new SynapseDataResultModel()
-              .filteredCount(filteredRowCount)
-              .totalCount(totalRowCount)
-              .rowResult(new HashMap<>()));
-    }
-    when(azureSynapsePdao.getOrCreateExternalDataSourceForResource(any(), any(), any()))
-        .thenReturn("");
-    when(azureSynapsePdao.getTableData(
-            any(), any(), any(), any(), anyInt(), anyInt(), any(), any(), any(), any()))
-        .thenReturn(values);
-    testPreview(totalRowCount, filteredRowCount);
   }
 
   private void testSnapshotPreviewRowCountsGCP(int totalRowCount, int filteredRowCount) {

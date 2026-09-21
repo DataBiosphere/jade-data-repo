@@ -73,9 +73,7 @@ class FileIngestBulkFlightTest {
   }
 
   private static Stream<Arguments> testFileIngestBulkArrayFlightValidatesFileAccess() {
-    return Stream.of(
-        arguments(CloudPlatform.GCP, false),
-        arguments(CloudPlatform.GCP, true));
+    return Stream.of(arguments(CloudPlatform.GCP, false), arguments(CloudPlatform.GCP, true));
   }
 
   @ParameterizedTest

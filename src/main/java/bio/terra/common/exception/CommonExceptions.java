@@ -10,7 +10,8 @@ public class CommonExceptions {
           "Transaction support is not yet implemented for Azure backed datasets");
 
   public static final FeatureNotImplementedException AZURE_NOT_SUPPORTED =
-      new FeatureNotImplementedException("Azure support has been retired from TDR. For more information, contact support@terra.bio");
+      new FeatureNotImplementedException(
+          "Azure support has been retired from TDR. For more information contact support@terra.bio.");
 
   public static <T> Supplier<T> azureNotSupported() {
     return () -> {

@@ -8493,6 +8493,15 @@ components:
           description: Name of the region in the cloud service provider that the object
             belongs to.
           example: us-east-1
+        cloud:
+          type: string
+          description: >-
+            Name of the cloud service provider (CSP) that hosts the object, per DRS 1.5.
+            Disambiguates access methods that share a `type` -- notably `https`, which is the
+            signed-URL protocol on every cloud -- so a consumer (e.g. DRSHub) can select the
+            correct cloud without inferring it from `access_id` conventions. Suggested values:
+            `aws`, `gcp`, `azure`. Optional and additive: DRS 1.3 consumers ignore it.
+          example: gcp
         authorizations:
           $ref: '#/components/schemas/DRSAuthorizations'
     DRSError:

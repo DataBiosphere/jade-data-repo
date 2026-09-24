@@ -471,6 +471,10 @@ class DrsServiceTest {
         "all regions are accounted for",
         drsObject.getAccessMethods().stream().map(DRSAccessMethod::getRegion).distinct().toList(),
         containsInAnyOrder(GoogleRegion.US_CENTRAL1.getValue(), AzureRegion.ASIA.getValue()));
+    assertThat(
+        "all clouds are accounted for",
+        drsObject.getAccessMethods().stream().map(DRSAccessMethod::getCloud).distinct().toList(),
+        containsInAnyOrder("gcp", "azure"));
   }
 
   @Test
@@ -696,6 +700,7 @@ class DrsServiceTest {
         "Only BEARER authorization is included",
         accessMethod.getAuthorizations().getSupportedTypes(),
         contains(SupportedTypesEnum.BEARERAUTH));
+    assertThat("Cloud is gcp", accessMethod.getCloud(), equalTo("gcp"));
   }
 
   @Test
@@ -719,6 +724,7 @@ class DrsServiceTest {
         accessMethod.getAuthorizations().getSupportedTypes().size(),
         equalTo(2));
     assertThat("Correct drs object is returned", googleDrsObjectId, equalTo(object.getId()));
+    assertThat("Cloud is gcp", accessMethod.getCloud(), equalTo("gcp"));
   }
 
   @Test

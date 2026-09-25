@@ -45,7 +45,6 @@ import bio.terra.service.dataset.flight.inheritsteward.InheritStewardAdjustMembe
 import bio.terra.service.dataset.flight.inheritsteward.SetInheritStewardFlight;
 import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobBuilder;
 import bio.terra.service.job.JobMapKeys;
@@ -56,7 +55,6 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
@@ -102,14 +100,12 @@ class DatasetServiceUnitTest {
   @Mock private JobService jobService;
   @Mock private LoadService loadService;
   @Mock private ProfileDao profileDao;
-  @Mock private StorageTableService storageTableService;
   @Mock private BigQueryTransactionPdao bigQueryTransactionPdao;
   @Mock private BigQueryDatasetPdao bigQueryDatasetPdao;
   @Mock private MetadataDataAccessUtils metadataDataAccessUtils;
   @Mock private ResourceService resourceService;
   @Mock private GcsPdao gcsPdao;
   @Mock private ObjectMapper objectMapper;
-  @Mock private AzureBlobStorePdao azureBlobStorePdao;
   @Mock private ProfileService profileService;
   @Mock private UserLoggingMetrics loggingMetrics;
   @Mock private IamService iamService;
@@ -125,13 +121,11 @@ class DatasetServiceUnitTest {
             jobService,
             loadService,
             profileDao,
-            storageTableService,
             bigQueryTransactionPdao,
             bigQueryDatasetPdao,
             resourceService,
             gcsPdao,
             objectMapper,
-            azureBlobStorePdao,
             profileService,
             loggingMetrics,
             iamService,

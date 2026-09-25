@@ -11,17 +11,12 @@ import bio.terra.service.common.JournalRecordDeleteEntryStep;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.DrsService;
-import bio.terra.service.filedata.azure.tables.TableDao;
-import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.policy.PolicyService;
-import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureAuthService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.LockSnapshotStep;
@@ -54,12 +49,6 @@ public class SnapshotDeleteFlight extends Flight {
     IamService iamClient = appContext.getBean(IamService.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
-    TableDependencyDao tableDependencyDao = appContext.getBean(TableDependencyDao.class);
-    TableDao tableDao = appContext.getBean(TableDao.class);
-    ProfileService profileService = appContext.getBean(ProfileService.class);
-    AzureAuthService azureAuthService = appContext.getBean(AzureAuthService.class);
-    AzureStorageAccountService azureStorageAccountService =
-        appContext.getBean(AzureStorageAccountService.class);
     JournalService journalService = appContext.getBean(JournalService.class);
     DrsService drsService = appContext.getBean(DrsService.class);
     String tdrServiceAccountEmail = appContext.getBean("tdrServiceAccountEmail", String.class);
@@ -88,8 +77,6 @@ public class SnapshotDeleteFlight extends Flight {
 
     // store project id
     addStep(new PerformGcpStep(new DeleteSnapshotStoreProjectIdStep(snapshotId, snapshotService)));
-    // store object ids required for deleting Azure snapshots
-    addStep(new PerformAzureStep(new DeleteSnapshotStoreAzureIdsStep(snapshotId, snapshotService)));
 
     // Delete access control on objects that were explicitly added by data repo operations.  Do
     // this before delete
@@ -122,18 +109,6 @@ public class SnapshotDeleteFlight extends Flight {
             new DeleteSnapshotPrimaryDataGcpStep(
                 bigQuerySnapshotPdao, snapshotService, fileDao, snapshotId)),
         randomBackoffRetry);
-    // --- Azure --
-    addStep(
-        new PerformAzureDatasetDependencyStep(
-            new DeleteSnapshotDependencyDataAzureStep(
-                tableDependencyDao,
-                snapshotId,
-                datasetService,
-                profileService,
-                resourceService,
-                azureAuthService)),
-        randomBackoffRetry);
-
     // Delete access control first so Readers and Discoverers can no longer see snapshot
     // Google auto-magically removes the ACLs from BQ objects when SAM
     // deletes the snapshot group, so no ACL cleanup is needed beyond that.
@@ -150,14 +125,7 @@ public class SnapshotDeleteFlight extends Flight {
     addStep(
         new DeleteSnapshotMetadataStep(snapshotDao, snapshotId),
         getDefaultExponentialBackoffRetryRule());
-    addStep(new PerformAzureStep(new DeleteSnapshotMetadataAzureStep(azureStorageAccountService)));
     addStep(new PerformSnapshotStep(new UnlockSnapshotStep(snapshotDao, snapshotId)));
-
-    // delete snapshot container
-    addStep(
-        new PerformAzureStep(
-            new DeleteSnapshotDeleteStorageAccountStep(
-                snapshotId, resourceService, tableDao, profileService)));
 
     // delete snapshot project
     addStep(

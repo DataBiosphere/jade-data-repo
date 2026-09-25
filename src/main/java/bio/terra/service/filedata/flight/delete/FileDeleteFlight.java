@@ -5,19 +5,14 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.CommonExceptions;
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
-import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
@@ -31,20 +26,14 @@ public class FileDeleteFlight extends Flight {
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
-    TableDao tableDao = appContext.getBean(TableDao.class);
     FireStoreDependencyDao dependencyDao = appContext.getBean(FireStoreDependencyDao.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
-    AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
-    ResourceService resourceService = appContext.getBean(ResourceService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
-    ProfileDao profileDao = appContext.getBean(ProfileDao.class);
 
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
     String fileId = inputParameters.get(JobMapKeys.FILE_ID.getKeyName(), String.class);
-    AuthenticatedUserRequest userReq =
-        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
     // TODO: fix this
     //  Error handling within this constructor results in an obscure throw from
     //  Java (INVOCATION_EXCEPTION), instead of getting a good DATASET_NOT_FOUND error.

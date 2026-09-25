@@ -1,10 +1,6 @@
 package bio.terra.service.filedata;
 
-import static bio.terra.service.common.azure.StorageTableName.DATASET;
-import static bio.terra.service.common.azure.StorageTableName.SNAPSHOT;
-
 import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.common.CollectionType;
 import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -22,7 +18,6 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.BulkLoadFileMaxExceededException;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
@@ -36,7 +31,6 @@ import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
@@ -56,7 +50,6 @@ public class FileService {
   private final SnapshotService snapshotService;
   private final LoadService loadService;
   private final ConfigurationService configService;
-  private final TableDao tableDao;
   private final ResourceService resourceService;
   private final ProfileService profileService;
 
@@ -68,7 +61,6 @@ public class FileService {
       SnapshotService snapshotService,
       LoadService loadService,
       ConfigurationService configService,
-      TableDao tableDao,
       ResourceService resourceService,
       ProfileService profileService) {
     this.fileDao = fileDao;
@@ -77,7 +69,6 @@ public class FileService {
     this.snapshotService = snapshotService;
     this.loadService = loadService;
     this.configService = configService;
-    this.tableDao = tableDao;
     this.resourceService = resourceService;
     this.profileService = profileService;
   }
@@ -188,10 +179,7 @@ public class FileService {
         throw new FileSystemExecutionException(ex);
       }
     } else {
-      String collectionId = DATASET.toTableName(dataset.getId());
-      AzureStorageAuthInfo storageAuthInfo = resourceService.getDatasetStorageAuthInfo(dataset);
-      return tableDao.batchRetrieveFiles(
-          collectionId, storageAuthInfo, datasetId, storageAuthInfo, offset, limit);
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
   }
 
@@ -207,17 +195,7 @@ public class FileService {
         throw new FileSystemExecutionException(ex);
       }
     } else {
-      String collectionId = SNAPSHOT.toTableName(snapshot.getId());
-      AzureStorageAuthInfo storageAuthInfo = resourceService.getSnapshotStorageAuthInfo(snapshot);
-      AzureStorageAuthInfo datasetStorageAuthInfo =
-          resourceService.getDatasetStorageAuthInfo(dataset);
-      return tableDao.batchRetrieveFiles(
-          collectionId,
-          storageAuthInfo,
-          dataset.getId().toString(),
-          datasetStorageAuthInfo,
-          offset,
-          limit);
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
   }
 
@@ -255,8 +233,7 @@ public class FileService {
         throw new FileSystemExecutionException(ex);
       }
     } else {
-      AzureStorageAuthInfo storageAuthInfo = resourceService.getDatasetStorageAuthInfo(dataset);
-      file = tableDao.lookupOptionalPath(dataset.getId(), path, storageAuthInfo, depth);
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
     return file.map(this::fileModelFromFSItem);
   }
@@ -281,8 +258,7 @@ public class FileService {
     if (cloudPlatformWrapper.isGcp()) {
       return fileDao.retrieveByPath(dataset, path, depth);
     } else {
-      AzureStorageAuthInfo storageAuthInfo = resourceService.getDatasetStorageAuthInfo(dataset);
-      return tableDao.retrieveByPath(UUID.fromString(datasetId), path, depth, storageAuthInfo);
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
   }
 
@@ -316,24 +292,7 @@ public class FileService {
     if (cloudPlatformWrapper.isGcp()) {
       return fileDao.retrieveBySnapshotAndId(snapshot, fileId, depth);
     } else {
-      // TODO: this will get expensive if we query a lot.  We'll need to optimize this
-      AzureStorageAuthInfo storageAuthInfo =
-          resourceService.getSnapshotStorageAuthInfo(snapshot.getProfileId(), snapshot.getId());
-
-      // TODO Cache these values.  Very expensive lookups
-      Dataset dataset =
-          datasetService.retrieve(snapshot.getSourceDatasetProjects().iterator().next().getId());
-      AzureStorageAuthInfo datasetTableStorageAuthInfo =
-          resourceService.getDatasetStorageAuthInfo(dataset);
-
-      return tableDao.retrieveById(
-          CollectionType.SNAPSHOT,
-          dataset.getId(),
-          snapshot.getId(),
-          fileId,
-          depth,
-          storageAuthInfo,
-          datasetTableStorageAuthInfo);
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
   }
 

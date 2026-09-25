@@ -61,8 +61,6 @@ import bio.terra.service.dataset.flight.transactions.TransactionRollbackFlight;
 import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.service.dataset.flight.update.DatasetSchemaUpdateFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
-import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
@@ -73,15 +71,11 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
-import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
-import bio.terra.stairway.ShortUUID;
-import com.azure.storage.blob.sas.BlobSasPermission;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
@@ -106,13 +100,11 @@ public class DatasetService {
   private final JobService jobService; // for handling flight response
   private final LoadService loadService;
   private final ProfileDao profileDao;
-  private final StorageTableService storageTableService;
   private final BigQueryTransactionPdao bigQueryTransactionPdao;
   private final BigQueryDatasetPdao bigQueryDatasetPdao;
   private final ResourceService resourceService;
   private final GcsPdao gcsPdao;
   private final ObjectMapper objectMapper;
-  private final AzureBlobStorePdao azureBlobStorePdao;
   private final ProfileService profileService;
   private final UserLoggingMetrics loggingMetrics;
   private final IamService iamService;
@@ -127,13 +119,11 @@ public class DatasetService {
       JobService jobService,
       LoadService loadService,
       ProfileDao profileDao,
-      StorageTableService storageTableService,
       BigQueryTransactionPdao bigQueryTransactionPdao,
       BigQueryDatasetPdao bigQueryDatasetPdao,
       ResourceService resourceService,
       GcsPdao gcsPdao,
       ObjectMapper objectMapper,
-      AzureBlobStorePdao azureBlobStorePdao,
       ProfileService profileService,
       UserLoggingMetrics loggingMetrics,
       IamService iamService,
@@ -145,13 +135,11 @@ public class DatasetService {
     this.jobService = jobService;
     this.loadService = loadService;
     this.profileDao = profileDao;
-    this.storageTableService = storageTableService;
     this.bigQueryTransactionPdao = bigQueryTransactionPdao;
     this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.resourceService = resourceService;
     this.gcsPdao = gcsPdao;
     this.objectMapper = objectMapper;
-    this.azureBlobStorePdao = azureBlobStorePdao;
     this.profileService = profileService;
     this.loggingMetrics = loggingMetrics;
     this.iamService = iamService;
@@ -806,35 +794,6 @@ public class DatasetService {
       gcsPdao.writeListToCloudFile(tempFilePath, mapLines(data), projectId);
       return tempFilePath;
     } catch (IllegalArgumentException e) {
-      throw new IngestFailureException("Error initializing ingest process", e);
-    }
-  }
-
-  private String writeIngestRowsToAzureStorageAccount(
-      AuthenticatedUserRequest userRequest,
-      UUID profileId,
-      Dataset dataset,
-      String tempFilePath,
-      List<Object> data) {
-    try {
-      String randomIdForFile = ShortUUID.get();
-      BillingProfileModel profile = profileService.authorizeLinking(profileId, userRequest);
-
-      AzureStorageAccountResource storageAccount =
-          resourceService.getOrCreateDatasetStorageAccount(dataset, profile, randomIdForFile);
-
-      String signedPath =
-          azureBlobStorePdao.signFile(
-              profile,
-              storageAccount,
-              tempFilePath,
-              new BlobSasTokenOptions(
-                  AzureBlobStorePdao.DEFAULT_SAS_TOKEN_EXPIRATION,
-                  new BlobSasPermission().setReadPermission(true).setWritePermission(true),
-                  userRequest.getEmail()));
-      azureBlobStorePdao.writeBlobLines(signedPath, mapLines(data));
-      return signedPath;
-    } catch (InterruptedException e) {
       throw new IngestFailureException("Error initializing ingest process", e);
     }
   }

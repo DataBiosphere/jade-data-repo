@@ -56,7 +56,6 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
@@ -102,7 +101,6 @@ class DatasetServiceUnitTest {
   @Mock private JobService jobService;
   @Mock private LoadService loadService;
   @Mock private ProfileDao profileDao;
-  @Mock private StorageTableService storageTableService;
   @Mock private BigQueryTransactionPdao bigQueryTransactionPdao;
   @Mock private BigQueryDatasetPdao bigQueryDatasetPdao;
   @Mock private MetadataDataAccessUtils metadataDataAccessUtils;
@@ -125,7 +123,6 @@ class DatasetServiceUnitTest {
             jobService,
             loadService,
             profileDao,
-            storageTableService,
             bigQueryTransactionPdao,
             bigQueryDatasetPdao,
             resourceService,

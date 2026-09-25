@@ -1,10 +1,6 @@
 package bio.terra.service.resourcemanagement.azure;
 
 import bio.terra.model.BillingProfileModel;
-import com.azure.core.credential.AzureNamedKeyCredential;
-import com.azure.core.http.policy.RetryPolicy;
-import com.azure.data.tables.TableServiceClient;
-import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
@@ -70,36 +66,6 @@ public class AzureAuthService {
         .containerName(containerName)
         .retryOptions(retryOptions)
         .buildClient();
-  }
-
-  /**
-   * Return an authenticated {@link TableServiceClient} client using key-based authentication
-   *
-   * @param subscriptionId The Azure billing profile subscription id
-   * @param resourceGroupName The application deployment resource group name for the sa
-   * @param storageAccountResourceName The name of the sa that BlobContainerClient client should be
-   *     built from
-   * @return an authenticated {@link TableServiceClient}
-   */
-  public TableServiceClient getTableServiceClient(
-      UUID subscriptionId, String resourceGroupName, String storageAccountResourceName) {
-    // Obtain a secret key for the associated storage account
-    String key =
-        getStorageAccountKey(subscriptionId, resourceGroupName, storageAccountResourceName);
-
-    // Create a data lake client by authenticating using the found key
-    return new TableServiceClientBuilder()
-        .credential(new AzureNamedKeyCredential(storageAccountResourceName, key))
-        .endpoint("https://" + storageAccountResourceName + ".table.core.windows.net")
-        .retryPolicy(new RetryPolicy())
-        .buildClient();
-  }
-
-  public TableServiceClient getTableServiceClient(AzureStorageAuthInfo storageAuthInfo) {
-    return getTableServiceClient(
-        storageAuthInfo.subscriptionId(),
-        storageAuthInfo.resourceGroupName(),
-        storageAuthInfo.storageAccountResourceName());
   }
 
   /**

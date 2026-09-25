@@ -53,7 +53,6 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
-import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
@@ -62,7 +61,6 @@ import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.tabulardata.DataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
-import com.azure.data.tables.TableServiceClient;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
@@ -1112,10 +1110,5 @@ public class ConnectedOperations {
         logger.info("CLEANUP ERROR! Error deleting scratch file. Path: {}", path);
       }
     }
-  }
-
-  public void deleteLoadHistory(UUID datasetId, TableServiceClient serviceClient) {
-    var tableName = StorageTableName.LOAD_HISTORY.toTableName(datasetId);
-    serviceClient.deleteTable(tableName);
   }
 }

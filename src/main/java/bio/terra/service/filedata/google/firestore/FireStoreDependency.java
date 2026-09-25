@@ -1,6 +1,5 @@
 package bio.terra.service.filedata.google.firestore;
 
-import com.azure.data.tables.models.TableEntity;
 import java.util.Objects;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
@@ -72,19 +71,5 @@ public class FireStoreDependency {
   @Override
   public int hashCode() {
     return Objects.hash(snapshotId, fileId, refCount);
-  }
-
-  public static FireStoreDependency fromTableEntity(TableEntity entity) {
-    return new FireStoreDependency()
-        .snapshotId(entity.getProperty(SNAPSHOT_ID_FIELD_NAME).toString())
-        .fileId(entity.getProperty(FILE_ID_FIELD_NAME).toString())
-        .refCount((Long) entity.getProperty(REF_COUNT_FIELD_NAME));
-  }
-
-  public static TableEntity toTableEntity(FireStoreDependency f) {
-    return new TableEntity(f.getSnapshotId(), f.getFileId())
-        .addProperty(SNAPSHOT_ID_FIELD_NAME, f.getSnapshotId())
-        .addProperty(FILE_ID_FIELD_NAME, f.getFileId())
-        .addProperty(REF_COUNT_FIELD_NAME, f.getRefCount());
   }
 }

@@ -73,7 +73,6 @@ import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
-import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
@@ -102,7 +101,6 @@ public class DatasetService {
   private final JobService jobService; // for handling flight response
   private final LoadService loadService;
   private final ProfileDao profileDao;
-  private final StorageTableService storageTableService;
   private final BigQueryTransactionPdao bigQueryTransactionPdao;
   private final BigQueryDatasetPdao bigQueryDatasetPdao;
   private final ResourceService resourceService;
@@ -123,7 +121,6 @@ public class DatasetService {
       JobService jobService,
       LoadService loadService,
       ProfileDao profileDao,
-      StorageTableService storageTableService,
       BigQueryTransactionPdao bigQueryTransactionPdao,
       BigQueryDatasetPdao bigQueryDatasetPdao,
       ResourceService resourceService,
@@ -141,7 +138,6 @@ public class DatasetService {
     this.jobService = jobService;
     this.loadService = loadService;
     this.profileDao = profileDao;
-    this.storageTableService = storageTableService;
     this.bigQueryTransactionPdao = bigQueryTransactionPdao;
     this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.resourceService = resourceService;

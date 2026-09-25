@@ -1,6 +1,5 @@
 package bio.terra.service.filedata.google.firestore;
 
-import com.azure.data.tables.models.TableEntity;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -207,34 +206,5 @@ public class FireStoreDirectoryEntry {
         checksumMd5,
         size,
         loadTag);
-  }
-
-  public static FireStoreDirectoryEntry fromTableEntity(TableEntity entity) {
-    return new FireStoreDirectoryEntry()
-        .fileId(entity.getProperty(FILE_ID_FIELD_NAME).toString())
-        .isFileRef((Boolean) entity.getProperty(IS_FILE_REF_FIELD_NAME))
-        .path(entity.getProperty(PATH_FIELD_NAME).toString())
-        .name(entity.getProperty(NAME_FIELD_NAME).toString())
-        .datasetId((String) entity.getProperty(DATASET_ID_FIELD_NAME))
-        .fileCreatedDate((String) entity.getProperty(FILE_CREATED_DATE_FIELD_NAME))
-        .checksumCrc32c((String) entity.getProperty(CHECKSUM_CRC32C_FIELD_NAME))
-        .checksumMd5((String) entity.getProperty(CHECKSUM_MD5_FIELD_NAME))
-        .size((Long) entity.getProperty(SIZE_FIELD_NAME))
-        .loadTag((String) entity.getProperty(LOAD_TAG_FIELD_NAME));
-  }
-
-  public static TableEntity toTableEntity(
-      String partitionKey, String rowKey, FireStoreDirectoryEntry f) {
-    return new TableEntity(partitionKey, rowKey)
-        .addProperty(FILE_ID_FIELD_NAME, f.getFileId())
-        .addProperty(IS_FILE_REF_FIELD_NAME, f.getIsFileRef())
-        .addProperty(PATH_FIELD_NAME, f.getPath())
-        .addProperty(NAME_FIELD_NAME, f.getName())
-        .addProperty(DATASET_ID_FIELD_NAME, f.getDatasetId())
-        .addProperty(FILE_CREATED_DATE_FIELD_NAME, f.getFileCreatedDate())
-        .addProperty(CHECKSUM_CRC32C_FIELD_NAME, f.getChecksumCrc32c())
-        .addProperty(CHECKSUM_MD5_FIELD_NAME, f.getChecksumMd5())
-        .addProperty(SIZE_FIELD_NAME, f.getSize())
-        .addProperty(LOAD_TAG_FIELD_NAME, f.getLoadTag());
   }
 }

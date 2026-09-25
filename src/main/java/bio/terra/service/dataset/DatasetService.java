@@ -61,7 +61,6 @@ import bio.terra.service.dataset.flight.transactions.TransactionRollbackFlight;
 import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.service.dataset.flight.update.DatasetSchemaUpdateFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
@@ -106,7 +105,6 @@ public class DatasetService {
   private final ResourceService resourceService;
   private final GcsPdao gcsPdao;
   private final ObjectMapper objectMapper;
-  private final AzureBlobStorePdao azureBlobStorePdao;
   private final ProfileService profileService;
   private final UserLoggingMetrics loggingMetrics;
   private final IamService iamService;
@@ -126,7 +124,6 @@ public class DatasetService {
       ResourceService resourceService,
       GcsPdao gcsPdao,
       ObjectMapper objectMapper,
-      AzureBlobStorePdao azureBlobStorePdao,
       ProfileService profileService,
       UserLoggingMetrics loggingMetrics,
       IamService iamService,
@@ -143,7 +140,6 @@ public class DatasetService {
     this.resourceService = resourceService;
     this.gcsPdao = gcsPdao;
     this.objectMapper = objectMapper;
-    this.azureBlobStorePdao = azureBlobStorePdao;
     this.profileService = profileService;
     this.loggingMetrics = loggingMetrics;
     this.iamService = iamService;

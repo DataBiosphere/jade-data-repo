@@ -39,7 +39,6 @@ import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.filedata.DrsDao.DrsAlias;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.GoogleInternalServerErrorException;
@@ -114,7 +113,6 @@ public class DrsService {
   private final DrsConfiguration drsConfiguration;
   private final JobService jobService;
   private final PerformanceLogger performanceLogger;
-  private final AzureBlobStorePdao azureBlobStorePdao;
   private final GcsProjectFactory gcsProjectFactory;
   private final EcmConfiguration ecmConfiguration;
   private final DrsDao drsDao;
@@ -138,7 +136,6 @@ public class DrsService {
       DrsConfiguration drsConfiguration,
       JobService jobService,
       PerformanceLogger performanceLogger,
-      AzureBlobStorePdao azureBlobStorePdao,
       GcsProjectFactory gcsProjectFactory,
       EcmConfiguration ecmConfiguration,
       DrsDao drsDao,
@@ -153,7 +150,6 @@ public class DrsService {
     this.drsConfiguration = drsConfiguration;
     this.jobService = jobService;
     this.performanceLogger = performanceLogger;
-    this.azureBlobStorePdao = azureBlobStorePdao;
     this.gcsProjectFactory = gcsProjectFactory;
     this.ecmConfiguration = ecmConfiguration;
     this.drsDao = drsDao;

@@ -256,7 +256,6 @@ dependencies {
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.59.0'
     implementation 'com.azure:azure-storage-common:12.32.2'
     implementation 'com.azure:azure-storage-blob:12.33.2'
-    implementation 'com.azure:azure-data-tables:12.5.9'
 
     implementation platform('io.sentry:sentry-bom:8.32.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')

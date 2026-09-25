@@ -61,7 +61,6 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.DrsDao.DrsAlias;
 import bio.terra.service.filedata.DrsService.SnapshotCacheResult;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
 import bio.terra.service.filedata.exception.InvalidDrsObjectException;
@@ -137,7 +136,6 @@ class DrsServiceTest {
   @Mock private DrsConfiguration drsConfiguration;
   @Mock private JobService jobService;
   @Mock private PerformanceLogger performanceLogger;
-  @Mock private AzureBlobStorePdao azureBlobStorePdao;
   @Mock private GcsProjectFactory gcsProjectFactory;
   @Mock private EcmConfiguration ecmConfiguration;
   @Mock private DrsDao drsDao;

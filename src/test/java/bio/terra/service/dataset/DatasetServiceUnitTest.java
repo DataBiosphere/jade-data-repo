@@ -128,7 +128,6 @@ class DatasetServiceUnitTest {
             resourceService,
             gcsPdao,
             objectMapper,
-            azureBlobStorePdao,
             profileService,
             loggingMetrics,
             iamService,

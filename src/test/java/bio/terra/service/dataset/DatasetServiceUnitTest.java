@@ -22,8 +22,6 @@ import bio.terra.common.SqlSortDirection;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.AccessInfoModel;
-import bio.terra.model.AccessInfoParquetModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnStatisticsDoubleModel;
 import bio.terra.model.ColumnStatisticsIntModel;
@@ -47,7 +45,6 @@ import bio.terra.service.dataset.flight.inheritsteward.InheritStewardAdjustMembe
 import bio.terra.service.dataset.flight.inheritsteward.SetInheritStewardFlight;
 import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobBuilder;
@@ -212,9 +209,6 @@ class DatasetServiceUnitTest {
     testRetrieveDataGCP(12, 0);
     testRetrieveDataGCP(0, 0);
     testRetrieveDataGCP(8, 4);
-    testRetrieveDataAzure(12, 0);
-    testRetrieveDataAzure(0, 0);
-    testRetrieveDataAzure(8, 4);
   }
 
   private void testRetrieveDataGCP(int totalRowCount, int filteredRowCount) {
@@ -240,28 +234,6 @@ class DatasetServiceUnitTest {
           .thenReturn(totalRowCount);
       retrieveDataAndValidate(totalRowCount, filteredRowCount);
     }
-  }
-
-  private void testRetrieveDataAzure(int totalRowCount, int filteredRowCount) {
-    mockDataset(CloudPlatform.AZURE, TableDataType.STRING);
-    List<SynapseDataResultModel> values = new ArrayList<>();
-    if (filteredRowCount != 0) {
-      values.add(
-          new SynapseDataResultModel()
-              .filteredCount(filteredRowCount)
-              .totalCount(totalRowCount)
-              .rowResult(new HashMap<>()));
-    } else {
-      when(azureSynapsePdao.getTableTotalRowCount(any(), any(), any())).thenReturn(totalRowCount);
-    }
-    when(azureSynapsePdao.getTableData(
-            any(), any(), any(), any(), anyInt(), anyInt(), any(), any(), any(), any()))
-        .thenReturn(values);
-    when(metadataDataAccessUtils.accessInfoFromDataset(any(), any()))
-        .thenReturn(
-            new AccessInfoModel()
-                .parquet(new AccessInfoParquetModel().url("fake.url").sasToken("fake.sas.token")));
-    retrieveDataAndValidate(totalRowCount, filteredRowCount);
   }
 
   private void retrieveDataAndValidate(int totalRowCount, int filteredRowCount) {
@@ -301,26 +273,6 @@ class DatasetServiceUnitTest {
   }
 
   @Test
-  void testRetrieveColumnStatistics_Azure_TextColumn() {
-    mockDataset(CloudPlatform.AZURE, TableDataType.STRING);
-    ColumnStatisticsTextValue expectedValue =
-        new ColumnStatisticsTextValue().value("val1").count(2);
-    ColumnStatisticsTextModel expectedModel =
-        new ColumnStatisticsTextModel().values(List.of(expectedValue));
-    when(azureSynapsePdao.getStatsForTextColumn(any(), any(), any(), any()))
-        .thenReturn(expectedModel);
-    when(metadataDataAccessUtils.accessInfoFromDataset(any(), any()))
-        .thenReturn(
-            new AccessInfoModel()
-                .parquet(new AccessInfoParquetModel().url("fake.url").sasToken("fake.sas.token")));
-    ColumnStatisticsTextModel statsModel =
-        (ColumnStatisticsTextModel)
-            datasetService.retrieveColumnStatistics(
-                TEST_USER, DATASET_ID, DATASET_TABLE_NAME, "column1", "");
-    assertThat("Correct stats value", statsModel.getValues(), containsInAnyOrder(expectedValue));
-  }
-
-  @Test
   void testRetrieveColumnStatistics_GCP_DoubleColumn() {
     mockDataset(CloudPlatform.GCP, TableDataType.FLOAT);
     ColumnStatisticsDoubleModel expectedValue =
@@ -341,25 +293,6 @@ class DatasetServiceUnitTest {
   }
 
   @Test
-  void testRetrieveColumnStatistics_Azure_DoubleColumn() {
-    mockDataset(CloudPlatform.AZURE, TableDataType.FLOAT);
-    ColumnStatisticsDoubleModel expectedValue =
-        new ColumnStatisticsDoubleModel().maxValue(2.0).minValue(1.0);
-    when(azureSynapsePdao.getStatsForDoubleColumn(any(), any(), any(), any()))
-        .thenReturn(expectedValue);
-    when(metadataDataAccessUtils.accessInfoFromDataset(any(), any()))
-        .thenReturn(
-            new AccessInfoModel()
-                .parquet(new AccessInfoParquetModel().url("fake.url").sasToken("fake.sas.token")));
-    ColumnStatisticsDoubleModel statsModel =
-        (ColumnStatisticsDoubleModel)
-            datasetService.retrieveColumnStatistics(
-                TEST_USER, DATASET_ID, DATASET_TABLE_NAME, "column1", "");
-    assertThat("Correct max value", statsModel.getMaxValue(), equalTo(expectedValue.getMaxValue()));
-    assertThat("Correct min value", statsModel.getMinValue(), equalTo(expectedValue.getMinValue()));
-  }
-
-  @Test
   void testRetrieveColumnStatistics_GCP_IntColumn() {
     mockDataset(CloudPlatform.GCP, TableDataType.INTEGER);
     ColumnStatisticsIntModel expectedValue = new ColumnStatisticsIntModel().maxValue(2).minValue(1);
@@ -376,24 +309,6 @@ class DatasetServiceUnitTest {
       assertThat(
           "Correct min value", statsModel.getMinValue(), equalTo(expectedValue.getMinValue()));
     }
-  }
-
-  @Test
-  void testRetrieveColumnStatistics_Azure_IntColumn() {
-    mockDataset(CloudPlatform.AZURE, TableDataType.INTEGER);
-    ColumnStatisticsIntModel expectedValue = new ColumnStatisticsIntModel().maxValue(3).minValue(1);
-    when(azureSynapsePdao.getStatsForIntColumn(any(), any(), any(), any()))
-        .thenReturn(expectedValue);
-    when(metadataDataAccessUtils.accessInfoFromDataset(any(), any()))
-        .thenReturn(
-            new AccessInfoModel()
-                .parquet(new AccessInfoParquetModel().url("fake.url").sasToken("fake.sas.token")));
-    ColumnStatisticsIntModel statsModel =
-        (ColumnStatisticsIntModel)
-            datasetService.retrieveColumnStatistics(
-                TEST_USER, DATASET_ID, DATASET_TABLE_NAME, "column1", "");
-    assertThat("Correct max value", statsModel.getMaxValue(), equalTo(expectedValue.getMaxValue()));
-    assertThat("Correct min value", statsModel.getMinValue(), equalTo(expectedValue.getMinValue()));
   }
 
   @ParameterizedTest

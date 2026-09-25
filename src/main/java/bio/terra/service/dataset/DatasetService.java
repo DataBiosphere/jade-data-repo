@@ -6,9 +6,9 @@ import bio.terra.app.controller.DatasetsApiController;
 import bio.terra.app.usermetrics.BardEventProperties;
 import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.SqlSortDirection;
+import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.AssetModel;
@@ -51,7 +51,6 @@ import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
 import bio.terra.service.dataset.flight.delete.RemoveAssetSpecFlight;
 import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.dataset.flight.ingest.scratch.DatasetScratchFilePrepareFlight;
 import bio.terra.service.dataset.flight.inheritsteward.InheritStewardAdjustMembersFlight;
 import bio.terra.service.dataset.flight.inheritsteward.SetInheritStewardFlight;
@@ -62,7 +61,6 @@ import bio.terra.service.dataset.flight.transactions.TransactionRollbackFlight;
 import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.service.dataset.flight.update.DatasetSchemaUpdateFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -392,13 +390,7 @@ public class DatasetService {
         pathToUse =
             writeIngestRowsToGcpBucket(dataset, tempFilePath, ingestRequestModel.getRecords());
       } else if (cloudPlatform.isAzure()) {
-        pathToUse =
-            writeIngestRowsToAzureStorageAccount(
-                userReq,
-                ingestRequestModel.getProfileId(),
-                dataset,
-                tempFilePath,
-                ingestRequestModel.getRecords());
+        throw CommonExceptions.AZURE_NOT_SUPPORTED;
       } else {
         throw new IllegalArgumentException("Cloud not recognized");
       }
@@ -495,7 +487,7 @@ public class DatasetService {
             CloudPlatform.GCP,
             () -> bigQueryDatasetPdao.getLoadHistory(dataset, loadTag, offset, limit),
             CloudPlatform.AZURE,
-            () -> storageTableService.getLoadHistory(dataset, loadTag, offset, limit)));
+            CommonExceptions.azureNotSupported()));
   }
 
   /**
@@ -566,30 +558,7 @@ public class DatasetService {
         throw new DatasetDataException("Error retrieving data for dataset " + dataset.getName(), e);
       }
     } else if (cloudPlatformWrapper.isAzure()) {
-      String sourceParquetFilePath = IngestUtils.getSourceDatasetParquetFilePath(tableName);
-
-      String datasourceName = getOrCreateExternalAzureDataSource(dataset, userRequest);
-
-      List<SynapseDataResultModel> values =
-          azureSynapsePdao.getTableData(
-              table,
-              tableName,
-              datasourceName,
-              sourceParquetFilePath,
-              limit,
-              offset,
-              sort,
-              direction,
-              filter,
-              CollectionType.DATASET);
-      return new DatasetDataModel()
-          .result(List.copyOf(values.stream().map(SynapseDataResultModel::getRowResult).toList()))
-          .totalRowCount(
-              values.isEmpty()
-                  ? azureSynapsePdao.getTableTotalRowCount(
-                      tableName, datasourceName, sourceParquetFilePath)
-                  : values.get(0).getTotalCount())
-          .filteredRowCount(values.isEmpty() ? 0 : values.get(0).getFilteredCount());
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     } else {
       throw new DatasetDataException("Cloud not supported");
     }
@@ -621,22 +590,7 @@ public class DatasetService {
         throw new DatasetDataException("Error retrieving data for dataset " + dataset.getName(), e);
       }
     } else if (cloudPlatformWrapper.isAzure()) {
-
-      String sourceParquetFilePath = IngestUtils.getSourceDatasetParquetFilePath(tableName);
-
-      String datasourceName = getOrCreateExternalAzureDataSource(dataset, userRequest);
-
-      if (column.isDoubleType()) {
-        return azureSynapsePdao.getStatsForDoubleColumn(
-            column, datasourceName, sourceParquetFilePath, filter);
-      } else if (column.isIntType()) {
-        return azureSynapsePdao.getStatsForIntColumn(
-            column, datasourceName, sourceParquetFilePath, filter);
-      } else if (column.isTextType()) {
-        return azureSynapsePdao.getStatsForTextColumn(
-            column, datasourceName, sourceParquetFilePath, filter);
-      }
-      return new ColumnStatisticsModel();
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     } else {
       throw new DatasetDataException("Cloud not supported");
     }

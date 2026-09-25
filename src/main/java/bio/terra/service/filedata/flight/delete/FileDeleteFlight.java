@@ -4,6 +4,7 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -78,12 +79,7 @@ public class FileDeleteFlight extends Flight {
       addStep(new DeleteFilePrimaryDataStep(gcsPdao));
       addStep(new DeleteFileDirectoryStep(fileDao, fileId, dataset), fileSystemRetry);
     } else if (platform.isAzure()) {
-      addStep(
-          new DeleteFileAzureLookupStep(tableDao, fileId, dataset, resourceService, profileDao),
-          fileSystemRetry);
-      addStep(new DeleteFileAzureMetadataStep(tableDao, fileId, dataset), fileSystemRetry);
-      addStep(new DeleteFileAzurePrimaryDataStep(azureBlobStorePdao, userReq));
-      addStep(new DeleteFileAzureDirectoryStep(tableDao, fileId, dataset), fileSystemRetry);
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
     addStep(new UnlockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
   }

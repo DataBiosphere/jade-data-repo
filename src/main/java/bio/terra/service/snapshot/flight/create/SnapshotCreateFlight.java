@@ -7,6 +7,7 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.GetResourceBufferProjectStep;
+import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -185,23 +186,7 @@ public class SnapshotCreateFlight extends Flight {
         getDefaultExponentialBackoffRetryRule());
 
     if (platform.isAzure()) {
-      addStep(
-          new CreateSnapshotCreateAzureStorageAccountStep(
-              resourceService, sourceDataset, snapshotId));
-      addStep(new CreateSnapshotCreateAzureContainerStep(resourceService, azureContainerPdao));
-
-      // Turn on logging and monitoring for the storage account associated with the snapshot
-      azureStorageMonitoringStepProvider
-          .configureSteps(
-              sourceDataset.isSecureMonitoringEnabled(), sourceDataset.getStorageAccountRegion())
-          .forEach(s -> this.addStep(s.step(), s.retryRule()));
-
-      addStep(
-          new CreateSnapshotSourceDatasetDataSourceAzureStep(
-              azureSynapsePdao, azureBlobStorePdao, userReq));
-      addStep(
-          new CreateSnapshotTargetDataSourceAzureStep(
-              azureSynapsePdao, azureBlobStorePdao, userReq));
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
 
     // Make the big query dataset with views and populate row id filtering tables.
@@ -215,9 +200,7 @@ public class SnapshotCreateFlight extends Flight {
                 () ->
                     new CreateSnapshotPrimaryDataAssetGcpStep(
                         bigQuerySnapshotPdao, snapshotDao, snapshotService, snapshotReq),
-                () ->
-                    new CreateSnapshotByAssetParquetFilesAzureStep(
-                        azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
+                CommonExceptions.azureNotSupported()));
       }
       case BYFULLVIEW ->
           addStep(
@@ -229,9 +212,7 @@ public class SnapshotCreateFlight extends Flight {
                           snapshotService,
                           snapshotReq,
                           sourceDataset),
-                  () ->
-                      new CreateSnapshotByFullViewParquetFilesAzureStep(
-                          azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
+                  CommonExceptions.azureNotSupported()));
       case BYQUERY -> {
         addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
         addStep(
@@ -245,16 +226,7 @@ public class SnapshotCreateFlight extends Flight {
                         snapshotReq,
                         userReq,
                         sourceDataset),
-                () ->
-                    new CreateSnapshotByQueryParquetFilesAzureStep(
-                        azureSynapsePdao,
-                        snapshotDao,
-                        snapshotService,
-                        snapshotReq,
-                        datasetService,
-                        userReq,
-                        snapshotId,
-                        sourceDataset)));
+                CommonExceptions.azureNotSupported()));
       }
       case BYROWID ->
           addStep(
@@ -262,9 +234,7 @@ public class SnapshotCreateFlight extends Flight {
                   () ->
                       new CreateSnapshotPrimaryDataRowIdsStep(
                           bigQuerySnapshotPdao, snapshotDao, snapshotService, snapshotReq),
-                  () ->
-                      new CreateSnapshotByRowIdParquetFilesAzureStep(
-                          azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
+                  CommonExceptions.azureNotSupported()));
       case BYREQUESTID -> {
         addStep(new CreateSnapshotSamGroupNameStep(snapshotId, iamService));
         addStep(new CreateSnapshotSamGroupStep(iamService));
@@ -284,23 +254,11 @@ public class SnapshotCreateFlight extends Flight {
                         snapshotDao,
                         userReq,
                         bigQuerySnapshotPdao),
-                () ->
-                    new CreateSnapshotByRequestIdAzureStep(
-                        snapshotReq,
-                        snapshotService,
-                        snapshotBuilderService,
-                        snapshotDao,
-                        userReq,
-                        azureSynapsePdao,
-                        snapshotId)));
+                CommonExceptions.azureNotSupported()));
       }
     }
     if (platform.isAzure()) {
-      addStep(
-          new CreateSnapshotCreateRowIdParquetFileStep(
-              azureSynapsePdao, snapshotService, snapshotId));
-      addStep(
-          new CreateSnapshotCountTableRowsAzureStep(snapshotDao, snapshotReq), randomBackoffRetry);
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
 
     if (platform.isGcp()) {
@@ -378,46 +336,7 @@ public class SnapshotCreateFlight extends Flight {
                 snapshotService, datasetService, drsIdService, drsService, fileDao, snapshotId));
       }
     } else if (platform.isAzure()) {
-      addStep(
-          new CreateSnapshotStorageTableDataStep(
-              tableDao,
-              azureAuthService,
-              azureSynapsePdao,
-              snapshotService,
-              datasetId,
-              datasetName,
-              snapshotId),
-          randomBackoffRetry);
-
-      addStep(
-          new CreateSnapshotStorageTableDependenciesStep(
-              tableDependencyDao,
-              azureAuthService,
-              azureSynapsePdao,
-              snapshotService,
-              datasetId,
-              snapshotId));
-      // Calculate checksums and sizes for all directories in the snapshot
-      addStep(
-          new CreateSnapshotStorageTableComputeStep(
-              tableDao, snapshotReq, snapshotService, azureAuthService));
-
-      // Record the Drs IDs if this is a global file id snapshot
-      if (snapshotReq.isGlobalFileIds()) {
-        addStep(
-            new SnapshotRecordFileIdsAzureStep(
-                snapshotService,
-                datasetService,
-                drsIdService,
-                drsService,
-                tableDao,
-                azureAuthService,
-                snapshotId));
-      }
-      // cannot clean up azure synapse tables until after gathered refIds in
-      // CreateSnapshotStorageTableDataStep
-      addStep(
-          new CreateSnapshotCleanSynapseAzureStep(azureSynapsePdao, snapshotService, snapshotId));
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
 
     addStep(

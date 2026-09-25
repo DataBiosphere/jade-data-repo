@@ -13,6 +13,7 @@ import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.FutureUtils;
 import bio.terra.common.exception.BadRequestException;
+import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.exception.UnauthorizedException;
@@ -580,7 +581,7 @@ public class DrsService {
     if (platform.isGcp()) {
       return signGoogleUrl(cachedSnapshot, fsFile.getCloudPath(), authUser, userProject);
     } else if (platform.isAzure()) {
-      return signAzureUrl(billingProfileModel, fsFile, authUser);
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     } else {
       throw new FeatureNotImplementedException("Cloud platform not implemented");
     }
@@ -787,22 +788,7 @@ public class DrsService {
                 fsFile, authUser, gcpRegion, cachedSnapshot.googleProjectId, billingSnapshot);
       }
     } else if (platform.isAzure()) {
-      String azureRegion = retrieveAzureSnapshotRegion(fsFile);
-      if (passportAuth) {
-        accessMethods =
-            getDrsSignedURLAccessMethods(
-                ACCESS_ID_PREFIX_AZURE + ACCESS_ID_PREFIX_PASSPORT,
-                azureRegion,
-                passportAuth,
-                cachedSnapshot.globalFileIds ? billingSnapshot : null);
-      } else {
-        accessMethods =
-            getDrsSignedURLAccessMethods(
-                ACCESS_ID_PREFIX_AZURE,
-                azureRegion,
-                passportAuth,
-                cachedSnapshot.globalFileIds ? billingSnapshot : null);
-      }
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     } else {
       throw new InvalidCloudPlatformException();
     }

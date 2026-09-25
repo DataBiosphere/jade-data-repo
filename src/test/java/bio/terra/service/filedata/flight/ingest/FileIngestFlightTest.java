@@ -51,7 +51,7 @@ class FileIngestFlightTest {
   }
 
   @ParameterizedTest
-  @EnumSource(names = {"GCP", "AZURE"})
+  @EnumSource(names = {"GCP"})
   void testFileIngestFlight(CloudPlatform cloudPlatform) {
     when(datasetSummary.getStorageCloudPlatform()).thenReturn(cloudPlatform);
 

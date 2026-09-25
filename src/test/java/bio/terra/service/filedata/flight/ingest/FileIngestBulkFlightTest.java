@@ -73,11 +73,7 @@ class FileIngestBulkFlightTest {
   }
 
   private static Stream<Arguments> testFileIngestBulkArrayFlightValidatesFileAccess() {
-    return Stream.of(
-        arguments(CloudPlatform.GCP, false),
-        arguments(CloudPlatform.GCP, true),
-        arguments(CloudPlatform.AZURE, false),
-        arguments(CloudPlatform.AZURE, true));
+    return Stream.of(arguments(CloudPlatform.GCP, false), arguments(CloudPlatform.GCP, true));
   }
 
   @ParameterizedTest
@@ -101,8 +97,6 @@ class FileIngestBulkFlightTest {
   private static Stream<Arguments> testFileIngestBulkJsonFlightValidatesFileAccess() {
     return Stream.of(
         arguments(CloudPlatform.GCP, false, "IngestPopulateFileStateFromFileGcpStep"),
-        arguments(CloudPlatform.GCP, true, "IngestBulkGcpBulkFileStep"),
-        arguments(CloudPlatform.AZURE, false, "IngestPopulateFileStateFromFileAzureStep"),
-        arguments(CloudPlatform.AZURE, true, "IngestBulkGcpBulkFileStep"));
+        arguments(CloudPlatform.GCP, true, "IngestBulkGcpBulkFileStep"));
   }
 }

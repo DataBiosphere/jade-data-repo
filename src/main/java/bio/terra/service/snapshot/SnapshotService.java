@@ -6,14 +6,13 @@ import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.PolicyUtils;
 import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.Table;
 import bio.terra.common.ValidationUtils;
 import bio.terra.common.exception.BadRequestException;
-import bio.terra.common.exception.FeatureNotImplementedException;
+import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.externalcreds.model.RASv1Dot1VisaCriterion;
@@ -75,10 +74,8 @@ import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.duos.DuosClient;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
@@ -377,14 +374,7 @@ public class SnapshotService {
 
     var cloudPlatformWrapper = CloudPlatformWrapper.of(snapshot.getCloudPlatform());
     if (cloudPlatformWrapper.isAzure()) {
-      if (validatePrimaryKeyUniqueness) {
-        throw new FeatureNotImplementedException(
-            "Key uniqueness validation not implemented in Azure.");
-      }
-      if (exportGsPaths) {
-        throw new FeatureNotImplementedException(
-            "GCS path pre-resolution from DRS not implemented in Azure.");
-      }
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
     // TODO: add parameters to share job status using a new SAM role to export data
     return jobService
@@ -1059,24 +1049,7 @@ public class SnapshotService {
             "Error retrieving preview for snapshot " + snapshot.getName(), e);
       }
     } else if (cloudPlatformWrapper.isAzure()) {
-      String datasourceName = getOrCreateExternalAzureDataSource(snapshot, userRequest, tableName);
-      String parquetFilePath = IngestUtils.getSnapshotParquetFilePathForQuery(tableName);
-      List<SynapseDataResultModel> values =
-          azureSynapsePdao.getTableData(
-              table,
-              tableName,
-              datasourceName,
-              parquetFilePath,
-              limit,
-              offset,
-              sort,
-              direction,
-              filter,
-              CollectionType.SNAPSHOT);
-      return new SnapshotPreviewModel()
-          .result(List.copyOf(values.stream().map(SynapseDataResultModel::getRowResult).toList()))
-          .totalRowCount(table.getRowCount().intValue())
-          .filteredRowCount(values.isEmpty() ? 0 : values.get(0).getFilteredCount());
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     } else {
       throw new SnapshotPreviewException("Cloud not supported");
     }

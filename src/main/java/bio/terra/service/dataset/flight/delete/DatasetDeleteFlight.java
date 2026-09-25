@@ -5,6 +5,7 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -90,24 +91,7 @@ public class DatasetDeleteFlight extends Flight {
           new DeleteDatasetAuthzBqAclsStep(
               iamClient, datasetService, resourceService, datasetId, userReq));
     } else if (platform.isAzure()) {
-      addStep(
-          new DeleteDatasetAzureValidateStep(
-              snapshotDao,
-              dependencyDao,
-              datasetService,
-              datasetId,
-              tableDependencyDao,
-              azureAuthService,
-              profileDao,
-              resourceService));
-      addStep(
-          new DeleteDatasetAzurePrimaryDataStep(azureBlobStorePdao, tableDao, datasetId, userReq),
-          primaryDataDeleteRetry);
-      addStep(
-          new DeleteDatasetLoadHistoryStorageTableStep(
-              storageTableService, datasetService, datasetId));
-      addStep(
-          new DeleteDatasetDeleteStorageAccountsStep(resourceService, datasetService, datasetId));
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     }
     addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
     addStep(new DeleteDatasetAuthzResource(iamClient, datasetId, userReq));

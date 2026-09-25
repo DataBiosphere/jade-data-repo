@@ -2,6 +2,7 @@ package bio.terra.service.resourcemanagement;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.Table;
+import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoBigQueryModel;
@@ -18,7 +19,6 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import java.time.Duration;
@@ -104,20 +104,7 @@ public final class MetadataDataAccessUtils {
           snapshot.getProjectResource().getGoogleProjectId(),
           snapshot.getTables());
     } else if (cloudPlatformWrapper.isAzure()) {
-      BillingProfileModel profileModel =
-          profileService.getProfileByIdNoCheck(snapshot.getProfileId());
-      AzureStorageAccountResource storageAccountResource = snapshot.getStorageAccountResource();
-      List<SnapshotTable> tables;
-      if (forTable == null) {
-        tables = snapshot.getTables();
-      } else {
-        tables =
-            snapshot.getTables().stream()
-                .filter(t -> t.getName().equalsIgnoreCase(forTable))
-                .collect(Collectors.toList());
-      }
-      return makeAccessInfoAzure(
-          snapshot, storageAccountResource, tables, profileModel, userRequest);
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     } else {
       throw new InvalidCloudPlatformException();
     }
@@ -135,11 +122,7 @@ public final class MetadataDataAccessUtils {
           dataset.getProjectResource().getGoogleProjectId(),
           dataset.getTables());
     } else if (cloudPlatformWrapper.isAzure()) {
-      BillingProfileModel profileModel = dataset.getDatasetSummary().getDefaultBillingProfile();
-      AzureStorageAccountResource storageAccountResource =
-          resourceService.getDatasetStorageAccount(dataset, profileModel);
-      return makeAccessInfoAzure(
-          dataset, storageAccountResource, dataset.getTables(), profileModel, userRequest);
+      throw CommonExceptions.AZURE_NOT_SUPPORTED;
     } else {
       throw new InvalidCloudPlatformException();
     }

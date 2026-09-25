@@ -51,17 +51,11 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
-import com.azure.resourcemanager.loganalytics.models.Workspace;
-import com.azure.resourcemanager.monitor.models.DiagnosticSetting;
-import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlobContainerClient;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -538,61 +532,6 @@ class DatasetServiceTest {
     datasetService.ingestDataset(datasetId.toString(), ingestRequestModel, testUser);
 
     verify(gcsPdao, times(1)).writeListToCloudFile(any(), listCaptor.capture(), any());
-
-    JSONAssert.assertEquals(
-        "correct lines were written",
-        String.join("\n", listCaptor.getValue()),
-        """
-            {"id":"1","age":12,"gender":"F"}
-            {"id":"2","age":24,"gender":"N"}
-            {"id":"3","age":36,"gender":"M"}""",
-        false);
-
-    verify(jobService, times(1))
-        .newJob(any(), eq(DatasetScratchFilePrepareFlight.class), any(), any());
-    verify(jobService, times(1))
-        .newJob(any(), eq(DatasetIngestFlight.class), requestCaptor.capture(), any());
-    assertThat("payload is stripped out", requestCaptor.getValue().getRecords(), empty());
-  }
-
-  @Test
-  void ingestPayloadDataAzure() throws Exception {
-    UUID datasetId = createDataset("dataset-create-test.json", CloudPlatform.AZURE);
-    String filePath = "foopath";
-    String signedPath = "foopathsigned";
-    AzureStorageAccountResource storageAccountResource = mock(AzureStorageAccountResource.class);
-    AzureApplicationDeploymentResource applicationResource =
-        mock(AzureApplicationDeploymentResource.class);
-    when(applicationResource.getAzureResourceGroupName()).thenReturn("mrg");
-    BlobClient blobClient = mock(BlobClient.class);
-    when(blobClient.getBlobUrl()).thenReturn(filePath);
-    BlobContainerClient containerClient = mock(BlobContainerClient.class);
-    when(containerClient.getBlobClient(any())).thenReturn(blobClient);
-    when(storageAccountResource.getApplicationResource()).thenReturn(applicationResource);
-    when(resourceService.getOrCreateDatasetStorageAccount(any(), any(), any()))
-        .thenReturn(storageAccountResource);
-    // Mock that the monitoring stack already exists so creation steps are skipped
-    when(azureMonitoringService.getLogAnalyticsWorkspace(any(), any()))
-        .thenReturn(mock(Workspace.class));
-    when(azureMonitoringService.getDiagnosticSetting(any(), any()))
-        .thenReturn(mock(DiagnosticSetting.class));
-    when(azureContainerPdao.getContainer(any(), any())).thenReturn(containerClient);
-    when(azureContainerPdao.getOrCreateContainer(any(), any())).thenReturn(containerClient);
-    when(azureBlobStorePdao.signFile(any(), eq(storageAccountResource), eq(filePath), any()))
-        .thenReturn(signedPath);
-    IngestRequestModel ingestRequestModel =
-        new IngestRequestModel()
-            .loadTag("lt")
-            .format(FormatEnum.ARRAY)
-            .updateStrategy(UpdateStrategyEnum.APPEND)
-            .table("participant")
-            .addRecordsItem(Map.of("id", "1", "age", 12, "gender", "F"))
-            .addRecordsItem(Map.of("id", "2", "age", 24, "gender", "N"))
-            .addRecordsItem(Map.of("id", "3", "age", 36, "gender", "M"));
-
-    datasetService.ingestDataset(datasetId.toString(), ingestRequestModel, testUser);
-
-    verify(azureBlobStorePdao, times(1)).writeBlobLines(any(), listCaptor.capture());
 
     JSONAssert.assertEquals(
         "correct lines were written",

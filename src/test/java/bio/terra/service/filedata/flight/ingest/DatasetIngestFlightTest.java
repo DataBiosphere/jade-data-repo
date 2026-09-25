@@ -136,26 +136,11 @@ class DatasetIngestFlightTest {
           stepNames,
           hasItems(expectedIndirectFileValidationStep));
     }
-
-    if (CloudPlatformWrapper.of(cloudPlatform).isAzure()) {
-      assertThat(
-          flightDescription
-              + " validates tabular data and file references from scratch table before publishing",
-          stepNames,
-          containsInRelativeOrder(
-              "IngestCreateIngestRequestDataSourceStep",
-              "IngestCreateTargetDataSourceStep",
-              "IngestCreateScratchParquetFilesStep",
-              "IngestValidateScratchTableStep",
-              "IngestValidateScratchTableFilerefsStep",
-              "IngestCreateParquetFilesStep",
-              "IngestCleanAzureStep"));
-    }
   }
 
   private static Stream<Arguments> testDatasetIngestValidationSteps() {
     List<Arguments> arguments = new ArrayList<>();
-    for (var platform : CloudPlatform.values()) {
+    for (var platform : List.of(CloudPlatform.GCP)) {
       for (var format : FormatEnum.values()) {
         for (var bulkMode : List.of(false, true)) {
           arguments.add(arguments(platform, format, bulkMode));

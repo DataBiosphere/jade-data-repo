@@ -5,8 +5,8 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.ValidationUtils;
 import bio.terra.common.exception.ApiException;
 import bio.terra.common.exception.BadRequestException;
+import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequest;
@@ -135,7 +135,7 @@ public class SnapshotBuilderService {
         CloudPlatformWrapper.of(snapshot.getCloudPlatform())
             .choose(
                 () -> bigQuerySnapshotPdao.runQuery(sql, paramMap, snapshot, bqConverter),
-                () -> azureSynapsePdao.runQuery(sql, paramMap, synapseConverter));
+                CommonExceptions.azureNotSupported());
     logger.info(
         "{} seconds to run query \"{}\"", Duration.between(start, Instant.now()).toSeconds(), sql);
     return result;
@@ -171,9 +171,7 @@ public class SnapshotBuilderService {
                 () ->
                     BigQueryVisitor.bqSnapshotTableName(
                         snapshotService.retrieveSnapshotModel(snapshot.getId(), userRequest)),
-                () ->
-                    SynapseVisitor.azureTableName(
-                        snapshotService.getOrCreateExternalAzureDataSource(snapshot, userRequest)));
+                CommonExceptions.azureNotSupported());
     return new SqlRenderContext(tableNameGenerator, platform);
   }
 
@@ -185,9 +183,7 @@ public class SnapshotBuilderService {
             () ->
                 BigQueryVisitor.bqDatasetTableName(
                     datasetService.retrieveModel(dataset, userRequest)),
-            () ->
-                SynapseVisitor.azureTableName(
-                    datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest)));
+            CommonExceptions.azureNotSupported());
     return new SqlRenderContext(tableNameGenerator, platform);
   }
 

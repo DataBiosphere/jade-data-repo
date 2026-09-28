@@ -280,7 +280,6 @@ public class ProfileService {
     }
   }
 
-  // Verify user access to the deployed application during billing profile creation
   public List<ProfileOwnedResource> getProfileResources(
       UUID profileId, AuthenticatedUserRequest user) {
     iamService.verifyAuthorization(

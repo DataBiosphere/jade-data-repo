@@ -21,8 +21,6 @@ import bio.terra.service.load.LoadFile;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.stairway.FlightContext;
@@ -56,7 +54,6 @@ import org.slf4j.LoggerFactory;
 // It expects the following working map data:
 // - LOAD_ID - load id we are working on
 // - BUCKET_INFO is a GoogleBucketResource
-// - STORAGE_ACCOUNT_RESOURCE is a AzureStorageAccountResource
 //
 public class IngestDriverStep extends DefaultUndoStep {
   private static final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
@@ -106,10 +103,6 @@ public class IngestDriverStep extends DefaultUndoStep {
         workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
     BillingProfileModel billingProfileModel =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-    AzureStorageAccountResource storageAccountResource =
-        workingMap.get(
-            CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
-
     int concurrentFiles = configurationService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES);
     boolean maxBadRecordsReached = false;
 
@@ -161,7 +154,6 @@ public class IngestDriverStep extends DefaultUndoStep {
               loadId,
               bucketResource,
               billingProfileModel,
-              storageAccountResource,
               platform);
 
           currentRunning += launchCount;
@@ -341,7 +333,6 @@ public class IngestDriverStep extends DefaultUndoStep {
       UUID loadId,
       GoogleBucketResource bucketInfo,
       BillingProfileModel billingProfileModel,
-      AzureStorageAccountResource storageAccountResource,
       CloudPlatform platform)
       throws DatabaseOperationException, StairwayExecutionException, InterruptedException {
 
@@ -367,7 +358,6 @@ public class IngestDriverStep extends DefaultUndoStep {
       inputParameters.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), userReq);
       inputParameters.put(FileMapKeys.BUCKET_INFO, bucketInfo);
       inputParameters.put(ProfileMapKeys.PROFILE_MODEL, billingProfileModel);
-      inputParameters.put(CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
       inputParameters.put(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name());
       inputParameters.put(JobMapKeys.PARENT_FLIGHT_ID.getKeyName(), context.getFlightId());
 
@@ -381,13 +371,6 @@ public class IngestDriverStep extends DefaultUndoStep {
           context, inputParameters, JobMapKeys.IAM_RESOURCE_ID.getKeyName(), String.class);
       propagateContextToFlightMap(
           context, inputParameters, JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class);
-
-      if (platform == CloudPlatform.AZURE) {
-        AzureStorageAuthInfo storageAuthInfo =
-            AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
-                billingProfileModel, storageAccountResource);
-        inputParameters.put(CommonMapKeys.DATASET_STORAGE_AUTH_INFO, storageAuthInfo);
-      }
 
       logger.debug("~~set running load - flight: " + flightId);
       loadService.setLoadFileRunning(loadId, loadFile.getTargetPath(), flightId);

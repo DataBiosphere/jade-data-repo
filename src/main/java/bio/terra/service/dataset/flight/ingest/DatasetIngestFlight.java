@@ -24,9 +24,7 @@ import bio.terra.service.dataset.flight.transactions.TransactionCommitStep;
 import bio.terra.service.dataset.flight.transactions.TransactionLockStep;
 import bio.terra.service.dataset.flight.transactions.TransactionOpenStep;
 import bio.terra.service.dataset.flight.transactions.TransactionUnlockStep;
-import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FileService;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.flight.ingest.CreateBucketForBigQueryScratchStep;
 import bio.terra.service.filedata.flight.ingest.IngestBuildAndWriteScratchLoadFileGcpStep;
 import bio.terra.service.filedata.flight.ingest.IngestCleanFileStateStep;
@@ -76,9 +74,7 @@ public class DatasetIngestFlight extends Flight {
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
-    ProfileService profileService = appContext.getBean(ProfileService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
-    AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     FileService fileService = appContext.getBean(FileService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     JournalService journalService = appContext.getBean(JournalService.class);
@@ -143,11 +139,10 @@ public class DatasetIngestFlight extends Flight {
 
     addStep(new IngestSetupStep(datasetService, cloudPlatform));
 
-    CloudFileReader cloudFileReader = (cloudPlatform.isGcp()) ? gcsPdao : azureBlobStorePdao;
     // Verify that the user is allowed to access the bucket where a control file lives:
     // the step will figure out if this is necessary depending on ingest type and cloud platform.
     addStep(
-        new ValidateBucketAccessStep(cloudFileReader, userReq, dataset),
+        new ValidateBucketAccessStep(gcsPdao, userReq, dataset),
         getDefaultExponentialBackoffRetryRule());
 
     if (IngestUtils.isJsonTypeIngest(inputParameters)) {

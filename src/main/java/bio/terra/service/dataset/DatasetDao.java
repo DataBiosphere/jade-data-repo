@@ -527,11 +527,6 @@ public class DatasetDao implements TaggableResourceDao {
           dataset.projectResource(
               resourceService.getProjectResource(dataset.getProjectResourceId()));
         }
-        if (dataset.getApplicationDeploymentResourceId() != null) {
-          dataset.applicationDeploymentResource(
-              resourceService.getApplicationDeploymentResource(
-                  dataset.getApplicationDeploymentResourceId()));
-        }
       }
       return dataset;
     } catch (EmptyResultDataAccessException ex) {

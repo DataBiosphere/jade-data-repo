@@ -16,9 +16,7 @@ import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
-import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FileService;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
@@ -48,7 +46,6 @@ public class FileIngestFlight extends FileIngestTypeFlight {
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
     FileService fileService = appContext.getBean(FileService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
-    AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     LoadService loadService = appContext.getBean(LoadService.class);
@@ -130,9 +127,8 @@ public class FileIngestFlight extends FileIngestTypeFlight {
     addStep(new LoadLockStep(loadService), randomBackoffRetry);
     addStep(new IngestFileIdStep());
 
-    CloudFileReader cloudFileReader = (platform.isGcp()) ? gcsPdao : azureBlobStorePdao;
     addStep(
-        new ValidateBucketAccessStep(cloudFileReader, userReq, dataset),
+        new ValidateBucketAccessStep(gcsPdao, userReq, dataset),
         getDefaultExponentialBackoffRetryRule());
 
     if (platform.isGcp()) {

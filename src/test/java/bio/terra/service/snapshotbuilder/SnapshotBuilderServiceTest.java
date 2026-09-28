@@ -19,7 +19,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.TerraConfiguration;
-import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.ApiException;
 import bio.terra.common.exception.BadRequestException;
@@ -45,7 +44,6 @@ import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
-import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.notification.NotificationService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
@@ -96,7 +94,6 @@ class SnapshotBuilderServiceTest {
   @Mock private DatasetService datasetService;
   @Mock private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   @Mock private NotificationService notificationService;
-  @Mock private AzureSynapsePdao azureSynapsePdao;
   @Mock private QueryBuilderFactory queryBuilderFactory;
 
   private static final AuthenticatedUserRequest TEST_USER =
@@ -115,7 +112,6 @@ class SnapshotBuilderServiceTest {
             snapshotService,
             bigQuerySnapshotPdao,
             notificationService,
-            azureSynapsePdao,
             queryBuilderFactory,
             terraConfiguration);
   }
@@ -274,14 +270,7 @@ class SnapshotBuilderServiceTest {
   }
 
   private <T> org.mockito.stubbing.OngoingStubbing<List<T>> mockRunQuery(Snapshot snapshot) {
-    return CloudPlatformWrapper.of(snapshot.getCloudPlatform())
-        .choose(
-            () -> when(bigQuerySnapshotPdao.runQuery(any(), any(), any(), any())),
-            () -> {
-              when(snapshotService.getOrCreateExternalAzureDataSource(snapshot, TEST_USER))
-                  .thenReturn("dataSource");
-              return when(azureSynapsePdao.runQuery(any(), any(), any()));
-            });
+    return when(bigQuerySnapshotPdao.runQuery(any(), any(), any(), any()));
   }
 
   @Test

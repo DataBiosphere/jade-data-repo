@@ -193,7 +193,11 @@ dependencies {
     implementation platform('com.google.cloud:libraries-bom:26.75.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
-    implementation 'com.google.cloud:google-cloud-bigquery'
+    implementation('com.google.cloud:google-cloud-bigquery') {
+        exclude group: 'io.netty'
+        exclude group: 'org.apache.arrow', module: 'arrow-memory-netty'
+        exclude group: 'org.apache.arrow', module: 'arrow-memory-netty-buffer-patch'
+    }
     implementation 'com.google.cloud:google-cloud-storage'
     implementation 'com.google.cloud:google-cloud-firestore'
     implementation 'com.google.cloud:google-cloud-firestore-admin'
@@ -229,7 +233,10 @@ dependencies {
     implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:7.6.0'
     implementation 'net.javacrumbs.shedlock:shedlock-spring:7.6.0'
 
-    implementation 'bio.terra:terra-common-lib:1.1.70-SNAPSHOT'
+    implementation('bio.terra:terra-common-lib:1.1.70-SNAPSHOT') {
+        exclude group: 'bio.terra', module: 'stairway-azure'
+        exclude group: 'software.amazon.awssdk'
+    }
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.415'
     implementation 'bio.terra:terra-policy-client:1.0.43-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.153-SNAPSHOT'
@@ -268,6 +275,7 @@ dependencies {
         exclude group: 'com.sun.jersey', module: 'jersey-json'
         exclude group: 'com.sun.jersey', module: 'jersey-server'
         exclude group: 'org.slf4j', module: 'slf4j-reload4j'
+        exclude group: 'io.netty'
     }
     testImplementation('org.apache.hadoop:hadoop-mapreduce-client-core:3.4.2') {
         exclude group: 'com.sun.jersey', module: 'jersey-core'
@@ -275,6 +283,7 @@ dependencies {
         exclude group: 'com.sun.jersey', module: 'jersey-json'
         exclude group: 'com.sun.jersey', module: 'jersey-server'
         exclude group: 'org.slf4j', module: 'slf4j-reload4j'
+        exclude group: 'io.netty'
     }
 
     antlr 'org.antlr:antlr4:4.13.2'

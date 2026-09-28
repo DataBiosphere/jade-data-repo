@@ -23,7 +23,6 @@ import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.job.JobBuilder;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
-import bio.terra.service.profile.azure.AzureAuthzService;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.profile.flight.create.ProfileCreateFlight;
 import bio.terra.service.profile.flight.delete.ProfileDeleteFlight;
@@ -50,7 +49,6 @@ class ProfileServiceUnitTest {
   @Mock private IamService iamService;
   @Mock private JobService jobService;
   @Mock private GoogleBillingService googleBillingService;
-  @Mock private AzureAuthzService azureAuthzService;
   @Mock private ApplicationConfiguration applicationConfiguration;
 
   private ProfileService profileService;
@@ -60,9 +58,7 @@ class ProfileServiceUnitTest {
 
   @BeforeEach
   void setup() {
-    profileService =
-        new ProfileService(
-            profileDao, iamService, jobService, googleBillingService, azureAuthzService);
+    profileService = new ProfileService(profileDao, iamService, jobService, googleBillingService);
   }
 
   @Test

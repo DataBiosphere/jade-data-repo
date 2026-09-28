@@ -27,7 +27,6 @@ import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.notification.NotificationService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -36,7 +35,6 @@ import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.query.table.Concept;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
-import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import com.google.cloud.bigquery.FieldValueList;
@@ -67,7 +65,6 @@ public class SnapshotBuilderService {
   private final IamService iamService;
   private final SnapshotService snapshotService;
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
-  private final AzureSynapsePdao azureSynapsePdao;
   private final QueryBuilderFactory queryBuilderFactory;
   private final NotificationService notificationService;
   private final TerraConfiguration terraConfiguration;
@@ -80,7 +77,6 @@ public class SnapshotBuilderService {
       SnapshotService snapshotService,
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
       NotificationService notificationService,
-      AzureSynapsePdao azureSynapsePdao,
       QueryBuilderFactory queryBuilderFactory,
       TerraConfiguration terraConfiguration) {
     this.snapshotRequestDao = snapshotRequestDao;
@@ -90,7 +86,6 @@ public class SnapshotBuilderService {
     this.snapshotService = snapshotService;
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.notificationService = notificationService;
-    this.azureSynapsePdao = azureSynapsePdao;
     this.queryBuilderFactory = queryBuilderFactory;
     this.terraConfiguration = terraConfiguration;
   }
@@ -116,10 +111,8 @@ public class SnapshotBuilderService {
       Query query,
       Snapshot snapshot,
       AuthenticatedUserRequest userRequest,
-      BigQuerySnapshotPdao.Converter<T> bqConverter,
-      AzureSynapsePdao.Converter<T> synapseConverter) {
-    return runSnapshotBuilderQuery(
-        query, snapshot, userRequest, Map.of(), bqConverter, synapseConverter);
+      BigQuerySnapshotPdao.Converter<T> bqConverter) {
+    return runSnapshotBuilderQuery(query, snapshot, userRequest, Map.of(), bqConverter);
   }
 
   private <T> List<T> runSnapshotBuilderQuery(
@@ -127,8 +120,7 @@ public class SnapshotBuilderService {
       Snapshot snapshot,
       AuthenticatedUserRequest userRequest,
       Map<String, String> paramMap,
-      BigQuerySnapshotPdao.Converter<T> bqConverter,
-      AzureSynapsePdao.Converter<T> synapseConverter) {
+      BigQuerySnapshotPdao.Converter<T> bqConverter) {
     String sql = query.renderSQL(createContext(snapshot, userRequest));
     Instant start = Instant.now();
     List<T> result =
@@ -154,11 +146,7 @@ public class SnapshotBuilderService {
 
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
-            query,
-            snapshot,
-            userRequest,
-            AggregateBQQueryResultsUtils::toConcept,
-            AggregateSynapseQueryResultsUtils::toConcept);
+            query, snapshot, userRequest, AggregateBQQueryResultsUtils::toConcept);
     return new SnapshotBuilderConceptsResponse().result(concepts);
   }
 
@@ -258,8 +246,7 @@ public class SnapshotBuilderService {
             snapshot,
             userRequest,
             Map.of(QueryBuilderFactory.FILTER_TEXT, filterText),
-            AggregateBQQueryResultsUtils::toConcept,
-            AggregateSynapseQueryResultsUtils::toConcept);
+            AggregateBQQueryResultsUtils::toConcept);
     return new SnapshotBuilderConceptsResponse().result(concepts);
   }
 
@@ -275,11 +262,7 @@ public class SnapshotBuilderService {
             .generateRollupCountsQueryForCohorts(cohorts);
 
     return runSnapshotBuilderQuery(
-            query,
-            snapshot,
-            userRequest,
-            AggregateBQQueryResultsUtils::toCount,
-            AggregateSynapseQueryResultsUtils::toCount)
+            query, snapshot, userRequest, AggregateBQQueryResultsUtils::toCount)
         .get(0);
   }
 
@@ -304,8 +287,7 @@ public class SnapshotBuilderService {
             queryBuilderFactory.conceptChildrenQueryBuilder().retrieveDomainId(conceptId),
             snapshot,
             userRequest,
-            AggregateBQQueryResultsUtils::toDomainId,
-            AggregateSynapseQueryResultsUtils::toDomainId);
+            AggregateBQQueryResultsUtils::toDomainId);
     if (domainIdResult.size() == 1) {
       return domainIdResult.get(0);
     } else if (domainIdResult.isEmpty()) {
@@ -372,8 +354,7 @@ public class SnapshotBuilderService {
     var query = queryBuilderFactory.hierarchyQueryBuilder().generateQuery(domainOption, conceptId);
 
     Map<Integer, SnapshotBuilderParentConcept> parents = new HashMap<>();
-    runSnapshotBuilderQuery(
-            query, snapshot, userRequest, ParentQueryResult::new, ParentQueryResult::new)
+    runSnapshotBuilderQuery(query, snapshot, userRequest, ParentQueryResult::new)
         .forEach(
             row -> {
               SnapshotBuilderParentConcept parent =
@@ -451,8 +432,7 @@ public class SnapshotBuilderService {
                         .getConceptsFromConceptIds(conceptIds),
                     snapshotService.retrieve(model.sourceSnapshotId()),
                     userRequest,
-                    AggregateBQQueryResultsUtils::toConceptIdNamePair,
-                    AggregateSynapseQueryResultsUtils::toConceptIdNamePair)
+                    AggregateBQQueryResultsUtils::toConceptIdNamePair)
                 .stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 

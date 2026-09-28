@@ -44,7 +44,6 @@ import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
 import bio.terra.service.dataset.flight.inheritsteward.InheritStewardAdjustMembersFlight;
 import bio.terra.service.dataset.flight.inheritsteward.SetInheritStewardFlight;
 import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
-import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobBuilder;
 import bio.terra.service.job.JobMapKeys;
@@ -110,7 +109,6 @@ class DatasetServiceUnitTest {
   @Mock private UserLoggingMetrics loggingMetrics;
   @Mock private IamService iamService;
   @Mock private DatasetTableDao datasetTableDao;
-  @Mock private AzureSynapsePdao azureSynapsePdao;
 
   @BeforeEach
   void setup() {
@@ -130,7 +128,6 @@ class DatasetServiceUnitTest {
             loggingMetrics,
             iamService,
             datasetTableDao,
-            azureSynapsePdao,
             metadataDataAccessUtils);
   }
 

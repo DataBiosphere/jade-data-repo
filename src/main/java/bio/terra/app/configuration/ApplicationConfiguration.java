@@ -1,6 +1,5 @@
 package bio.terra.app.configuration;
 
-import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,7 +8,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
-import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -374,19 +372,6 @@ public class ApplicationConfiguration {
   public NamedParameterJdbcTemplate getNamedParameterJdbcTemplate(
       DataRepoJdbcConfiguration jdbcConfiguration) {
     return new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
-  }
-
-  @Bean("synapseJdbcTemplate")
-  public NamedParameterJdbcTemplate synapseJdbcTemplate(
-      AzureResourceConfiguration azureResourceConfiguration) {
-
-    SQLServerDataSource ds = new SQLServerDataSource();
-    ds.setServerName(azureResourceConfiguration.synapse().workspaceName());
-    ds.setUser(azureResourceConfiguration.synapse().sqlAdminUser());
-    ds.setPassword(azureResourceConfiguration.synapse().sqlAdminPassword());
-    ds.setDatabaseName(azureResourceConfiguration.synapse().databaseName());
-
-    return new NamedParameterJdbcTemplate(ds);
   }
 
   // Use Primary to fix an issue with unqualified ObjectMapper injections in spring-hateoas.

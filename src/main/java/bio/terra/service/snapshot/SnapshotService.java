@@ -19,7 +19,6 @@ import bio.terra.externalcreds.model.RASv1Dot1VisaCriterion;
 import bio.terra.externalcreds.model.ValidatePassportRequest;
 import bio.terra.externalcreds.model.ValidatePassportResult;
 import bio.terra.grammar.Query;
-import bio.terra.model.AccessInfoModel;
 import bio.terra.model.AddAuthDomainResponseModel;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
@@ -75,7 +74,6 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.duos.DuosClient;
-import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
@@ -137,7 +135,6 @@ public class SnapshotService {
   private final MetadataDataAccessUtils metadataDataAccessUtils;
   private final IamService iamService;
   private final EcmService ecmService;
-  private final AzureSynapsePdao azureSynapsePdao;
   private final RawlsService rawlsService;
   private final DuosClient duosClient;
   private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
@@ -153,7 +150,6 @@ public class SnapshotService {
       MetadataDataAccessUtils metadataDataAccessUtils,
       IamService iamService,
       EcmService ecmService,
-      AzureSynapsePdao azureSynapsePdao,
       RawlsService rawlsService,
       DuosClient duosClient,
       SnapshotBuilderSettingsDao snapshotBuilderSettingsDao) {
@@ -167,7 +163,6 @@ public class SnapshotService {
     this.metadataDataAccessUtils = metadataDataAccessUtils;
     this.iamService = iamService;
     this.ecmService = ecmService;
-    this.azureSynapsePdao = azureSynapsePdao;
     this.rawlsService = rawlsService;
     this.duosClient = duosClient;
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
@@ -1055,24 +1050,8 @@ public class SnapshotService {
     }
   }
 
-  public String getOrCreateExternalAzureDataSource(
-      Snapshot snapshot, AuthenticatedUserRequest userRequest) {
-    return getOrCreateExternalAzureDataSource(snapshot, userRequest, null);
-  }
-
   // If tableName is null in the getOrCreateExternalAzureDataSource, then it returns
   // access info for all the tables in the snapshot
-  private String getOrCreateExternalAzureDataSource(
-      Snapshot snapshot, AuthenticatedUserRequest userRequest, String tableName) {
-    AccessInfoModel accessInfoModel =
-        metadataDataAccessUtils.accessInfoFromSnapshot(snapshot, userRequest, tableName);
-    try {
-      return azureSynapsePdao.getOrCreateExternalDataSourceForResource(
-          accessInfoModel, snapshot.getId(), userRequest);
-    } catch (Exception e) {
-      throw new RuntimeException("Could not configure external datasource", e);
-    }
-  }
 
   private AssetSpecification getAssetSpecificationFromRequest(
       SnapshotRequestContentsModel requestContents) {

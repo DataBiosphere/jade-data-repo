@@ -11,7 +11,6 @@ import bio.terra.service.auth.iam.sam.SamApiService;
 import bio.terra.service.auth.iam.sam.SamIam;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.firestore.EncodeFixture;
-import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -53,8 +52,7 @@ import org.springframework.context.annotation.Profile;
 @EnableConfigurationProperties({
   SamConfiguration.class,
   GoogleResourceConfiguration.class,
-  ApplicationConfiguration.class,
-  AzureResourceConfiguration.class
+  ApplicationConfiguration.class
 })
 // This configures the spring boot test context to start up without a web environment.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)

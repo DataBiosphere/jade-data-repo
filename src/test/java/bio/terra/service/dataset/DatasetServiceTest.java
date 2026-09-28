@@ -1,6 +1,5 @@
 package bio.terra.service.dataset;
 
-import static bio.terra.common.TestUtils.assertError;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -10,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -26,8 +24,6 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.AccessInfoModel;
-import bio.terra.model.AccessInfoParquetModel;
 import bio.terra.model.AssetModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
@@ -44,19 +40,15 @@ import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidAssetException;
 import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.service.dataset.flight.ingest.scratch.DatasetScratchFilePrepareFlight;
-import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -106,10 +98,7 @@ class DatasetServiceTest {
 
   @MockitoBean private ResourceService resourceService;
   @MockitoBean private GcsPdao gcsPdao;
-  @MockitoBean private AzureContainerPdao azureContainerPdao;
-  @MockitoBean private AzureBlobStorePdao azureBlobStorePdao;
   @MockitoBean private MetadataDataAccessUtils metadataDataAccessUtils;
-  @MockitoBean private AzureSynapsePdao azureSynapsePdao;
 
   @Captor private ArgumentCaptor<List<String>> listCaptor;
   @Captor private ArgumentCaptor<IngestRequestModel> requestCaptor;
@@ -146,13 +135,7 @@ class DatasetServiceTest {
   @BeforeEach
   void setup() throws Exception {
     // Reset mocks to avoid cross-test contamination
-    reset(
-        resourceService,
-        gcsPdao,
-        azureContainerPdao,
-        azureBlobStorePdao,
-        metadataDataAccessUtils,
-        azureSynapsePdao);
+    reset(resourceService, gcsPdao, metadataDataAccessUtils);
 
     BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
     billingProfile = profileDao.createBillingProfile(profileRequest, "hi@hi.hi");
@@ -544,28 +527,5 @@ class DatasetServiceTest {
     verify(jobService, times(1))
         .newJob(any(), eq(DatasetIngestFlight.class), requestCaptor.capture(), any());
     assertThat("payload is stripped out", requestCaptor.getValue().getRecords(), empty());
-  }
-
-  @Test
-  void getOrCreateExternalAzureDataSourceHidesExceptionInformation() throws Exception {
-    UUID datasetId = UUID.randomUUID();
-    Dataset dataset = new Dataset().id(datasetId);
-    when(metadataDataAccessUtils.accessInfoFromDataset(dataset, testUser))
-        .thenReturn(
-            new AccessInfoModel()
-                .parquet(
-                    new AccessInfoParquetModel()
-                        .sasToken(
-                            "sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&sr=b&sig=mysig")
-                        .url("https://fake.url")));
-    doThrow(SQLException.class)
-        .when(azureSynapsePdao)
-        .getOrCreateExternalDataSourceForResource(
-            any(AccessInfoModel.class), any(UUID.class), eq(testUser));
-
-    assertError(
-        RuntimeException.class,
-        "Could not configure external datasource",
-        () -> datasetService.getOrCreateExternalAzureDataSource(dataset, testUser));
   }
 }

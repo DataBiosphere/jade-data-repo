@@ -12,7 +12,6 @@ import bio.terra.service.dataset.AzureStorageResource;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.profile.ProfileService;
 import java.util.List;
 import java.util.UUID;
@@ -31,8 +30,6 @@ class MetadataDataAccessUtilsTest {
   private MetadataDataAccessUtils metadataDataAccessUtils;
 
   @Mock private static ResourceService resourceService;
-
-  @Mock private static AzureBlobStorePdao azureBlobStorePdao;
 
   private Dataset azureDataset;
 
@@ -57,7 +54,6 @@ class MetadataDataAccessUtilsTest {
         new Dataset(azureDatasetSummary).tables(List.of(sampleTable)).name("test-dataset");
 
     metadataDataAccessUtils =
-        new MetadataDataAccessUtils(
-            resourceService, azureBlobStorePdao, mock(ProfileService.class));
+        new MetadataDataAccessUtils(resourceService, mock(ProfileService.class));
   }
 }

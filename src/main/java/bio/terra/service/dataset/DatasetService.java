@@ -10,7 +10,6 @@ import bio.terra.common.Column;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.AccessInfoModel;
 import bio.terra.model.AssetModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadHistoryModel;
@@ -60,7 +59,6 @@ import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionRollbackFlight;
 import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.service.dataset.flight.update.DatasetSchemaUpdateFlight;
-import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
@@ -109,7 +107,6 @@ public class DatasetService {
   private final UserLoggingMetrics loggingMetrics;
   private final IamService iamService;
   private final DatasetTableDao datasetTableDao;
-  private final AzureSynapsePdao azureSynapsePdao;
   private final MetadataDataAccessUtils metadataDataAccessUtils;
 
   @Autowired
@@ -128,7 +125,6 @@ public class DatasetService {
       UserLoggingMetrics loggingMetrics,
       IamService iamService,
       DatasetTableDao datasetTableDao,
-      AzureSynapsePdao azureSynapsePdao,
       MetadataDataAccessUtils metadataDataAccessUtils) {
     this.datasetJsonConversion = datasetJsonConversion;
     this.datasetDao = datasetDao;
@@ -144,7 +140,6 @@ public class DatasetService {
     this.loggingMetrics = loggingMetrics;
     this.iamService = iamService;
     this.datasetTableDao = datasetTableDao;
-    this.azureSynapsePdao = azureSynapsePdao;
     this.metadataDataAccessUtils = metadataDataAccessUtils;
   }
 
@@ -476,24 +471,6 @@ public class DatasetService {
             () -> bigQueryDatasetPdao.getLoadHistory(dataset, loadTag, offset, limit),
             CloudPlatform.AZURE,
             CommonExceptions.azureNotSupported()));
-  }
-
-  /**
-   * @param dataset the dataset to configure the AzureDataSourceFor
-   * @param userRequest the user making the request
-   * @return the name of the datasource created
-   * @throws RuntimeException when the external datasource could not be configured
-   */
-  public String getOrCreateExternalAzureDataSource(
-      Dataset dataset, AuthenticatedUserRequest userRequest) {
-    AccessInfoModel accessInfoModel =
-        metadataDataAccessUtils.accessInfoFromDataset(dataset, userRequest);
-    try {
-      return azureSynapsePdao.getOrCreateExternalDataSourceForResource(
-          accessInfoModel, dataset.getId(), userRequest);
-    } catch (Exception e) {
-      throw new RuntimeException("Could not configure external datasource", e);
-    }
   }
 
   public DatasetDataModel retrieveData(

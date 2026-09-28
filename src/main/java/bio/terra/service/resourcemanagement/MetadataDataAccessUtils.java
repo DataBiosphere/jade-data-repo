@@ -10,9 +10,7 @@ import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.profile.ProfileService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import java.time.Duration;
@@ -40,11 +38,6 @@ public final class MetadataDataAccessUtils {
   private static final String BIGQUERY_TABLE_ID = "<dataset_id>.<table>";
   private static final String BIGQUERY_BASE_QUERY = "SELECT * FROM `<table_address>`";
 
-  private static final String AZURE_PARQUET_LINK =
-      "https://<storageAccount>.blob.core.windows.net/<container>/<blob>";
-  private static final String AZURE_BLOB_TEMPLATE = FolderType.METADATA.getPath("parquet/<table>");
-  private static final String AZURE_DATASET_ID = "<storageAccount>.<dataset>";
-
   private static final String DEPLOYED_APPLICATION_RESOURCE_ID =
       "/subscriptions/<subscription>/resourceGroups"
           + "/<resource_group>/providers/Microsoft.Solutions/applications/<application_name>";
@@ -52,15 +45,9 @@ public final class MetadataDataAccessUtils {
   private final ResourceService resourceService;
   private final ProfileService profileService;
 
-  private final AzureBlobStorePdao azureBlobStorePdao;
-
   @Autowired
-  public MetadataDataAccessUtils(
-      ResourceService resourceService,
-      AzureBlobStorePdao azureBlobStorePdao,
-      ProfileService profileService) {
+  public MetadataDataAccessUtils(ResourceService resourceService, ProfileService profileService) {
     this.resourceService = resourceService;
-    this.azureBlobStorePdao = azureBlobStorePdao;
     this.profileService = profileService;
   }
 

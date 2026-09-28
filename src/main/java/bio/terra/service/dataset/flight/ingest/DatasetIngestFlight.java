@@ -18,7 +18,6 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.dataset.flight.transactions.TransactionCommitStep;
@@ -27,17 +26,12 @@ import bio.terra.service.dataset.flight.transactions.TransactionOpenStep;
 import bio.terra.service.dataset.flight.transactions.TransactionUnlockStep;
 import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FileService;
-import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
-import bio.terra.service.filedata.azure.tables.TableDirectoryDao;
 import bio.terra.service.filedata.flight.ingest.CreateBucketForBigQueryScratchStep;
-import bio.terra.service.filedata.flight.ingest.IngestBuildAndWriteScratchLoadFileAzureStep;
 import bio.terra.service.filedata.flight.ingest.IngestBuildAndWriteScratchLoadFileGcpStep;
 import bio.terra.service.filedata.flight.ingest.IngestCleanFileStateStep;
 import bio.terra.service.filedata.flight.ingest.IngestCopyLoadHistoryToBQStep;
-import bio.terra.service.filedata.flight.ingest.IngestCopyLoadHistoryToStorageTableStep;
 import bio.terra.service.filedata.flight.ingest.IngestDriverStep;
-import bio.terra.service.filedata.flight.ingest.IngestFileAzureMakeStorageAccountLinkStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileGetProjectStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileInitializeProjectStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileMakeBucketLinkStep;
@@ -55,12 +49,7 @@ import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureAuthService;
-import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
-import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
-import bio.terra.service.resourcemanagement.flight.AzureStorageMonitoringStepProvider;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
-import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.Flight;
@@ -88,16 +77,11 @@ public class DatasetIngestFlight extends Flight {
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
-    AzureSynapsePdao azureSynapsePdao = appContext.getBean(AzureSynapsePdao.class);
-    AzureAuthService azureAuthService = appContext.getBean(AzureAuthService.class);
-    TableDirectoryDao tableDirectoryDao = appContext.getBean(TableDirectoryDao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
-    AzureContainerPdao azureContainerPdao = appContext.getBean(AzureContainerPdao.class);
     FileService fileService = appContext.getBean(FileService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     JournalService journalService = appContext.getBean(JournalService.class);
-    AzureMonitoringService monitoringService = appContext.getBean(AzureMonitoringService.class);
 
     IngestRequestModel ingestRequestModel =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
@@ -108,9 +92,6 @@ public class DatasetIngestFlight extends Flight {
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
-
-    AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
-        new AzureStorageMonitoringStepProvider(monitoringService);
 
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
@@ -441,109 +422,6 @@ public class DatasetIngestFlight extends Flight {
             loadHistoryWaitSeconds,
             loadHistoryChunkSize,
             ingestRequest.isBulkMode()),
-        randomBackoffRetry);
-
-    // Clean up the load table.
-    addOptionalCombinedIngestStep(new IngestCleanFileStateStep(loadService));
-
-    // Unlock the load.
-    addOptionalCombinedIngestStep(new LoadUnlockStep(loadService));
-  }
-
-  private void addAzureJsonSteps(
-      ApplicationContext appContext,
-      ApplicationConfiguration appConfig,
-      DatasetService datasetService,
-      AzureBlobStorePdao azureBlobStorePdao,
-      ConfigurationService configService,
-      FileService fileService,
-      IngestRequestModel ingestRequest,
-      AuthenticatedUserRequest userReq,
-      Dataset dataset,
-      UUID profileId,
-      RetryRule randomBackoffRetry,
-      RetryRule driverRetry,
-      int driverWaitSeconds,
-      int loadHistoryChunkSize) {
-
-    AzureContainerPdao azureContainerPdao = appContext.getBean(AzureContainerPdao.class);
-    LoadService loadService = appContext.getBean(LoadService.class);
-    DatasetStorageAccountDao datasetStorageAccountDao =
-        appContext.getBean(DatasetStorageAccountDao.class);
-    JobService jobService = appContext.getBean(JobService.class);
-    StorageTableService storageTableService = appContext.getBean(StorageTableService.class);
-
-    var platform = CloudPlatform.AZURE;
-
-    // Parse the JSON file and see if there's actually any files to load.
-    // If there are no files to load, then SkippableSteps taking the `ingestSkipCondition`
-    // will not be run.
-    addStep(
-        new IngestJsonFileSetupAzureStep(
-            appConfig.objectMapper(),
-            azureBlobStorePdao,
-            dataset,
-            userReq,
-            appConfig.getMaxBadLoadFileLineErrorsReported()));
-
-    // Lock the load.
-    addOptionalCombinedIngestStep(new LoadLockStep(loadService), randomBackoffRetry);
-
-    // Make a link between the Storage Account and Dataset in our database.
-    addOptionalCombinedIngestStep(
-        new IngestFileAzureMakeStorageAccountLinkStep(datasetStorageAccountDao, dataset),
-        randomBackoffRetry);
-
-    // Populate the load table in our database with files to be loaded.
-    addOptionalCombinedIngestStep(
-        new IngestPopulateFileStateFromFlightMapAzureStep(
-            loadService,
-            fileService,
-            azureBlobStorePdao,
-            appConfig.objectMapper(),
-            dataset,
-            appConfig.getLoadFilePopulateBatchSize(),
-            userReq,
-            appConfig.getMaxBadLoadFileLineErrorsReported()));
-
-    // Load the files!
-    addOptionalCombinedIngestStep(
-        new IngestDriverStep(
-            loadService,
-            configService,
-            jobService,
-            dataset.getId().toString(),
-            ingestRequest.getLoadTag(),
-            Objects.requireNonNullElse(ingestRequest.getMaxFailedFileLoads(), 0),
-            driverWaitSeconds,
-            profileId,
-            platform,
-            userReq),
-        driverRetry);
-
-    // Create the job result with the results of the bulk file load.
-    addOptionalCombinedIngestStep(
-        new IngestBulkMapResponseStep(loadService, ingestRequest.getLoadTag()));
-
-    // Build the scratch file using new file ids and store in new storage account container.
-    addOptionalCombinedIngestStep(
-        new IngestBuildAndWriteScratchLoadFileAzureStep(
-            appConfig.objectMapper(),
-            azureBlobStorePdao,
-            azureContainerPdao,
-            dataset,
-            userReq,
-            appConfig.getMaxBadLoadFileLineErrorsReported()));
-
-    // Copy the load history to Azure Storage Tables.
-    addOptionalCombinedIngestStep(
-        new IngestCopyLoadHistoryToStorageTableStep(
-            storageTableService,
-            loadService,
-            datasetService,
-            dataset.getId(),
-            ingestRequest.getLoadTag(),
-            loadHistoryChunkSize),
         randomBackoffRetry);
 
     // Clean up the load table.

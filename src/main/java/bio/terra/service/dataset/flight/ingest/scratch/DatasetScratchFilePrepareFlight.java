@@ -5,16 +5,11 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.CommonExceptions;
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.flight.ingest.CreateBucketForBigQueryScratchStep;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
-import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
-import bio.terra.service.resourcemanagement.flight.AzureStorageMonitoringStepProvider;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
@@ -32,22 +27,10 @@ public class DatasetScratchFilePrepareFlight extends Flight {
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
-    ProfileService profileService = appContext.getBean(ProfileService.class);
-    AzureContainerPdao azureContainerPdao = appContext.getBean(AzureContainerPdao.class);
-    AzureMonitoringService monitoringService = appContext.getBean(AzureMonitoringService.class);
-
-    AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
-        new AzureStorageMonitoringStepProvider(monitoringService);
-
-    AuthenticatedUserRequest userReq =
-        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
     Dataset dataset =
         datasetService.retrieve(
             UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class)));
-
-    UUID profileId =
-        UUID.fromString(inputParameters.get(JobMapKeys.BILLING_ID.getKeyName(), String.class));
 
     CloudPlatformWrapper cloudPlatform =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());

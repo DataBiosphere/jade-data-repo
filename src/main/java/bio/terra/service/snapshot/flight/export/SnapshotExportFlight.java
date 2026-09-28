@@ -6,13 +6,11 @@ import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.common.JournalRecordUpdateEntryStep;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
-import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryExportPdao;
@@ -36,8 +34,6 @@ public class SnapshotExportFlight extends Flight {
     GcsProjectFactory gcsProjectFactory = appContext.getBean(GcsProjectFactory.class);
     FireStoreDao fireStoreDao = appContext.getBean(FireStoreDao.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
-    AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
-    ProfileService profileService = appContext.getBean(ProfileService.class);
     JournalService journalService = appContext.getBean(JournalService.class);
     ObjectMapper objectMapper = appConfig.objectMapper();
 

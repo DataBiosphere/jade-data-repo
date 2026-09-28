@@ -14,13 +14,11 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
-import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
@@ -51,7 +49,6 @@ public class FileIngestFlight extends FileIngestTypeFlight {
     FileService fileService = appContext.getBean(FileService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
-    TableDao azureTableDao = appContext.getBean(TableDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     LoadService loadService = appContext.getBean(LoadService.class);
@@ -61,8 +58,6 @@ public class FileIngestFlight extends FileIngestTypeFlight {
     DatasetBucketDao datasetBucketDao = appContext.getBean(DatasetBucketDao.class);
     GoogleProjectService googleProjectService = appContext.getBean(GoogleProjectService.class);
     GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
-    DatasetStorageAccountDao datasetStorageAccountDao =
-        appContext.getBean(DatasetStorageAccountDao.class);
     IamService iamService = appContext.getBean(IamService.class);
 
     UUID datasetId =

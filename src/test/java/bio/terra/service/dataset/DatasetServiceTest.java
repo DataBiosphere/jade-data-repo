@@ -52,7 +52,6 @@ import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
-import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
@@ -109,7 +108,6 @@ class DatasetServiceTest {
   @MockitoBean private GcsPdao gcsPdao;
   @MockitoBean private AzureContainerPdao azureContainerPdao;
   @MockitoBean private AzureBlobStorePdao azureBlobStorePdao;
-  @MockitoBean private AzureMonitoringService azureMonitoringService;
   @MockitoBean private MetadataDataAccessUtils metadataDataAccessUtils;
   @MockitoBean private AzureSynapsePdao azureSynapsePdao;
 
@@ -153,7 +151,6 @@ class DatasetServiceTest {
         gcsPdao,
         azureContainerPdao,
         azureBlobStorePdao,
-        azureMonitoringService,
         metadataDataAccessUtils,
         azureSynapsePdao);
 

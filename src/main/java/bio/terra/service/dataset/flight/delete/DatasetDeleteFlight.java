@@ -15,19 +15,13 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
-import bio.terra.service.filedata.azure.tables.TableDao;
-import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
-import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -47,19 +41,13 @@ public class DatasetDeleteFlight extends Flight {
     SnapshotDao snapshotDao = appContext.getBean(SnapshotDao.class);
     BigQueryDatasetPdao bigQueryDatasetPdao = appContext.getBean(BigQueryDatasetPdao.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
-    AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     FireStoreDependencyDao dependencyDao = appContext.getBean(FireStoreDependencyDao.class);
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
     IamService iamClient = appContext.getBean(IamService.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
-    TableDao tableDao = appContext.getBean(TableDao.class);
-    ProfileDao profileDao = appContext.getBean(ProfileDao.class);
-    TableDependencyDao tableDependencyDao = appContext.getBean(TableDependencyDao.class);
-    AzureAuthService azureAuthService = appContext.getBean(AzureAuthService.class);
     JournalService journalService = appContext.getBean(JournalService.class);
-    StorageTableService storageTableService = appContext.getBean(StorageTableService.class);
 
     // get data from inputs that steps need
     UUID datasetId =

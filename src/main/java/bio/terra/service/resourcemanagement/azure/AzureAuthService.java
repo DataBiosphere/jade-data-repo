@@ -1,10 +1,6 @@
 package bio.terra.service.resourcemanagement.azure;
 
 import bio.terra.model.BillingProfileModel;
-import com.azure.core.credential.AzureNamedKeyCredential;
-import com.azure.core.http.policy.RetryPolicy;
-import com.azure.data.tables.TableServiceClient;
-import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
@@ -13,8 +9,6 @@ import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
-import com.azure.storage.file.datalake.DataLakeServiceClient;
-import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
@@ -47,28 +41,6 @@ public class AzureAuthService {
   }
 
   /**
-   * Return an authenticated {@link DataLakeServiceClient} using key-based authentication
-   *
-   * @param profileModel The object containing user tenant information
-   * @param storageAccountResource The storage account that DataLake client should be built from
-   * @return an authenticated DataLake client
-   */
-  public DataLakeServiceClient getDataLakeClient(
-      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
-    String key =
-        getStorageAccountKey(
-            profileModel.getSubscriptionId(),
-            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
-            storageAccountResource.getName());
-
-    // Create a data lake client by authenticating using the found key
-    return new DataLakeServiceClientBuilder()
-        .credential(new StorageSharedKeyCredential(storageAccountResource.getName(), key))
-        .endpoint("https://" + storageAccountResource.getName() + ".dfs.core.windows.net")
-        .buildClient();
-  }
-
-  /**
    * Return an authenticated {@link BlobContainerClient} client using key-based authentication
    *
    * @param profileModel The object containing user tenant information
@@ -94,36 +66,6 @@ public class AzureAuthService {
         .containerName(containerName)
         .retryOptions(retryOptions)
         .buildClient();
-  }
-
-  /**
-   * Return an authenticated {@link TableServiceClient} client using key-based authentication
-   *
-   * @param subscriptionId The Azure billing profile subscription id
-   * @param resourceGroupName The application deployment resource group name for the sa
-   * @param storageAccountResourceName The name of the sa that BlobContainerClient client should be
-   *     built from
-   * @return an authenticated {@link TableServiceClient}
-   */
-  public TableServiceClient getTableServiceClient(
-      UUID subscriptionId, String resourceGroupName, String storageAccountResourceName) {
-    // Obtain a secret key for the associated storage account
-    String key =
-        getStorageAccountKey(subscriptionId, resourceGroupName, storageAccountResourceName);
-
-    // Create a data lake client by authenticating using the found key
-    return new TableServiceClientBuilder()
-        .credential(new AzureNamedKeyCredential(storageAccountResourceName, key))
-        .endpoint("https://" + storageAccountResourceName + ".table.core.windows.net")
-        .retryPolicy(new RetryPolicy())
-        .buildClient();
-  }
-
-  public TableServiceClient getTableServiceClient(AzureStorageAuthInfo storageAuthInfo) {
-    return getTableServiceClient(
-        storageAuthInfo.subscriptionId(),
-        storageAuthInfo.resourceGroupName(),
-        storageAuthInfo.storageAccountResourceName());
   }
 
   /**

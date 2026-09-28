@@ -10,7 +10,6 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 
 /**
@@ -43,7 +42,6 @@ public class IngestSetupStep extends DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    FlightMap workingMap = context.getWorkingMap();
     IngestRequestModel ingestRequestModel = IngestUtils.getIngestRequestModel(context);
 
     Dataset dataset = IngestUtils.getDataset(context, datasetService);

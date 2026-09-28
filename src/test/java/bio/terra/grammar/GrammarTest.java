@@ -5,12 +5,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.category.Unit;
-import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.grammar.exception.MissingDatasetException;
 import bio.terra.grammar.google.BigQueryVisitor;
@@ -19,7 +17,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -137,96 +134,6 @@ class GrammarTest {
     assertThat(query.getColumnNames(), containsInAnyOrder("datarepo_row_id", "x", "y"));
     query = Query.parse("SELECT * FROM snapshot.table WHERE column = val");
     assertThat(query.getColumnNames(), containsInAnyOrder("column", "val"));
-  }
-
-  @Test
-  void testSynapseTranslate() {
-    String sourceDatasetDataSourceName = "sourceDatasetDataSourceName1";
-    SynapseVisitor synapseVisitor = new SynapseVisitor(datasetMap, sourceDatasetDataSourceName);
-    Query query =
-        Query.parse(
-            "SELECT vocabulary.datarepo_row_id FROM datasetName.vocabulary WHERE vocabulary.vocabulary_id IN ('1')");
-    String expectedQuery =
-        """
-            SELECT alias927641339.datarepo_row_id FROM (SELECT * FROM
-            OPENROWSET(
-              BULK 'metadata/parquet/vocabulary/*/*.parquet',
-              DATA_SOURCE = 'sourceDatasetDataSourceName1',
-              FORMAT = 'parquet') AS inner_alias927641339) AS alias927641339
-            WHERE alias927641339.vocabulary_id IN ( '1' )""";
-    assertThat(
-        "Translation is correct",
-        query.translateSql(synapseVisitor),
-        equalToCompressingWhiteSpace(expectedQuery));
-  }
-
-  @Test
-  void testSynapseTranslate_NoTableNameAlias() {
-    String sourceDatasetDataSourceName = "sourceDatasetDataSourceName1";
-    SynapseVisitor synapseVisitor = new SynapseVisitor(datasetMap, sourceDatasetDataSourceName);
-    Query query =
-        Query.parse(
-            "SELECT datarepo_row_id FROM datasetName.vocabulary WHERE vocabulary_id IN ('1')");
-    String expectedQuery =
-        """
-            SELECT datarepo_row_id FROM (SELECT * FROM OPENROWSET(
-              BULK 'metadata/parquet/vocabulary/*/*.parquet',
-              DATA_SOURCE = 'sourceDatasetDataSourceName1',
-              FORMAT = 'parquet') AS inner_alias927641339) AS alias927641339
-            WHERE vocabulary_id IN ( '1' )""";
-    assertThat(
-        "Translation is correct",
-        query.translateSql(synapseVisitor),
-        equalToCompressingWhiteSpace(expectedQuery));
-  }
-
-  @Test
-  void testSynapseTranslate_UIQuery() {
-    String sourceDatasetDataSourceName = "sourceDatasetDataSourceName1";
-    SynapseVisitor synapseVisitor = new SynapseVisitor(datasetMap, sourceDatasetDataSourceName);
-    Query query =
-        Query.parse(
-            "SELECT it_dataset_omop3e3960eb_a12c_441b_ac07_d863f1bce90b.vocabulary.datarepo_row_id FROM it_dataset_omop3e3960eb_a12c_441b_ac07_d863f1bce90b.vocabulary WHERE (it_dataset_omop3e3960eb_a12c_441b_ac07_d863f1bce90b.vocabulary.vocabulary_id IN (\"1\"))");
-    String expectedQuery =
-        """
-            SELECT alias927641339.datarepo_row_id FROM (SELECT * FROM
-            OPENROWSET(
-              BULK 'metadata/parquet/vocabulary/*/*.parquet',
-              DATA_SOURCE = 'sourceDatasetDataSourceName1',
-              FORMAT = 'parquet') AS inner_alias927641339) AS alias927641339
-            WHERE ( alias927641339.vocabulary_id IN ( '1' ) )""";
-    assertThat(
-        "Translation is correct",
-        query.translateSql(synapseVisitor),
-        Matchers.equalToCompressingWhiteSpace(expectedQuery));
-  }
-
-  @Test
-  void testSynapseTranslate_UIQueryWithJoin() {
-    String userQuery =
-        "SELECT Azure_V2F_GWAS_Summary_Statistics.variant.datarepo_row_id FROM Azure_V2F_GWAS_Summary_Statistics.variant JOIN Azure_V2F_GWAS_Summary_Statistics.ancestry_specific_meta_analysis ON Azure_V2F_GWAS_Summary_Statistics.ancestry_specific_meta_analysis.variant_id = Azure_V2F_GWAS_Summary_Statistics.variant.id WHERE Azure_V2F_GWAS_Summary_Statistics.ancestry_specific_meta_analysis.variant_id  IN (\"1:104535993:T:C\")";
-    String sourceDatasetDataSourceName = "sourceDatasetDataSourceName1";
-    SynapseVisitor synapseVisitor = new SynapseVisitor(datasetMap, sourceDatasetDataSourceName);
-    Query query = Query.parse(userQuery);
-    String expectedQuery =
-        """
-            SELECT alias236785828.datarepo_row_id FROM (SELECT * FROM
-            OPENROWSET(
-               BULK 'metadata/parquet/variant/*/*.parquet',
-               DATA_SOURCE = 'sourceDatasetDataSourceName1',
-               FORMAT = 'parquet') AS inner_alias236785828)
-             AS alias236785828
-             JOIN (SELECT * FROM
-              OPENROWSET(
-                BULK 'metadata/parquet/ancestry_specific_meta_analysis/*/*.parquet',
-                DATA_SOURCE = 'sourceDatasetDataSourceName1',
-                FORMAT = 'parquet') AS inner_alias1748223664)
-             AS alias1748223664
-             ON alias1748223664.variant_id = alias236785828.id WHERE alias1748223664.variant_id IN ( '1:104535993:T:C' )""";
-    assertThat(
-        "Translation is correct",
-        query.translateSql(synapseVisitor),
-        equalToCompressingWhiteSpace(expectedQuery));
   }
 
   @Test

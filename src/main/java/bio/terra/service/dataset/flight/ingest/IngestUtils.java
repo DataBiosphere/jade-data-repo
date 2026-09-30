@@ -78,7 +78,6 @@ public final class IngestUtils {
 
   public static DatasetTable getDatasetTable(FlightContext context, Dataset dataset) {
     IngestRequestModel ingestRequest = getIngestRequestModel(context);
-    Objects.requireNonNull(ingestRequest, "ingest request is required");
     Optional<DatasetTable> optTable = dataset.getTableByName(ingestRequest.getTable());
     if (!optTable.isPresent()) {
       throw new TableNotFoundException("Table not found: " + ingestRequest.getTable());

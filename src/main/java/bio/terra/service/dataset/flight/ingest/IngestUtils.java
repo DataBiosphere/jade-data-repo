@@ -45,6 +45,8 @@ import org.slf4j.LoggerFactory;
 public final class IngestUtils {
   private static final Logger logger = LoggerFactory.getLogger(IngestUtils.class);
 
+  private IngestUtils() {}
+
   /**
    * @param context with {@link JobMapKeys#DATASET_ID} provided as an input parameter.
    * @return the dataset ID from the input parameter map

@@ -8,14 +8,11 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoBigQueryModel;
 import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.AccessInfoModel;
-import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
-import java.time.Duration;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -25,10 +22,6 @@ import org.stringtemplate.v4.ST;
 @Component
 public final class MetadataDataAccessUtils {
 
-  // Increasing the default SAS token expiration time to 60 minutes only for Azure
-  // to allow for larger file downloads; This should not apply to TDR on GCP
-  // private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofMinutes(15);
-  private static final Duration AZURE_SAS_TOKEN_EXPIRATION = Duration.ofMinutes(60);
   private static final String BIGQUERY_DATASET_LINK =
       "https://console.cloud.google.com/bigquery?project=<project>&"
           + "ws=!<dataset>&d=<dataset>&p=<project>&page=<page>";
@@ -37,10 +30,6 @@ public final class MetadataDataAccessUtils {
   private static final String BIGQUERY_DATASET_ID = "<project>:<dataset>";
   private static final String BIGQUERY_TABLE_ID = "<dataset_id>.<table>";
   private static final String BIGQUERY_BASE_QUERY = "SELECT * FROM `<table_address>`";
-
-  private static final String DEPLOYED_APPLICATION_RESOURCE_ID =
-      "/subscriptions/<subscription>/resourceGroups"
-          + "/<resource_group>/providers/Microsoft.Solutions/applications/<application_name>";
 
   private final ResourceService resourceService;
   private final ProfileService profileService;
@@ -165,56 +154,5 @@ public final class MetadataDataAccessUtils {
                     .collect(Collectors.toList())));
 
     return accessInfoModel;
-  }
-
-  /**
-   * Return the Azure resource ID for the application deployment associated with the specified
-   * {@link BillingProfileModel}
-   *
-   * @param profileModel The billing profile to get the application deployment for
-   * @return Azure resource identifier
-   */
-  public static String getApplicationDeploymentId(BillingProfileModel profileModel) {
-    return getApplicationDeploymentId(
-        profileModel.getSubscriptionId(),
-        profileModel.getResourceGroupName(),
-        profileModel.getApplicationDeploymentName());
-  }
-
-  /**
-   * Return the Azure resource ID for the application deployment associated with the specified
-   * parameters
-   *
-   * @param subscriptionId The ID of the subscription into which the application is deployed
-   * @param resourceGroupName The name of the resource group into which the application is deployed
-   * @param applicationDeploymentName The name of the application deployment
-   * @return Azure resource identifier
-   */
-  public static String getApplicationDeploymentId(
-      UUID subscriptionId, String resourceGroupName, String applicationDeploymentName) {
-    return new ST(DEPLOYED_APPLICATION_RESOURCE_ID)
-        .add("subscription", subscriptionId)
-        .add("resource_group", resourceGroupName)
-        .add("application_name", applicationDeploymentName)
-        .render();
-  }
-
-  private static class UrlParts {
-    private final String url;
-    private final String sasToken;
-
-    public UrlParts(final String url, final String sasToken) {
-      this.url = url;
-      this.sasToken = sasToken;
-    }
-
-    public static UrlParts fromUrl(final String signedURL) {
-      String[] urlParts = signedURL.split("\\?");
-      if (urlParts.length != 2) {
-        throw new IllegalArgumentException(
-            String.format("Url %s does not appear to be properly formatted", signedURL));
-      }
-      return new UrlParts(urlParts[0], urlParts[1]);
-    }
   }
 }

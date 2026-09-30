@@ -92,32 +92,6 @@ class IngestUtilsTest {
     }
   }
 
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "/test/azure_simple_dataset_ingest.csv",
-        "/test/----.json",
-        "/test/nested/0_o.json"
-      })
-  private static Stream<Arguments> testInvalidBlobUrl() {
-    return Stream.of(
-        arguments(
-            "invalid scheme",
-            "gs://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata/test/azure-simple-dataset-ingest-request.csv"),
-        arguments(
-            "invalid host",
-            "https://tdrconnectedsrc1/synapsetestdata/test/azure-simple-dataset-ingest-request.csv"),
-        arguments(
-            "invalid file extension",
-            "https://tdrconnectedsrc1.blob.core.windows.net/test/azure-simple-dataset-ingest-request"),
-        arguments(
-            "illegal double dash",
-            "https://tdrconnectedsrc1.blob.core.windows.net/synapsetest--data/test/azure-simple-dataset-ingest-request.csv"),
-        arguments(
-            "illegal uppercase",
-            "https://tdrconnectedsrc1.blob.core.windows.net/SYNAPSETEST/test/azure-simple-dataset-ingest-request.csv"));
-  }
-
   @Test
   void testShouldIgnoreUserSpecifiedRowIds() {
     // We should not find ourselves here: ingests default to append mode if unspecified.

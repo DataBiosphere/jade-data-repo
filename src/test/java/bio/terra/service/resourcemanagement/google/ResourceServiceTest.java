@@ -17,11 +17,8 @@ import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.AzureStorageResource;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.GoogleStorageResource;
 import bio.terra.service.profile.ProfileDao;
@@ -43,11 +40,7 @@ class ResourceServiceTest {
 
   @Mock private GoogleBucketService bucketService;
 
-  @Mock private DatasetStorageAccountDao datasetStorageAccountDao;
-
   @Mock private GoogleResourceManagerService resourceManagerService;
-
-  private final UUID billingProfileId = UUID.randomUUID();
 
   private final UUID datasetId = UUID.randomUUID();
 
@@ -64,13 +57,6 @@ class ResourceServiceTest {
                       AzureCloudResource.STORAGE_ACCOUNT,
                       AzureRegion.DEFAULT_AZURE_REGION)));
   private final Dataset dataset = new Dataset(datasetSummary).id(datasetId);
-
-  private final BillingProfileModel profileModel =
-      ProfileFixtures.randomAzureBillingProfile().id(billingProfileId);
-  private final UUID applicationId = UUID.randomUUID();
-  private final UUID storageAccountId = UUID.randomUUID();
-  private static final String MANAGED_RESOURCE_GROUP_NAME = "mgd-grp-1";
-  private static final String STORAGE_ACCOUNT_NAME = "sa";
 
   @BeforeEach
   void setup() {

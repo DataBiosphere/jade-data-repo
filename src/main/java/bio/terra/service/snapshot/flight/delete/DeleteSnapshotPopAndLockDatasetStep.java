@@ -51,13 +51,10 @@ public class DeleteSnapshotPopAndLockDatasetStep implements Step {
           snapshot.getProjectResource() != null
               && snapshot.getProjectResource().getGoogleProjectId() != null;
       map.put(SnapshotWorkingMapKeys.SNAPSHOT_HAS_GOOGLE_PROJECT, hasGoogleProject);
-      boolean hasAzureStorageAccount = snapshot.getStorageAccountResource() != null;
-      map.put(SnapshotWorkingMapKeys.SNAPSHOT_HAS_AZURE_STORAGE_ACCOUNT, hasAzureStorageAccount);
     } catch (SnapshotNotFoundException snapshotNotFoundException) {
       map.put(SnapshotWorkingMapKeys.SNAPSHOT_EXISTS, false);
       map.put(SnapshotWorkingMapKeys.DATASET_EXISTS, false);
       map.put(SnapshotWorkingMapKeys.SNAPSHOT_HAS_GOOGLE_PROJECT, false);
-      map.put(SnapshotWorkingMapKeys.SNAPSHOT_HAS_AZURE_STORAGE_ACCOUNT, false);
 
       return StepResult.getStepResultSuccess();
     }

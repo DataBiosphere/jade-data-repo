@@ -17,9 +17,7 @@ import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
-import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FileService;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
@@ -74,7 +72,6 @@ public class FileIngestBulkFlight extends Flight {
     DatasetBucketDao datasetBucketDao = appContext.getBean(DatasetBucketDao.class);
     GoogleProjectService googleProjectService = appContext.getBean(GoogleProjectService.class);
     GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
-    AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     ExecutorService executor = appContext.getBean("performanceThreadpool", ExecutorService.class);
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
     FileService fileService = appContext.getBean(FileService.class);
@@ -160,9 +157,8 @@ public class FileIngestBulkFlight extends Flight {
     if (!isBulkMode) {
       addStep(new LoadLockStep(loadService), randomBackoffRetry);
     }
-    CloudFileReader cloudFileReader = (platform.isGcp()) ? gcsPdao : azureBlobStorePdao;
     addStep(
-        new ValidateBucketAccessStep(cloudFileReader, userReq, dataset),
+        new ValidateBucketAccessStep(gcsPdao, userReq, dataset),
         getDefaultExponentialBackoffRetryRule());
     if (platform.isGcp()) {
       addStep(new VerifyBillingAccountAccessStep(googleBillingService));
@@ -227,16 +223,7 @@ public class FileIngestBulkFlight extends Flight {
                   userReq,
                   dataset));
         } else {
-          addStep(
-              new IngestPopulateFileStateFromFileAzureStep(
-                  loadService,
-                  appConfig.getMaxBadLoadFileLineErrorsReported(),
-                  appConfig.getLoadFilePopulateBatchSize(),
-                  azureBlobStorePdao,
-                  bulkLoadObjectMapper,
-                  executor,
-                  userReq,
-                  dataset));
+          throw CommonExceptions.AZURE_NOT_SUPPORTED;
         }
       }
       addStep(

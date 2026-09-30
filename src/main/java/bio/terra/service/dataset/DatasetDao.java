@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import javax.sql.DataSource;
 import org.apache.commons.lang3.StringUtils;
@@ -527,12 +528,8 @@ public class DatasetDao implements TaggableResourceDao {
           dataset.projectResource(
               resourceService.getProjectResource(dataset.getProjectResourceId()));
         }
-        if (dataset.getApplicationDeploymentResourceId() != null) {
-          dataset.applicationDeploymentResource(
-              resourceService.getApplicationDeploymentResource(
-                  dataset.getApplicationDeploymentResourceId()));
-        }
       }
+      Objects.requireNonNull(dataset, "dataset is required");
       return dataset;
     } catch (EmptyResultDataAccessException ex) {
       throw new CorruptMetadataException("Inconsistent data", ex);

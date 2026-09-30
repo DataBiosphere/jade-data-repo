@@ -80,7 +80,6 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.GoogleStorageResource;
 import bio.terra.service.duos.DuosClient;
-import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobBuilder;
 import bio.terra.service.job.JobMapKeys;
@@ -158,7 +157,6 @@ class SnapshotServiceTest {
   @Mock private SnapshotRequestDao snapshotRequestDao;
   @Mock private SnapshotTableDao snapshotTableDao;
   @Mock private IamService iamService;
-  @Mock private AzureSynapsePdao azureSynapsePdao;
   @Mock private EcmService ecmService;
   @Mock private RawlsService rawlsService;
   @Mock private DuosClient duosClient;
@@ -187,7 +185,6 @@ class SnapshotServiceTest {
             metadataDataAccessUtils,
             iamService,
             ecmService,
-            azureSynapsePdao,
             rawlsService,
             duosClient,
             settingsDao);

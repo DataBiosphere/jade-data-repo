@@ -16,7 +16,6 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -59,8 +58,7 @@ class DeleteSnapshotPopAndLockDatasetStepTest {
         new Snapshot()
             .id(snapshotId)
             .snapshotSources(List.of(new SnapshotSource().dataset(new Dataset().id(datasetId))))
-            .projectResource(new GoogleProjectResource().googleProjectId("projectId"))
-            .storageAccountResource(new AzureStorageAccountResource());
+            .projectResource(new GoogleProjectResource().googleProjectId("projectId"));
     step =
         new DeleteSnapshotPopAndLockDatasetStep(
             snapshotId, snapshotService, datasetService, TEST_USER, sharedLock);
@@ -80,7 +78,6 @@ class DeleteSnapshotPopAndLockDatasetStepTest {
     FlightMap map = flightContext.getWorkingMap();
     assertTrue(getBoolean(map, SnapshotWorkingMapKeys.SNAPSHOT_EXISTS));
     assertTrue(getBoolean(map, SnapshotWorkingMapKeys.SNAPSHOT_HAS_GOOGLE_PROJECT));
-    assertTrue(getBoolean(map, SnapshotWorkingMapKeys.SNAPSHOT_HAS_AZURE_STORAGE_ACCOUNT));
     assertEquals(datasetId, map.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class));
     verify(datasetService).lock(eq(datasetId), any(), eq(sharedLock));
     assertTrue(getBoolean(map, SnapshotWorkingMapKeys.DATASET_EXISTS));
@@ -102,7 +99,6 @@ class DeleteSnapshotPopAndLockDatasetStepTest {
     assertFalse(getBoolean(map, SnapshotWorkingMapKeys.SNAPSHOT_EXISTS));
     assertFalse(getBoolean(map, SnapshotWorkingMapKeys.DATASET_EXISTS));
     assertFalse(getBoolean(map, SnapshotWorkingMapKeys.SNAPSHOT_HAS_GOOGLE_PROJECT));
-    assertFalse(getBoolean(map, SnapshotWorkingMapKeys.SNAPSHOT_HAS_AZURE_STORAGE_ACCOUNT));
   }
 
   // dataset does not exist

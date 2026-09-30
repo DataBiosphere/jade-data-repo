@@ -14,7 +14,6 @@ import bio.terra.service.dataset.exception.InvalidColumnException;
 import bio.terra.service.dataset.exception.InvalidTableException;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
-import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -35,7 +34,6 @@ public class Dataset implements FSContainerInterface, LogPrintable {
   private List<Relationship> relationships = Collections.emptyList();
   private List<AssetSpecification> assetSpecifications = Collections.emptyList();
   private GoogleProjectResource projectResource;
-  private AzureApplicationDeploymentResource applicationDeploymentResource;
 
   public Dataset() {
     datasetSummary = new DatasetSummary();
@@ -331,16 +329,6 @@ public class Dataset implements FSContainerInterface, LogPrintable {
   @Override
   public FireStoreProject firestoreConnection() {
     return FireStoreProject.get(getProjectResource().getGoogleProjectId());
-  }
-
-  public AzureApplicationDeploymentResource getApplicationDeploymentResource() {
-    return applicationDeploymentResource;
-  }
-
-  public Dataset applicationDeploymentResource(
-      AzureApplicationDeploymentResource applicationDeploymentResource) {
-    this.applicationDeploymentResource = applicationDeploymentResource;
-    return this;
   }
 
   public AzureRegion getStorageAccountRegion() {

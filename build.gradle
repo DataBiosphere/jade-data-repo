@@ -82,6 +82,9 @@ allprojects {
             dependency 'org.bouncycastle:bcpkix-jdk18on:1.85'
             dependency 'org.bouncycastle:bcprov-jdk18on:1.85'
             dependency 'org.bouncycastle:bcutil-jdk18on:1.85'
+            dependency 'org.apache.httpcomponents.client5:httpclient5:5.6.4'
+            dependency 'org.apache.httpcomponents.core5:httpcore5:5.4.3'    // used by httpclient5
+            dependency 'org.apache.httpcomponents.core5:httpcore5-h2:5.4.3' // used by httpclient5
         }
     }
     // CVE-2026-33117: force azure-security-keyvault-keys to patched version

@@ -1,5 +1,6 @@
 package bio.terra.app.configuration;
 
+import java.time.Duration;
 import java.util.Properties;
 import org.apache.commons.dbcp2.ConnectionFactory;
 import org.apache.commons.dbcp2.DriverManagerConnectionFactory;
@@ -100,9 +101,17 @@ public class JdbcConfiguration {
     final PoolableConnectionFactory poolableConnectionFactory =
         new PoolableConnectionFactory(connectionFactory, null);
 
+    // timeout for the testOnBorrow validation query
+    poolableConnectionFactory.setValidationQueryTimeout(Duration.ofSeconds(5));
+    // Always rebuild a connection after 30 mins; this prevents bad connections
+    // from remaining in the pool indefinitely
+    poolableConnectionFactory.setMaxConn(Duration.ofMinutes(30));
+
     final GenericObjectPoolConfig<PoolableConnection> config = new GenericObjectPoolConfig<>();
     config.setMaxTotal(poolMaxTotal);
     config.setMaxIdle(poolMaxIdle);
+    // validate each connection when getting it from the pool
+    config.setTestOnBorrow(true);
     final ObjectPool<PoolableConnection> connectionPool =
         new GenericObjectPool<>(poolableConnectionFactory, config);
 

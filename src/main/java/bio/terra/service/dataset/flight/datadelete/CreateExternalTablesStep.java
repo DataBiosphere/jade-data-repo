@@ -14,8 +14,6 @@ import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import bio.terra.stairway.StepStatus;
-import com.google.cloud.bigquery.BigQueryException;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -59,19 +57,9 @@ public class CreateExternalTablesStep implements Step {
     // At this point, all table models have a GcsFileSpec
     for (DataDeletionTableModel table : tables) {
       String path = table.getGcsFileSpec().getPath();
-      // Drop any table left by an earlier attempt, so this step can be retried.
-      BigQueryPdao.deleteExternalTable(dataset, table.getTableName(), suffix);
-      try {
-        // let any other exception here trigger an undo, no use trying to continue
-        bigQueryDatasetPdao.createSoftDeleteExternalTable(
-            dataset, path, table.getTableName(), suffix);
-      } catch (BigQueryException e) {
-        if (BigQueryUtils.isAccessDenied(e)) {
-          // The scratch bucket's IAM grant to TDR can take a few minutes to reach BigQuery.
-          return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
-        }
-        throw e;
-      }
+      // let any exception here trigger an undo, no use trying to continue
+      bigQueryDatasetPdao.createSoftDeleteExternalTable(
+          dataset, path, table.getTableName(), suffix);
     }
 
     return StepResult.getStepResultSuccess();

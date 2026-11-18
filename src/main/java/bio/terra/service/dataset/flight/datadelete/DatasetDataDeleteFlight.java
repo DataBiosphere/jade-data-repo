@@ -100,9 +100,7 @@ public class DatasetDataDeleteFlight extends Flight {
     addStep(new DataDeletionCopyFilesToBigQueryScratchBucketStep(datasetService, gcsPdao));
 
     // validate tables exist, check access to files, and create external temp tables
-    addStep(
-        new CreateExternalTablesStep(bigQueryDatasetPdao, datasetService),
-        getDefaultExponentialBackoffRetryRule());
+    addStep(new CreateExternalTablesStep(bigQueryDatasetPdao, datasetService));
 
     // insert into soft delete table
     addStep(

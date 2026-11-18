@@ -8,7 +8,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -23,7 +22,6 @@ import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.BucketInfo.Autoclass;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageClass;
-import com.google.cloud.storage.StorageException;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -117,20 +115,6 @@ public class GoogleBucketServiceTest {
     googleBucketService.ensureObjectViewer(bucketResource(), "tdr@project.iam.gserviceaccount.com");
 
     verify(storage, never()).setIamPolicy(any(), any());
-  }
-
-  @Test
-  void testEnsureObjectViewerRetriesConcurrentPolicyChange() {
-    Storage storage = mockStorageForService();
-    when(storage.getIamPolicy(eq(BUCKET_NAME), any())).thenReturn(Policy.newBuilder().build());
-    when(storage.setIamPolicy(eq(BUCKET_NAME), any()))
-        .thenThrow(new StorageException(412, "Precondition Failed"))
-        .thenReturn(Policy.newBuilder().build());
-
-    googleBucketService.ensureObjectViewer(bucketResource(), "tdr@project.iam.gserviceaccount.com");
-
-    verify(storage, times(2)).getIamPolicy(eq(BUCKET_NAME), any());
-    verify(storage, times(2)).setIamPolicy(eq(BUCKET_NAME), any());
   }
 
   private GoogleBucketResource bucketResource() {

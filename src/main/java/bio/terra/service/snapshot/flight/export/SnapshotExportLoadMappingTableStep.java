@@ -1,6 +1,5 @@
 package bio.terra.service.snapshot.flight.export;
 
-import bio.terra.service.common.gcs.BigQueryUtils;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.Snapshot;
@@ -11,9 +10,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
-import com.google.cloud.bigquery.BigQueryException;
 import java.util.UUID;
 
 public class SnapshotExportLoadMappingTableStep implements Step {
@@ -42,18 +39,8 @@ public class SnapshotExportLoadMappingTableStep implements Step {
     String gsPathMappingFilePath =
         GcsUriUtils.getGsPathFromComponents(bucketResource.getName(), gsPathMappingFile);
 
-    // Drop any table left by an earlier attempt, so this step can be retried.
-    BigQueryExportPdao.deleteFirestoreGsPathExternalTable(snapshot, context.getFlightId());
-    try {
-      bigQueryExportPdao.createFirestoreGsPathExternalTable(
-          snapshot, gsPathMappingFilePath, context.getFlightId());
-    } catch (BigQueryException e) {
-      if (BigQueryUtils.isAccessDenied(e)) {
-        // The export bucket's IAM grant to TDR can take a few minutes to reach BigQuery.
-        return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
-      }
-      throw e;
-    }
+    bigQueryExportPdao.createFirestoreGsPathExternalTable(
+        snapshot, gsPathMappingFilePath, context.getFlightId());
     return StepResult.getStepResultSuccess();
   }
 

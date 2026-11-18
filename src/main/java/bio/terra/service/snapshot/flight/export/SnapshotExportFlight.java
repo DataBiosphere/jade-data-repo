@@ -1,7 +1,5 @@
 package bio.terra.service.snapshot.flight.export;
 
-import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
-
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.CommonExceptions;
@@ -73,8 +71,7 @@ public class SnapshotExportFlight extends Flight {
           new SnapshotExportDumpFirestoreStep(
               snapshotService, fireStoreDao, gcsPdao, snapshotId, objectMapper));
       addStep(
-          new SnapshotExportLoadMappingTableStep(snapshotId, snapshotService, bigQueryExportPdao),
-          getDefaultExponentialBackoffRetryRule());
+          new SnapshotExportLoadMappingTableStep(snapshotId, snapshotService, bigQueryExportPdao));
     }
 
     if (platform.isGcp()) {

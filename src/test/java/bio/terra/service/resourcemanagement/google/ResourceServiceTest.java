@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -52,21 +53,61 @@ class ResourceServiceTest {
                       datasetId, GoogleCloudResource.BUCKET, GoogleRegion.DEFAULT_GOOGLE_REGION),
                   new GoogleStorageResource(
                       datasetId, GoogleCloudResource.FIRESTORE, GoogleRegion.DEFAULT_GOOGLE_REGION),
+                  new GoogleStorageResource(
+                      datasetId, GoogleCloudResource.BIGQUERY, GoogleRegion.DEFAULT_GOOGLE_REGION),
                   new AzureStorageResource(
                       datasetId,
                       AzureCloudResource.STORAGE_ACCOUNT,
                       AzureRegion.DEFAULT_AZURE_REGION)));
   private final Dataset dataset = new Dataset(datasetSummary).id(datasetId);
 
+  private static final String TDR_SERVICE_ACCOUNT = "tdr@project.iam.gserviceaccount.com";
+
   @BeforeEach
   void setup() {
-    resourceService =
-        new ResourceService(
-            mock(GoogleProjectService.class),
-            bucketService,
-            mock(SamConfiguration.class),
-            resourceManagerService,
-            mock(ProfileDao.class));
+    resourceService = resourceService(TDR_SERVICE_ACCOUNT);
+  }
+
+  private ResourceService resourceService(String tdrServiceAccountEmail) {
+    return new ResourceService(
+        mock(GoogleProjectService.class),
+        bucketService,
+        mock(SamConfiguration.class),
+        resourceManagerService,
+        mock(ProfileDao.class),
+        tdrServiceAccountEmail);
+  }
+
+  @Test
+  void scratchBucketGrantsTdrObjectViewer() throws Exception {
+    GoogleProjectResource projectResource = new GoogleProjectResource();
+    GoogleBucketResource bucketResource =
+        new GoogleBucketResource().projectResource(projectResource);
+    when(bucketService.getOrCreateBucket(
+            any(), any(), any(), any(), any(), any(), any(), anyBoolean()))
+        .thenReturn(bucketResource);
+    dataset.projectResource(projectResource);
+
+    GoogleBucketResource bucket =
+        resourceService.getOrCreateBucketForBigQueryScratchFile(dataset, "flightId");
+
+    assertThat(bucket, is(bucketResource));
+    verify(bucketService).ensureObjectViewer(bucketResource, TDR_SERVICE_ACCOUNT);
+  }
+
+  @Test
+  void scratchBucketSkipsGrantWithoutServiceAccount() throws Exception {
+    GoogleProjectResource projectResource = new GoogleProjectResource();
+    GoogleBucketResource bucketResource =
+        new GoogleBucketResource().projectResource(projectResource);
+    when(bucketService.getOrCreateBucket(
+            any(), any(), any(), any(), any(), any(), any(), anyBoolean()))
+        .thenReturn(bucketResource);
+    dataset.projectResource(projectResource);
+
+    resourceService(null).getOrCreateBucketForBigQueryScratchFile(dataset, "flightId");
+
+    verify(bucketService, never()).ensureObjectViewer(any(), any());
   }
 
   @Test

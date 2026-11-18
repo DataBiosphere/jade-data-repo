@@ -31,6 +31,8 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -49,6 +51,7 @@ public class ResourceService {
   private final SamConfiguration samConfiguration;
   private final GoogleResourceManagerService resourceManagerService;
   private final ProfileDao profileDao;
+  private final String tdrServiceAccountEmail;
 
   @Autowired
   public ResourceService(
@@ -56,12 +59,14 @@ public class ResourceService {
       GoogleBucketService bucketService,
       SamConfiguration samConfiguration,
       GoogleResourceManagerService resourceManagerService,
-      ProfileDao profileDao) {
+      ProfileDao profileDao,
+      @Qualifier("tdrServiceAccountEmail") @Nullable String tdrServiceAccountEmail) {
     this.projectService = projectService;
     this.bucketService = bucketService;
     this.samConfiguration = samConfiguration;
     this.resourceManagerService = resourceManagerService;
     this.profileDao = profileDao;
+    this.tdrServiceAccountEmail = tdrServiceAccountEmail;
   }
 
   /**
@@ -167,16 +172,19 @@ public class ResourceService {
   public GoogleBucketResource getOrCreateBucketForBigQueryScratchFile(
       Dataset dataset, String flightId) throws InterruptedException, GoogleResourceNamingException {
     GoogleProjectResource projectResource = dataset.getProjectResource();
-    return bucketService.getOrCreateBucket(
-        projectService.bucketForBigQueryScratchFile(projectResource.getGoogleProjectId()),
-        projectResource,
-        (GoogleRegion)
-            dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
-        flightId,
-        null,
-        null,
-        dataset.getProjectResource().getServiceAccount(),
-        false);
+    GoogleBucketResource bucket =
+        bucketService.getOrCreateBucket(
+            projectService.bucketForBigQueryScratchFile(projectResource.getGoogleProjectId()),
+            projectResource,
+            (GoogleRegion)
+                dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
+            flightId,
+            null,
+            null,
+            dataset.getProjectResource().getServiceAccount(),
+            false);
+    ensureTdrCanReadForBigQuery(bucket);
+    return bucket;
   }
 
   /**
@@ -197,20 +205,38 @@ public class ResourceService {
   public GoogleBucketResource getOrCreateBucketForSnapshotExport(Snapshot snapshot, String flightId)
       throws InterruptedException, GoogleResourceNamingException {
     GoogleProjectResource projectResource = snapshot.getProjectResource();
-    return bucketService.getOrCreateBucket(
-        projectService.bucketForSnapshotExport(projectResource.getGoogleProjectId()),
-        projectResource,
-        (GoogleRegion)
-            snapshot
-                .getFirstSnapshotSource()
-                .getDataset()
-                .getDatasetSummary()
-                .getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
-        flightId,
-        Duration.ofDays(1),
-        null,
-        null,
-        false);
+    GoogleBucketResource bucket =
+        bucketService.getOrCreateBucket(
+            projectService.bucketForSnapshotExport(projectResource.getGoogleProjectId()),
+            projectResource,
+            (GoogleRegion)
+                snapshot
+                    .getFirstSnapshotSource()
+                    .getDataset()
+                    .getDatasetSummary()
+                    .getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
+            flightId,
+            Duration.ofDays(1),
+            null,
+            null,
+            false);
+    ensureTdrCanReadForBigQuery(bucket);
+    return bucket;
+  }
+
+  /**
+   * BigQuery external tables over this bucket are created with TDR's own credentials, and BigQuery
+   * requires bucket IAM storage.objects.get to create them (CTM-780). Existing buckets are returned
+   * by getOrCreateBucket without IAM changes, so grant the role on every use.
+   */
+  private void ensureTdrCanReadForBigQuery(GoogleBucketResource bucket) {
+    if (tdrServiceAccountEmail == null) {
+      logger.warn(
+          "TDR is not running as a service account; not granting it read access to bucket {}",
+          bucket.getName());
+      return;
+    }
+    bucketService.ensureObjectViewer(bucket, tdrServiceAccountEmail);
   }
 
   /**

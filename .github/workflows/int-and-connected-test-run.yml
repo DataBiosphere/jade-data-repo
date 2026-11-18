@@ -145,6 +145,14 @@ jobs:
           name: integration-test-api-logs
           path: local-api-output.log
           retention-days: 7
+      # TEMPORARY (CTM-780 diagnosis): remove before merging.
+      - name: Upload integration test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-reports
+          path: build/test-results/testIntegration
+          retention-days: 7
   git_hash:
     name: Extract git hash
     runs-on: ubuntu-latest

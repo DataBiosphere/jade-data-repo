@@ -1,22 +1,31 @@
 package bio.terra.service.resourcemanagement.google;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.category.Unit;
 import bio.terra.service.filedata.google.gcs.GcsProject;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
+import com.google.cloud.Binding;
 import com.google.cloud.Policy;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.BucketInfo.Autoclass;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageClass;
+import com.google.cloud.storage.StorageException;
 import java.time.Duration;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -63,6 +72,72 @@ public class GoogleBucketServiceTest {
     Storage storage = mockStorageForService();
     Storage actual = googleBucketService.getStorageForBucketResource(bucketResource);
     assertThat(actual, is(storage));
+  }
+
+  @Test
+  void testEnsureObjectViewerAddsMissingBinding() {
+    String member = "serviceAccount:tdr@project.iam.gserviceaccount.com";
+    Storage storage = mockStorageForService();
+    Binding existing =
+        Binding.newBuilder()
+            .setRole("roles/storage.legacyBucketOwner")
+            .setMembers(List.of("projectOwner:project"))
+            .build();
+    when(storage.getIamPolicy(eq(BUCKET_NAME), any()))
+        .thenReturn(Policy.newBuilder().setBindings(List.of(existing)).build());
+
+    googleBucketService.ensureObjectViewer(bucketResource(), "tdr@project.iam.gserviceaccount.com");
+
+    ArgumentCaptor<Policy> policy = ArgumentCaptor.forClass(Policy.class);
+    verify(storage).setIamPolicy(eq(BUCKET_NAME), policy.capture());
+    assertThat(policy.getValue().getBindingsList(), hasItem(existing));
+    assertThat(
+        policy.getValue().getBindingsList(),
+        hasItem(
+            Binding.newBuilder()
+                .setRole(GoogleBucketService.STORAGE_OBJECT_VIEWER_ROLE)
+                .setMembers(List.of(member))
+                .build()));
+  }
+
+  @Test
+  void testEnsureObjectViewerLeavesExistingBindingAlone() {
+    Storage storage = mockStorageForService();
+    Binding viewer =
+        Binding.newBuilder()
+            .setRole(GoogleBucketService.STORAGE_OBJECT_VIEWER_ROLE)
+            .setMembers(
+                List.of(
+                    "group:readers@example.com",
+                    "serviceAccount:tdr@project.iam.gserviceaccount.com"))
+            .build();
+    when(storage.getIamPolicy(eq(BUCKET_NAME), any()))
+        .thenReturn(Policy.newBuilder().setBindings(List.of(viewer)).build());
+
+    googleBucketService.ensureObjectViewer(bucketResource(), "tdr@project.iam.gserviceaccount.com");
+
+    verify(storage, never()).setIamPolicy(any(), any());
+  }
+
+  @Test
+  void testEnsureObjectViewerRetriesConcurrentPolicyChange() {
+    Storage storage = mockStorageForService();
+    when(storage.getIamPolicy(eq(BUCKET_NAME), any())).thenReturn(Policy.newBuilder().build());
+    when(storage.setIamPolicy(eq(BUCKET_NAME), any()))
+        .thenThrow(new StorageException(412, "Precondition Failed"))
+        .thenReturn(Policy.newBuilder().build());
+
+    googleBucketService.ensureObjectViewer(bucketResource(), "tdr@project.iam.gserviceaccount.com");
+
+    verify(storage, times(2)).getIamPolicy(eq(BUCKET_NAME), any());
+    verify(storage, times(2)).setIamPolicy(eq(BUCKET_NAME), any());
+  }
+
+  private GoogleBucketResource bucketResource() {
+    return new GoogleBucketResource()
+        .name(BUCKET_NAME)
+        .region(GoogleRegion.DEFAULT_GOOGLE_REGION)
+        .projectResource(new GoogleProjectResource().googleProjectId(PROJECT_ID));
   }
 
   @Test

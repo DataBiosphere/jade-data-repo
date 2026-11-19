@@ -43,6 +43,7 @@ public class GoogleBucketService {
   public static final String STORAGE_OBJECT_VIEWER_ROLE = "roles/storage.objectViewer";
 
   public static final String STORAGE_LEGACY_BUCKET_WRITER_ROLE = "roles/storage.legacyBucketWriter";
+  private static final int ENSURE_OBJECT_VIEWER_ATTEMPTS = 3;
 
   private final GoogleResourceDao resourceDao;
   private final GcsProjectFactory gcsProjectFactory;
@@ -455,6 +456,59 @@ public class GoogleBucketService {
     Policy.Builder updatedPolicyBuilder = originalPolicy.toBuilder();
     updatedPolicyBuilder.setBindings(bindings).setVersion(3);
     storage.setIamPolicy(bucketName, updatedPolicyBuilder.build());
+  }
+
+  /**
+   * Make sure a service account holds Storage Object Viewer on a bucket through IAM.
+   *
+   * <p>BigQuery requires bucket IAM storage.objects.get to create an external table over files in a
+   * bucket (CTM-780). As a project owner, TDR's service account can read objects through ACLs, but
+   * roles/owner itself grants no storage.objects permissions. The policy is only written when the
+   * binding is missing, so this is safe to call every time a bucket is used. A concurrent policy
+   * change (HTTP 412) is retried with a fresh read of the policy.
+   *
+   * @param bucketResource the bucket to update
+   * @param serviceAccountEmail the service account that needs to read the bucket's objects
+   */
+  public void ensureObjectViewer(GoogleBucketResource bucketResource, String serviceAccountEmail) {
+    Storage storage = getStorageForBucketResource(bucketResource);
+    for (int attempt = 1; ; attempt++) {
+      try {
+        ensureObjectViewer(storage, bucketResource.getName(), serviceAccountEmail);
+        return;
+      } catch (StorageException e) {
+        if (e.getCode() != 412 || attempt >= ENSURE_OBJECT_VIEWER_ATTEMPTS) {
+          throw e;
+        }
+        logger.info(
+            "Bucket {} IAM policy changed concurrently; retrying", bucketResource.getName());
+      }
+    }
+  }
+
+  private void ensureObjectViewer(Storage storage, String bucketName, String serviceAccountEmail) {
+    String member = String.format("serviceAccount:%s", serviceAccountEmail);
+    Policy originalPolicy =
+        storage.getIamPolicy(bucketName, Storage.BucketSourceOption.requestedPolicyVersion(3));
+    boolean alreadyGranted =
+        originalPolicy.getBindingsList().stream()
+            .anyMatch(
+                binding ->
+                    STORAGE_OBJECT_VIEWER_ROLE.equals(binding.getRole())
+                        && binding.getCondition() == null
+                        && binding.getMembers().contains(member));
+    if (alreadyGranted) {
+      return;
+    }
+    logger.info("Granting {} {} on bucket {}", member, STORAGE_OBJECT_VIEWER_ROLE, bucketName);
+    List<Binding> bindings = new ArrayList<>(originalPolicy.getBindingsList());
+    bindings.add(
+        Binding.newBuilder()
+            .setRole(STORAGE_OBJECT_VIEWER_ROLE)
+            .setMembers(List.of(member))
+            .build());
+    storage.setIamPolicy(
+        bucketName, originalPolicy.toBuilder().setBindings(bindings).setVersion(3).build());
   }
 
   /**

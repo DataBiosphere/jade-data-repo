@@ -85,6 +85,9 @@ allprojects {
             dependency 'org.apache.httpcomponents.client5:httpclient5:5.6.4'
             dependency 'org.apache.httpcomponents.core5:httpcore5:5.4.3'    // used by httpclient5
             dependency 'org.apache.httpcomponents.core5:httpcore5-h2:5.4.3' // used by httpclient5
+            // CVE-2026-19880: Spring Boot 3.5.16 manages logback 1.5.34; the fix first shipped in 1.6.3
+            dependency 'ch.qos.logback:logback-classic:1.6.8'
+            dependency 'ch.qos.logback:logback-core:1.6.8'
         }
     }
     // CVE-2026-33117: force azure-security-keyvault-keys to patched version

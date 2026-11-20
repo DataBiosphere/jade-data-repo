@@ -4,11 +4,8 @@
 
     <variable name="LOG_PATH" value="logs"/>
 
-    <if condition='!isDefined("TDR_LOG_APPENDER")'>
-        <then>
-            <variable name="TDR_LOG_APPENDER" value="Console-Stackdriver" />
-        </then>
-    </if>
+    <!-- logback 1.6 ignores <if condition='...'> (Janino), so default via a substitution instead -->
+    <variable name="TDR_LOG_APPENDER" value="${TDR_LOG_APPENDER:-Console-Stackdriver}" />
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">

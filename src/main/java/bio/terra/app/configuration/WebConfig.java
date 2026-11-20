@@ -27,7 +27,8 @@ public class WebConfig implements WebMvcConfigurer {
   @Override
   public void addInterceptors(InterceptorRegistry registry) {
     registry.addInterceptor(loggerInterceptor);
-    registry.addInterceptor(metricsInterceptor);
+    // Temporarily disabled due to thread pool exhaustion under high load
+    // registry.addInterceptor(metricsInterceptor);
   }
 
   @Override

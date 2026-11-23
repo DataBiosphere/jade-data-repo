@@ -991,7 +991,7 @@ public class DrsService {
                 extractDrsFileConcatenatedStringValues(drsObjects, DRSObject::getDescription))
             .size(extractUniqueDrsObjectValue(drsObjects, DRSObject::getSize))
             .selfUri(extractUniqueDrsObjectValue(drsObjects, DRSObject::getSelfUri))
-            .mimeType(extractUniqueDrsObjectValue(drsObjects, DRSObject::getMimeType))
+            .mimeType(extractDrsFileMimeType(drsObjects))
             .version(extractUniqueDrsObjectValue(drsObjects, DRSObject::getVersion))
             .createdTime(getMinCreatedTime(drsObjects))
             .updatedTime(getMaxUpdatedTime(drsObjects))
@@ -1081,6 +1081,40 @@ public class DrsService {
         .distinct()
         .filter(Predicate.not(String::isEmpty))
         .collect(Collectors.joining(", "));
+  }
+
+  static final String GENERIC_MIME_TYPE = "application/octet-stream";
+
+  /**
+   * Given a list of DRSObjects for the same file, choose a single mime type. Copies of a file with
+   * a predictable file id can be ingested into different datasets with different (or missing) mime
+   * types, and a DRS object can hold only one, so rather than failing we pick deterministically:
+   * ignore blank values, prefer a specific type over {@value #GENERIC_MIME_TYPE}, and break any
+   * remaining tie alphabetically.
+   */
+  @VisibleForTesting
+  static String extractDrsFileMimeType(List<DRSObject> drsObjects) {
+    List<String> mimeTypes =
+        drsObjects.stream()
+            .map(DRSObject::getMimeType)
+            .filter(StringUtils::isNotBlank)
+            .map(String::trim)
+            .distinct()
+            .sorted(
+                Comparator.comparing((String m) -> m.equalsIgnoreCase(GENERIC_MIME_TYPE))
+                    .thenComparing(Comparator.naturalOrder()))
+            .toList();
+    if (mimeTypes.isEmpty()) {
+      return null;
+    }
+    if (mimeTypes.size() > 1) {
+      logger.warn(
+          "DRS object {} has conflicting mime types {}; using {}",
+          drsObjects.get(0).getId(),
+          mimeTypes,
+          mimeTypes.get(0));
+    }
+    return mimeTypes.get(0);
   }
 
   /** Given a list of DRSObjects, extract a list of distinct values sorted by the comparator. */

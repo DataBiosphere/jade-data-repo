@@ -86,6 +86,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -1285,6 +1286,55 @@ class DrsServiceTest {
         allOf(
             containsString(drsObject1.getDescription()),
             containsString(drsObject2.getDescription())));
+  }
+
+  private DRSObject fileDrsObjectWithMimeType(String mimeType, GoogleRegion region) {
+    return createFileDrsObject(
+            "v2_file1",
+            "/my/path/file1.txt",
+            123L,
+            "foomd5",
+            CloudPlatform.GCP,
+            region,
+            Instant.parse("2022-01-01T00:00:00.00Z"))
+        .mimeType(mimeType);
+  }
+
+  @Test
+  void testMergeDrsObjectsWithMissingAndPresentMimeType() {
+    // CTM-791: the same file ingested into two datasets, once without a mime type
+    DRSObject drsObject =
+        drsService.mergeDRSObjects(
+            List.of(
+                fileDrsObjectWithMimeType(null, GoogleRegion.ASIA_SOUTH1),
+                fileDrsObjectWithMimeType("application/octet-stream", GoogleRegion.US_CENTRAL1)));
+    assertThat(drsObject.getMimeType(), equalTo("application/octet-stream"));
+  }
+
+  private static Stream<Arguments> testExtractDrsFileMimeType() {
+    return Stream.of(
+        arguments(Arrays.asList(null, null), null),
+        arguments(Arrays.asList("", "  ", null), null),
+        arguments(List.of("text/plain"), "text/plain"),
+        arguments(Arrays.asList(null, "text/plain"), "text/plain"),
+        arguments(List.of("text/plain", "text/plain"), "text/plain"),
+        arguments(List.of("application/octet-stream", "text/plain"), "text/plain"),
+        arguments(List.of("text/plain", "application/octet-stream"), "text/plain"),
+        arguments(List.of("text/plain", "application/gzip"), "application/gzip"),
+        arguments(List.of("application/gzip", "text/plain"), "application/gzip"),
+        arguments(
+            Arrays.asList(null, "application/octet-stream", "application/octet-stream"),
+            "application/octet-stream"));
+  }
+
+  @ParameterizedTest
+  @MethodSource
+  void testExtractDrsFileMimeType(List<String> mimeTypes, String expected) {
+    List<DRSObject> drsObjects =
+        mimeTypes.stream()
+            .map(m -> fileDrsObjectWithMimeType(m, GoogleRegion.US_CENTRAL1))
+            .toList();
+    assertThat(DrsService.extractDrsFileMimeType(drsObjects), equalTo(expected));
   }
 
   @Test
